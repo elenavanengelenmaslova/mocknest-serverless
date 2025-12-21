@@ -6,10 +6,38 @@ MockNest consists of two main capabilities:
 1) A serverless WireMock runtime that serves mocked HTTP endpoints and exposes the WireMock admin API.
 2) A persistence layer that stores mock definitions and response payloads outside the runtime so they remain available across executions.
 
-The codebase follows a clean-architecture style described in this article https://medium.com/nntech/keeping-business-logic-portable-in-serverless-functions-with-clean-architecture-bd1976276562 to keep core behavior decoupled from infrastructure. Cloud-specific integrations (e.g., storage, entry points) are implemented in the infrastricture layer so the same core logic can be reused in other environments later.
+### AI agent and request/response flow
+The AI-assisted mock generation is not part of the runtime request/response path. It is triggered separately (e.g., via an administrative action or developer tooling) to generate or update WireMock mappings. The generated mappings and payloads are persisted to external storage, and the runtime serves them on subsequent requests.
+
+### System Architecture Diagram
+
+```mermaid
+flowchart LR
+    U[User / Test Tool / CI]
+
+    U -->|Admin calls| ADMIN[Admin API]
+    U -->|Requests| MOCKS[Mocked Endpoints]
+
+    subgraph Runtime["MockNest Runtime"]
+        ADMIN --> WM[WireMock Runtime]
+        MOCKS --> WM
+    end
+
+    WM <--> STORE[(External Storage\nMappings & Payloads)]
+
+    subgraph AIGEN["AI-assisted Mock Generation"]
+        SPEC[API Spec + Natural Language Input]
+        AGENT[Koog-based Agent]
+        SPEC --> AGENT
+        AGENT -->|Writes mappings & payloads| STORE
+    end
+```
 
 ## Clean Architecture for Serverless
-MockNest applies a simplified variant of clean architecture tailored for serverless workloads. The architecture is organised into three layers with strict dependency rules:
+MockNest applies a simplified variant of clean architecture tailored for serverless workloads.
+Clean-architecture style described in ["Keeping Business Logic Portable in Serverless Functions with Clean Architecture"](https://medium.com/nntech/keeping-business-logic-portable-in-serverless-functions-with-clean-architecture-bd1976276562) article to keep core behavior decoupled from infrastructure. 
+
+The architecture is organised into three layers with strict dependency rules:
 
 ### Domain
 - Contains domain models and business rules related to mocking behavior.
@@ -27,6 +55,35 @@ MockNest applies a simplified variant of clean architecture tailored for serverl
 - Is the only layer allowed to depend on cloud SDKs or platform-specific libraries.
 
 Dependencies flow strictly inward: infrastructure depends on application, and application depends on domain, but never the other way around.
+
+### Clean Architecture Diagram
+
+```mermaid
+flowchart TB
+    subgraph Domain
+        D1[Domain Models]
+        D2[Business Rules]
+    end
+
+    subgraph Application
+        A1[Use Cases]
+        A2[Koog-based AI Agent - Mock Generation Logic]
+        A3[Interfaces - Persistence and AI Model Access]
+    end
+
+    subgraph Infrastructure
+        I1[Infrastructure Implementations - Cloud and Platform Specific]
+    end
+
+    A1 --> D1
+    A1 --> D2
+    A2 --> A1
+    A3 --> A1
+
+    I1 --> A3
+
+```
+
 
 ## Technology Stack
 - Kotlin 
