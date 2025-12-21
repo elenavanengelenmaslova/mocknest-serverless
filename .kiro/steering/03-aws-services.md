@@ -1,5 +1,25 @@
 # AWS Services
 
+## AWS Architecture Overview
+
+```mermaid
+flowchart LR
+    USER[User / CI / Test Tool]
+
+    USER -->|Admin & Mock Requests| APIGW[Amazon API Gateway]
+    APIGW --> LAMBDA[AWS Lambda - MockNest Runtime]
+    LAMBDA <--> S3[(Amazon S3 - Mappings & Payloads)]
+
+    subgraph AI["AI-assisted Mock Generation (Out-of-band)"]
+        SPEC[API Spec + Natural Language Input]
+        KOOG[Koog Agent]
+        BEDROCK[Amazon Bedrock]
+        SPEC --> KOOG
+        KOOG --> BEDROCK
+        KOOG -->|Persist mappings & payloads| S3
+    end
+```
+
 ## Core Services
 MockNest is built around these essential AWS services:
 
