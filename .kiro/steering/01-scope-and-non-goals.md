@@ -4,8 +4,8 @@
 - Deployment of the full WireMock API on AWS Lambda and API Gateway.
 - Support for persisting mock definitions across Lambda executions using Amazon S3.
 - Support for HTTP-based APIs, specifically REST, SOAP, and GraphQL-over-HTTP.
-- An AI-assisted component that can generate WireMock mappings based on natural language input and API specifications.
-- Operation within AWS Free Tier–appropriate usage limits.
+- An AI-assisted component that can generate WireMock mappings based on natural language input and API specifications (opt-in deployment option).
+- Operation within AWS Free Tier–appropriate usage limits for core runtime, with optional AI features that incur pay-per-use costs.
 
 ## Out of Scope
 The following items are explicitly out of scope for this project and competition prototype:
@@ -32,6 +32,7 @@ Planned future enhancements include:
 - Publishing and maintaining MockNest as a public SAR application.
 - Improving AI-assisted mock generation with additional input sources and refinement options.
 - Exploring optimizations for startup time and large mock sets.
+- Implementing on-demand mapping loading to reduce cold start times (currently all mappings are loaded at startup).
 
 ### Advanced Integration Patterns
 - Exploring support for asynchronous interaction patterns, such as event-driven responses using services like Amazon EventBridge.
