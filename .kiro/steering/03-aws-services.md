@@ -3,29 +3,44 @@
 ## AWS Architecture Overview
 
 ```mermaid
-flowchart LR
-    USER[User / CI / Test Tool]
-
-    USER -->|Admin & Mock Requests| APIGW[Amazon API Gateway]
-    APIGW --> LAMBDA[AWS Lambda - MockNest Runtime]
-    LAMBDA <--> S3[(Amazon S3 - Mappings & Payloads)]
-
-    subgraph AI["AI-assisted Mock Generation (Out-of-band)"]
-        SPEC[API Spec + Natural Language Input]
-        KOOG[Koog Agent]
-        BEDROCK[Amazon Bedrock]
-        SPEC --> KOOG
-        KOOG --> BEDROCK
-        KOOG -->|Persist mappings & payloads| S3
+flowchart TB
+    subgraph Actors["External Actors"]
+        USER[User / CI / Test Tool]
+        AIUSER[User / Developer Tool]
+        APP[Application Under Test]
     end
+
+    subgraph AWS["AWS MockNest System"]
+        APIGW[Amazon API Gateway]
+        LAMBDA[AWS Lambda - MockNest Runtime]
+        S3[(Amazon S3 - Mappings & Payloads)]
+
+        subgraph AI["AI-assisted Mock Generation (Optional)"]
+            AIADMIN[AI Admin API]
+            KOOG[Koog Agent]
+            BEDROCK[Amazon Bedrock]
+            
+            AIADMIN --> KOOG
+            KOOG --> BEDROCK
+        end
+    end
+
+    USER -->|Admin Requests| APIGW
+    APP -->|Mock Requests| APIGW
+    AIUSER -->|AI Requests| AIADMIN
+    APIGW --> LAMBDA
+    LAMBDA <--> S3
+    KOOG -->|Writes generated mappings| S3
 ```
 
 ## Core Services
-MockNest is built around these essential AWS services:
+MockNest core runtime is built around these essential AWS services:
 
-- **AWS Lambda** - Serverless compute runtime for the WireMock engine and AI-assisted mock generation
-- **Amazon API Gateway** - HTTP ingress and API key-based access control for both admin API and mocked endpoints
-- **Amazon S3** - Persistent storage for WireMock mappings and response payloads
+- **AWS Lambda** - Serverless compute runtime for the WireMock engine
+- **Amazon API Gateway** - HTTP ingress and API key-based access control for both admin API and mocked endpoints  
+- **Amazon S3** - Persistent storage for WireMock mappings and response payloads (always deployed)
+
+When AI features are enabled, additional services are used:
 - **Amazon Bedrock** - AI model access for the Koog-based mock generation agent
 
 ## Compute Services

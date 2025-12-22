@@ -7,30 +7,46 @@ MockNest consists of two main capabilities:
 2) A persistence layer that stores mock definitions and response payloads outside the runtime so they remain available across executions.
 
 ### AI agent and request/response flow
-The AI-assisted mock generation is not part of the runtime request/response path. It is triggered separately (e.g., via an administrative action or developer tooling) to generate or update WireMock mappings. The generated mappings and payloads are persisted to external storage, and the runtime serves them on subsequent requests.
+The AI-assisted mock generation is not part of the runtime request/response path. It is accessed through dedicated AI admin endpoints (when AI is enabled during deployment):
+
+- `POST /ai/generate-mappings` - Generate WireMock mappings from API specifications and natural language descriptions
+- `POST /ai/bulk-generate` - Generate multiple mappings in batch
+- `GET /ai/status` - Check generation status and health
+
+The generated mappings and payloads are persisted to external storage, and the runtime serves them on subsequent requests.
 
 ### System Architecture Diagram
 
 ```mermaid
 flowchart LR
-    U[User / Test Tool / CI]
-
-    U -->|Admin calls| ADMIN[Admin API]
-    U -->|Requests| MOCKS[Mocked Endpoints]
+    subgraph Actors["External Actors"]
+        USER[User / CI / Test Tool]
+        AIUSER[User / Developer Tool]
+        APP[Application Under Test]
+    end
 
     subgraph Runtime["MockNest Runtime"]
-        ADMIN --> WM[WireMock Runtime]
+        ADMIN[WireMock Admin API]
+        MOCKS[Mocked Endpoints]
+        WM[WireMock Runtime]
+        
+        ADMIN --> WM
         MOCKS --> WM
     end
 
-    WM <--> STORE[(External Storage\nMappings & Payloads)]
-
-    subgraph AIGEN["AI-assisted Mock Generation"]
-        SPEC[API Spec + Natural Language Input]
+    subgraph AIRuntime["AI Runtime (Optional)"]
+        AIADMIN[AI Admin API]
         AGENT[Koog-based Agent]
-        SPEC --> AGENT
-        AGENT -->|Writes mappings & payloads| STORE
+        AIADMIN --> AGENT
     end
+
+    STORE[(Storage - Mappings & Payloads)]
+
+    USER -->|Admin calls| ADMIN
+    APP -->|Mock requests| MOCKS
+    AIUSER -->|AI requests| AIADMIN
+    WM <--> STORE
+    AGENT -->|Writes mappings & payloads| STORE
 ```
 
 ## Clean Architecture for Serverless
@@ -99,11 +115,15 @@ flowchart TB
 
 
 ## API Design
-- Exposes the WireMock admin API for managing mappings and inspecting requests.
-- Exposes mocked endpoints as standard HTTP routes.
+- **WireMock Admin API** - Standard WireMock endpoints for managing mappings and inspecting requests
+- **AI Admin API** (when enabled) - Separate endpoints for AI-assisted mock generation:
+  - `POST /ai/generate-mappings` - Generate mappings from API specs and descriptions
+  - `POST /ai/bulk-generate` - Batch generation of multiple mappings
+  - `GET /ai/status` - Health check and generation status
+- **Mocked Endpoints** - Standard HTTP routes serving the actual mocks
 - Supports REST, SOAP, and GraphQL as HTTP-based APIs:
-  - SOAP requests are handled as HTTP POST requests with XML payload matching.
-  - GraphQL is supported as GraphQL-over-HTTP, typically via POST requests with JSON payload matching.
+  - SOAP requests are handled as HTTP POST requests with XML payload matching
+  - GraphQL is supported as GraphQL-over-HTTP, typically via POST requests with JSON payload matching
 
 
 ## Security Architecture
