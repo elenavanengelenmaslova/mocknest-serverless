@@ -14,24 +14,20 @@ As a free and open-source project distributed via the AWS Serverless Application
 
 ## Mocking Solutions Comparison
 
-MockNest is primarily designed for simulating external APIs in cloud environments. While it can be used for local stubbing, its core focus is enabling realistic integration and exploratory testing when external dependencies are unavailable, restricted, or difficult to control.
-
-## Mocking Solutions Comparison
-
-| Tool / Platform | Deployment Model | Cloud-Native | Executable Serverless Runtime | Persistent State | Protocol Support | AI Assistance | Ownership Model | License / Availability | Cost & Billing Model | External API Simulation | Primary Use Case |
-|-----------------|------------------|--------------|-------------------------------|------------------|------------------|---------------|------------------|------------------------|----------------------|------------------------|------------------|
-| **MockNest (initial release)** | AWS account (SAR) | Yes (AWS-native) | **Yes (AWS Lambda)** | Yes (S3-backed) | REST, SOAP, GraphQL (HTTP) | **Yes** | Customer-owned | **Open source** | Pay-per-use via customer AWS account | **Yes** | External API simulation for cloud integration & exploratory testing |
-| [WireMock Cloud](https://wiremock.io/cloud/) | Vendor SaaS (incl. private cloud options) | No | No | Yes (managed) | REST, SOAP, GraphQL (HTTP), gRPC | **Yes** | Vendor-owned | Proprietary (SaaS) | Subscription-based SaaS pricing | **Yes** | Enterprise external API simulation & testing |
-| [Postman Mock Servers](https://www.postman.com/product/api-mocking/) | Vendor SaaS | No | No | No real state | REST (OpenAPI-driven) | Limited (design-time) | Vendor-owned | Proprietary (SaaS) | Subscription-based SaaS pricing | **Yes** | API development & exploratory testing |
-| [Amazon API Gateway Mock Integrations](https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-mock-integration.html) | AWS account | Yes | No (static configuration) | No | REST (static responses) | No | Customer-owned | Proprietary (AWS service) | Pay-per-request (API Gateway pricing) | **No** | Static API Gateway route stubbing |
-| [Mockoon Cloud](https://mockoon.com/cloud/) | Vendor SaaS | No | No | Limited | REST | **Yes** | Vendor-owned | Proprietary (SaaS) | Subscription-based SaaS pricing | **Yes** | Lightweight hosted API mocks |
-| [Stoplight Prism](https://stoplight.io/open-source/prism) | Local / CI | No | No | No | REST (OpenAPI) | No | Customer-owned | Open source | Free | **Yes** | Contract-first API validation |
-| [Hoverfly](https://hoverfly.io/) | Self-hosted / container | No | No | Yes | REST | No | Customer-owned | Open core / Commercial | Free / paid enterprise options | **Yes** | External API simulation in controlled environments |
-| [Mountebank](https://www.mbtest.org/) | Self-hosted | No | No | Yes | REST, SOAP, others | No | Customer-owned | Open source | Free | **Yes** | Multi-protocol external service virtualization |
-| [Beeceptor](https://beeceptor.com/) / [Mocky](https://designer.mocky.io/) | Vendor SaaS | No | No | Beeceptor: Yes / Mocky: No | REST | Beeceptor: Yes / Mocky: No | Vendor-owned | Proprietary (SaaS) | Freemium / subscription SaaS | **Yes** | Quick hosted mocks & prototypes |
+MockNest is designed to support both internal and external API mocking in cloud environments. It can be used for local stubbing as well as for realistic integration and exploratory testing when APIs are unavailable, restricted, or difficult to control in non-production environments.
 
 
-
+| Tool / Platform | Deployment Model | Cloud-Native | Executable Serverless Runtime | Persistent State | Protocol Support | AI Assistance | Operating & Commercial Model | Mocks External APIs | Mocks Internal APIs | Requires Public Internet Egress |
+|-----------------|------------------|--------------|-------------------------------|------------------|------------------|---------------|------------------------------|---------------------|---------------------|-------------------------------|
+| **MockNest (initial release)** | AWS account (SAR) | Yes (AWS-native) | Yes (AWS Lambda) | Yes (S3-backed) | REST, SOAP, GraphQL (HTTP) | Yes | Open source; customer-operated; pay-per-use AWS resources | Yes | Yes | No |
+| [WireMock Cloud](https://wiremock.io/cloud/) | Vendor SaaS (incl. private cloud options) | No | No | Yes (managed) | REST, SOAP, GraphQL (HTTP), gRPC | Yes | Proprietary SaaS; vendor-operated; subscription-based | Yes | Yes | Yes |
+| [Postman Mock Servers](https://www.postman.com/product/api-mocking/) | Vendor SaaS | No | No | No real state | REST (OpenAPI-driven) | Limited | Proprietary SaaS; vendor-operated; subscription-based | Yes | Yes | Yes |
+| [Amazon API Gateway Mock Integrations](https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-mock-integration.html) | AWS account | Yes | No (static configuration) | No | REST (static responses) | No | Proprietary AWS service; customer-operated; pay-per-request | No | Yes | No |
+| [Mockoon Cloud](https://mockoon.com/cloud/) | Vendor SaaS | No | No | Limited | REST | Yes | Proprietary SaaS; vendor-operated; subscription-based | Yes | Yes | Yes |
+| [Stoplight Prism](https://stoplight.io/open-source/prism) | Local / CI | No | No | No | REST (OpenAPI) | No | Open source; self-operated; free | No | Yes | No |
+| [Hoverfly](https://hoverfly.io/) | Self-hosted / container | No | No | Yes | REST | No | Open core; self-operated; free / enterprise license | Yes | Yes | No |
+| [Mountebank](https://www.mbtest.org/) | Self-hosted | No | No | Yes | REST, SOAP, others | No | Open source; self-operated; free | Yes | Yes | No |
+| [Beeceptor](https://beeceptor.com/) / [Mocky](https://designer.mocky.io/) | Vendor SaaS | No | No | Beeceptor: Yes / Mocky: No | REST | Beeceptor: Yes / Mocky: No | Proprietary SaaS; vendor-operated; freemium | Yes | Yes | Yes |
 
 
 ## Target Market Size

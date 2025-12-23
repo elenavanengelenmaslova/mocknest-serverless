@@ -19,6 +19,8 @@ Edge cases and failure scenarios are hard to reproduce using real services.
 
 Multiple serverless functions may depend on the same external systems, requiring coordinated state across those systems.
 
+Teams become dependent on external API availability, creating bottlenecks where development and testing work cannot proceed independently when external services are unavailable or misconfigured.
+
 As a result, teams either skip important test scenarios or rely on brittle, manual test setups that slow down development and reduce confidence in deployments.
 
 ## Target Users
