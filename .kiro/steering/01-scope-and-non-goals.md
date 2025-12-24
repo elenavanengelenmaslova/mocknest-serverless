@@ -40,6 +40,7 @@ Planned future enhancements include:
 - Exploring support for asynchronous interaction patterns, such as event-driven responses using services like Amazon EventBridge.
 - Supporting security-aware mocks, such as configurable OAuth2/JWT-style requirements per endpoint.
 - Exploring mTLS support for mock endpoints where feasible within AWS API Gateway/Lambda constraints.
+- Exploring MCP (Model Context Protocol) mocking leveraging AWS API Gateway's native MCP proxy support and Lambda durable functions for AI agent testing scenarios.
 
 ## Non-Goals
 MockNest Serverless is intentionally not designed to:
