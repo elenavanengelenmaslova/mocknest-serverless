@@ -102,11 +102,15 @@ flowchart TB
 
 
 ## Technology Stack
-- Kotlin 
-- Koog (Kotlin-based AI agent framework) for implementing AI-assisted mock generation; Koog provides agent orchestration and integrates with external AI model providers (e.g., Amazon Bedrock)
-- Gradle with Kotlin DSL
-- Java runtime for AWS Lambda
-- WireMock (as the underlying mocking engine)
+- **Kotlin** - Primary development language chosen for:
+  - **Concise, expressive syntax** - Reduces boilerplate and improves code maintainability
+  - **Null safety** - Eliminates null pointer exceptions at compile time, improving reliability
+  - **Multiplatform capabilities** - Can target JVM, Node JS, and Native 
+  - **Coroutines** - Built-in support for asynchronous programming
+- **Koog** (Kotlin-based AI agent framework) for implementing AI-assisted mock generation; Koog provides agent orchestration and integrates with external AI model providers (e.g., Amazon Bedrock)
+- **Gradle** with **Kotlin DSL**
+- **Java runtime** for AWS Lambda
+- **WireMock** (as the underlying mocking engine)
 
 ## Data Architecture
 - Mock definitions (WireMock mappings) are persisted in external storage (Amazon S3 in the AWS deployment).
