@@ -4,6 +4,7 @@
 - Deployment of the full WireMock API on AWS Lambda and API Gateway.
 - Support for persisting mock definitions across Lambda executions using Amazon S3.
 - Support for HTTP-based APIs, specifically REST, SOAP, and GraphQL-over-HTTP.
+- Supporting callback-based and webhook-style interactions to better model real-world integration flows.
 - An AI-assisted component that can generate WireMock mappings based on natural language input and API specifications (opt-in deployment option).
 - Operation within AWS Free Tier–appropriate usage limits for core runtime, with optional AI features that incur pay-per-use costs.
 
@@ -30,14 +31,13 @@ Planned future enhancements include:
 
 ### Core Enhancements
 - Publishing and maintaining MockNest Serverless as a public SAR application.
+- Supporting callback-based and webhook-style interactions to better model real-world integration flows.
 - Improving AI-assisted mock generation with additional input sources and refinement options.
 - Exploring optimizations for startup time and large mock sets.
 - Implementing on-demand mapping loading to reduce cold start times (currently all mappings are loaded at startup).
 
 ### Advanced Integration Patterns
 - Exploring support for asynchronous interaction patterns, such as event-driven responses using services like Amazon EventBridge.
-- Supporting callback-based and webhook-style interactions to better model real-world integration flows.
-- Exploring support for additional protocols and integration patterns such as gRPC, depending on feasibility and demand.
 - Supporting security-aware mocks, such as configurable OAuth2/JWT-style requirements per endpoint.
 - Exploring mTLS support for mock endpoints where feasible within AWS API Gateway/Lambda constraints.
 
