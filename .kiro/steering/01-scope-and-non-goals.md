@@ -13,7 +13,7 @@ The following items are explicitly out of scope for this project and competition
 - Analyzing historical mock traffic to automatically optimize or suggest new mocks
 - Advanced performance optimizations for very large mock sets (e.g. alternative storage or indexing strategies beyond in-memory matching)
 - Enterprise-grade authentication, authorization, or multi-tenant SaaS features
-- Use of specialized AWS features such as Lambda durable functions or AWS Lambda Managed Instances for running MockNest.
+- Use of specialized AWS features such as Lambda durable functions or AWS Lambda Managed Instances for running MockNest Serverless.
 - Providing a full graphical user interface for managing mocks
 
 ## Phase 1 Goals
@@ -29,7 +29,7 @@ The initial release focuses on validating the core idea with a working, deployab
 Planned future enhancements include:
 
 ### Core Enhancements
-- Publishing and maintaining MockNest as a public SAR application.
+- Publishing and maintaining MockNest Serverless as a public SAR application.
 - Improving AI-assisted mock generation with additional input sources and refinement options.
 - Exploring optimizations for startup time and large mock sets.
 - Implementing on-demand mapping loading to reduce cold start times (currently all mappings are loaded at startup).
@@ -42,7 +42,7 @@ Planned future enhancements include:
 - Exploring mTLS support for mock endpoints where feasible within AWS API Gateway/Lambda constraints.
 
 ## Non-Goals
-MockNest is intentionally not designed to:
+MockNest Serverless is intentionally not designed to:
 
 - Act as a full testing framework or test orchestration tool.
 - Define or execute test assertions or validate business logic correctness.

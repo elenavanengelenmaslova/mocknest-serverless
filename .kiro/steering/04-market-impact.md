@@ -1,15 +1,15 @@
 # Market Impact
 
 ## Market Analysis
-MockNest addresses a common challenge in cloud-native development: testing applications that depend on external APIs in non-production environments where those APIs are unavailable, unstable, or difficult to control.
+MockNest Serverless addresses a common challenge in cloud-native development: testing applications that depend on external APIs in non-production environments where those APIs are unavailable, unstable, or difficult to control.
 
 Many existing solutions rely on either container-based deployments or vendor-hosted SaaS platforms. Container-based solutions are often incompatible with serverless-first architectures where teams exclusively use Functions-as-a-Service (FaaS) and don't want to introduce container management overhead. SaaS solutions require internet access from components under test and typically involve higher, less predictable costs compared to self-hosting. MockNest takes a different approach by running entirely inside the customer’s AWS account as a serverless application, enabling realistic integration and exploratory testing without external network dependencies.
 
-By combining persistent serverless mocks with AWS-native deployment and optional AI-assisted setup, MockNest reduces the effort required to create, maintain, and evolve mock scenarios. Mock definitions are stored outside the runtime, allowing consistent behavior across executions and deployments.
+By combining persistent serverless mocks with AWS-native deployment and optional AI-assisted setup, MockNest Serverless reduces the effort required to create, maintain, and evolve mock scenarios. Mock definitions are stored outside the runtime, allowing consistent behavior across executions and deployments.
 
-MockNest is especially helpful in scenarios where test data across external dependencies is difficult to control or keep consistent. Instead of synchronizing state across multiple live external systems, teams can define controlled mock scenarios where external APIs behave predictably. This makes it easier to test complex interaction flows, edge cases, and failure scenarios that are impractical to reproduce using real services.
+MockNest Serverless is especially helpful in scenarios where test data across external dependencies is difficult to control or keep consistent. Instead of synchronizing state across multiple live external systems, teams can define controlled mock scenarios where external APIs behave predictably. This makes it easier to test complex interaction flows, edge cases, and failure scenarios that are impractical to reproduce using real services.
 
-As a free and open-source project distributed via the AWS Serverless Application Repository (SAR), MockNest lowers adoption barriers and fits naturally into existing AWS-based development workflows.
+As a free and open-source project distributed via the AWS Serverless Application Repository (SAR), MockNest Serverless lowers adoption barriers and fits naturally into existing AWS-based development workflows.
 
 
 ## Mocking Solutions Comparison

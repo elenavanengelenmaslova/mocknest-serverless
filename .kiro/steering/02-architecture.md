@@ -1,7 +1,7 @@
 # Architecture
 
 ## System Architecture
-MockNest consists of two main capabilities:
+MockNest Serverless consists of two main capabilities:
 
 1) A serverless WireMock runtime that serves mocked HTTP endpoints and exposes the WireMock admin API.
 2) A persistence layer that stores mock definitions and response payloads outside the runtime so they remain available across executions.
@@ -25,7 +25,7 @@ flowchart LR
         APP[Application Under Test]
     end
 
-    subgraph Runtime["MockNest Runtime"]
+    subgraph Runtime["MockNest Serverless Runtime"]
         ADMIN[WireMock Admin API]
         MOCKS[Mocked Endpoints]
         WM[WireMock Runtime]
@@ -50,7 +50,7 @@ flowchart LR
 ```
 
 ## Clean Architecture for Serverless
-MockNest applies a simplified variant of clean architecture tailored for serverless workloads.
+MockNest Serverless applies a simplified variant of clean architecture tailored for serverless workloads.
 Clean-architecture style described in ["Keeping Business Logic Portable in Serverless Functions with Clean Architecture"](https://medium.com/nntech/keeping-business-logic-portable-in-serverless-functions-with-clean-architecture-bd1976276562) article to keep core behavior decoupled from infrastructure. 
 
 The architecture is organised into three layers with strict dependency rules:
@@ -127,7 +127,7 @@ flowchart TB
 
 
 ## Security Architecture
-- Access to the MockNest service itself (both the mock admin API and mocked endpoints) is protected in the same way as any other API, with a default configuration using API key–based access control at the edge (e.g., AWS API Gateway).
+- Access to the MockNest Serverless service itself (both the mock admin API and mocked endpoints) is protected in the same way as any other API, with a default configuration using API key–based access control at the edge (e.g., AWS API Gateway).
 - When mocked services normally require authentication flows (such as OAuth-style token acquisition), those identity endpoints can also be mocked. This allows the system under test to keep its authentication logic enabled and follow the usual token request flow, while the token endpoint returns predictable mock tokens for testing purposes.
 
 ## Scalability Considerations

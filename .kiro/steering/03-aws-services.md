@@ -10,9 +10,9 @@ flowchart TB
         APP[Application Under Test]
     end
 
-    subgraph AWS["AWS MockNest System"]
+    subgraph AWS["AWS MockNest Serverless System"]
         APIGW[Amazon API Gateway]
-        LAMBDA[AWS Lambda - MockNest Runtime]
+        LAMBDA[AWS Lambda - MockNest Serverless Runtime]
         S3[(Amazon S3 - Mappings & Payloads)]
 
         subgraph AI["AI-assisted Mock Generation (Optional)"]
@@ -34,7 +34,7 @@ flowchart TB
 ```
 
 ## Core Services
-MockNest core runtime is built around these essential AWS services:
+MockNest Serverless core runtime is built around these essential AWS services:
 
 - **AWS Lambda** - Serverless compute runtime for the WireMock engine
 - **Amazon API Gateway** - HTTP ingress and API key-based access control for both admin API and mocked endpoints  
@@ -71,7 +71,7 @@ When AI features are enabled, additional services are used:
 - **AWS IAM** - Service-to-service authentication and authorization
   - Lambda execution roles for S3 and Bedrock access
   - API Gateway integration roles
-- **API Gateway API Keys** - Default access control mechanism for MockNest endpoints
+- **API Gateway API Keys** - Default access control mechanism for MockNest Serverless endpoints
 - **AWS Secrets Manager** (future) - Secure storage for API keys and configuration
 
 ## Monitoring & Logging
@@ -101,7 +101,7 @@ When AI features are enabled, additional services are used:
   - Horizontal scaling only when needed
 
 ## Service Limits & Quotas
-Key AWS limits that may impact MockNest:
+Key AWS limits that may impact MockNest Serverless:
 
 - **Lambda Limits**
   - 15-minute maximum execution time (not typically relevant for HTTP APIs)
@@ -115,7 +115,7 @@ Key AWS limits that may impact MockNest:
   - 10,000 requests per second (default, can be increased)
 
 - **S3 Limits**
-  - No practical limits for MockNest use cases
+  - No practical limits for MockNest Serverless use cases
   - 5GB maximum object size (sufficient for response payloads)
 
 - **Bedrock Limits**
