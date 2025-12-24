@@ -49,8 +49,9 @@ MockNest differentiates itself from existing solutions through:
 - A serverless runtime model aligned with AWS-native architectures
 - Persistent mock state without requiring always-on infrastructure
 - AI-assisted mock generation as a first-class capability
+- Planned support for MCP (Model Context Protocol) mocking, positioning it as the first serverless solution for AI agent testing scenarios
 
-This positions MockNest as complementary to traditional API tooling rather than a replacement for full testing platforms.
+This positions MockNest Serverless as complementary to traditional API tooling rather than a replacement for full testing platforms, while uniquely addressing the emerging need for AI agent and MCP-based application testing.
 
 
 ## Go-to-Market Strategy
