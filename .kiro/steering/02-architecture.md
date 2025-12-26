@@ -108,9 +108,17 @@ flowchart TB
   - **Multiplatform capabilities** - Can target JVM, Node JS, and Native 
   - **Coroutines** - Built-in support for asynchronous programming
 - **Koog** (Kotlin-based AI agent framework) for implementing AI-assisted mock generation; Koog provides agent orchestration and integrates with external AI model providers (e.g., Amazon Bedrock)
-- **Gradle** with **Kotlin DSL**
+- **Gradle with Kotlin DSL** - Build system chosen for:
+  - **Kotlin consistency** - Build scripts in same language as application code
+  - **Type safety** - IDE support and compile-time validation for build configuration
+  - **AWS Lambda packaging** - Excellent support for creating Lambda deployment packages
+  - **Dependency management** - Robust handling of Java/Kotlin ecosystem libraries
 - **Java runtime** for AWS Lambda
-- **WireMock** (as the underlying mocking engine)
+- **WireMock** - Mocking engine selected for:
+  - **Comprehensive feature set** - Supports all required mocking patterns (REST, SOAP, GraphQL, callbacks, proxying)
+  - **Familiar API** - Well-known interface reduces learning curve for users
+  - **Mature ecosystem** - Proven reliability and extensive community support
+  - **Extensibility** - Clean architecture allows integration with custom persistence and AI components
 
 ## Data Architecture
 - Mock definitions (WireMock mappings) are persisted in external storage (Amazon S3 in the AWS deployment).

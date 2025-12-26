@@ -54,3 +54,4 @@ The project is shaped by the following constraints:
 - Mock definitions are loaded into memory at runtime, which may impact cold-start performance when working with very large numbers of persistent mocks (e.g. more than a few thousand).
 - The solution is designed to remain simple, transparent, and deployable within typical Free Tier usage limits.
 - The scope is intentionally limited to validate the core concept within the competition timeframe.
+- Performance targets and benchmarks will be established based on initial release testing (TODO: placeholder for performance test results).
