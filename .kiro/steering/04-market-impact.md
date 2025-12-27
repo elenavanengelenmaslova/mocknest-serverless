@@ -19,19 +19,16 @@ MockNest Serverless is designed to support both internal and external API mockin
 
 | Tool / Platform | Deployment Model | Executable Serverless Runtime | Persistent State Across Invocations | Protocol Support | AI Assistance | Operating & Commercial Model | Mocks External APIs | Requires Public Internet Egress | Callbacks/Webhooks | Proxying/Partial Mocking |
 |-----------------|------------------|-------------------------------|-----------------------------------|------------------|---------------|------------------------------|---------------------|-------------------------------|-------------------|-------------------------|
-| **MockNest Serverless** | AWS account (SAR) | Yes (AWS Lambda) | Yes (external storage-backed) | REST, SOAP, GraphQL (HTTP) | Yes | Open source; customer-operated; pay-per-use via cloud resources | Yes | No | Yes | Yes |
-| [WireMock Cloud](https://wiremock.io/cloud/) | Vendor SaaS / Private cloud | No | Yes | REST, SOAP, GraphQL (HTTP), gRPC | Yes | Proprietary SaaS; vendor-operated; subscription-based | Yes | Yes | Yes | Yes |
+| **MockNest Serverless** | AWS account (SAR) | Yes | Yes | REST, SOAP, GraphQL (HTTP) | Yes | Open source; customer-operated; infrastructure costs apply | Yes | No | Yes | Yes |
+| [WireMock Cloud](https://wiremock.io/cloud/) | Vendor SaaS | No | Yes | REST, SOAP, GraphQL (HTTP), gRPC | Yes | Proprietary SaaS; vendor-operated; subscription-based | Yes | Yes | Yes | Yes |
 | [Mockoon Cloud](https://mockoon.com/cloud/) | Vendor SaaS | No | Yes | REST | Yes | Proprietary SaaS; vendor-operated; subscription-based | Yes | Yes | Yes | Yes |
-| [Mockoon Serverless](https://mockoon.com/serverless/) | Serverless function package (library) | Yes (custom function code required) | Yes (custom function code required) | REST | No | Open source library; customer-operated | Yes | No | Yes | Yes |
+| [Mockoon Serverless](https://mockoon.com/serverless/) | Serverless function package (library) | Yes (custom function code required) | Yes (custom function code required) | REST | No | Open source; customer-operated; infrastructure costs apply | Yes | No | Yes | Yes |
 | [Postman Mock Servers](https://www.postman.com/product/mock-apis/) | Vendor SaaS | No | No | REST | Limited (design-time) | Proprietary SaaS; vendor-operated; subscription-based | Yes | Yes | No | No |
 | [Amazon API Gateway Mock Integrations](https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-mock-integration.html) | AWS account | N/A | No | REST | No | Proprietary AWS service; customer-operated; pay-per-request | No | No | No | No |
-| [Stoplight Prism (OSS)](https://stoplight.io/open-source/prism) |  Self-hosted / container | No | No | REST | No | Open source; self-operated | Yes | No | Yes | Yes |
-| [Hoverfly Cloud](https://hoverfly.io/hoverfly-cloud) | Vendor SaaS (hosted platform) | No | Yes | REST | Not stated as core product feature | Proprietary hosted platform; vendor-operated; subscription-based | Yes | Yes | Limited/varies | Yes |
-| [Mountebank](https://www.mbtest.org/) | Self-hosted | No | Yes | REST, SOAP, others | No | Open source; self-operated; free | Yes | No | Yes | Limited |
+| [Stoplight Prism (OSS)](https://stoplight.io/open-source/prism) |  Self-hosted / container | No | No | REST | No | Open source; customer-operated; infrastructure costs apply | Yes | No | Yes | Yes |
+| [Hoverfly Cloud](https://hoverfly.io/hoverfly-cloud) | Vendor SaaS | No | Yes | REST, SOAP, GraphQL (HTTP) | No | Proprietary hosted platform; vendor-operated; subscription-based | Yes | Yes | Yes | Yes |
+| [Mountebank](https://www.mbtest.dev/) | Self-hosted / container | No | Yes | REST, SOAP, GraphQL, LDAP | No | Open source; customer-operated; infrastructure costs apply | Yes | No | Yes | Yes |
 | [Beeceptor](https://beeceptor.com/) / [Mocky](https://designer.mocky.io/) | Vendor SaaS | No | Beeceptor: Yes / Mocky: No | REST | Beeceptor: Yes / Mocky: No | Proprietary SaaS; vendor-operated; freemium | Yes | Yes | Limited | No |
-
-
-
 
 ## Target Market Size
 MockNest targets teams building cloud-native and serverless applications that integrate with external APIs. This includes backend developers, test automation engineers, and platform teams working in regulated or restricted environments.
