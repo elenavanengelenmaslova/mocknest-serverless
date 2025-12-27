@@ -28,7 +28,7 @@ MockNest Serverless is designed to support both internal and external API mockin
 | [Stoplight Prism (OSS)](https://stoplight.io/open-source/prism) |  Self-hosted / container | No | No | REST | No | Open source; customer-operated; infrastructure costs apply | Yes | No | Yes | Yes |
 | [Hoverfly Cloud](https://hoverfly.io/hoverfly-cloud) | Vendor SaaS | No | Yes | REST, SOAP, GraphQL (HTTP) | No | Proprietary hosted platform; vendor-operated; subscription-based | Yes | Yes | Yes | Yes |
 | [Mountebank](https://www.mbtest.dev/) | Self-hosted / container | No | Yes | REST, SOAP, GraphQL, LDAP | No | Open source; customer-operated; infrastructure costs apply | Yes | No | Yes | Yes |
-| [Beeceptor](https://beeceptor.com/) / [Mocky](https://designer.mocky.io/) | Vendor SaaS | No | Beeceptor: Yes / Mocky: No | REST | Beeceptor: Yes / Mocky: No | Proprietary SaaS; vendor-operated; freemium | Yes | Yes | Limited | No |
+| [Beeceptor](https://beeceptor.com/) | Vendor SaaS | No | Yes | REST, SOAP, GraphQL (HTTP), gRPC | Yes | Proprietary SaaS; vendor-operated; freemium | Yes | Yes | Yes | No |
 
 ## Target Market Size
 MockNest targets teams building cloud-native and serverless applications that integrate with external APIs. This includes backend developers, test automation engineers, and platform teams working in regulated or restricted environments.
