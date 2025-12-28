@@ -84,6 +84,13 @@ Follow clean architecture principles by developing in this sequence:
 ## Code Generation Standards
 [Guidelines for AI-assisted code generation and review]
 - Generate Kotlin 2.3.0/Spring Boot 4.0 code targeting JVM 25, relying on the shared Gradle settings for dependency management and Kotlin logging; keep new tasks compatible with the existing toolchain.
+- **Use Kotlin AWS SDK** (not Java SDK) for all AWS cloud infrastructure interactions - these must always be kept in the `software/infra/aws/` module to maintain clean architecture boundaries.
+- **Prefer Kotlin idioms** for error handling and resource management:
+  - Use `runCatching { }` instead of try-catch-finally blocks
+  - Use `.use { }` for automatic resource management (closeable resources)
+  - Leverage Kotlin's null safety and smart casts
+  - Avoid `!!` operator
+- **Testing with MockK** - Use MockK library for all mocking in unit tests, taking advantage of Kotlin-specific features like extension functions and coroutines support.
 - Reuse the ObjectStorage-backed abstractions for persistence so FILES and MAPPINGS stay in object storage (and never fall back to local disk); extend the WireMock filters instead of bypassing them when manipulating mappings.
 
 ## Documentation Practices
