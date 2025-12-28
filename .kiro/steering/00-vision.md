@@ -1,7 +1,7 @@
 # Product Vision
 
 ## Overview
-MockNest Serverless aims to make testing cloud-based applications easier and more reliable when they depend on external APIs. These APIs can be REST, SOAP, GraphQL, or gRPC services that are often unavailable, unstable, or difficult to control in non-production environments.
+MockNest Serverless aims to make testing cloud-based applications easier and more reliable when they depend on external APIs. These APIs can be REST, SOAP, or GraphQL services that are often unavailable, unstable, or difficult to control in non-production environments.
 
 By providing a serverless, deployable mock runtime on AWS, MockNest Serverless enables teams to test and validate their applications in environments where external dependencies cannot be accessed or reliably prepared.
 
@@ -24,11 +24,11 @@ Teams become dependent on external API availability, creating bottlenecks where 
 As a result, teams either skip important test scenarios or rely on brittle, manual test setups that slow down development and reduce confidence in deployments.
 
 ## Target Users
-Backend developers working on cloud-native or serverless applications.
+- Backend developers working on cloud-native or serverless applications.
 
-Test automation engineers building integration and end-to-end tests.
+- Test automation engineers building integration and end-to-end tests.
 
-Testers performing exploratory testing and validating complex service interactions in non-production environments.
+- Testers performing exploratory testing and validating complex service interactions in non-production environments.
 
 ## Value Proposition
 MockNest Serverless provides a simple, AWS-native way to mock external APIs in the cloud without requiring containers or dedicated infrastructure:
@@ -50,12 +50,15 @@ Qualitative success indicators will include developer satisfaction feedback, eas
 ## Long-term Vision
 Over time, MockNest Serverless should evolve into a more intelligent and developer-friendly tool by:
 
-Adding AI-assisted mock generation from API specifications and examples.
+**Improving AI-assistance, including:**
+- Improvements to mock generation from API specifications and examples
+- Analyzing mock usage patterns to help teams understand and improve how their applications interact with external services
+- Providing guidance on resilience strategies such as retries and fallback behavior
 
-Analyzing mock usage patterns to help teams understand and improve how their applications interact with external services.
+**Expanding protocol and integration support:**
+- Adding MCP (Model Context Protocol) mocking to support AI agent testing scenarios
+- Supporting additional protocols and interaction patterns as they emerge
 
-Providing guidance on resilience strategies such as retries and fallback behavior.
-
-Improving startup time and performance characteristics for serverless environments like AWS Lambda.
+**Improving startup time and performance characteristics** for serverless environments like AWS Lambda.
 
 The long-term goal is to reduce the cognitive and operational overhead of testing integrations in the cloud while remaining lightweight, transparent, and easy to adopt.
