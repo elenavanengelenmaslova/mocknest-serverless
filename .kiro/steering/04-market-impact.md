@@ -28,23 +28,32 @@ MockNest Serverless is designed to support both internal and external API mockin
 | [Stoplight Prism (OSS)](https://stoplight.io/open-source/prism) |  Self-hosted / container | No | No | REST | No | Open source; customer-operated; infrastructure costs apply | Yes | No | Yes | Yes |
 | [Hoverfly Cloud](https://hoverfly.io/hoverfly-cloud) | Vendor SaaS | No | Yes | REST, SOAP, GraphQL (HTTP) | No | Proprietary hosted platform; vendor-operated; subscription-based | Yes | Yes | Yes | Yes |
 | [Mountebank](https://www.mbtest.dev/) | Self-hosted / container | No | Yes | REST, SOAP, GraphQL, LDAP | No | Open source; customer-operated; infrastructure costs apply | Yes | No | Yes | Yes |
-| [Beeceptor](https://beeceptor.com/) | Vendor SaaS | No | Yes | REST, SOAP, GraphQL (HTTP), gRPC | Yes | Proprietary SaaS; vendor-operated; freemium | Yes | Yes | Yes | No |
+| [Beeceptor](https://beeceptor.com/) | Vendor SaaS | No | Yes | REST | Yes | Proprietary SaaS; vendor-operated; freemium | Yes | Yes | Limited | No |
+
 
 ## Target Market Size
-MockNest targets teams building cloud-native and serverless applications that integrate with external APIs. This includes backend developers, test automation engineers, and platform teams working in regulated or restricted environments.
+MockNest Serverless targets teams building cloud-native and serverless applications that integrate with external APIs. This includes backend developers, test automation engineers, and platform teams working in regulated or restricted environments.
 
 The addressable market spans:
 - Organizations adopting serverless architectures on AWS
 - Teams practicing integration and end-to-end testing in cloud environments
 - Developers seeking alternatives to vendor-hosted mocking platforms
 
-Rather than competing for the entire API testing market, MockNest focuses on the subset where cloud ownership, network isolation, and realistic integration behavior are critical.
+Rather than competing for the entire API testing market, MockNest Serverless focuses on the subset where cloud ownership, network isolation, and realistic integration behavior are critical.
 
 ## Competitive Landscape
-MockNest differentiates itself from existing solutions through:
+MockNest Serverless offers a unique combination of capabilities that no existing solution matches:
+
+**Unique Value Proposition:**
+- **AI-assisted + Open Source + Serverless Runtime** - The only solution combining AI mock generation, open source transparency, and true serverless execution
+- **AWS-native with no internet dependency** - Runs entirely within customer AWS accounts without requiring external network access
+- **Comprehensive protocol support** - REST, SOAP, and GraphQL with both callbacks/webhooks and partial mocking capabilities
+- **Predictable costs** - Infrastructure costs in customer account vs. unpredictable SaaS subscription fees
+
+**Key Differentiators:**
 - Deployment inside the customer’s AWS account rather than vendor-hosted SaaS
-- A serverless runtime model aligned with AWS-native architectures
-- Persistent mock state without requiring always-on infrastructure
+- Ready-to-deploy serverless runtime (unlike solutions requiring custom function code)
+- Persistent mocks state without requiring always-on infrastructure
 - AI-assisted mock generation as a first-class capability
 - Planned support for MCP (Model Context Protocol) mocking, positioning it as the first serverless solution for AI agent testing scenarios
 
