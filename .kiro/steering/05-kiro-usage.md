@@ -100,8 +100,17 @@ Follow clean architecture principles by developing in this sequence:
 
 ## Testing Strategy
 [AI assistance for test creation, execution, and maintenance]
-- Add JUnit 6 coverage alongside new features, following the existing pattern of exercising WireMock filters with in-memory storage doubles.
+- Add JUnit 5/Kotlin test coverage alongside new features, following the existing pattern of exercising WireMock filters with in-memory storage doubles.
+- **Use Kover for code coverage** - Apply `org.jetbrains.kotlinx.kover` plugin for Kotlin-optimized coverage reporting with better support for inline functions and coroutines.
+- **Target 90% code coverage** across all modules - run `./gradlew koverHtmlReport` to generate coverage reports and ensure new code maintains high coverage standards.
+- **All modules should achieve 90%+ coverage** - Domain, Application, and Infrastructure layers should all maintain consistent high-quality test coverage.
+- **Integration testing with LocalStack TestContainers** - Use LocalStack TestContainers for infrastructure layer integration tests to validate AWS service interactions:
+  - LocalStack container for S3, Lambda, and API Gateway testing
+  - Test actual Kotlin AWS SDK calls against containerized AWS services
+  - Validate object storage persistence, mapping externalization, and file handling
+  - Keep integration tests in the `software/infra/aws/` module alongside the infrastructure code
 - Prefer focused tests that validate mapping normalization, content-type defaults, and file externalization behaviors instead of broad integration suites.
+- Use MockK for all mocking to leverage Kotlin-specific features and maintain consistency.
 
 ## Code Review Process
 [How Kiro integrates with code review and quality assurance]
