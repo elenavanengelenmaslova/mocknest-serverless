@@ -3,10 +3,10 @@ name: Feature Branch - AWS Deployment
 on:
   push:
     branches:
-      - '_feature/*'
+      - 'feature/*'
   pull_request:
     branches:
-      - _main
+      - main
 
 jobs:
   test:
@@ -26,7 +26,15 @@ jobs:
           gradle-version: '9.0'
           
       - name: Run tests with coverage
-        run: ./gradlew test koverHtmlReport koverVerify
+        run: ./gradlew test koverHtmlReport koverXmlReport koverVerify
+        
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: build/reports/kover/report.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
         
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4

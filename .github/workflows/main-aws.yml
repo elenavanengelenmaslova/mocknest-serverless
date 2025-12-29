@@ -3,7 +3,7 @@ name: Main Branch - AWS Deployment
 on:
   push:
     branches:
-      - _main
+      - main
 
 jobs:
   test-and-deploy:

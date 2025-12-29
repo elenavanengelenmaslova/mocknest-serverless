@@ -58,6 +58,14 @@ subprojects {
 // Root level Kover configuration for 90%+ coverage
 kover {
     reports {
+        total {
+            xml {
+                onCheck = true // Generate XML on check task
+            }
+            html {
+                onCheck = true // Generate HTML on check task
+            }
+        }
         verify {
             rule {
                 minBound(90)
