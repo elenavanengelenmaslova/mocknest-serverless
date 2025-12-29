@@ -95,7 +95,14 @@ Follow clean architecture principles by developing in this sequence:
 
 ## Documentation Practices
 [How Kiro should help maintain and generate documentation]
-- Update the README’s cURL quickstart and links to the WireMock Admin API whenever admin endpoints change, and keep examples for both Azure Functions and AWS API Gateway deployments current.
+- **Steering documents contain core project documentation** - Vision, architecture, scope, market analysis, and usage guidelines are maintained in `.kiro/steering/` files
+- **Link steering documentation from README** - The main README should reference and link to relevant steering documents for comprehensive project information
+- **Use docs/ folder for supplementary documentation** - Detailed diagrams, API specifications, deployment guides, and other documentation that extends beyond steering scope
+- **Maintain Postman collections** - Keep API collections in `docs/postman/` updated when endpoints change:
+  - `AWS MockNest Serverless.postman_collection.json` for main API operations
+  - `Health Checks.postman_collection.json` for monitoring endpoints
+  - `Demo Example.postman_environment.json` for environment variables
+- Update the README’s cURL quickstart and links to the WireMock Admin API whenever admin endpoints change, and keep examples for AWS API Gateway deployments current.
 - Reflect any changes to mapping normalization or persistence rules in the docs so external users understand why bodies become `bodyFileName` entries stored in object storage.
 
 ## Testing Strategy
