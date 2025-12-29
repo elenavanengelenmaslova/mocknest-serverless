@@ -94,16 +94,55 @@ Follow clean architecture principles by developing in this sequence:
 - Reuse the ObjectStorage-backed abstractions for persistence so FILES and MAPPINGS stay in object storage (and never fall back to local disk); extend the WireMock filters instead of bypassing them when manipulating mappings.
 
 ## Documentation Practices
-[How Kiro should help maintain and generate documentation]
-- **Steering documents contain core project documentation** - Vision, architecture, scope, market analysis, and usage guidelines are maintained in `.kiro/steering/` files
-- **Link steering documentation from README** - The main README should reference and link to relevant steering documents for comprehensive project information
-- **Use docs/ folder for supplementary documentation** - Detailed diagrams, API specifications, deployment guides, and other documentation that extends beyond steering scope
-- **Maintain Postman collections** - Keep API collections in `docs/postman/` updated when endpoints change:
-  - `AWS MockNest Serverless.postman_collection.json` for main API operations
-  - `Health Checks.postman_collection.json` for monitoring endpoints
-  - `Demo Example.postman_environment.json` for environment variables
-- Update the README’s cURL quickstart and links to the WireMock Admin API whenever admin endpoints change, and keep examples for AWS API Gateway deployments current.
-- Reflect any changes to mapping normalization or persistence rules in the docs so external users understand why bodies become `bodyFileName` entries stored in object storage.
+Documentation in this project is designed to stay accurate, intentional, and easy to maintain as the system evolves. The goal is to avoid duplication, reduce drift between code and documentation, and clearly communicate architectural intent.
+
+### Source of Truth
+- **Steering documents** (located under `.kiro/steering/`) are the authoritative source for architectural decisions, system design, and long-term direction.
+- These documents should be updated deliberately when architectural decisions change.
+- They are not meant to be auto-generated or frequently rewritten.
+
+### Role of Kiro
+- Kiro may **propose documentation updates** when code changes affect architecture or behavior.
+- Documentation updates should always be reviewed and applied intentionally.
+- Kiro should **not regenerate entire documents** when only small sections require changes.
+
+### Documentation Structure
+- **README.md**
+  - Entry point for the repository.
+  - Describes the purpose of the project, how to get started, and where to find deeper documentation.
+  - Links to relevant steering documents and technical references.
+
+- **`docs/` directory**
+  - Contains supporting documentation such as:
+    - Architecture diagrams
+    - API specifications
+    - Postman collections
+    - Operational guides and examples
+
+- **Steering documents (`.kiro/steering/`)**
+  - Capture architectural decisions, constraints, and rationale.
+  - Define long-term direction and non-functional requirements.
+  - Serve as reference material for contributors and reviewers.
+
+### Documentation Maintenance Guidelines
+- Avoid duplicating the same information across multiple files.
+- When functionality or architecture changes:
+  - Update the relevant steering document first.
+  - Reflect essential changes in the README if user-facing.
+- Keep documentation concise and focused on intent rather than implementation detail.
+
+### Code–Documentation Alignment
+- Ensure documentation matches the current behavior of the system.
+- Update docs alongside code changes that affect APIs, configuration, or deployment.
+- Prefer linking to canonical sources rather than copying large sections of content.
+
+### Recommended Practices
+- Treat documentation as part of the codebase, reviewed and versioned together.
+- Favor clarity over completeness—documents should explain *why* things exist, not just *what* exists.
+- Use diagrams and examples where they add clarity, but avoid redundancy.
+
+This approach keeps documentation accurate, maintainable, and aligned with the evolution of the system without creating unnecessary overhead.
+
 
 ## Testing Strategy
 [AI assistance for test creation, execution, and maintenance]
@@ -112,9 +151,10 @@ Follow clean architecture principles by developing in this sequence:
 - **Target 90% code coverage** across all modules - run `./gradlew koverHtmlReport` to generate coverage reports and ensure new code maintains high coverage standards.
 - **All modules should achieve 90%+ coverage** - Domain, Application, and Infrastructure layers should all maintain consistent high-quality test coverage.
 - **Integration testing with LocalStack TestContainers** - Use LocalStack TestContainers for infrastructure layer integration tests to validate AWS service interactions:
-  - LocalStack container for S3, Lambda, and API Gateway testing
+  - LocalStack container for S3, Lambda, API Gateway, and Bedrock testing
   - Test actual Kotlin AWS SDK calls against containerized AWS services
   - Validate object storage persistence, mapping externalization, and file handling
+  - Test AI-assisted mock generation using LocalStack's Bedrock emulation
   - Keep integration tests in the `software/infra/aws/` module alongside the infrastructure code
 - Prefer focused tests that validate mapping normalization, content-type defaults, and file externalization behaviors instead of broad integration suites.
 - Use MockK for all mocking to leverage Kotlin-specific features and maintain consistency.
@@ -130,9 +170,40 @@ Follow clean architecture principles by developing in this sequence:
 - Preserve the documented deployment touchpoints (function/API keys, URLs, and Postman collections) so operators can continue following the published setup instructions.
 
 ## Knowledge Management
-[How Kiro helps capture and share project knowledge]
-- Capture updates to API surfaces or storage behaviors near the WireMock Admin API reference and default mappings so future changes stay discoverable alongside the running mock assets.
-- When adding new cloud integrations, document the storage layout and lifecycle expectations in the same locations used by the current S3/Blob adapters.
+
+### How Kiro Helps Capture and Share Project Knowledge
+
+Kiro is used as a supporting tool to help capture, maintain, and evolve project knowledge in a consistent and traceable way. It does not replace documentation or architectural decisions, but assists in keeping them accurate and aligned with the codebase over time.
+
+Kiro contributes to knowledge management in the following ways:
+
+- **Documentation alignment**  
+  Kiro helps keep architectural descriptions, design decisions, and usage documentation in sync with the actual implementation. When changes are made to code or structure, Kiro can assist in updating related documentation to reflect those changes accurately.
+
+- **Clarifying design intent**  
+  Kiro is used to explain *why* certain architectural decisions exist (e.g., storage separation, clean architecture boundaries, serverless constraints), making those decisions easier to understand for new contributors.
+
+- **Consistent terminology and structure**  
+  Kiro helps maintain consistent naming, concepts, and structure across documentation, diagrams, and code comments, reducing ambiguity and cognitive load.
+
+- **Supporting onboarding and knowledge transfer**  
+  New contributors can use Kiro-assisted documentation to quickly understand:
+  - The purpose of each module
+  - How components interact
+  - Where to make changes safely
+  - How architectural constraints are enforced
+
+- **Keeping documentation close to the code**  
+  Architectural explanations, usage guides, and operational notes live alongside the codebase (e.g. in `docs/` and README files). Kiro assists in keeping these documents accurate as the system evolves.
+
+### What Kiro Does *Not* Do
+
+- Kiro does **not** replace architectural decision-making.
+- Kiro does **not** automatically generate or modify production code.
+- Kiro does **not** act as a source of truth independent of the repository.
+
+Instead, Kiro acts as a **documentation and reasoning assistant** that helps ensure the project’s design intent remains understandable, consistent, and well-communicated over time.
+
 
 ## Best Practices
 [Recommended patterns for effective AI-assisted development]
