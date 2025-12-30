@@ -50,7 +50,13 @@ For detailed AWS architecture and service descriptions, see our [AWS Services Do
 
 ## Clean Architecture
 
-This project follows clean architecture principles with clear separation between domain, application, and infrastructure layers. For detailed architecture explanation and diagrams, see our [Architecture Documentation](.kiro/steering/02-architecture.md#clean-architecture-for-serverless).
+This project follows clean architecture principles with clear separation between domain, application, and infrastructure layers. 
+
+![Clean Architecture](docs/images/CleanArchitecture.png)
+
+For detailed architecture explanation and diagrams, see our [Architecture Documentation](.kiro/steering/02-architecture.md#clean-architecture-for-serverless).
+
+For more background on clean architecture in serverless applications, see ["Keeping Business Logic Portable in Serverless Functions with Clean Architecture"](https://medium.com/nntech/keeping-business-logic-portable-in-serverless-functions-with-clean-architecture-bd1976276562).
 
 ## Project Structure
 
