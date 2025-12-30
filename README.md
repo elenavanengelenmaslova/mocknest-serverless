@@ -146,169 +146,40 @@ The Postman collections also include a SOAP Calculator example (request to `/dne
 # Getting Started
 
 ## Prerequisites
-Before you begin, ensure you have the following:
+Before you begin, ensure you have:
 
-- **Java 25** or later installed
-- **Kotlin 2.3.0** support
-- Git for version control
-- Gradle (the project uses the Gradle wrapper, so you don't need to install it separately)
-- IDE of your choice (IntelliJ IDEA recommended for Kotlin development)
+- An AWS account with permissions to create Lambda functions, API Gateway resources, IAM roles, and S3 buckets
+- AWS CLI configured with appropriate credentials
+- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) installed
 
-### AWS Account Requirements
-- An AWS account with permissions to:
-  - Create and manage Lambda functions
-  - Create and manage API Gateway resources
-  - Create and manage IAM roles and policies
-  - Create and manage S3 buckets
-  - Deploy AWS resources via SAM
+## Quick Deploy
 
-## Build Project
-After checking out the project, ensure it can build properly by running:
-```bash
-./gradlew build
-```
-from the root of the project.
-
-# Development
-
-## Prerequisites
-- **Java 25** (recommended to install via [SDKMAN](https://sdkman.io/))
-- **Gradle 9.0.0** (included via Gradle wrapper)
-- **Kotlin 2.3.0** (configured in build files)
-
-### Installing Java 25 with SDKMAN
-```bash
-# Install SDKMAN
-curl -s "https://get.sdkman.io" | bash
-
-# Install and set Java 25 as default
-sdk install java 25.0.1-open
-sdk default java 25.0.1-open
-
-# Verify installation
-java -version
-```
-
-## Building the Project
-
-### Full Build
-Build all modules and run tests:
-```bash
-./gradlew build
-```
-
-### Clean Build
-Clean and rebuild everything:
-```bash
-./gradlew clean build
-```
-
-### Build Specific Modules
-```bash
-# Build only the domain module
-./gradlew :software:domain:build
-
-# Build only the application module
-./gradlew :software:application:build
-
-# Build only the AWS infrastructure module
-./gradlew :software:infra:aws:build
-```
-
-## Testing and Coverage
-
-This project maintains **90%+ code coverage** across all modules using [Kover](https://github.com/Kotlin/kotlinx-kover).
-
-### Running Tests
-```bash
-# Run all tests
-./gradlew test
-
-# Run tests for specific module
-./gradlew :software:application:test
-```
-
-### Coverage Reports
-
-#### Generate Coverage Reports
-```bash
-# Generate HTML coverage reports for all modules
-./gradlew koverHtmlReport
-
-# Generate XML coverage reports (for CI/Codecov)
-./gradlew koverXmlReport
-
-# Generate both HTML and XML reports
-./gradlew koverHtmlReport koverXmlReport
-```
-
-#### View Coverage Reports
-After running `koverHtmlReport`, open the coverage report in your browser:
-```bash
-# Root project coverage
-open build/reports/kover/html/index.html
-
-# Individual module coverage
-open software/application/build/reports/kover/html/index.html
-open software/domain/build/reports/kover/html/index.html
-open software/infra/aws/build/reports/kover/html/index.html
-```
-
-#### Coverage Verification (90% Threshold)
-```bash
-# Verify coverage meets 90% threshold (fails build if under 90%)
-./gradlew koverVerify
-```
-
-**Important**: The `koverVerify` task will **fail the build** if any module has less than 90% code coverage. This ensures high code quality and is enforced in CI/CD pipelines.
-
-### Complete Test and Coverage Workflow
-```bash
-# Run tests, generate reports, and verify coverage threshold
-./gradlew test koverHtmlReport koverXmlReport koverVerify
-```
-
-### Coverage in CI/CD
-- **Feature branches**: Run tests and coverage verification (build fails if < 90%)
-- **Main branch**: Same as feature branches, plus uploads coverage to [Codecov](https://codecov.io)
-- **Coverage badge**: Available in the repository via Codecov integration
-
-### Testing Strategy
-- **Unit Tests**: MockK for mocking, JUnit 5 for test framework
-- **Integration Tests**: LocalStack TestContainers for AWS service testing
-- **Coverage Target**: 90%+ across all modules (domain, application, infrastructure)
-- **Test Location**: Tests are located in `src/test/kotlin` in each module
-
-## Code Quality Standards
-- Use `runCatching { }` instead of try-catch-finally blocks
-- Use `.use { }` for automatic resource management
-- Leverage Kotlin's null safety and smart casts
-- Avoid `!!` operator
-- Use MockK for all mocking in unit tests
-- Maintain 90%+ code coverage in all modules
-
-## Deploy with SAM
-This project uses AWS SAM for deployment. You can deploy to your own AWS account for testing before publishing to SAR:
+Deploy MockNest Serverless to your AWS account:
 
 ```bash
-# Build the application
+# Clone the repository
+git clone https://github.com/your-org/mocknest-serverless.git
+cd mocknest-serverless
+
+# Build and deploy
 sam build
-
-# Deploy to your AWS account
 sam deploy --guided
-
-# For SAR publishing (when ready)
-sam package --s3-bucket your-artifacts-bucket
-sam publish --template packaged-template.yaml
 ```
 
-## Configure Pipeline
-If you are using GitHub Actions for deployment, you'll need to configure the following repository secrets:
+Follow the prompts to configure your deployment. The guided deployment will ask for:
+- Stack name (e.g., `mocknest-serverless`)
+- AWS region (e.g., `us-east-1`)
+- Whether to enable AI features (optional, incurs additional costs)
 
-### AWS Deployment Secrets
-- `AWS_ACCOUNT_ID`: Your AWS account ID
-- `AWS_ACCESS_KEY`: Your AWS access key
-- `AWS_SECRET_KEY`: Your AWS secret key
+After deployment, note the API Gateway URL and API key from the outputs.
+
+## For Developers
+
+If you want to contribute to MockNest Serverless, see our [Contributing Guide](CONTRIBUTING.md) which covers:
+- How to report bugs and suggest features
+- Pull request guidelines
+- Development setup and coding standards
+- Testing requirements (90%+ coverage)
 
 ## Testing: Postman Collections and Environment
 
