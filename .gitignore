@@ -124,6 +124,9 @@ replay_pid*
 # Kotlin
 *.kotlin_module
 
+# Kotlin compiler cache
+.kotlin/
+
 # Spring Boot
 spring-boot-devtools.properties
 

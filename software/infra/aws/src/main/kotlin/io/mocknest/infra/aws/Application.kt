@@ -1,11 +1,11 @@
-package com.mocknest
+package io.mocknest.infra.aws
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-class MockNestApplication
+class Application
 
 fun main(args: Array<String>) {
-    runApplication<MockNestApplication>(*args)
+    runApplication<Application>(*args)
 }

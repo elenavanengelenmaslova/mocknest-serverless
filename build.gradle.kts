@@ -31,9 +31,28 @@ subprojects {
     configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
         imports {
             mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.0")
+            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.0")
         }
         dependencies {
             dependency("org.wiremock:wiremock-standalone:3.13.2")
+            
+            // Kotlin AWS SDK
+            val awsSdkKotlinVersion = "1.3.77"
+            dependency("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
+            dependency("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
+            dependency("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
+            dependency("aws.sdk.kotlin:bedrock:$awsSdkKotlinVersion")
+            dependency("aws.sdk.kotlin:bedrockruntime:$awsSdkKotlinVersion")
+            
+            // AWS Lambda Java
+            dependency("com.amazonaws:aws-lambda-java-core:1.2.3")
+            dependency("com.amazonaws:aws-lambda-java-events:3.14.0")
+            
+            // TestContainers
+            val testContainersVersion = "1.20.3"
+            dependency("org.testcontainers:testcontainers:$testContainersVersion")
+            dependency("org.testcontainers:junit-jupiter:$testContainersVersion")
+            dependency("org.testcontainers:localstack:$testContainersVersion")
         }
     }
 
