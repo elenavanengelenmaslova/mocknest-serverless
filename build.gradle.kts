@@ -32,6 +32,9 @@ subprojects {
         imports {
             mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.0")
         }
+        dependencies {
+            dependency("org.wiremock:wiremock-standalone:3.13.2")
+        }
     }
 
     dependencies {
