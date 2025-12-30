@@ -1,9 +1,5 @@
-plugins {
-    kotlin("jvm")
-    id("org.jetbrains.kotlinx.kover")
-}
-
 dependencies {
-    // Domain layer should have minimal dependencies
-    // Only core business logic and domain models
+    // Spring Boot core types for HTTP modeling
+    api("org.springframework:spring-web") // for HttpMethod
+    api("org.wiremock:wiremock-standalone:3.13.1")
 }

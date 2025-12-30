@@ -19,10 +19,18 @@ allprojects {
 subprojects {
     apply(plugin = "kotlin")
     apply(plugin = "org.jetbrains.kotlinx.kover")
+    apply(plugin = "io.spring.dependency-management")
 
     configure<JavaPluginExtension> {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(25))
+        }
+    }
+
+    // Global dependency management for all modules
+    configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
+        imports {
+            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.0")
         }
     }
 
