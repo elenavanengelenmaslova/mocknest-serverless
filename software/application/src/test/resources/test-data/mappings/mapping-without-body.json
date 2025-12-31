@@ -1,0 +1,7 @@
+{
+  "id": "test-id",
+  "persistent": true,
+  "response": {
+    "status": 200
+  }
+}

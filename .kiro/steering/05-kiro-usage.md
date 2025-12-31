@@ -82,6 +82,8 @@ Follow clean architecture principles by developing in this sequence:
 - Keep cURL examples in README synchronized with actual API changes
 
 ## Code Generation Standards
+
+### General Kotlin Development
 [Guidelines for AI-assisted code generation and review]
 - Generate Kotlin 2.3.0/Spring Boot 4.0 code targeting JVM 25, using Gradle 9.0.0, relying on the shared Gradle settings for dependency management and Kotlin logging; keep new tasks compatible with the existing toolchain.
 - **Use Kotlin AWS SDK** (not Java SDK) for all AWS cloud infrastructure interactions - these must always be kept in the `software/infra/aws/` module to maintain clean architecture boundaries.
@@ -90,8 +92,119 @@ Follow clean architecture principles by developing in this sequence:
   - Use `.use { }` for automatic resource management (closeable resources)
   - Leverage Kotlin's null safety and smart casts
   - Avoid `!!` operator
-- **Testing with MockK** - Use MockK library for all mocking in unit tests, taking advantage of Kotlin-specific features like extension functions and coroutines support.
+- **Prefer Kotlinx Serialization** over Jackson mapper where possible for both production code and tests:
+  - Use `@Serializable` data classes for JSON handling
+  - Use `Json.encodeToString()` and `Json.decodeFromString()` for serialization
+  - Only fall back to Jackson when integrating with libraries that require it (like WireMock)
 - Reuse the ObjectStorage-backed abstractions for persistence so FILES and MAPPINGS stay in object storage (and never fall back to local disk); extend the WireMock filters instead of bypassing them when manipulating mappings.
+
+### Unit Testing Standards
+[Comprehensive guidelines for unit test creation and maintenance]
+
+#### Test Structure and Naming
+- **Use Given-When-Then naming convention** for test methods:
+  ```kotlin
+  @Test
+  fun `Given valid mapping request When processing normalization Then should externalize body to file`()
+  ```
+- Test method names should clearly describe the scenario being tested
+- Use backticks for readable test names with spaces and special characters
+
+#### MockK Configuration and Best Practices
+- **Declare mocks with relaxed behavior** at the property level rather than in setup methods:
+  ```kotlin
+  private val mockStorage: ObjectStorageInterface = mockk(relaxed = true)
+  private val mockService: SomeService = mockk(relaxed = true)
+  ```
+- **Reset all mocks in teardown** to ensure test isolation:
+  ```kotlin
+  @AfterEach
+  fun tearDown() {
+      clearAllMocks()
+  }
+  ```
+- Use `relaxed = true` by default to avoid unnecessary stubbing of irrelevant method calls
+- Only use strict mocks when you need to verify that specific methods are NOT called
+- Prefer `coEvery` and `coVerify` for suspend functions
+
+#### Test Organization
+- Group related test methods using nested classes when appropriate:
+  ```kotlin
+  @Nested
+  inner class `Mapping Normalization` {
+      // Related tests here
+  }
+  ```
+- Use `@BeforeEach` for common test setup that applies to all tests in a class
+- Keep test data creation close to the test that uses it
+- Extract common test data builders into companion objects or separate test utilities
+
+#### Verification Patterns
+- Use `coVerify` to assert that expected interactions occurred:
+  ```kotlin
+  coVerify { mockStorage.save("expected-key", "expected-content") }
+  ```
+- Use `coVerify(exactly = 0)` to assert that methods were NOT called:
+  ```kotlin
+  coVerify(exactly = 0) { mockStorage.save(any(), any()) }
+  ```
+- Prefer specific argument matching over `any()` when the exact values matter for the test
+
+#### Coroutine Testing
+- **Use JUnit 6 suspend test support** - Annotate test functions with `suspend` and avoid `runBlocking` in unit tests:
+  ```kotlin
+  @Test
+  suspend fun `Given valid request When processing async operation Then should complete successfully`() {
+      // Test suspend functions directly without runBlocking
+      val result = suspendingService.processRequest(request)
+      assertEquals(expectedResult, result)
+  }
+  ```
+- **Use kotlinx-coroutines-test library** for advanced coroutine testing scenarios:
+  ```kotlin
+  @Test
+  fun `Given delayed operation When using test dispatcher Then should control time`() = runTest {
+      // Use runTest for controlling virtual time and testing delays
+      val result = async { delayedOperation() }
+      advanceUntilIdle()
+      assertEquals(expectedResult, result.await())
+  }
+  ```
+- **Prefer `suspend` over `runBlocking`** , and for complex coroutine scenarios that need time control use `runTest`.
+- **Test both success and failure paths** for suspend functions, including exception handling
+- **Use `TestDispatcher`** when you need to control coroutine execution and timing in tests
+
+#### Test Data Management
+- **Use resource files for test data** - Store test data in `src/test/resources` folder and read them in tests:
+  ```kotlin
+  private fun loadTestData(filename: String): String {
+      return this::class.java.getResource("/test-data/$filename")?.readText()
+          ?: throw IllegalArgumentException("Test data file not found: $filename")
+  }
+  
+  @Test
+  suspend fun `Given large mapping JSON When processing Then should normalize correctly`() {
+      val mappingJson = loadTestData("large-mapping.json")
+      val result = filter.normalizeMappingToBodyFile(mappingJson)
+      // assertions...
+  }
+  ```
+- **Prefer external files for JSON data larger than 3 lines** - Keep test code clean and readable by externalizing complex test data
+- **Use parameterized tests for multiple scenarios** - Test different data combinations efficiently:
+  ```kotlin
+  @ParameterizedTest
+  @ValueSource(strings = ["mapping-with-body.json", "mapping-with-base64.json", "mapping-without-body.json"])
+  suspend fun `Given different mapping types When processing Then should handle correctly`(filename: String) {
+      val mappingJson = loadTestData(filename)
+      val result = filter.normalizeMappingToBodyFile(mappingJson)
+      // scenario-specific assertions based on filename
+  }
+  ```
+- **Organize test data files** in logical subdirectories under `src/test/resources/`:
+  - `test-data/mappings/` - WireMock mapping JSON files
+  - `test-data/requests/` - HTTP request examples
+  - `test-data/responses/` - Expected response payloads
+- **Use meaningful file names** that clearly indicate the test scenario they represent
 
 ## Documentation Practices
 Documentation in this project is designed to stay accurate, intentional, and easy to maintain as the system evolves. The goal is to avoid duplication, reduce drift between code and documentation, and clearly communicate architectural intent.
@@ -146,7 +259,7 @@ This approach keeps documentation accurate, maintainable, and aligned with the e
 
 ## Testing Strategy
 [AI assistance for test creation, execution, and maintenance]
-- Add JUnit 5/Kotlin test coverage alongside new features, following the existing pattern of exercising WireMock filters with in-memory storage doubles.
+- Add JUnit 5/Kotlin test coverage alongside new features, following the unit testing standards defined in the Code Generation Standards section above.
 - **Use Kover for code coverage** - Apply `org.jetbrains.kotlinx.kover` plugin for Kotlin-optimized coverage reporting with better support for inline functions and coroutines.
 - **Target 90% code coverage** across all modules - run `./gradlew koverHtmlReport` to generate coverage reports and ensure new code maintains high coverage standards.
 - **All modules should achieve 90%+ coverage** - Domain, Application, and Infrastructure layers should all maintain consistent high-quality test coverage.
@@ -157,7 +270,7 @@ This approach keeps documentation accurate, maintainable, and aligned with the e
   - Test AI-assisted mock generation using LocalStack's Bedrock emulation
   - Keep integration tests in the `software/infra/aws/` module alongside the infrastructure code
 - Prefer focused tests that validate mapping normalization, content-type defaults, and file externalization behaviors instead of broad integration suites.
-- Use MockK for all mocking to leverage Kotlin-specific features and maintain consistency.
+- Follow the MockK configuration and Given-When-Then naming conventions as specified in the unit testing standards.
 
 ## Code Review Process
 [How Kiro integrates with code review and quality assurance]

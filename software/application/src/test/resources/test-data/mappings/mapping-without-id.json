@@ -1,0 +1,7 @@
+{
+  "persistent": true,
+  "response": {
+    "status": 200,
+    "body": "{\"message\": \"Hello\"}"
+  }
+}

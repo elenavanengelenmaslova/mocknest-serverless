@@ -1,0 +1,11 @@
+{
+  "id": "test-id",
+  "persistent": true,
+  "response": {
+    "status": 200,
+    "body": "{\"message\": \"Hello\"}",
+    "headers": {
+      "Content-Type": "application/custom+json"
+    }
+  }
+}
