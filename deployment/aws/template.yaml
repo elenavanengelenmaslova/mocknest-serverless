@@ -8,6 +8,14 @@ Parameters:
     Default: 'false'
     AllowedValues: ['true', 'false']
     Description: Enable AI-assisted mock generation features
+  
+  BucketName:
+    Type: String
+    Default: ''
+    Description: Custom S3 bucket name for mock storage (optional, auto-generated if empty)
+
+Conditions:
+  HasCustomBucketName: !Not [!Equals [!Ref BucketName, '']]
 
 Globals:
   Function:
@@ -23,7 +31,10 @@ Resources:
   MockStorage:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-mock-storage"
+      BucketName: !If 
+        - HasCustomBucketName
+        - !Ref BucketName
+        - !Sub "${AWS::StackName}-mock-storage"
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
@@ -42,6 +53,8 @@ Resources:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           AI_ENABLED: !Ref EnableAI
+          AWS_REGION: !Ref "AWS::Region"
+          MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
       Policies:
         - S3FullAccessPolicy:
             BucketName: !Ref MockStorage
@@ -94,8 +107,20 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-api-url"
   
+  MockNestApiId:
+    Description: "API Gateway API ID for MockNest Serverless"
+    Value: !Ref MockNestApi
+    Export:
+      Name: !Sub "${AWS::StackName}-api-id"
+  
   MockStorageBucket:
     Description: "S3 bucket for mock storage"
     Value: !Ref MockStorage
     Export:
       Name: !Sub "${AWS::StackName}-storage-bucket"
+  
+  Region:
+    Description: "AWS region where MockNest is deployed"
+    Value: !Ref "AWS::Region"
+    Export:
+      Name: !Sub "${AWS::StackName}-region"
