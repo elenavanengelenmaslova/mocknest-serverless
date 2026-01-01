@@ -44,29 +44,30 @@ class S3ObjectStorageAdapter(
 
     override suspend fun get(id: String): String? {
         logger.info { "Getting object with id: $id" }
-        return runCatching {
+        return s3Client.runCatching {
             var content: String? = null
-            s3Client.getObject(GetObjectRequest {
+            getObject(GetObjectRequest {
                 bucket = bucketName
                 key = id
             }) { response ->
                 content = response.body?.toByteArray()?.toString(StandardCharsets.UTF_8)
             }
             content
-        }.onFailure { e ->
-            logger.info { "Mapping with id: $id not found: ${e.message}" }
+        }.onFailure { exception ->
+            logger.warn(exception) { "Object not found or failed to retrieve: id=$id" }
         }.getOrNull()
     }
 
     override suspend fun delete(id: String) {
         logger.info { "Deleting object with id: $id" }
-        runCatching {
-            s3Client.deleteObject(DeleteObjectRequest {
+        s3Client.runCatching {
+            deleteObject(DeleteObjectRequest {
                 bucket = bucketName
                 key = id
             })
-        }.onFailure { e -> logger.info { "Error deleting mapping with id: $id: ${e.message}" } }
-            .getOrThrow()
+        }.onFailure { exception -> 
+            logger.warn(exception) { "Failed to delete object: id=$id" }
+        }.getOrThrow()
     }
 
     override fun list(): Flow<String> = flow {
@@ -100,18 +101,18 @@ class S3ObjectStorageAdapter(
     override fun getMany(ids: Flow<String>, concurrency: Int): Flow<Pair<String, String?>> =
         ids.flatMapMerge(concurrency) { id ->
             flow {
-                val content = runCatching {
+                val content = s3Client.runCatching {
                     var result: String? = null
-                    s3Client.getObject(GetObjectRequest {
+                    getObject(GetObjectRequest {
                         bucket = bucketName
                         key = id
                     }) { response ->
                         result = response.body?.toByteArray()?.toString(StandardCharsets.UTF_8)
                     }
                     result
-                }
-                    .onFailure { logger.error(it) { "Error during getting many object: $it" } }
-                    .getOrNull()
+                }.onFailure { exception -> 
+                    logger.warn(exception) { "Failed to get object in batch operation: id=$id" }
+                }.getOrNull()
                 emit(id to content)
             }
         }

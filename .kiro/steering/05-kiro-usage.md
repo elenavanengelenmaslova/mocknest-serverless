@@ -92,6 +92,66 @@ Follow clean architecture principles by developing in this sequence:
   - Use `.use { }` for automatic resource management (closeable resources)
   - Leverage Kotlin's null safety and smart casts
   - Avoid `!!` operator
+- **Logging Standards**:
+  - **Use kotlin-logging (KotlinLogging)** for all logging throughout the application:
+    ```kotlin
+    private val logger = KotlinLogging.logger {}
+    ```
+  - **Use structured logging** with consistent message formatting:
+    ```kotlin
+    // Good: Structured logging with context
+    logger.info { "Saving object with id: $id" }
+    logger.warn(exception) { "Failed to retrieve object: id=$id, bucket=$bucketName" }
+    
+    // Bad: String concatenation and no context
+    logger.info("Saving object with id: " + id)
+    logger.warn("Failed: " + exception.message)
+    ```
+  - **Include relevant context** in log messages to aid debugging:
+    - Object IDs, keys, file names
+    - Operation parameters (bucket names, prefixes, etc.)
+    - Counts and metrics where relevant
+  - **Use appropriate log levels consistently**:
+    - `ERROR` - System errors that prevent operation completion
+    - `WARN` - Recoverable errors, fallback scenarios, expected failures
+    - `INFO` - Normal operation flow, significant state changes
+    - `DEBUG` - Detailed execution information, expected exceptions in retry scenarios
+  - **Always pass exceptions to the logger** when logging failures:
+    ```kotlin
+    // Good: Exception passed to logger for full stack trace
+    logger.error(exception) { "Operation failed: context info" }
+    
+    // Bad: Only exception message logged
+    logger.error { "Operation failed: ${exception.message}" }
+    ```
+- **Exception Handling Standards**:
+  - **Never swallow exceptions silently** - Always log exceptions at minimum WARNING level before handling them
+  - **Prefer `runCatching` as a scope function** when it improves readability:
+    ```kotlin
+    // Good: Using runCatching as scope function
+    s3Client.runCatching {
+        createBucket(CreateBucketRequest {
+            bucket = "test-bucket"
+        })
+    }.onFailure { exception ->
+        logger.warn(exception) { "Bucket creation failed, may already exist: test-bucket" }
+    }
+    
+    // Also good: Traditional runCatching when multiple operations or complex logic
+    runCatching {
+        val result = complexOperation()
+        processResult(result)
+        return result
+    }.onFailure { exception ->
+        logger.error(exception) { "Complex operation failed" }
+        throw exception
+    }
+    ```
+  - **Choose the appropriate pattern** based on context:
+    - **Scope function style** (`object.runCatching { method() }`) for single method calls
+    - **Traditional style** (`runCatching { /* multiple operations */ }`) for complex blocks
+  - **Always include proper logging** with context information (see Logging Standards above)
+  - **Use appropriate log levels** (see Logging Standards above)
 - **Prefer Kotlinx Serialization** over Jackson mapper where possible for both production code and tests:
   - Use `@Serializable` data classes for JSON handling
   - Use `Json.encodeToString()` and `Json.decodeFromString()` for serialization
@@ -173,6 +233,60 @@ Follow clean architecture principles by developing in this sequence:
 - **Prefer `suspend` over `runBlocking`** , and for complex coroutine scenarios that need time control use `runTest`.
 - **Test both success and failure paths** for suspend functions, including exception handling
 - **Use `TestDispatcher`** when you need to control coroutine execution and timing in tests
+
+#### TestContainers Integration Testing
+- **Use proper TestContainers lifecycle management** with `@BeforeAll`/`@AfterAll` for expensive setup operations:
+  ```kotlin
+  @Testcontainers
+  class IntegrationTest {
+      companion object {
+          @Container
+          @JvmStatic
+          private val localStackContainer = LocalStackContainer(
+              DockerImageName.parse("localstack/localstack:4.12.0")
+          ).withServices(
+              LocalStackContainer.Service.S3
+          ).waitingFor(
+              Wait.forLogMessage(".*Ready.*", 1)
+          )
+
+          @BeforeAll
+          @JvmStatic
+          fun setupClass() {
+              // One-time expensive setup here
+              // Configure clients, create resources
+          }
+
+          @AfterAll
+          @JvmStatic
+          fun tearDownClass() {
+              // Clean up resources
+          }
+      }
+
+      @BeforeEach
+      suspend fun setup() {
+          // Clear test data before each test
+      }
+
+      @AfterEach
+      suspend fun tearDown() {
+          // Clean up test data after each test
+      }
+  }
+  ```
+- **Use TestContainers built-in waiting strategies** instead of manual retry loops:
+  - `Wait.forLogMessage(".*Ready.*", 1)` for LocalStack readiness
+  - `Wait.forHttp("/health")` for HTTP health checks
+  - `Wait.forListeningPort()` for port availability
+- **Share expensive resources** like containers and clients across tests using `@BeforeAll`/`@AfterAll`
+- **Clean test data** (not containers) between tests using `@BeforeEach`/`@AfterEach`
+- **Use LocalStack TestContainers** for infrastructure layer integration tests to validate AWS service interactions:
+  - LocalStack container for S3, Lambda, API Gateway, and Bedrock testing
+  - Test actual Kotlin AWS SDK calls against containerized AWS services
+  - Validate object storage persistence, mapping externalization, and file handling
+  - Test AI-assisted mock generation using LocalStack's Bedrock emulation
+  - Keep integration tests in the `software/infra/aws/` module alongside the infrastructure code
 
 #### Test Data Management
 - **Use resource files for test data** - Store test data in `src/test/resources` folder and read them in tests:
@@ -269,6 +383,9 @@ This approach keeps documentation accurate, maintainable, and aligned with the e
   - Validate object storage persistence, mapping externalization, and file handling
   - Test AI-assisted mock generation using LocalStack's Bedrock emulation
   - Keep integration tests in the `software/infra/aws/` module alongside the infrastructure code
+  - Use proper TestContainers lifecycle management with `@BeforeAll`/`@AfterAll` for container setup
+  - Use TestContainers built-in waiting strategies like `Wait.forLogMessage(".*Ready.*", 1)`
+  - Share expensive resources like containers and clients across tests, only clean test data between tests
 - Prefer focused tests that validate mapping normalization, content-type defaults, and file externalization behaviors instead of broad integration suites.
 - Follow the MockK configuration and Given-When-Then naming conventions as specified in the unit testing standards.
 

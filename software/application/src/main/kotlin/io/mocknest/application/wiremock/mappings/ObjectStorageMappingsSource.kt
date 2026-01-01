@@ -30,7 +30,7 @@ class ObjectStorageMappingsSource(
         logger.info { "Loading objects ObjectStorageMappingsSource: $stubMappings" }
         // WireMock expects blocking; stream internally with bounded concurrency and block until done
         runBlocking {
-            val keysFlow = runCatching { storage.listPrefix(prefix) }
+            val keysFlow = storage.runCatching { listPrefix(prefix) }
                 .onFailure { e -> logger.error(e) { "Failed to list mappings with prefix '$prefix'" } }
                 .getOrThrow()
 
@@ -40,8 +40,8 @@ class ObjectStorageMappingsSource(
                 .flatMapMerge(concurrency) { key ->
                     total++
                     flow {
-                        val json = runCatching { storage.get(key) }
-                            .onFailure { e -> logger.error { "Failed to get mapping '$key': $e" } }
+                        val json = storage.runCatching { get(key) }
+                            .onFailure { e -> logger.error(e) { "Failed to get mapping '$key'" } }
                             .getOrNull()
                         if (!json.isNullOrBlank()) emit(key to json)
                     }
@@ -66,8 +66,8 @@ class ObjectStorageMappingsSource(
         val id = mapping.id
         val key = "$prefix$id.json"
         runBlocking {
-            runCatching {
-                storage.save(key, Json.write(mapping))
+            storage.runCatching {
+                save(key, Json.write(mapping))
             }.onFailure { e ->
                 logger.error(e) { "Failed to save mapping $id to $key" }
             }
@@ -82,18 +82,18 @@ class ObjectStorageMappingsSource(
         val id = mapping.id
         val key = "$prefix$id.json"
         runBlocking {
-            runCatching { storage.delete(key) }
+            storage.runCatching { delete(key) }
                 .onFailure { e -> logger.error(e) { "Failed to delete mapping $id at $key" } }
         }
     }
 
     override fun removeAll() {
         runBlocking {
-            val flow = runCatching { storage.listPrefix(prefix) }
+            val flow = storage.runCatching { listPrefix(prefix) }
                 .onFailure { e -> logger.error(e) { "Failed to list mappings for removeAll with prefix '$prefix'" } }
                 .getOrThrow()
             flow.collect { key ->
-                runCatching { storage.delete(key) }
+                storage.runCatching { delete(key) }
                     .onFailure { e -> logger.error(e) { "Failed to delete mapping key $key" } }
             }
         }

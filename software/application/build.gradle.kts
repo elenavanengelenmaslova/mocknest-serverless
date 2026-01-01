@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm")
+    kotlin("plugin.spring")
     id("org.jetbrains.kotlinx.kover")
 }
 
