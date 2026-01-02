@@ -83,6 +83,14 @@ The serverless WireMock runtime is already implemented. This plan focuses on com
   - Test concurrent request handling performance
   - _Requirements: 7.3, 7.5_
 
+- [ ] 1.11 Test mock import/export via WireMock Admin API
+  - Test WireMock's built-in import endpoints work correctly in serverless environment
+  - Test WireMock's built-in export endpoints work correctly in serverless environment
+  - Test bulk import operations through standard WireMock Admin API
+  - Verify imported mocks are properly persisted to S3 storage
+  - Verify exported mocks include all necessary data and formatting
+  - _Requirements: Traditional Mock Management (scope document)_
+
 - [ ] 2. Fix GitHub Actions build
   - Ensure all tests pass in CI environment
   - Fix any build issues preventing successful GitHub Actions execution
