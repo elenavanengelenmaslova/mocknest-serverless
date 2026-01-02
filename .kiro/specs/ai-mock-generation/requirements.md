@@ -43,7 +43,7 @@ This document specifies the requirements for implementing AI-powered mock genera
 2. WHEN processing natural language input, THE MockNest_System SHALL extract endpoint paths, HTTP methods, and expected response characteristics
 3. WHEN generating mocks from descriptions, THE MockNest_System SHALL create realistic response bodies that match the described behavior
 4. WHEN descriptions include error scenarios, THE MockNest_System SHALL generate appropriate error response mocks with correct status codes
-5. WHERE descriptions are ambiguous, THE MockNest_System SHALL generate multiple mock variations and request user clarification
+5. WHERE descriptions are ambiguous, THE MockNest_System SHALL return an error response with specific suggestions for providing clearer input, or generate a default interpretation with clear documentation of assumptions made
 
 ### Requirement 3
 
@@ -116,3 +116,15 @@ This document specifies the requirements for implementing AI-powered mock genera
 3. WHEN generating SOAP mocks, THE MockNest_System SHALL handle different binding styles and transport protocols
 4. WHEN WSDL specifications include fault definitions, THE MockNest_System SHALL generate appropriate SOAP fault responses
 5. WHERE WSDL specifications reference external schemas, THE MockNest_System SHALL resolve and incorporate those schema definitions
+
+### Requirement 9
+
+**User Story:** As a developer, I want conversational mock generation capabilities in future releases, so that I can iteratively refine mock requirements through interactive dialogue.
+
+#### Acceptance Criteria
+
+1. WHEN MCP (Model Context Protocol) support is implemented in future phases, THE MockNest_System SHALL provide conversational interfaces for mock generation
+2. WHEN using conversational interfaces, THE MockNest_System SHALL maintain context across multiple interactions to refine mock requirements
+3. WHEN ambiguous descriptions are provided via MCP, THE MockNest_System SHALL ask clarifying questions to improve mock accuracy
+4. WHEN conversational refinement is complete, THE MockNest_System SHALL generate final mocks based on the accumulated conversation context
+5. WHERE MCP interfaces are available, THE MockNest_System SHALL support both REST API and conversational workflows for different use cases
