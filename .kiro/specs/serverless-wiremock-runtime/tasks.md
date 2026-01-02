@@ -97,7 +97,19 @@ The serverless WireMock runtime is already implemented. This plan focuses on com
   - Validate test coverage reporting
   - _Requirements: All (build quality)_
 
-- [ ] 3. Prepare for AWS deployment testing
+- [ ] 3. Implement SAM template for AWS infrastructure
+  - Create SAM template.yaml with Lambda function configuration
+  - Configure API Gateway REST API with {proxy+} resource and ANY method
+  - Set up S3 bucket for mock mappings storage with appropriate permissions
+  - Configure IAM role and policies for Lambda execution (S3 access, CloudWatch logs)
+  - Set up API Gateway deployment, stage, and API key authentication
+  - Configure usage plan and link API key to usage plan
+  - Add Lambda permission for API Gateway invocation
+  - Include environment variables for S3 bucket name and Spring configuration
+  - Configure appropriate timeouts, memory settings, and Java runtime optimization
+  - _Requirements: Deployment readiness_
+
+- [ ] 4. Prepare for AWS deployment testing
   - Create deployment configuration for test environment
   - Prepare integration tests that can run against deployed Lambda
   - Document deployment testing procedures

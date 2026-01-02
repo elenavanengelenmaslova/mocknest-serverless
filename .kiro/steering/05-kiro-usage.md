@@ -45,6 +45,27 @@ mocknest-serverless/
 
 ## Development Workflow
 
+### Incremental Feature Development Strategy
+MockNest Serverless follows a strict incremental development approach where each major feature must be fully completed, tested, and deployed before moving to the next:
+
+**Current Phase: Serverless WireMock Runtime**
+- Complete comprehensive testing of existing WireMock runtime implementation
+- Fix GitHub Actions build pipeline
+- Implement SAM template for AWS deployment
+- Deploy and validate in AWS environment
+- Achieve 90%+ test coverage across all modules
+- **No AI capabilities development until this phase is complete**
+
+**Future Phase: AI Traffic Analysis**
+- Only begin after serverless runtime is fully deployed and validated
+- Implement traffic analysis capabilities
+- Complete testing and deployment before moving to next phase
+
+**Future Phase: AI Mock Generation**
+- Only begin after traffic analysis is complete and deployed
+- Implement mock generation from specifications
+- Complete testing and deployment
+
 ### Module Development Order
 Follow clean architecture principles by developing in this sequence:
 1. **Domain Layer** (`:domain`) - Start with business models, entities, and domain rules
@@ -408,11 +429,28 @@ Kiro is used to systematically develop feature specifications through a structur
 2. **Design Creation**: After requirements approval, Kiro creates technical design documents with architecture, components, and correctness properties
 3. **Task Planning**: Following design approval, Kiro generates implementation task lists with specific, actionable steps
 
+### Incremental Feature Completion Strategy
+**Critical Rule: Complete one feature fully before starting the next**
+
+**Current Priority: Serverless WireMock Runtime**
+- Focus exclusively on completing comprehensive testing of existing implementation
+- Fix GitHub Actions build issues
+- Implement SAM template for AWS deployment
+- Deploy and validate in AWS environment
+- Achieve target test coverage (90%+)
+- **Do not begin AI feature development until this is complete**
+
+**Future Features (AI Traffic Analysis, AI Mock Generation)**
+- Only proceed to design and implementation phases after current feature is fully deployed
+- Each AI feature must be completed and deployed before moving to the next
+- Maintain the same rigorous testing and deployment standards
+
 ### Iterative Review Process
 Each phase requires explicit user approval before proceeding:
 - **Requirements Review**: User reviews and approves requirements before design phase
 - **Design Review**: User reviews and approves design before task creation
 - **Task Review**: User reviews and approves implementation plan before execution
+- **Deployment Review**: User validates deployment before moving to next feature
 
 ### Steering Document Alignment
 When corrections or clarifications are needed during any phase of development:
@@ -461,5 +499,16 @@ Instead, Kiro acts as a **documentation and reasoning assistant** that helps ens
 
 ## Best Practices
 [Recommended patterns for effective AI-assisted development]
+
+### Current Development Focus
+**Priority: Complete Serverless WireMock Runtime**
+- Focus all development effort on comprehensive testing of existing WireMock implementation
+- Ensure GitHub Actions build pipeline is working correctly
+- Complete SAM template implementation for AWS deployment
+- Validate deployment and functionality in AWS environment
+- Achieve 90%+ test coverage before considering any new features
+
+### Technical Implementation Guidelines
 - Keep persistent mapping bodies externalized to files via the normalization filter, and always set sensible default content types when bodies are moved into storage.
 - Use bounded-concurrency flows and batch operations for storage access (as already done in the storage adapters) to minimize cold-start and latency impact in serverless environments.
+- **No AI feature development until serverless runtime is fully complete and deployed**
