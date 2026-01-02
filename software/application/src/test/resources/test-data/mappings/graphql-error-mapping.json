@@ -1,0 +1,29 @@
+{
+  "id": "graphql-error-response",
+  "request": {
+    "method": "POST",
+    "url": "/graphql",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$.query",
+        "contains": "query GetUser"
+      },
+      {
+        "matchesJsonPath": "$.variables.id",
+        "equalTo": "999"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"errors\":[{\"message\":\"User not found\",\"locations\":[{\"line\":2,\"column\":3}],\"path\":[\"user\"],\"extensions\":{\"code\":\"USER_NOT_FOUND\"}}],\"data\":{\"user\":null}}"
+  }
+}

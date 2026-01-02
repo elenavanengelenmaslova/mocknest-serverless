@@ -29,13 +29,16 @@ class MockNestLambdaHandler(
                 logger.info { "MockNest request: $httpMethod $path $headers" }
                 when {
                     path.startsWith(ADMIN_PREFIX) -> {
+                        logger.debug { "Processing admin request $path" }
                         val adminPath = path.removePrefix(ADMIN_PREFIX)
                         handleAdminRequest(adminPath, createHttpRequest(adminPath))
                     }
                     path.startsWith(MOCKNEST_PREFIX) -> {
+                        logger.debug { "Processing client request $path" }
                         handleClientRequest(createHttpRequest(path.removePrefix(MOCKNEST_PREFIX)))
                     }
                     else -> {
+                        logger.debug { "Did not match admin or mocknest request prefix: $path" }
                         HttpResponse(
                             HttpStatus.NOT_FOUND,
                             body = "Path $path not found"

@@ -54,6 +54,7 @@ MockNest Serverless follows a strict incremental development approach where each
 - Implement SAM template for AWS deployment
 - Deploy and validate in AWS environment
 - Achieve 90%+ test coverage across all modules
+- **Take small steps and get full feature deployed and tested in AWS before moving to new features**
 - **No AI capabilities development until this phase is complete**
 
 **Future Phase: AI Traffic Analysis**
@@ -108,6 +109,18 @@ Follow clean architecture principles by developing in this sequence:
 [Guidelines for AI-assisted code generation and review]
 - Generate Kotlin 2.3.0/Spring Boot 4.0 code targeting JVM 25, using Gradle 9.0.0, relying on the shared Gradle settings for dependency management and Kotlin logging; keep new tasks compatible with the existing toolchain.
 - **Use Kotlin AWS SDK** (not Java SDK) for all AWS cloud infrastructure interactions - these must always be kept in the `software/infra/aws/` module to maintain clean architecture boundaries.
+- **Use proper imports** instead of fully qualified class names in code:
+  ```kotlin
+  // Good: Use proper imports
+  import org.springframework.beans.factory.annotation.Autowired
+  
+  @Autowired
+  private lateinit var lambdaHandler: MockNestLambdaHandler
+  
+  // Bad: Fully qualified class names
+  @org.springframework.beans.factory.annotation.Autowired
+  private lateinit var lambdaHandler: MockNestLambdaHandler
+  ```
 - **Prefer Kotlin idioms** for error handling and resource management:
   - Use `runCatching { }` instead of try-catch-finally blocks
   - Use `.use { }` for automatic resource management (closeable resources)

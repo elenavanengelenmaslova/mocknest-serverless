@@ -1,9 +1,8 @@
-package io.mocknest.infra.aws.function
+package io.mocknest.infra.aws.storage
 
-import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import io.mocknest.application.interfaces.storage.ObjectStorageInterface
 import io.mocknest.infra.aws.config.AwsConfiguration
-import io.mocknest.infra.aws.storage.S3ObjectStorageAdapter
+import io.mocknest.infra.aws.config.SharedLocalStackContainer
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
@@ -12,49 +11,24 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.localstack.LocalStackContainer
-import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
-import org.testcontainers.utility.DockerImageName
 import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.CreateBucketRequest
 import aws.smithy.kotlin.runtime.net.url.Url
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-@Testcontainers
-class MockNestLambdaHandlerIntegrationTest {
+class S3StorageIntegrationTest {
 
     companion object {
-        @Container
-        @JvmStatic
-        private val localStackContainer = LocalStackContainer(
-            DockerImageName.parse("localstack/localstack:4.12.0")
-        ).withServices(
-            LocalStackContainer.Service.S3
-        ).waitingFor(
-            Wait.forLogMessage(".*Ready.*", 1)
-        ).apply {
-            // Ensure container starts before any test setup
-            start()
-        }
-
         private lateinit var s3Client: S3Client
         private lateinit var storage: ObjectStorageInterface
 
         @BeforeAll
         @JvmStatic
         fun setupClass() {
-            // Wait a bit more to ensure LocalStack is fully ready
-            Thread.sleep(2000)
-            
-            // Configure LocalStack S3 client
-            val s3Endpoint = localStackContainer.getEndpointOverride(LocalStackContainer.Service.S3).toString()
-            
-            // Set system properties for LocalStack
-            System.setProperty("aws.accessKeyId", localStackContainer.accessKey)
-            System.setProperty("aws.secretAccessKey", localStackContainer.secretKey)
-            System.setProperty("aws.region", AwsConfiguration.TEST_REGION)
+            // Use the shared LocalStack container - no sleep needed, TestContainers handles readiness
+            val container = SharedLocalStackContainer.container
+            val s3Endpoint = container.getEndpointOverride(LocalStackContainer.Service.S3).toString()
             
             s3Client = S3Client {
                 region = AwsConfiguration.TEST_REGION
@@ -66,8 +40,6 @@ class MockNestLambdaHandlerIntegrationTest {
             runBlocking {
                 s3Client.createBucket(CreateBucketRequest {
                     bucket = AwsConfiguration.TEST_BUCKET_NAME
-                    // For us-east-1, we don't specify createBucketConfiguration
-                    // For other regions, we would need to specify the location constraint
                 })
             }
             
@@ -96,22 +68,6 @@ class MockNestLambdaHandlerIntegrationTest {
         // Clean up after each test
         val keys = storage.list().toList()
         keys.forEach { key -> storage.delete(key) }
-    }
-
-    private fun createApiGatewayEvent(
-        httpMethod: String,
-        path: String,
-        body: String? = null,
-        headers: Map<String, String> = emptyMap(),
-        queryStringParameters: Map<String, String> = emptyMap()
-    ): APIGatewayProxyRequestEvent {
-        return APIGatewayProxyRequestEvent().apply {
-            this.httpMethod = httpMethod
-            this.path = path
-            this.body = body
-            this.headers = headers
-            this.queryStringParameters = queryStringParameters.takeIf { it.isNotEmpty() }
-        }
     }
 
     @Test
