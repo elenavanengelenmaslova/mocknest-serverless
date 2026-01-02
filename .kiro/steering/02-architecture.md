@@ -1,24 +1,42 @@
 # Architecture
 
 ## System Architecture
-MockNest Serverless consists of two main capabilities:
+MockNest Serverless consists of three main capabilities:
 
-1) A serverless WireMock runtime that serves mocked HTTP endpoints and exposes the WireMock admin API.
-2) A persistence layer that stores mock definitions and response payloads outside the runtime so they remain available across executions.
+1) **AI-Powered Mock Intelligence**: A comprehensive mock maintenance engine that analyzes traffic patterns, generates mocks from API specifications, detects specification changes, and provides intelligent mock suggestions and optimization recommendations to keep mock suites current and comprehensive
+2) **Core Mock Runtime**: A serverless WireMock runtime that serves mocked HTTP endpoints and exposes the WireMock admin API
+3) **Persistent Storage**: Stores mock definitions, response payloads, traffic logs, and analysis results outside the runtime so they remain available across executions
 
-### AI agent and request/response flow
-The AI-assisted mock generation is not part of the runtime request/response path. It is accessed through dedicated AI admin endpoints (when AI is enabled during deployment):
+### AI-Powered Mock Intelligence Flow
+The AI intelligence system operates as a comprehensive mock maintenance engine through dedicated admin endpoints and on-demand analysis:
 
-- `POST /ai/generate-mappings` - Generate WireMock mappings from API specifications and natural language descriptions
-- `POST /ai/bulk-generate` - Generate multiple mappings in batch
-- `GET /ai/status` - Check generation status and health
+**Traffic Analysis Endpoints:**
+- `POST /ai/analyze-traffic` - Analyze traffic for specified timeframe and generate mock suggestions
+- `GET /ai/coverage-analysis` - Analyze contract coverage against API specifications
+- `POST /ai/suggest-mocks` - Generate mock suggestions based on traffic gaps and near-misses
+- `GET /ai/analysis-status` - Check analysis job status and retrieve results
 
-The generated mappings and payloads are persisted to external storage, and the runtime serves them on subsequent requests.
+**Mock Generation and Evolution Endpoints:**
+- `POST /ai/generate-from-spec` - Generate comprehensive mock suites from API specifications
+- `POST /ai/detect-spec-changes` - Compare API specification versions and identify changes
+- `POST /ai/evolve-mocks` - Update existing mocks based on specification changes and traffic patterns
+- `POST /ai/bulk-generate` - Generate multiple mocks in batch from specifications or descriptions
 
-### System Architecture Diagram
+**AI-Assisted Enhancement Endpoints (when Bedrock enabled):**
+- `POST /ai/generate-from-description` - Generate WireMock mappings from natural language descriptions
+- `POST /ai/refine-mocks` - Enhance existing mocks with AI-powered improvements
+- `POST /ai/enhance-responses` - Improve mock response realism using AI
+
+**Mock Maintenance Operations:**
+- All requests are recorded by WireMock's built-in logging (can be cleared via admin API)
+- Traffic data and specification versions are stored in persistent storage for analysis
+- Analysis and generation are triggered on-demand by users for specified timeframes or specifications
+- Mock evolution combines traffic insights with specification changes for comprehensive updates
+
+### Enhanced System Architecture Diagram
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph Actors["External Actors"]
         USER[User / CI / Test Tool]
         AIUSER[User / Developer Tool]
@@ -29,24 +47,59 @@ flowchart LR
         ADMIN[WireMock Admin API]
         MOCKS[Mocked Endpoints]
         WM[WireMock Runtime]
+        TRAFFIC[Traffic Recorder]
         
         ADMIN --> WM
         MOCKS --> WM
+        WM --> TRAFFIC
     end
 
-    subgraph AIRuntime["AI Runtime (Optional)"]
-        AIADMIN[AI Admin API]
-        AGENT[Koog-based Agent]
-        AIADMIN --> AGENT
+    subgraph MockMaintenance["AI-Powered Mock Maintenance Engine"]
+        AIAPI[AI Analysis API]
+        ANALYZER[Traffic Analyzer]
+        SUGGESTER[Mock Suggester]
+        COVERAGE[Coverage Analyzer]
+        SPECPARSER[Specification Parser]
+        EVOLUTION[Mock Evolution Engine]
+        GENERATOR[Mock Generator]
+        
+        AIAPI --> ANALYZER
+        AIAPI --> SPECPARSER
+        ANALYZER --> SUGGESTER
+        ANALYZER --> COVERAGE
+        SPECPARSER --> GENERATOR
+        SPECPARSER --> EVOLUTION
+        EVOLUTION --> SUGGESTER
     end
 
-    STORE[(Storage - Mappings & Payloads)]
+    subgraph CloudAI["Cloud AI Services (Optional)"]
+        BEDROCK[Amazon Bedrock]
+        AIGENERATOR[AI Enhancement Engine]
+        AIGENERATOR --> BEDROCK
+    end
+
+    subgraph Storage["Persistent Storage"]
+        MOCKSTORE[(Mock Definitions)]
+        TRAFFICSTORE[(Traffic Logs)]
+        ANALYSISSTORE[(Analysis Results)]
+        SPECSTORE[(API Specifications)]
+    end
 
     USER -->|Admin calls| ADMIN
     APP -->|Mock requests| MOCKS
-    AIUSER -->|AI requests| AIADMIN
-    WM <--> STORE
-    AGENT -->|Writes mappings & payloads| STORE
+    AIUSER -->|Analysis requests| AIAPI
+    AIUSER -->|Generation requests| AIAPI
+    AIUSER -->|Enhancement requests| AIGENERATOR
+
+    WM <--> MOCKSTORE
+    TRAFFIC --> TRAFFICSTORE
+    ANALYZER <--> TRAFFICSTORE
+    SUGGESTER --> MOCKSTORE
+    COVERAGE --> ANALYSISSTORE
+    GENERATOR --> MOCKSTORE
+    EVOLUTION <--> MOCKSTORE
+    SPECPARSER <--> SPECSTORE
+    AIGENERATOR --> MOCKSTORE
 ```
 
 ## Clean Architecture for Serverless
