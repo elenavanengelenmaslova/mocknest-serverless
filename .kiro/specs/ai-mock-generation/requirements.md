@@ -14,7 +14,7 @@ This document specifies the requirements for implementing AI-powered mock genera
 - **Specification_Change**: Detected difference between current and previous versions of an API specification
 - **Mock_Evolution**: Process of updating existing mocks to align with changed API specifications and traffic patterns
 - **Schema_Compliance**: Alignment between mock response structure and API specification schema definitions
-- **Bedrock_Service**: Amazon Bedrock AI service used for optional advanced mock generation capabilities
+- **Bedrock_Service**: Cloud AI service used for advanced mock generation capabilities when requested by users
 - **Generation_Job**: Asynchronous process for creating multiple mocks from specifications or descriptions
 - **Mock_Template**: Reusable pattern for generating similar mocks across different endpoints
 - **Specification_Diff**: Detailed comparison report showing changes between API specification versions

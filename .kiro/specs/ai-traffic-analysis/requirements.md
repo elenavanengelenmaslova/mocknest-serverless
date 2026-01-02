@@ -15,7 +15,7 @@ This document specifies the requirements for implementing AI-powered traffic ana
 - **Near_Miss**: A request that almost matched an existing mock but failed due to minor differences in parameters, headers, or body
 - **Mock_Coverage**: The percentage of recorded traffic patterns that have corresponding mock definitions
 - **Analysis_Timeframe**: User-specified time period for which traffic analysis should be performed
-- **Bedrock_Service**: Amazon Bedrock AI service used for optional advanced mock generation capabilities
+- **Bedrock_Service**: Cloud AI service used for advanced mock generation capabilities when requested by users
 
 ## Requirements
 

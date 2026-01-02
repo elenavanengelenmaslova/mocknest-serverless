@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document specifies the requirements for implementing the core serverless WireMock runtime in MockNest Serverless. The feature provides a complete WireMock server running on AWS Lambda with persistent storage in Amazon S3, supporting all standard WireMock capabilities except gRPC protocol. This serves as the foundation for all mock operations and AI-powered intelligence features.
+This document specifies the requirements for implementing the core serverless WireMock runtime in MockNest Serverless. The feature provides a complete WireMock server running on serverless compute with persistent storage, supporting all standard WireMock capabilities except gRPC protocol. This serves as the foundation for all mock operations and AI-powered intelligence features.
 
 ## Glossary
 
@@ -16,15 +16,15 @@ This document specifies the requirements for implementing the core serverless Wi
 - **Stub_Mapping**: WireMock term for a mock definition that matches requests and returns responses
 - **Request_Matcher**: Component that determines if an incoming request matches a mock definition
 - **Response_Transformer**: Component that processes and returns mock responses
-- **Persistent_Storage**: Amazon S3 storage for mock definitions, response payloads, and request logs
-- **Cold_Start**: AWS Lambda initialization when no warm instances are available
+- **Persistent_Storage**: Cloud object storage for mock definitions, response payloads, and request logs
+- **Cold_Start**: Serverless compute initialization when no warm instances are available
 - **Store_Extension**: WireMock extension that redirects storage operations to external storage instead of in-memory storage
 
 ## Requirements
 
 ### Requirement 1
 
-**User Story:** As a developer, I want to deploy a complete WireMock server on AWS Lambda, so that I can use familiar WireMock functionality in a serverless environment.
+**User Story:** As a developer, I want to deploy a complete WireMock server on serverless compute, so that I can use familiar WireMock functionality in a serverless environment.
 
 #### Acceptance Criteria
 
@@ -96,13 +96,13 @@ This document specifies the requirements for implementing the core serverless Wi
 
 ### Requirement 7
 
-**User Story:** As a system administrator, I want persistent storage of all mock configurations with efficient memory usage, so that mocks remain available across Lambda cold starts while maintaining fast request matching performance.
+**User Story:** As a system administrator, I want persistent storage of all mock configurations with efficient memory usage, so that mocks remain available across serverless cold starts while maintaining fast request matching performance.
 
 #### Acceptance Criteria
 
 1. WHEN Mock_Definition changes are made, THE MockNest_System SHALL immediately persist changes to Persistent_Storage
 2. WHEN Mock_Definition includes response bodies, THE MockNest_System SHALL store all Response_Payload files separately from mapping definitions and load them on-demand when serving responses
-3. WHEN Lambda instances start up, THE MockNest_System SHALL load Mock_Definition entries into memory for fast request matching while keeping Response_Payload files in Persistent_Storage
+3. WHEN serverless instances start up, THE MockNest_System SHALL load Mock_Definition entries into memory for fast request matching while keeping Response_Payload files in Persistent_Storage
 4. WHEN storage operations fail, THE MockNest_System SHALL provide appropriate error handling and retry mechanisms
 5. WHERE memory optimization is needed, THE MockNest_System SHALL keep only mapping definitions in memory while storing request logs and all response payloads in Persistent_Storage
 
