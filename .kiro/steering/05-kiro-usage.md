@@ -399,6 +399,30 @@ This approach keeps documentation accurate, maintainable, and aligned with the e
 - For AWS, keep S3 object storage interactions aligned with the existing bucket/key patterns and batching semantics;
 - Preserve the documented deployment touchpoints (function/API keys, URLs, and Postman collections) so operators can continue following the published setup instructions.
 
+## Spec Development Workflow
+
+### Kiro-Assisted Spec Creation
+Kiro is used to systematically develop feature specifications through a structured workflow:
+
+1. **Requirements Generation**: Kiro generates initial requirements documents based on user ideas and steering document context
+2. **Design Creation**: After requirements approval, Kiro creates technical design documents with architecture, components, and correctness properties
+3. **Task Planning**: Following design approval, Kiro generates implementation task lists with specific, actionable steps
+
+### Iterative Review Process
+Each phase requires explicit user approval before proceeding:
+- **Requirements Review**: User reviews and approves requirements before design phase
+- **Design Review**: User reviews and approves design before task creation
+- **Task Review**: User reviews and approves implementation plan before execution
+
+### Steering Document Alignment
+When corrections or clarifications are needed during any phase of development:
+- **Context Updates**: Steering documents are updated to provide better context for future work
+- **Consistency Maintenance**: Changes to steering documents ensure all future specs, designs, tasks, and implementation align with project direction
+- **Knowledge Capture**: Lessons learned during requirements, design, task planning, and implementation are captured in steering documents
+- **Continuous Refinement**: Steering documents evolve based on insights gained during actual development work
+
+This approach ensures that Kiro has the right context and that all project artifacts remain aligned with project goals and architectural decisions throughout the development lifecycle.
+
 ## Knowledge Management
 
 ### How Kiro Helps Capture and Share Project Knowledge
