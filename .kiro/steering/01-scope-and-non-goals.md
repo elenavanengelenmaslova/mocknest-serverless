@@ -56,6 +56,7 @@ Planned future enhancements include:
 ### Core Enhancements
 - Improving AI-assisted mock generation with additional input sources and refinement options.
 - AI-assisted contract coverage analysis
+- Storage retention policies and automated cleanup for request logs and mock definitions
 - Exploring optimizations for startup time and large mock sets.
 - Implementing on-demand mapping loading to reduce cold start times (currently all mappings are loaded at startup).
 
