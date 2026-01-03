@@ -13,8 +13,9 @@ import org.springframework.test.context.ContextConfiguration
 import kotlin.test.assertEquals
 import kotlin.test.assertContains
 import org.springframework.beans.factory.annotation.*
+import io.mocknest.infra.aws.Application
 
-@SpringBootTest(classes = [io.mocknest.infra.aws.Application::class])
+@SpringBootTest(classes = [Application::class])
 @TestPropertySource(locations = ["classpath:application-test.properties"])
 @ContextConfiguration(classes = [AwsLocalStackTestConfiguration::class])
 class SoapMockingIntegrationTest {
