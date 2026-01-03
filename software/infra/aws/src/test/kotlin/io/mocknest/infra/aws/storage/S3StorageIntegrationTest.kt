@@ -16,6 +16,8 @@ import aws.sdk.kotlin.services.s3.model.CreateBucketRequest
 import aws.smithy.kotlin.runtime.net.url.Url
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import aws.sdk.kotlin.runtime.auth.credentials.*
+import aws.smithy.kotlin.runtime.auth.awscredentials.*
 
 class S3StorageIntegrationTest {
 
@@ -29,20 +31,27 @@ class S3StorageIntegrationTest {
             // Use the shared LocalStack container - no sleep needed, TestContainers handles readiness
             val container = SharedLocalStackContainer.container
             val s3Endpoint = container.getEndpointOverride(LocalStackContainer.Service.S3).toString()
-            
+
             s3Client = S3Client {
                 region = AwsConfiguration.TEST_REGION
                 endpointUrl = Url.parse(s3Endpoint)
                 forcePathStyle = true  // Required for LocalStack
+
+                credentialsProvider = StaticCredentialsProvider(
+                    Credentials(
+                        accessKeyId = container.accessKey,      // usually "test"
+                        secretAccessKey = container.secretKey   // usually "test"
+                    )
+                )
             }
-            
+
             // Create test bucket once for all tests
             runBlocking {
                 s3Client.createBucket(CreateBucketRequest {
                     bucket = AwsConfiguration.TEST_BUCKET_NAME
                 })
             }
-            
+
             storage = S3ObjectStorageAdapter(AwsConfiguration.TEST_BUCKET_NAME, s3Client)
         }
 
@@ -58,9 +67,6 @@ class S3StorageIntegrationTest {
 
     @BeforeEach
     suspend fun setup() {
-        // Clear storage before each test
-        val keys = storage.list().toList()
-        keys.forEach { key -> storage.delete(key) }
     }
 
     @AfterEach
@@ -95,7 +101,7 @@ class S3StorageIntegrationTest {
         // When
         storage.save(mappingKey, mappingContent)
         storage.save(fileKey, fileContent)
-        
+
         val keys = storage.list().toList()
         val mappingResult = storage.get(mappingKey)
         val fileResult = storage.get(fileKey)
@@ -115,7 +121,7 @@ class S3StorageIntegrationTest {
         val testContent = "content to delete"
 
         storage.save(testKey, testContent)
-        
+
         // Verify it exists
         val beforeDelete = storage.list().toList()
         assertTrue(beforeDelete.contains(testKey))
@@ -147,7 +153,7 @@ class S3StorageIntegrationTest {
         assertEquals(2, mappingKeys.size)
         assertTrue(mappingKeys.contains(mappingKey1))
         assertTrue(mappingKeys.contains(mappingKey2))
-        
+
         assertEquals(1, fileKeys.size)
         assertTrue(fileKeys.contains(fileKey))
     }
@@ -156,11 +162,11 @@ class S3StorageIntegrationTest {
     suspend fun `Given S3 storage When clearing all objects Then should delete everything`() {
         // Given
         val keys = listOf("mappings/m1.json", "mappings/m2.json", "__files/f1.txt", "__files/f2.txt")
-        
+
         keys.forEach { key ->
             storage.save(key, "content for $key")
         }
-        
+
         // Verify all exist
         val beforeClear = storage.list().toList()
         assertEquals(4, beforeClear.size)

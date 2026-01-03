@@ -29,9 +29,6 @@ class RestApiMockingIntegrationTest {
 
     @BeforeEach
     suspend fun setup() {
-        // Clear storage before each test
-        val keys = storage.list().toList()
-        keys.forEach { key -> storage.delete(key) }
     }
 
     @AfterEach

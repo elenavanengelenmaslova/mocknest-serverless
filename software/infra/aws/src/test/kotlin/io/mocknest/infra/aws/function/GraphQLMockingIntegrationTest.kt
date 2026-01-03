@@ -29,8 +29,6 @@ class GraphQLMockingIntegrationTest {
 
     @BeforeEach
     suspend fun setup() {
-        val keys = storage.list().toList()
-        keys.forEach { key -> storage.delete(key) }
     }
 
     @AfterEach
