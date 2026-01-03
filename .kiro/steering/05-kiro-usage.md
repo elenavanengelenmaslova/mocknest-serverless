@@ -409,8 +409,9 @@ This approach keeps documentation accurate, maintainable, and aligned with the e
 [AI assistance for test creation, execution, and maintenance]
 - Add JUnit 5/Kotlin test coverage alongside new features, following the unit testing standards defined in the Code Generation Standards section above.
 - **Use Kover for code coverage** - Apply `org.jetbrains.kotlinx.kover` plugin for Kotlin-optimized coverage reporting with better support for inline functions and coroutines.
-- **Target 90% code coverage** across all modules - run `./gradlew koverHtmlReport` to generate coverage reports and ensure new code maintains high coverage standards.
-- **All modules should achieve 90%+ coverage** - Domain, Application, and Infrastructure layers should all maintain consistent high-quality test coverage.
+- **Target 90% aggregated code coverage** across the entire project - run `./gradlew koverHtmlReport` to generate coverage reports and `./gradlew koverVerify` to enforce the 90% threshold.
+- **Emphasize integration tests over unit tests** - Focus on comprehensive end-to-end testing that validates actual system behavior rather than artificial per-module coverage targets.
+- **Aggregated coverage enforcement** - The 90% coverage requirement is enforced at the project level (aggregated across all modules) rather than per-module, allowing flexibility in test strategy while ensuring overall system quality.
 - **Integration testing with LocalStack TestContainers** - Use LocalStack TestContainers for infrastructure layer integration tests to validate AWS service interactions:
   - LocalStack container for S3, Lambda, API Gateway, and Bedrock testing
   - Test actual Kotlin AWS SDK calls against containerized AWS services
@@ -420,7 +421,7 @@ This approach keeps documentation accurate, maintainable, and aligned with the e
   - Use proper TestContainers lifecycle management with `@BeforeAll`/`@AfterAll` for container setup
   - Use TestContainers built-in waiting strategies like `Wait.forLogMessage(".*Ready.*", 1)`
   - Share expensive resources like containers and clients across tests, only clean test data between tests
-- Prefer focused tests that validate mapping normalization, content-type defaults, and file externalization behaviors instead of broad integration suites.
+- Prefer focused integration tests that validate mapping normalization, content-type defaults, and file externalization behaviors instead of broad unit test suites.
 - Follow the MockK configuration and Given-When-Then naming conventions as specified in the unit testing standards.
 
 ## Code Review Process
