@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/test/endpoint"
+  },
+  "response": {
+    "status": 200,
+    "body": "Test response body",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "persistent": true
+}

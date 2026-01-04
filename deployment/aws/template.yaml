@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: MockNest Serverless - AWS-native serverless mock runtime
+
+Parameters:
+  EnableAI:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: Enable AI-assisted mock generation features
+  
+  BucketName:
+    Type: String
+    Default: ''
+    Description: Custom S3 bucket name for mock storage (optional, auto-generated if empty)
+
+Conditions:
+  HasCustomBucketName: !Not [!Equals [!Ref BucketName, '']]
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: java21
+    Environment:
+      Variables:
+        SPRING_PROFILES_ACTIVE: aws
+
+Resources:
+  # S3 bucket for mock definitions and response payloads
+  MockStorage:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If 
+        - HasCustomBucketName
+        - !Ref BucketName
+        - !Sub "${AWS::StackName}-mock-storage"
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # Lambda function for MockNest Serverless runtime
+  MockNestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../software/infra/aws/build/distributions/mocknest-serverless.zip
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Environment:
+        Variables:
+          MOCK_STORAGE_BUCKET: !Ref MockStorage
+          AI_ENABLED: !Ref EnableAI
+          AWS_REGION: !Ref "AWS::Region"
+          MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref MockStorage
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: "*"
+              Condition:
+                Bool:
+                  "aws:RequestedRegion": !Ref "AWS::Region"
+      Events:
+        AdminApi:
+          Type: Api
+          Properties:
+            Path: /__admin/{proxy+}
+            Method: ANY
+            Auth:
+              ApiKeyRequired: true
+        MockedEndpoints:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+            Auth:
+              ApiKeyRequired: true
+
+  # API Gateway for HTTP access
+  MockNestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Auth:
+        ApiKeyRequired: true
+        UsagePlan:
+          CreateUsagePlan: PER_API
+          Description: Usage plan for MockNest Serverless
+          Quota:
+            Limit: 10000
+            Period: MONTH
+          Throttle:
+            BurstLimit: 100
+            RateLimit: 50
+
+Outputs:
+  MockNestApiUrl:
+    Description: "API Gateway endpoint URL for MockNest Serverless"
+    Value: !Sub "https://${MockNestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+    Export:
+      Name: !Sub "${AWS::StackName}-api-url"
+  
+  MockNestApiId:
+    Description: "API Gateway API ID for MockNest Serverless"
+    Value: !Ref MockNestApi
+    Export:
+      Name: !Sub "${AWS::StackName}-api-id"
+  
+  MockStorageBucket:
+    Description: "S3 bucket for mock storage"
+    Value: !Ref MockStorage
+    Export:
+      Name: !Sub "${AWS::StackName}-storage-bucket"
+  
+  Region:
+    Description: "AWS region where MockNest is deployed"
+    Value: !Ref "AWS::Region"
+    Export:
+      Name: !Sub "${AWS::StackName}-region"

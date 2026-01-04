@@ -1,0 +1,17 @@
+name: Main Branch - AWS Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-and-deploy:
+    uses: ./.github/workflows/workflow-build-deploy-aws.yml
+    with:
+      environment: production
+      enable-ai: true
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

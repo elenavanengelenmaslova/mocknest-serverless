@@ -1,0 +1,9 @@
+{
+  "id": "test-id",
+  "persistent": true,
+  "response": {
+    "status": 200,
+    "bodyFileName": "existing-file.json",
+    "body": "some content"
+  }
+}

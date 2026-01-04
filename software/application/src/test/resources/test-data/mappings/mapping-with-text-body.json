@@ -1,0 +1,8 @@
+{
+  "id": "test-mapping-id",
+  "persistent": true,
+  "response": {
+    "status": 200,
+    "body": "{\"message\": \"Hello World\"}"
+  }
+}

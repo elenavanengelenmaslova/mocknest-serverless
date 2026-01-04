@@ -45,6 +45,28 @@ mocknest-serverless/
 
 ## Development Workflow
 
+### Incremental Feature Development Strategy
+MockNest Serverless follows a strict incremental development approach where each major feature must be fully completed, tested, and deployed before moving to the next:
+
+**Current Phase: Serverless WireMock Runtime**
+- Complete comprehensive testing of existing WireMock runtime implementation
+- Fix GitHub Actions build pipeline
+- Implement SAM template for AWS deployment
+- Deploy and validate in AWS environment
+- Achieve 90%+ test coverage across all modules
+- **Take small steps and get full feature deployed and tested in AWS before moving to new features**
+- **No AI capabilities development until this phase is complete**
+
+**Future Phase: AI Traffic Analysis**
+- Only begin after serverless runtime is fully deployed and validated
+- Implement traffic analysis capabilities
+- Complete testing and deployment before moving to next phase
+
+**Future Phase: AI Mock Generation**
+- Only begin after traffic analysis is complete and deployed
+- Implement mock generation from specifications
+- Complete testing and deployment
+
 ### Module Development Order
 Follow clean architecture principles by developing in this sequence:
 1. **Domain Layer** (`:domain`) - Start with business models, entities, and domain rules
@@ -82,16 +104,255 @@ Follow clean architecture principles by developing in this sequence:
 - Keep cURL examples in README synchronized with actual API changes
 
 ## Code Generation Standards
+
+### General Kotlin Development
 [Guidelines for AI-assisted code generation and review]
-- Generate Kotlin 2.3.0/Spring Boot 4.0 code targeting JVM 25, relying on the shared Gradle settings for dependency management and Kotlin logging; keep new tasks compatible with the existing toolchain.
+- Generate Kotlin 2.3.0/Spring Boot 4.0 code targeting JVM 25, using Gradle 9.0.0, relying on the shared Gradle settings for dependency management and Kotlin logging; keep new tasks compatible with the existing toolchain.
 - **Use Kotlin AWS SDK** (not Java SDK) for all AWS cloud infrastructure interactions - these must always be kept in the `software/infra/aws/` module to maintain clean architecture boundaries.
+- **Use proper imports** instead of fully qualified class names in code:
+  ```kotlin
+  // Good: Use proper imports
+  import org.springframework.beans.factory.annotation.Autowired
+  
+  @Autowired
+  private lateinit var lambdaHandler: MockNestLambdaHandler
+  
+  // Bad: Fully qualified class names
+  @org.springframework.beans.factory.annotation.Autowired
+  private lateinit var lambdaHandler: MockNestLambdaHandler
+  ```
 - **Prefer Kotlin idioms** for error handling and resource management:
   - Use `runCatching { }` instead of try-catch-finally blocks
   - Use `.use { }` for automatic resource management (closeable resources)
   - Leverage Kotlin's null safety and smart casts
   - Avoid `!!` operator
-- **Testing with MockK** - Use MockK library for all mocking in unit tests, taking advantage of Kotlin-specific features like extension functions and coroutines support.
+- **Logging Standards**:
+  - **Use kotlin-logging (KotlinLogging)** for all logging throughout the application:
+    ```kotlin
+    private val logger = KotlinLogging.logger {}
+    ```
+  - **Use structured logging** with consistent message formatting:
+    ```kotlin
+    // Good: Structured logging with context
+    logger.info { "Saving object with id: $id" }
+    logger.warn(exception) { "Failed to retrieve object: id=$id, bucket=$bucketName" }
+    
+    // Bad: String concatenation and no context
+    logger.info("Saving object with id: " + id)
+    logger.warn("Failed: " + exception.message)
+    ```
+  - **Include relevant context** in log messages to aid debugging:
+    - Object IDs, keys, file names
+    - Operation parameters (bucket names, prefixes, etc.)
+    - Counts and metrics where relevant
+  - **Use appropriate log levels consistently**:
+    - `ERROR` - System errors that prevent operation completion
+    - `WARN` - Recoverable errors, fallback scenarios, expected failures
+    - `INFO` - Normal operation flow, significant state changes
+    - `DEBUG` - Detailed execution information, expected exceptions in retry scenarios
+  - **Always pass exceptions to the logger** when logging failures:
+    ```kotlin
+    // Good: Exception passed to logger for full stack trace
+    logger.error(exception) { "Operation failed: context info" }
+    
+    // Bad: Only exception message logged
+    logger.error { "Operation failed: ${exception.message}" }
+    ```
+- **Exception Handling Standards**:
+  - **Never swallow exceptions silently** - Always log exceptions at minimum WARNING level before handling them
+  - **Prefer `runCatching` as a scope function** when it improves readability:
+    ```kotlin
+    // Good: Using runCatching as scope function
+    s3Client.runCatching {
+        createBucket(CreateBucketRequest {
+            bucket = "test-bucket"
+        })
+    }.onFailure { exception ->
+        logger.warn(exception) { "Bucket creation failed, may already exist: test-bucket" }
+    }
+    
+    // Also good: Traditional runCatching when multiple operations or complex logic
+    runCatching {
+        val result = complexOperation()
+        processResult(result)
+        return result
+    }.onFailure { exception ->
+        logger.error(exception) { "Complex operation failed" }
+        throw exception
+    }
+    ```
+  - **Choose the appropriate pattern** based on context:
+    - **Scope function style** (`object.runCatching { method() }`) for single method calls
+    - **Traditional style** (`runCatching { /* multiple operations */ }`) for complex blocks
+  - **Always include proper logging** with context information (see Logging Standards above)
+  - **Use appropriate log levels** (see Logging Standards above)
+- **Prefer Kotlinx Serialization** over Jackson mapper where possible for both production code and tests:
+  - Use `@Serializable` data classes for JSON handling
+  - Use `Json.encodeToString()` and `Json.decodeFromString()` for serialization
+  - Only fall back to Jackson when integrating with libraries that require it (like WireMock)
 - Reuse the ObjectStorage-backed abstractions for persistence so FILES and MAPPINGS stay in object storage (and never fall back to local disk); extend the WireMock filters instead of bypassing them when manipulating mappings.
+
+### Unit Testing Standards
+[Comprehensive guidelines for unit test creation and maintenance]
+
+#### Test Structure and Naming
+- **Use Given-When-Then naming convention** for test methods:
+  ```kotlin
+  @Test
+  fun `Given valid mapping request When processing normalization Then should externalize body to file`()
+  ```
+- Test method names should clearly describe the scenario being tested
+- Use backticks for readable test names with spaces and special characters
+
+#### MockK Configuration and Best Practices
+- **Declare mocks with relaxed behavior** at the property level rather than in setup methods:
+  ```kotlin
+  private val mockStorage: ObjectStorageInterface = mockk(relaxed = true)
+  private val mockService: SomeService = mockk(relaxed = true)
+  ```
+- **Reset all mocks in teardown** to ensure test isolation:
+  ```kotlin
+  @AfterEach
+  fun tearDown() {
+      clearAllMocks()
+  }
+  ```
+- Use `relaxed = true` by default to avoid unnecessary stubbing of irrelevant method calls
+- Only use strict mocks when you need to verify that specific methods are NOT called
+- Prefer `coEvery` and `coVerify` for suspend functions
+
+#### Test Organization
+- Group related test methods using nested classes when appropriate:
+  ```kotlin
+  @Nested
+  inner class `Mapping Normalization` {
+      // Related tests here
+  }
+  ```
+- Use `@BeforeEach` for common test setup that applies to all tests in a class
+- Keep test data creation close to the test that uses it
+- Extract common test data builders into companion objects or separate test utilities
+
+#### Verification Patterns
+- Use `coVerify` to assert that expected interactions occurred:
+  ```kotlin
+  coVerify { mockStorage.save("expected-key", "expected-content") }
+  ```
+- Use `coVerify(exactly = 0)` to assert that methods were NOT called:
+  ```kotlin
+  coVerify(exactly = 0) { mockStorage.save(any(), any()) }
+  ```
+- Prefer specific argument matching over `any()` when the exact values matter for the test
+
+#### Coroutine Testing
+- **Use JUnit 6 suspend test support** - Annotate test functions with `suspend` and avoid `runBlocking` in unit tests:
+  ```kotlin
+  @Test
+  suspend fun `Given valid request When processing async operation Then should complete successfully`() {
+      // Test suspend functions directly without runBlocking
+      val result = suspendingService.processRequest(request)
+      assertEquals(expectedResult, result)
+  }
+  ```
+- **Use kotlinx-coroutines-test library** for advanced coroutine testing scenarios:
+  ```kotlin
+  @Test
+  fun `Given delayed operation When using test dispatcher Then should control time`() = runTest {
+      // Use runTest for controlling virtual time and testing delays
+      val result = async { delayedOperation() }
+      advanceUntilIdle()
+      assertEquals(expectedResult, result.await())
+  }
+  ```
+- **Prefer `suspend` over `runBlocking`** , and for complex coroutine scenarios that need time control use `runTest`.
+- **Test both success and failure paths** for suspend functions, including exception handling
+- **Use `TestDispatcher`** when you need to control coroutine execution and timing in tests
+
+#### TestContainers Integration Testing
+- **Use proper TestContainers lifecycle management** with `@BeforeAll`/`@AfterAll` for expensive setup operations:
+  ```kotlin
+  @Testcontainers
+  class IntegrationTest {
+      companion object {
+          @Container
+          @JvmStatic
+          private val localStackContainer = LocalStackContainer(
+              DockerImageName.parse("localstack/localstack:4.12.0")
+          ).withServices(
+              LocalStackContainer.Service.S3
+          ).waitingFor(
+              Wait.forLogMessage(".*Ready.*", 1)
+          )
+
+          @BeforeAll
+          @JvmStatic
+          fun setupClass() {
+              // One-time expensive setup here
+              // Configure clients, create resources
+          }
+
+          @AfterAll
+          @JvmStatic
+          fun tearDownClass() {
+              // Clean up resources
+          }
+      }
+
+      @BeforeEach
+      suspend fun setup() {
+          // Clear test data before each test
+      }
+
+      @AfterEach
+      suspend fun tearDown() {
+          // Clean up test data after each test
+      }
+  }
+  ```
+- **Use TestContainers built-in waiting strategies** instead of manual retry loops:
+  - `Wait.forLogMessage(".*Ready.*", 1)` for LocalStack readiness
+  - `Wait.forHttp("/health")` for HTTP health checks
+  - `Wait.forListeningPort()` for port availability
+- **Share expensive resources** like containers and clients across tests using `@BeforeAll`/`@AfterAll`
+- **Clean test data** (not containers) between tests using `@BeforeEach`/`@AfterEach`
+- **Use LocalStack TestContainers** for infrastructure layer integration tests to validate AWS service interactions:
+  - LocalStack container for S3, Lambda, API Gateway, and Bedrock testing
+  - Test actual Kotlin AWS SDK calls against containerized AWS services
+  - Validate object storage persistence, mapping externalization, and file handling
+  - Test AI-assisted mock generation using LocalStack's Bedrock emulation
+  - Keep integration tests in the `software/infra/aws/` module alongside the infrastructure code
+
+#### Test Data Management
+- **Use resource files for test data** - Store test data in `src/test/resources` folder and read them in tests:
+  ```kotlin
+  private fun loadTestData(filename: String): String {
+      return this::class.java.getResource("/test-data/$filename")?.readText()
+          ?: throw IllegalArgumentException("Test data file not found: $filename")
+  }
+  
+  @Test
+  suspend fun `Given large mapping JSON When processing Then should normalize correctly`() {
+      val mappingJson = loadTestData("large-mapping.json")
+      val result = filter.normalizeMappingToBodyFile(mappingJson)
+      // assertions...
+  }
+  ```
+- **Prefer external files for JSON data larger than 3 lines** - Keep test code clean and readable by externalizing complex test data
+- **Use parameterized tests for multiple scenarios** - Test different data combinations efficiently:
+  ```kotlin
+  @ParameterizedTest
+  @ValueSource(strings = ["mapping-with-body.json", "mapping-with-base64.json", "mapping-without-body.json"])
+  suspend fun `Given different mapping types When processing Then should handle correctly`(filename: String) {
+      val mappingJson = loadTestData(filename)
+      val result = filter.normalizeMappingToBodyFile(mappingJson)
+      // scenario-specific assertions based on filename
+  }
+  ```
+- **Organize test data files** in logical subdirectories under `src/test/resources/`:
+  - `test-data/mappings/` - WireMock mapping JSON files
+  - `test-data/requests/` - HTTP request examples
+  - `test-data/responses/` - Expected response payloads
+- **Use meaningful file names** that clearly indicate the test scenario they represent
 
 ## Documentation Practices
 Documentation in this project is designed to stay accurate, intentional, and easy to maintain as the system evolves. The goal is to avoid duplication, reduce drift between code and documentation, and clearly communicate architectural intent.
@@ -146,18 +407,22 @@ This approach keeps documentation accurate, maintainable, and aligned with the e
 
 ## Testing Strategy
 [AI assistance for test creation, execution, and maintenance]
-- Add JUnit 5/Kotlin test coverage alongside new features, following the existing pattern of exercising WireMock filters with in-memory storage doubles.
+- Add JUnit 5/Kotlin test coverage alongside new features, following the unit testing standards defined in the Code Generation Standards section above.
 - **Use Kover for code coverage** - Apply `org.jetbrains.kotlinx.kover` plugin for Kotlin-optimized coverage reporting with better support for inline functions and coroutines.
-- **Target 90% code coverage** across all modules - run `./gradlew koverHtmlReport` to generate coverage reports and ensure new code maintains high coverage standards.
-- **All modules should achieve 90%+ coverage** - Domain, Application, and Infrastructure layers should all maintain consistent high-quality test coverage.
+- **Target 90% aggregated code coverage** across the entire project - run `./gradlew koverHtmlReport` to generate coverage reports and `./gradlew koverVerify` to enforce the 90% threshold.
+- **Emphasize integration tests over unit tests** - Focus on comprehensive end-to-end testing that validates actual system behavior rather than artificial per-module coverage targets.
+- **Aggregated coverage enforcement** - The 90% coverage requirement is enforced at the project level (aggregated across all modules) rather than per-module, allowing flexibility in test strategy while ensuring overall system quality.
 - **Integration testing with LocalStack TestContainers** - Use LocalStack TestContainers for infrastructure layer integration tests to validate AWS service interactions:
   - LocalStack container for S3, Lambda, API Gateway, and Bedrock testing
   - Test actual Kotlin AWS SDK calls against containerized AWS services
   - Validate object storage persistence, mapping externalization, and file handling
   - Test AI-assisted mock generation using LocalStack's Bedrock emulation
   - Keep integration tests in the `software/infra/aws/` module alongside the infrastructure code
-- Prefer focused tests that validate mapping normalization, content-type defaults, and file externalization behaviors instead of broad integration suites.
-- Use MockK for all mocking to leverage Kotlin-specific features and maintain consistency.
+  - Use proper TestContainers lifecycle management with `@BeforeAll`/`@AfterAll` for container setup
+  - Use TestContainers built-in waiting strategies like `Wait.forLogMessage(".*Ready.*", 1)`
+  - Share expensive resources like containers and clients across tests, only clean test data between tests
+- Prefer focused integration tests that validate mapping normalization, content-type defaults, and file externalization behaviors instead of broad unit test suites.
+- Follow the MockK configuration and Given-When-Then naming conventions as specified in the unit testing standards.
 
 ## Code Review Process
 [How Kiro integrates with code review and quality assurance]
@@ -168,6 +433,47 @@ This approach keeps documentation accurate, maintainable, and aligned with the e
 [AI support for deployment, monitoring, and troubleshooting]
 - For AWS, keep S3 object storage interactions aligned with the existing bucket/key patterns and batching semantics;
 - Preserve the documented deployment touchpoints (function/API keys, URLs, and Postman collections) so operators can continue following the published setup instructions.
+
+## Spec Development Workflow
+
+### Kiro-Assisted Spec Creation
+Kiro is used to systematically develop feature specifications through a structured workflow:
+
+1. **Requirements Generation**: Kiro generates initial requirements documents based on user ideas and steering document context
+2. **Design Creation**: After requirements approval, Kiro creates technical design documents with architecture, components, and correctness properties
+3. **Task Planning**: Following design approval, Kiro generates implementation task lists with specific, actionable steps
+
+### Incremental Feature Completion Strategy
+**Critical Rule: Complete one feature fully before starting the next**
+
+**Current Priority: Serverless WireMock Runtime**
+- Focus exclusively on completing comprehensive testing of existing implementation
+- Fix GitHub Actions build issues
+- Implement SAM template for AWS deployment
+- Deploy and validate in AWS environment
+- Achieve target test coverage (90%+)
+- **Do not begin AI feature development until this is complete**
+
+**Future Features (AI Traffic Analysis, AI Mock Generation)**
+- Only proceed to design and implementation phases after current feature is fully deployed
+- Each AI feature must be completed and deployed before moving to the next
+- Maintain the same rigorous testing and deployment standards
+
+### Iterative Review Process
+Each phase requires explicit user approval before proceeding:
+- **Requirements Review**: User reviews and approves requirements before design phase
+- **Design Review**: User reviews and approves design before task creation
+- **Task Review**: User reviews and approves implementation plan before execution
+- **Deployment Review**: User validates deployment before moving to next feature
+
+### Steering Document Alignment
+When corrections or clarifications are needed during any phase of development:
+- **Context Updates**: Steering documents are updated to provide better context for future work
+- **Consistency Maintenance**: Changes to steering documents ensure all future specs, designs, tasks, and implementation align with project direction
+- **Knowledge Capture**: Lessons learned during requirements, design, task planning, and implementation are captured in steering documents
+- **Continuous Refinement**: Steering documents evolve based on insights gained during actual development work
+
+This approach ensures that Kiro has the right context and that all project artifacts remain aligned with project goals and architectural decisions throughout the development lifecycle.
 
 ## Knowledge Management
 
@@ -207,5 +513,16 @@ Instead, Kiro acts as a **documentation and reasoning assistant** that helps ens
 
 ## Best Practices
 [Recommended patterns for effective AI-assisted development]
+
+### Current Development Focus
+**Priority: Complete Serverless WireMock Runtime**
+- Focus all development effort on comprehensive testing of existing WireMock implementation
+- Ensure GitHub Actions build pipeline is working correctly
+- Complete SAM template implementation for AWS deployment
+- Validate deployment and functionality in AWS environment
+- Achieve 90%+ test coverage before considering any new features
+
+### Technical Implementation Guidelines
 - Keep persistent mapping bodies externalized to files via the normalization filter, and always set sensible default content types when bodies are moved into storage.
 - Use bounded-concurrency flows and batch operations for storage access (as already done in the storage adapters) to minimize cold-start and latency impact in serverless environments.
+- **No AI feature development until serverless runtime is fully complete and deployed**

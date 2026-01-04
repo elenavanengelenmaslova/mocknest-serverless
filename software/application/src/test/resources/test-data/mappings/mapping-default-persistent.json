@@ -1,0 +1,7 @@
+{
+  "id": "test-id",
+  "response": {
+    "status": 200,
+    "body": "some content"
+  }
+}

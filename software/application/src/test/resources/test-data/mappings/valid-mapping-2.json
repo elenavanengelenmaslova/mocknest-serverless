@@ -1,0 +1,5 @@
+{
+  "id": "{{ID}}",
+  "request": { "method": "POST", "url": "/test-2" },
+  "response": { "status": 201, "body": "ok-2" }
+}

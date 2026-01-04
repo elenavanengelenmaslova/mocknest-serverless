@@ -1,237 +1,269 @@
 # MockNest Serverless
 
-MockNest Serverless is an AWS-native serverless mock runtime that enables realistic integration testing without relying on live external services. Built with clean architecture principles, it provides persistent mock definitions across AWS Lambda cold starts using Amazon S3.
+MockNest Serverless is a serverless WireMock runtime for AWS that enables realistic integration testing without relying on live external services. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
 
-## Use Cases
+## Features
 
-```mermaid
-flowchart LR
-    subgraph Actors[" "]
-        direction TB
-        rMA["👤 Mock Admin"]:::role
-        rCA["👤 Client App"]:::role
-        rAI["👤 AI Assistant"]:::role
-    end
+- **Serverless WireMock Runtime**: Full WireMock API running on AWS Lambda
+- **Persistent Mock Storage**: Mock definitions stored in Amazon S3
+- **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
+- **AI-Assisted Mock Generation**: Optional AI-powered mock creation from API specifications
+- **AWS Free Tier Compatible**: Designed to operate within AWS Free Tier limits
+- **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR)
 
-    subgraph S["MockNest Serverless System"]
-        direction TB
-        
-        ucMM([Manage Mocks])
-        ucAR([Analyze Requests])
-        ucCMA([Call Mocked APIs])
-        ucSC([Setup Callbacks])
-        ucRC([Receive Callbacks])
-        ucMS([Monitor System])
-        ucGAI([Generate Mocks with AI])
-        
-        ucGAI -. include .-> ucMM
-        ucSC -. include .-> ucMM
-    end
+## Quick Start
 
-    %% Mock Admin connections
-    rMA --- ucMM
-    rMA --- ucAR
-    rMA --- ucSC
-    rMA --- ucMS
-    
-    %% Client App connections
-    rCA --- ucCMA
-    rCA --- ucRC
-    
-    %% AI Assistant connections
-    rAI --- ucGAI
+### Prerequisites
 
-    classDef role stroke-width:0px;
+- AWS CLI configured with appropriate permissions
+- AWS SAM CLI installed
+- Docker (for local testing)
+
+### Deployment
+
+**Option 1: AWS Serverless Application Repository (SAR)** - *Coming Soon*
+```bash
+# One-click deploy from AWS Console
+# 1. Switch to your preferred AWS region in the console
+# 2. Go to AWS Serverless Application Repository
+# 3. Search for "MockNest Serverless"
+# 4. Click "Deploy" and configure parameters
 ```
 
-## Solution Architecture
-
-For detailed AWS architecture and service descriptions, see our [AWS Services Documentation](.kiro/steering/03-aws-services.md#aws-architecture-overview).
-
-## Clean Architecture
-
-This project follows clean architecture principles with clear separation between domain, application, and infrastructure layers. For detailed architecture explanation and diagrams, see our [Architecture Documentation](.kiro/steering/02-architecture.md#clean-architecture-for-serverless).
-
-## Project Structure
-
-The project structure follows clean architecture principles as outlined in our documentation. For the complete project structure, see our [Project Structure Documentation](.kiro/steering/05-kiro-usage.md#project-structure).
-
-# Using the Mock (cURL quickstart)
-
-The mock server exposes the WireMock Admin API under the `__admin` path and your mocked endpoints under their own paths.
-
-Below are copy-paste-ready cURL examples for the most common scenarios, followed by links to the Postman collections with many more examples.
-
-Prerequisites:
-- Set base URL and API key as environment variables for AWS deployment.
-
-AWS API Gateway:
-- Both admin and client calls are protected with an API key
+**Option 2: Direct SAM Deployment**
 ```bash
-export AWS_URL="https://<api-id>.execute-api.<region>.amazonaws.com/prod"
-export API_KEY="<your-api-key>"
+# Build and deploy from source (defaults to eu-west-1)
+./gradlew build
+cd deployment/aws
+sam build
+sam deploy --guided
 ```
 
-Notes:
-- The complete Admin API is documented here: [wiremock-admin-api.json](software/application/src/main/resources/wiremock-admin-api.json)
-- This app normalizes mapping bodies on save: when you POST/PUT `/__admin/mappings` with `persistent: true` and an inline `body`/`base64Body`, the response body is stored in storage and the mapping is rewritten to use `bodyFileName` automatically.
+> **📍 Region Notes**: 
+> - **SAR deployment**: Deploys to your current AWS Console region
+> - **Direct SAM deployment**: Defaults to eu-west-1 (easily configurable)
 
-## 1) Reset all mappings
+**Quick Deploy with Defaults**:
 ```bash
-curl -i -X POST "$AWS_URL/__admin/mappings/reset" \
+sam build && sam deploy
+```
+
+**Default Configuration (Direct SAM):**
+- **Region**: eu-west-1 (Ireland) - supports all features including AI
+- **S3 Bucket**: Auto-generated unique name
+- **AI Features**: Disabled (Free Tier friendly)
+- **API Key**: Auto-generated
+
+### Configuration
+
+#### AWS Region Configuration
+
+MockNest Serverless defaults to **eu-west-1** (Ireland) because:
+- ✅ Supports all AWS services (Lambda, API Gateway, S3)
+- ✅ Supports Amazon Bedrock for AI features
+- ✅ Good global connectivity and performance
+- ✅ GDPR-compliant for European users
+
+**To deploy to a different region:**
+
+1. **US East (most common alternative)**:
+   ```bash
+   sam deploy --region us-east-1
+   ```
+
+2. **US West (California)**:
+   ```bash
+   sam deploy --region us-west-1
+   ```
+
+3. **Edit SAM Config** (for permanent change):
+   ```bash
+   # Edit deployment/aws/samconfig.toml
+   region = "us-east-1"
+   ```
+
+**Supported Regions:**
+- All AWS regions where Lambda, API Gateway, and S3 are available
+- For AI features: Ensure Amazon Bedrock is available in your chosen region (see [AWS Bedrock regions](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html))
+
+**For detailed deployment instructions and regional considerations, see [DEPLOYMENT.md](docs/DEPLOYMENT.md).**
+
+#### Optional Customizations
+
+**Enable AI Features** (requires Bedrock-supported region):
+```bash
+sam deploy --parameter-overrides EnableAI=true
+```
+
+**Custom S3 Bucket Name**:
+```bash
+sam deploy --parameter-overrides BucketName=my-custom-bucket-name
+```
+
+**Combined Customizations**:
+```bash
+sam deploy --region us-east-1 --parameter-overrides EnableAI=true BucketName=my-bucket
+```
+
+## Usage
+
+### Basic Mock Management
+
+Once deployed, MockNest Serverless exposes the standard WireMock admin API:
+
+```bash
+# Get your API Gateway endpoint from SAM output
+export MOCKNEST_URL="https://your-api-id.execute-api.eu-west-1.amazonaws.com/prod"
+export API_KEY="your-api-key"
+
+# Create a mock
+curl -X POST "$MOCKNEST_URL/__admin/mappings" \
+  -H "x-api-key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request": {
+      "method": "GET",
+      "url": "/api/users/123"
+    },
+    "response": {
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": "{\"id\": 123, \"name\": \"John Doe\"}"
+    }
+  }'
+
+# Test the mock
+curl "$MOCKNEST_URL/api/users/123" \
   -H "x-api-key: $API_KEY"
 ```
 
-## 2) Create a simple REST mapping
-Creates a stub for `GET /api/hello` that returns JSON. Marked `persistent: true` so the body is externalized and `bodyFileName` is used.
+### AI-Assisted Mock Generation (Optional)
+
+If AI features are enabled during deployment:
+
 ```bash
-curl -i -X POST "$AWS_URL/__admin/mappings" \
+# Generate mocks from API specification
+curl -X POST "$MOCKNEST_URL/ai/generate-mappings" \
   -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
-  --data @- <<'JSON'
-{
-  "id": "11111111-1111-1111-1111-111111111111",
-  "priority": 1,
-  "request": { "method": "GET", "url": "/api/hello" },
-  "response": {
-    "status": 200,
-    "headers": { "Content-Type": "application/json" },
-    "body": "{\"message\":\"Hello from MockNest!\"}"
-  },
-  "persistent": true
-}
-JSON
+  -d '{
+    "description": "Create a REST API for user management",
+    "endpoints": [
+      "GET /api/users - list all users",
+      "GET /api/users/{id} - get user by ID",
+      "POST /api/users - create new user"
+    ]
+  }'
 ```
 
-## 3) Update an existing mapping by ID
-Replace `<UUID>` with the mapping ID created earlier.
+## Development
+
+### Local Development Setup
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd mocknest-serverless
+   ```
+
+2. **Build the project**:
+   ```bash
+   ./gradlew build
+   ```
+
+3. **Run tests**:
+   ```bash
+   ./gradlew test
+   ```
+
+4. **Run integration tests** (requires Docker):
+   ```bash
+   ./gradlew :software:infra:aws:test
+   ```
+
+### Project Structure
+
+```
+mocknest-serverless/
+├── software/                    # Business logic and application code
+│   ├── domain/                  # Domain models and business rules
+│   ├── application/             # Use cases and WireMock orchestration
+│   └── infra/aws/              # AWS-specific implementations
+├── deployment/aws/             # SAM templates and deployment scripts
+├── docs/                       # Documentation and examples
+└── .kiro/steering/            # Architecture and design decisions
+```
+
+### Architecture
+
+MockNest Serverless follows clean architecture principles:
+
+- **Domain Layer**: Business models and rules
+- **Application Layer**: Use cases and service interfaces
+- **Infrastructure Layer**: AWS-specific adapters and implementations
+
+For detailed architecture information, see [Architecture Documentation](.kiro/steering/02-architecture.md).
+
+## Configuration Reference
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AWS_REGION` | AWS region for deployment | `eu-west-1` |
+| `MOCKNEST_S3_BUCKET_NAME` | S3 bucket for mock storage | Auto-generated |
+
+### SAM Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `Region` | AWS region | `eu-west-1` |
+| `BucketName` | S3 bucket name | Auto-generated |
+| `EnableAI` | Enable AI features | `false` |
+
+### Application Properties
+
+```properties
+# AWS Configuration
+aws.region=eu-west-1
+aws.s3.bucket-name=${MOCKNEST_S3_BUCKET_NAME:mocknest-serverless-storage}
+
+# Application Configuration
+spring.application.name=mocknest-serverless
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Region Mismatch**: Ensure all AWS resources are in the same region
+2. **Permissions**: Verify IAM roles have necessary S3 and Lambda permissions
+3. **Cold Starts**: First requests may be slower due to Lambda cold starts
+
+### Logs
+
+View Lambda logs in CloudWatch:
 ```bash
-curl -i -X PUT "$AWS_URL/__admin/mappings/<UUID>" \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  --data @- <<'JSON'
-{
-  "id": "<UUID>",
-  "priority": 1,
-  "request": { "method": "GET", "url": "/api/hello" },
-  "response": {
-    "status": 200,
-    "headers": { "Content-Type": "application/json" },
-    "body": "{\"message\":\"Hello UPDATED!\"}"
-  },
-  "persistent": true
-}
-JSON
+sam logs -n MockNestFunction --stack-name mocknest-serverless --tail
 ```
 
-## 4) List all mappings
-```bash
-curl -s "$AWS_URL/__admin/mappings" -H "x-api-key: $API_KEY" | jq .
-```
+## Contributing
 
-## 5) Delete all mappings
-```bash
-curl -i -X DELETE "$AWS_URL/__admin/mappings" -H "x-api-key: $API_KEY"
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines and contribution process.
 
-## 6) Call your mocked endpoint
-Using the stub created in step 2 (`GET /api/hello`).
-```bash
-curl -s "$AWS_URL/api/hello" -H "x-api-key: $API_KEY" | jq .
-```
+## License
 
-## SOAP example
-The Postman collections also include a SOAP Calculator example (request to `/dneonline/calculator.asmx`). You can POST the corresponding mapping via Admin API and call the SOAP endpoint similarly. See the collections below.
+This project is open source and available under the [MIT License](LICENSE).
 
-# Getting Started
+## About
 
-## Prerequisites
-Before you begin, ensure you have the following:
+MockNest Serverless is an open-source project that provides AWS-native serverless mock runtime for integration testing. It will be available through the AWS Serverless Application Repository (SAR) for easy one-click deployment while remaining fully open source.
 
-- **Java 25** or later installed
-- **Kotlin 2.3.0** support
-- Git for version control
-- Gradle (the project uses the Gradle wrapper, so you don't need to install it separately)
-- IDE of your choice (IntelliJ IDEA recommended for Kotlin development)
+## Support
 
-### AWS Account Requirements
-- An AWS account with permissions to:
-  - Create and manage Lambda functions
-  - Create and manage API Gateway resources
-  - Create and manage IAM roles and policies
-  - Create and manage S3 buckets
-  - Deploy AWS resources via SAM
-
-## Build Project
-After checking out the project, ensure it can build properly by running:
-```bash
-./gradlew build
-```
-from the root of the project.
-
-## Deploy with SAM
-This project uses AWS SAM for deployment. You can deploy to your own AWS account for testing before publishing to SAR:
-
-```bash
-# Build the application
-sam build
-
-# Deploy to your AWS account
-sam deploy --guided
-
-# For SAR publishing (when ready)
-sam package --s3-bucket your-artifacts-bucket
-sam publish --template packaged-template.yaml
-```
-
-## Configure Pipeline
-If you are using GitHub Actions for deployment, you'll need to configure the following repository secrets:
-
-### AWS Deployment Secrets
-- `AWS_ACCOUNT_ID`: Your AWS account ID
-- `AWS_ACCESS_KEY`: Your AWS access key
-- `AWS_SECRET_KEY`: Your AWS secret key
-
-## Testing: Postman Collections and Environment
-
-For detailed information about the Postman collections and how to use them, see our [Documentation Practices](.kiro/steering/05-kiro-usage.md#documentation-practices).
-
-The `docs/postman` directory contains:
-- **AWS MockNest Serverless.postman_collection.json**: Collection for testing the MockNest API deployed on AWS
-- **Health Checks.postman_collection.json**: Collection for running health checks
-- **Demo Example.postman_environment.json**: Environment variables for testing
-
-### Environment Configuration
-Before using the collections, configure the environment variables:
-- `AWS_URL`: Set to your AWS API Gateway endpoint
-- `api_key`: Set to your AWS API Gateway API key
-
-### How to use the Postman collections
-1. Import the files from `docs/postman` into Postman
-2. Select the imported environment and fill in the AWS variables
-3. Run the folders in the collection in order:
-   - Reset mappings
-   - Create mapping(s)
-   - Call mocked API
-   - View near misses / list mappings
-   - Delete mappings
-
-## Questions or Issues
-If you have questions or encounter issues, please log them in the repository's issue tracker:
-[https://github.com/your-org/mocknest-serverless/issues](https://github.com/your-org/mocknest-serverless/issues)
-
-## Reference Documentation
-
-For comprehensive project documentation, see our steering documents:
-- [Product Vision](.kiro/steering/00-vision.md) - Overview, problem statement, and long-term vision
-- [Scope and Goals](.kiro/steering/01-scope-and-non-goals.md) - What's in scope and future phases
-- [Architecture](.kiro/steering/02-architecture.md) - System architecture and clean architecture principles
-- [AWS Services](.kiro/steering/03-aws-services.md) - AWS service details and deployment architecture
-- [Market Impact](.kiro/steering/04-market-impact.md) - Competitive landscape and market analysis
-- [Development Guidelines](.kiro/steering/05-kiro-usage.md) - Development workflow and best practices
-
-### Additional Links
-* [Official Gradle documentation](https://docs.gradle.org)
-* [AWS SAM Documentation](https://docs.aws.amazon.com/serverless-application-model/)
-* [WireMock Documentation](http://wiremock.org/docs/)
-* [Kotlin AWS SDK](https://github.com/awslabs/aws-sdk-kotlin)
+- **Issues**: Report bugs and feature requests via [GitHub Issues](https://github.com/your-org/mocknest-serverless/issues)
+- **Documentation**: Additional documentation in the `docs/` directory
+- **Architecture**: Design decisions documented in `.kiro/steering/`
+- **Community**: Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md)

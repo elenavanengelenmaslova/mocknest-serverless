@@ -1,0 +1,85 @@
+{
+  "info": {
+    "name": "AWS MockNest Serverless",
+    "description": "Collection for testing MockNest Serverless deployed on AWS",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}"
+          }
+        ],
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/health",
+          "host": ["{{AWS_URL}}"],
+          "path": ["__admin", "health"]
+        }
+      }
+    },
+    {
+      "name": "Reset All Mappings",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}"
+          }
+        ],
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/mappings/reset",
+          "host": ["{{AWS_URL}}"],
+          "path": ["__admin", "mappings", "reset"]
+        }
+      }
+    },
+    {
+      "name": "Create Mock Mapping",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"11111111-1111-1111-1111-111111111111\",\n  \"priority\": 1,\n  \"request\": {\n    \"method\": \"GET\",\n    \"url\": \"/api/hello\"\n  },\n  \"response\": {\n    \"status\": 200,\n    \"headers\": {\n      \"Content-Type\": \"application/json\"\n    },\n    \"body\": \"{\\\"message\\\":\\\"Hello from MockNest!\\\"}\"\n  },\n  \"persistent\": true\n}"
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/mappings",
+          "host": ["{{AWS_URL}}"],
+          "path": ["__admin", "mappings"]
+        }
+      }
+    },
+    {
+      "name": "Call Mocked API",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}"
+          }
+        ],
+        "url": {
+          "raw": "{{AWS_URL}}/api/hello",
+          "host": ["{{AWS_URL}}"],
+          "path": ["api", "hello"]
+        }
+      }
+    }
+  ]
+}

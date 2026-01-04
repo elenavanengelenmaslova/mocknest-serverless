@@ -1,0 +1,8 @@
+{
+  "id": "test-id",
+  "persistent": false,
+  "response": {
+    "status": 200,
+    "body": "some content"
+  }
+}
