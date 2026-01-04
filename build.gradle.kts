@@ -97,22 +97,33 @@ dependencies {
 kover {
     reports {
         total {
+            filters {
+                excludes {
+                    classes(
+                        // interfaces
+                        "io.mocknest.*.interfaces.*",
+
+                        // entry points
+                        "*ApplicationKt"
+                    )
+                }
+            }
+
             xml {
-                onCheck = true // Generate XML on check task
+                onCheck = true
             }
             html {
-                onCheck = true // Generate HTML on check task
+                onCheck = true
             }
         }
-        
+
         verify {
             rule {
-                minBound(90) // Enforce 90% on aggregated coverage across all modules
+                minBound(90)
             }
         }
     }
 }
-
 // Configure verification rules
 tasks.register("koverVerifyAll") {
     dependsOn("koverXmlReport")

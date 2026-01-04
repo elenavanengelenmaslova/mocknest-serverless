@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import aws.sdk.kotlin.runtime.auth.credentials.*
 import aws.smithy.kotlin.runtime.auth.awscredentials.*
+import kotlinx.coroutines.flow.asFlow
 
 class S3StorageIntegrationTest {
 
@@ -179,4 +180,66 @@ class S3StorageIntegrationTest {
         val afterClear = storage.list().toList()
         assertTrue(afterClear.isEmpty())
     }
+
+    @Test
+    suspend fun `Given multiple ids When getMany is called Then should return contents for all`() {
+        // Given
+        val keys = listOf("k1.txt", "k2.txt", "k3.txt")
+        keys.forEach { storage.save(it, "content-$it") }
+
+        // When
+        val result = storage
+            .getMany(keys.asFlow(), concurrency = 2)
+            .toList()
+
+        // Then
+        assertEquals(3, result.size)
+        result.forEach { (id, content) ->
+            assertEquals("content-$id", content)
+        }
+    }
+
+    @Test
+    suspend fun `Given many ids When deleteMany is called Then should delete all objects`() {
+        // Given: more than 1 batch is NOT required, but parallelism is
+        val keys = (1..5).map { "bulk-$it.txt" }
+        keys.forEach { storage.save(it, "content-$it") }
+
+        // Sanity check
+        assertEquals(5, storage.list().toList().size)
+
+        // When
+        storage.deleteMany(keys.asFlow(), concurrency = 3)
+
+        // Then
+        val remaining = storage.list().toList()
+        assertTrue(remaining.isEmpty())
+    }
+
+    @Test
+    suspend fun `Given missing ids When getMany is called Then should return null contents`() {
+        // Given
+        val keys = listOf("missing-1", "missing-2")
+
+        // When
+        val result = storage
+            .getMany(keys.asFlow(), concurrency = 2)
+            .toList()
+
+        // Then
+        assertEquals(2, result.size)
+        result.forEach { (_, content) ->
+            assertEquals(null, content)
+        }
+    }
+
+    @Test
+    suspend fun `Given missing ids When deleteMany is called Then should not fail`() {
+        // Given
+        val keys = listOf("does-not-exist-1", "does-not-exist-2")
+
+        // When / Then (should not throw)
+        storage.deleteMany(keys.asFlow(), concurrency = 2)
+    }
+
 }
