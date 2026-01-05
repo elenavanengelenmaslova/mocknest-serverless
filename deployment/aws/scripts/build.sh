@@ -3,12 +3,19 @@ set -e
 
 echo "Building MockNest Serverless..."
 
+# Navigate to project root
+cd "$(dirname "$0")/../.."
+
 # Build the application
-cd ../../
+echo "Building Kotlin application..."
 ./gradlew clean build
 
-# Build with SAM
+# Navigate to deployment directory
 cd deployment/aws
+
+# Build with SAM
+echo "Building SAM application..."
 sam build
 
 echo "Build completed successfully!"
+echo "Built artifacts are ready for deployment."

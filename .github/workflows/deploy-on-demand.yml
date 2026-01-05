@@ -1,0 +1,43 @@
+name: Deploy On Demand
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'default'
+        type: choice
+        options:
+          - default
+          - staging
+      enable-ai:
+        description: 'Enable AI features'
+        required: false
+        default: false
+        type: boolean
+      aws-region:
+        description: 'AWS region for deployment'
+        required: false
+        default: 'eu-west-1'
+        type: string
+      github-actions-role-name:
+        description: 'GitHub Actions OIDC role name'
+        required: false
+        default: 'GitHubActionsRole'
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-on-demand:
+    uses: ./.github/workflows/workflow-build-deploy-aws.yml
+    with:
+      environment: ${{ inputs.environment }}
+      enable-ai: ${{ inputs.enable-ai }}
+      aws-region: ${{ inputs.aws-region }}
+      github-actions-role-name: ${{ inputs.github-actions-role-name }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

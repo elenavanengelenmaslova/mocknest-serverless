@@ -6,19 +6,29 @@ on:
       environment:
         required: true
         type: string
-        description: 'Deployment environment (default or production)'
+        description: 'Deployment environment (default, staging, or production)'
       enable-ai:
         required: false
         type: boolean
         default: false
         description: 'Enable AI features'
+      aws-region:
+        required: false
+        type: string
+        default: 'eu-west-1'
+        description: 'AWS region for deployment'
+      github-actions-role-name:
+        required: false
+        type: string
+        default: 'GitHubActionsRole'
+        description: 'Name of the GitHub Actions OIDC role'
     secrets:
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
       AWS_ACCOUNT_ID:
         required: true
+
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
 
 jobs:
   test:
@@ -71,20 +81,65 @@ jobs:
         with:
           gradle-version: '9.0'
           
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-1
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
+          role-session-name: MockNestServerlessDeployment
+          aws-region: ${{ inputs.aws-region }}
           
       - name: Setup SAM CLI
         uses: aws-actions/setup-sam@v2
         
-      - name: Build and deploy
+      - name: Build application
+        run: ./gradlew clean build
+        
+      - name: Build and deploy with SAM
         run: |
           cd deployment/aws
-          chmod +x scripts/deploy.sh
-          ./scripts/deploy.sh ${{ inputs.environment }}
+          sam build
+          sam deploy --config-env ${{ inputs.environment }} --no-confirm-changeset
         env:
           ENABLE_AI: ${{ inputs.enable-ai }}
+          
+      - name: Get deployment outputs
+        id: outputs
+        run: |
+          cd deployment/aws
+          STACK_NAME=$(sam list stack-outputs --config-env ${{ inputs.environment }} --output json | jq -r '.[0].StackName')
+          API_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text)
+          API_KEY=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' --output text)
+          BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' --output text)
+          
+          echo "api-url=$API_URL" >> $GITHUB_OUTPUT
+          echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
+          echo "bucket-name=$BUCKET_NAME" >> $GITHUB_OUTPUT
+          echo "stack-name=$STACK_NAME" >> $GITHUB_OUTPUT
+          
+      - name: Test deployment
+        run: |
+          echo "Testing MockNest Serverless deployment..."
+          curl -H "x-api-key: ${{ steps.outputs.outputs.api-key }}" \
+               -X GET "${{ steps.outputs.outputs.api-url }}__admin/mappings" \
+               -w "HTTP Status: %{http_code}\n"
+               
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 MockNest Serverless Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Region:** ${{ inputs.aws-region }}" >> $GITHUB_STEP_SUMMARY
+          echo "**AI Enabled:** ${{ inputs.enable-ai }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Deployment Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Stack Name:** ${{ steps.outputs.outputs.stack-name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **API URL:** ${{ steps.outputs.outputs.api-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Storage Bucket:** ${{ steps.outputs.outputs.bucket-name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔑 API Access" >> $GITHUB_STEP_SUMMARY
+          echo "Use the API key from CloudFormation outputs to access MockNest endpoints." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📚 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Retrieve the API key from AWS Console > CloudFormation > Stack Outputs" >> $GITHUB_STEP_SUMMARY
+          echo "2. Test the admin API: \`GET ${{ steps.outputs.outputs.api-url }}__admin/mappings\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Import the Postman collection from \`docs/postman/\` for testing" >> $GITHUB_STEP_SUMMARY

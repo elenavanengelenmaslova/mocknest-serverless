@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Deploy MockNest Serverless from AWS Serverless Application Repository
+
+Resources:
+  MockNestApp:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:YOUR_ACCOUNT_ID:applications/mocknest-serverless
+        SemanticVersion: 1.0.0
+      Parameters:
+        EnableAI: 'false'  # Set to 'true' to enable AI features
+        Environment: 'dev'
+        # BucketName: 'my-custom-bucket-name'  # Optional: specify custom bucket name
+        # LambdaMemorySize: 1024  # Optional: customize Lambda memory
+        # LambdaTimeout: 30  # Optional: customize Lambda timeout
+
+Outputs:
+  MockNestApiUrl:
+    Description: "MockNest Serverless API Gateway URL"
+    Value: !GetAtt MockNestApp.Outputs.MockNestApiUrl
+  
+  MockNestApiKey:
+    Description: "MockNest Serverless API Key"
+    Value: !GetAtt MockNestApp.Outputs.MockNestApiKey
+  
+  MockStorageBucket:
+    Description: "MockNest S3 Storage Bucket"
+    Value: !GetAtt MockNestApp.Outputs.MockStorageBucket
