@@ -22,7 +22,7 @@ fi
 echo "📦 Packaging SAR deployment template..."
 sam package \
     --s3-bucket $BUCKET_NAME \
-    --template-file scripts/deploy-sar-app.yml \
+    --template-file deploy-sar-app.yml \
     --output-template-file packaged-sar.yml \
     --region $REGION
 

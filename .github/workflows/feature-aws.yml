@@ -43,5 +43,5 @@ jobs:
         
       - name: SAM build
         run: |
-          cd deployment/aws
+          cd deployment/sam
           sam build

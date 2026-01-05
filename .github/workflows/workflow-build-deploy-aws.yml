@@ -92,7 +92,7 @@ jobs:
         
       - name: Build and deploy with SAM
         run: |
-          cd deployment/aws
+          cd deployment/sam
           sam build
           sam deploy --config-env ${{ inputs.environment }} --no-confirm-changeset
         env:
@@ -101,7 +101,7 @@ jobs:
       - name: Get deployment outputs
         id: outputs
         run: |
-          cd deployment/aws
+          cd deployment/sam
           STACK_NAME=$(sam list stack-outputs --config-env ${{ inputs.environment }} --output json | jq -r '.[0].StackName')
           API_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text)
           API_KEY=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' --output text)

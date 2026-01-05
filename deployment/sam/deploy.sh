@@ -5,7 +5,7 @@ ENVIRONMENT=${1:-default}
 
 echo "Deploying MockNest Serverless to environment: $ENVIRONMENT"
 
-# Navigate to deployment directory
+# Navigate to SAM deployment directory
 cd "$(dirname "$0")"
 
 # Build first

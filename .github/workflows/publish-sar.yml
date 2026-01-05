@@ -55,9 +55,9 @@ jobs:
         
       - name: Publish to SAR
         run: |
-          cd deployment/aws
-          chmod +x scripts/publish-sar.sh
-          ./scripts/publish-sar.sh
+          cd deployment/sar
+          chmod +x publish-sar.sh
+          ./publish-sar.sh
         env:
           SAR_VERSION: ${{ inputs.version || github.event.release.tag_name || '1.0.0' }}
           AWS_REGION: ${{ inputs.aws-region || 'us-east-1' }}

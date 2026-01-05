@@ -10,8 +10,8 @@ cd "$(dirname "$0")/../.."
 echo "Building Kotlin application..."
 ./gradlew clean build
 
-# Navigate to deployment directory
-cd deployment/aws
+# Navigate to SAM deployment directory
+cd deployment/sam
 
 # Build with SAM
 echo "Building SAM application..."

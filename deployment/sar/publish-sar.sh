@@ -20,7 +20,7 @@ fi
 
 # Build the application first
 echo "🔨 Building MockNest Serverless..."
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../../sam"
 sam build
 
 # Package the template for SAR
@@ -45,4 +45,4 @@ echo "📋 Next steps:"
 echo "1. Go to AWS Console > Serverless Application Repository"
 echo "2. Find 'mocknest-serverless' in your applications"
 echo "3. Make it public if you want others to use it"
-echo "4. Update the ApplicationId in scripts/deploy-sar-app.yml with the published ARN"
+echo "4. Update the ApplicationId in deployment/sar/deploy-sar-app.yml with the published ARN"
