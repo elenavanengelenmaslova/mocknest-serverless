@@ -189,7 +189,7 @@ Resources:
       CodeUri: ../../software/infra/aws/build/distributions/mocknest-serverless.zip
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
-      ReservedConcurrencyLimit: 10
+      ReservedConcurrentExecutions: 10
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
