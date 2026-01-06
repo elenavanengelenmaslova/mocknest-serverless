@@ -17,12 +17,12 @@ This guide covers deploying MockNest Serverless using AWS Serverless Application
 For automated deployments or CI/CD integration:
 
 ```bash
-cd deployment/sar
+cd deployment/aws/sar
 chmod +x deploy-sar-app.sh
 ./deploy-sar-app.sh
 ```
 
-You can also integrate the SAR app in your existing CloudFormation stacks using the template in `deployment/sar/deploy-sar-app.yml`.
+You can also integrate the SAR app in your existing CloudFormation stacks using the template in `deployment/aws/sar/deploy-sar-app.yml`.
 
 ### SAR Benefits
 - ✅ **No local setup required** - deploy directly from AWS Console
@@ -37,7 +37,7 @@ You can also integrate the SAR app in your existing CloudFormation stacks using 
 ```bash
 # Deploy with defaults (to eu-west-1)
 ./gradlew build
-cd deployment/sam
+cd deployment/aws/sam
 sam build
 sam deploy --guided  # First time only
 ```
@@ -78,7 +78,7 @@ sam list stack-outputs --stack-name mocknest-serverless
 
 #### Option 1: Update samconfig.toml
 
-Edit `deployment/sam/samconfig.toml`:
+Edit `deployment/aws/sam/samconfig.toml`:
 
 ```toml
 [default.deploy.parameters]

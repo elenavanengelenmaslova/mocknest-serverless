@@ -55,7 +55,7 @@ jobs:
         
       - name: Publish to SAR
         run: |
-          cd deployment/sar
+          cd deployment/aws/sar
           chmod +x publish-sar.sh
           ./publish-sar.sh
         env:

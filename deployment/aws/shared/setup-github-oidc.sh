@@ -75,7 +75,7 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}🎉 You're ready to deploy MockNest Serverless via GitHub Actions!${NC}"
     echo ""
     echo -e "${BLUE}💡 To deploy manually:${NC}"
-    echo "   cd deployment/sam"
+    echo "   cd deployment/aws/sam"
     echo "   ./deploy.sh default"
     echo ""
 else

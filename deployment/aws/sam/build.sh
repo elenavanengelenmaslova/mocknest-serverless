@@ -11,7 +11,7 @@ echo "Building Kotlin application..."
 ./gradlew clean build
 
 # Navigate to SAM deployment directory
-cd deployment/sam
+cd deployment/aws/sam
 
 # Build with SAM
 echo "Building SAM application..."

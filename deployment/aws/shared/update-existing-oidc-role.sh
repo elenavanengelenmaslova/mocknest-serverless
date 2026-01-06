@@ -115,7 +115,7 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}🎉 Your existing OIDC role is now configured for MockNest Serverless!${NC}"
     echo ""
     echo -e "${BLUE}💡 To deploy:${NC}"
-    echo "   cd deployment/sam"
+    echo "   cd deployment/aws/sam"
     echo "   sam deploy --guided"
     echo ""
 else
