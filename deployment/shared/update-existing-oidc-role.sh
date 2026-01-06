@@ -115,8 +115,8 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}🎉 Your existing OIDC role is now configured for MockNest Serverless!${NC}"
     echo ""
     echo -e "${BLUE}💡 To deploy:${NC}"
-    echo "   cd deployment/aws"
-    echo "   ./scripts/deploy.sh default"
+    echo "   cd deployment/sam"
+    echo "   sam deploy --guided"
     echo ""
 else
     echo -e "${RED}❌ Failed to update role trust policy.${NC}"
