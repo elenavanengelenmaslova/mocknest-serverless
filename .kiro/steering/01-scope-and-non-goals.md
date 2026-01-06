@@ -60,6 +60,10 @@ Planned future enhancements include:
 - Exploring optimizations for startup time and large mock sets.
 - Implementing on-demand mapping loading to reduce cold start times (currently all mappings are loaded at startup).
 
+### Deployment Options
+- **AWS CDK**: Infrastructure as Code deployment option using AWS CDK for teams preferring programmatic infrastructure definitions
+- **Terraform CDK**: Infrastructure as Code deployment option using Terraform CDK for teams using Terraform workflows and multi-cloud scenarios
+
 ### Advanced Integration Patterns
 - Support for asynchronous interaction patterns, such as event-driven responses using services like Amazon EventBridge.
 - Supporting security-aware mocks, such as configurable OAuth2/JWT-style requirements per endpoint.
