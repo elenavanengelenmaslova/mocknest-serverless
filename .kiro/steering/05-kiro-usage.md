@@ -36,11 +36,18 @@ mocknest-serverless/
 │
 └── deployment/           // Cloud deployment configurations
     └── aws/              // AWS-specific deployment
-        ├── template.yaml         // SAM template for infrastructure as code
-        ├── samconfig.toml       // SAM configuration for different environments
-        └── scripts/             // Deployment and build scripts
-            ├── build.sh         // Build script for SAM deployment
-            └── deploy.sh        // Deployment script for SAR publishing
+        ├── sam/              // SAM deployment method
+        │   ├── template.yaml         // SAM template for infrastructure as code
+        │   ├── samconfig.toml       // SAM configuration for different environments
+        │   ├── build.sh             // Build script for SAM deployment
+        │   └── deploy.sh            // Deployment script for SAM
+        ├── sar/              // SAR deployment method
+        │   ├── deploy-sar-app.yml   // CloudFormation template for SAR deployment
+        │   ├── deploy-sar-app.sh    // Script to deploy from SAR
+        │   └── publish-sar.sh       // Script to publish to SAR
+        └── shared/           // Shared deployment utilities
+            ├── setup-github-oidc.sh     // OIDC setup script
+            └── update-existing-oidc-role.sh // OIDC role update script
 ```
 
 ## Development Workflow
