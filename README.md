@@ -34,7 +34,7 @@ MockNest Serverless is a serverless WireMock runtime for AWS that enables realis
 ```bash
 # Build and deploy from source (defaults to eu-west-1)
 ./gradlew build
-cd deployment/sam
+cd deployment/aws/sam
 sam build
 sam deploy --guided
 ```
@@ -78,7 +78,7 @@ MockNest Serverless defaults to **eu-west-1** (Ireland) because:
 
 3. **Edit SAM Config** (for permanent change):
    ```bash
-   # Edit deployment/sam/samconfig.toml
+   # Edit deployment/aws/sam/samconfig.toml
    region = "us-east-1"
    ```
 

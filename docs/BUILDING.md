@@ -97,7 +97,7 @@ open software/infra/aws/build/reports/kover/html/index.html
 
 ### SAM Build
 ```bash
-cd deployment/aws
+cd deployment/aws/sam
 sam build
 ```
 

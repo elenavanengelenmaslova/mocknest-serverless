@@ -72,7 +72,7 @@ Follow clean architecture principles by developing in this sequence:
 1. **Domain Layer** (`:domain`) - Start with business models, entities, and domain rules
 2. **Application Layer** (`:application`) - Implement use cases, WireMock orchestration, and service interfaces
 3. **Infrastructure Layer** (`:infra-aws`) - Add AWS-specific adapters and implementations
-4. **Deployment Configuration** (`deployment/aws/`) - Update SAM templates and deployment scripts
+4. **Deployment Configuration** (`deployment/aws/sam/` and `deployment/aws/sar/`) - Update SAM templates and deployment scripts
 
 ### Multi-module Gradle Workflow
 - Treat the repository as a clean-architecture, multi-module Kotlin project: domain models live in `:domain`, application-layer WireMock orchestration in `:application`, and cloud-specific adapters in `:infra-aws`
@@ -85,9 +85,9 @@ Follow clean architecture principles by developing in this sequence:
 - Always validate that new mock behaviors work with the object storage persistence layer
 
 ### SAM Template Management
-- Update `deployment/aws/template.yaml` when adding new Lambda functions or API Gateway endpoints
-- Modify `deployment/aws/samconfig.toml` for environment-specific configurations
-- Use the build and deploy scripts in `deployment/aws/scripts/` for consistent deployments
+- Update `deployment/aws/sam/template.yaml` when adding new Lambda functions or API Gateway endpoints
+- Modify `deployment/aws/sam/samconfig.toml` for environment-specific configurations
+- Use the build and deploy scripts in `deployment/aws/sam/` for consistent deployments
 - Test SAM template changes locally before committing
 
 ### GitHub Actions Integration

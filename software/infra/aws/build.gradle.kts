@@ -54,6 +54,6 @@ configurations {
 tasks.register<Copy>("copyBootJarForDeployment") {
     dependsOn("bootJar")
     from(tasks.bootJar.get().archiveFile)
-    into("${project.rootDir}/deployment/aws/build")
+    into("${project.rootDir}/deployment/aws/sam/build")
     rename { "mocknest-serverless-aws.jar" }
 }

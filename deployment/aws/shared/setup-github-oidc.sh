@@ -75,8 +75,8 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}🎉 You're ready to deploy MockNest Serverless via GitHub Actions!${NC}"
     echo ""
     echo -e "${BLUE}💡 To deploy manually:${NC}"
-    echo "   cd deployment/aws"
-    echo "   ./scripts/deploy.sh default"
+    echo "   cd deployment/aws/sam"
+    echo "   ./deploy.sh default"
     echo ""
 else
     echo -e "${RED}❌ OIDC setup failed. Check the error messages above.${NC}"

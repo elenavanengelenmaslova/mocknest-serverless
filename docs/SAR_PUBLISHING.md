@@ -81,7 +81,7 @@ Parameters:
 ./gradlew build
 
 # Validate SAM template
-sam validate --template deployment/aws/template.yaml
+sam validate --template deployment/aws/sam/template.yaml
 
 # Test deployment locally
 sam build
@@ -92,7 +92,7 @@ sam deploy --guided
 ```bash
 # Package for SAR
 sam package \
-  --template-file deployment/aws/template.yaml \
+  --template-file deployment/aws/sam/template.yaml \
   --s3-bucket your-sar-artifacts-bucket \
   --s3-prefix mocknest-serverless \
   --output-template-file packaged-template.yaml
