@@ -1,0 +1,352 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: MockNest Serverless - AWS-native serverless mock runtime
+
+Parameters:
+  EnableAI:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: Enable AI-assisted mock generation features
+  
+  BucketName:
+    Type: String
+    Default: ''
+    Description: Custom S3 bucket name for mock storage (optional, auto-generated if empty)
+  
+  Environment:
+    Type: String
+    Default: 'dev'
+    Description: Deployment environment (dev, staging, prod)
+  
+  LambdaMemorySize:
+    Type: Number
+    Default: 1024
+    MinValue: 512
+    MaxValue: 10240
+    Description: Lambda function memory size in MB
+  
+  LambdaTimeout:
+    Type: Number
+    Default: 120
+    MinValue: 3
+    MaxValue: 900
+    Description: Lambda function timeout in seconds
+
+Conditions:
+  HasCustomBucketName: !Not [!Equals [!Ref BucketName, '']]
+  IsAIEnabled: !Equals [!Ref EnableAI, 'true']
+
+Globals:
+  Function:
+    Runtime: java21
+    MemorySize: !Ref LambdaMemorySize
+    Timeout: !Ref LambdaTimeout
+    Environment:
+      Variables:
+        SPRING_PROFILES_ACTIVE: aws
+        ENVIRONMENT: !Ref Environment
+
+Resources:
+  # S3 bucket for mock definitions and response payloads
+  MockStorage:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If 
+        - HasCustomBucketName
+        - !Ref BucketName
+        - !Ref AWS::NoValue
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteIncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Environment
+          Value: !Ref Environment
+
+  # IAM Role for Lambda function
+  MockNestLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: MockNestS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt MockStorage.Arn
+                  - !Sub "${MockStorage.Arn}/*"
+        - !If
+          - IsAIEnabled
+          - PolicyName: MockNestBedrockAccess
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - bedrock:InvokeModel
+                    - bedrock:InvokeModelWithResponseStream
+                    - bedrock:ListFoundationModels
+                  Resource: "*"
+                  Condition:
+                    StringEquals:
+                      "aws:RequestedRegion": !Ref "AWS::Region"
+          - !Ref "AWS::NoValue"
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Lambda function for MockNest Serverless runtime
+  MockNestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-runtime"
+      CodeUri: ../../software/infra/aws/build/distributions/mocknest-serverless.zip
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Role: !GetAtt MockNestLambdaRole.Arn
+      ReservedConcurrentExecutions: 10
+      Environment:
+        Variables:
+          MOCK_STORAGE_BUCKET: !Ref MockStorage
+          AI_ENABLED: !Ref EnableAI
+          AWS_REGION: !Ref "AWS::Region"
+          MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
+          SPRING_CLOUD_FUNCTION_DEFINITION: "router"
+          MAIN_CLASS: "io.mocknest.infra.aws.Application"
+          # JVM optimization for faster cold starts
+          JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt MockNestDLQ.Arn
+      Tags:
+        Application: MockNest-Serverless
+        Environment: !Ref Environment
+      Events:
+        # Catch-all proxy for all requests (both admin and mock endpoints)
+        ProxyResource:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MockNestApi
+            Path: /{proxy+}
+            Method: ANY
+        # Root path handler
+        RootResource:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MockNestApi
+            Path: /
+            Method: ANY
+
+  # Dead Letter Queue for failed Lambda invocations
+  MockNestDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-dlq"
+      MessageRetentionPeriod: 1209600  # 14 days
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Environment
+          Value: !Ref Environment
+
+  # API Gateway REST API (similar to your Terraform CDK structure)
+  MockNestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-api"
+      StageName: prod
+      TracingEnabled: true
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          LoggingLevel: INFO
+          DataTraceEnabled: true
+          MetricsEnabled: true
+          ThrottlingBurstLimit: 200
+          ThrottlingRateLimit: 100
+      AccessLogSetting:
+        DestinationArn: !GetAtt ApiGatewayLogGroup.Arn
+        Format: >
+          {
+            "requestId": "$context.requestId",
+            "requestTime": "$context.requestTime",
+            "httpMethod": "$context.httpMethod",
+            "path": "$context.path",
+            "resourcePath": "$context.resourcePath",
+            "status": $context.status,
+            "responseLength": $context.responseLength,
+            "responseTime": $context.responseTime,
+            "userAgent": "$context.identity.userAgent",
+            "sourceIp": "$context.identity.sourceIp"
+          }
+      Auth:
+        ApiKeyRequired: true
+        UsagePlan:
+          CreateUsagePlan: PER_API
+          Description: !Sub "Usage plan for MockNest Serverless - ${Environment}"
+          UsagePlanName: !Sub "${AWS::StackName}-usage-plan"
+          Quota:
+            Limit: 50000
+            Period: MONTH
+          Throttle:
+            BurstLimit: 200
+            RateLimit: 100
+      Tags:
+        Application: MockNest-Serverless
+        Environment: !Ref Environment
+
+  # Lambda permission for API Gateway to invoke the function
+  MockNestLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MockNestFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MockNestApi}/*/*"
+
+  # CloudWatch Log Group for API Gateway
+  ApiGatewayLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${AWS::StackName}"
+      RetentionInDays: 30
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Environment
+          Value: !Ref Environment
+
+  # CloudWatch Log Group for Lambda
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-runtime"
+      RetentionInDays: 30
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Environment
+          Value: !Ref Environment
+
+  # API Key for accessing MockNest endpoints
+  MockNestApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: !Sub "${AWS::StackName}-api-key"
+      Description: !Sub "API Key for MockNest Serverless - ${Environment}"
+      Enabled: true
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Usage Plan (explicit definition to match Terraform CDK structure)
+  MockNestUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      UsagePlanName: !Sub "${AWS::StackName}-usage-plan"
+      Description: !Sub "Usage plan for MockNest Serverless - ${Environment}"
+      ApiStages:
+        - ApiId: !Ref MockNestApi
+          Stage: prod
+      Quota:
+        Limit: 50000
+        Period: MONTH
+      Throttle:
+        BurstLimit: 200
+        RateLimit: 100
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Usage Plan Key to associate API Key with Usage Plan
+  MockNestUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref MockNestApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref MockNestUsagePlan
+
+Outputs:
+  MockNestApiUrl:
+    Description: "API Gateway endpoint URL for MockNest Serverless"
+    Value: !Sub "https://${MockNestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+    Export:
+      Name: !Sub "${AWS::StackName}-api-url"
+  
+  MockNestApiId:
+    Description: "API Gateway API ID for MockNest Serverless"
+    Value: !Ref MockNestApi
+    Export:
+      Name: !Sub "${AWS::StackName}-api-id"
+  
+  MockNestApiKey:
+    Description: "API Key for accessing MockNest endpoints"
+    Value: !Ref MockNestApiKey
+    Export:
+      Name: !Sub "${AWS::StackName}-api-key"
+  
+  MockStorageBucket:
+    Description: "S3 bucket for mock storage"
+    Value: !Ref MockStorage
+    Export:
+      Name: !Sub "${AWS::StackName}-storage-bucket"
+  
+  MockNestFunctionName:
+    Description: "Lambda function name for MockNest runtime"
+    Value: !Ref MockNestFunction
+    Export:
+      Name: !Sub "${AWS::StackName}-function-name"
+  
+  Region:
+    Description: "AWS region where MockNest is deployed"
+    Value: !Ref "AWS::Region"
+    Export:
+      Name: !Sub "${AWS::StackName}-region"
+  
+  Environment:
+    Description: "Deployment environment"
+    Value: !Ref Environment
+    Export:
+      Name: !Sub "${AWS::StackName}-environment"
+  
+  StackName:
+    Description: "CloudFormation stack name"
+    Value: !Ref "AWS::StackName"
+    Export:
+      Name: !Sub "${AWS::StackName}-stack-name"

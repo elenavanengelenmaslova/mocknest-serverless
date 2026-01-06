@@ -2,7 +2,7 @@
 
 This guide covers deploying MockNest Serverless using AWS Serverless Application Repository (SAR) or direct SAM deployment.
 
-## AWS Serverless Application Repository (SAR) - *Coming Soon*
+## AWS Serverless Application Repository (SAR)
 
 ### One-Click Deployment from AWS Console
 1. **Open AWS Console** in your preferred region
@@ -12,6 +12,17 @@ This guide covers deploying MockNest Serverless using AWS Serverless Application
    - **EnableAI**: `false` (default) or `true` for AI features
    - **BucketName**: Leave empty for auto-generated name
 5. **Deploy** - takes 2-3 minutes
+
+### Deploy SAR App via Script
+For automated deployments or CI/CD integration:
+
+```bash
+cd deployment/sar
+chmod +x deploy-sar-app.sh
+./deploy-sar-app.sh
+```
+
+You can also integrate the SAR app in your existing CloudFormation stacks using the template in `deployment/sar/deploy-sar-app.yml`.
 
 ### SAR Benefits
 - ✅ **No local setup required** - deploy directly from AWS Console
@@ -26,7 +37,7 @@ This guide covers deploying MockNest Serverless using AWS Serverless Application
 ```bash
 # Deploy with defaults (to eu-west-1)
 ./gradlew build
-cd deployment/aws
+cd deployment/sam
 sam build
 sam deploy --guided  # First time only
 ```
@@ -67,7 +78,7 @@ sam list stack-outputs --stack-name mocknest-serverless
 
 #### Option 1: Update samconfig.toml
 
-Edit `deployment/aws/samconfig.toml`:
+Edit `deployment/sam/samconfig.toml`:
 
 ```toml
 [default.deploy.parameters]
@@ -202,9 +213,10 @@ aws cloudformation describe-stacks \
   --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' \
   --output text
 
-# Get API key
-aws apigateway get-api-keys \
-  --query 'items[0].id' \
+# Get API key from CloudFormation outputs
+aws cloudformation describe-stacks \
+  --stack-name mocknest-serverless \
+  --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
   --output text
 ```
 
