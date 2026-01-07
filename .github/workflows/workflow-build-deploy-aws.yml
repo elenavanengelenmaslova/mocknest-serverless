@@ -80,7 +80,7 @@ jobs:
         uses: aws-actions/setup-sam@v2
         
       - name: Build application
-        run: ./gradlew clean build
+        run: ./gradlew clean assemble
         
       - name: Build and deploy with SAM
         run: |
