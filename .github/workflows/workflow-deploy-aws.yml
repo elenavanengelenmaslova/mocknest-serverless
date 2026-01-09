@@ -67,7 +67,6 @@ jobs:
       - name: Build and deploy with SAM
         run: |
           cd deployment/aws/sam
-          sam build
           sam deploy --config-env ${{ inputs.environment }} --no-confirm-changeset
         env:
           ENABLE_AI: ${{ inputs.enable-ai }}
