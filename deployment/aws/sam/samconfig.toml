@@ -11,13 +11,14 @@ parallel = true
 [default.deploy.parameters]
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
-resolve_s3 = true
+resolve_s3 = false
+s3_bucket = "lambda-deployment-clean-architecture-example"
 s3_prefix = "mocknest-serverless-dev"
 region = "eu-west-1"
 image_repositories = []
 parameter_overrides = [
-    "EnableAI=false",
-    "Environment=dev"
+  "EnableAI=false",
+  "Environment=dev"
 ]
 
 # Staging configuration
@@ -31,11 +32,12 @@ parallel = true
 [staging.deploy.parameters]
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = false
-resolve_s3 = true
+resolve_s3 = false
+s3_bucket = "lambda-deployment-clean-architecture-example"
 s3_prefix = "mocknest-serverless-staging"
 region = "eu-west-1"
 image_repositories = []
 parameter_overrides = [
-    "EnableAI=false",
-    "Environment=staging"
+  "EnableAI=false",
+  "Environment=staging"
 ]
