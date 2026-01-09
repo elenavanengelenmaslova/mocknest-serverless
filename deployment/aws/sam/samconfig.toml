@@ -9,7 +9,7 @@ cached = true
 parallel = true
 
 [default.deploy.parameters]
-capabilities = "CAPABILITY_IAM"
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
 confirm_changeset = true
 resolve_s3 = false
 s3_bucket = "lambda-deployment-clean-architecture-example"
@@ -30,7 +30,7 @@ cached = true
 parallel = true
 
 [staging.deploy.parameters]
-capabilities = "CAPABILITY_IAM"
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
 confirm_changeset = false
 resolve_s3 = false
 s3_bucket = "lambda-deployment-clean-architecture-example"
