@@ -75,22 +75,25 @@ jobs:
         id: outputs
         run: |
           cd deployment/aws/sam
-          STACK_NAME=$(sam list stack-outputs --config-env ${{ inputs.environment }} --output json | jq -r '.[0].StackName')
-          API_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text)
-          API_KEY=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' --output text)
-          BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' --output text)
-          
+          ENV="${{ inputs.environment }}"
+
+          # Read stack_name from samconfig.toml for the selected environment
+          STACK_NAME=$(python - "$ENV" <<'PY'
+import sys, tomllib
+env = sys.argv[1]
+cfg = tomllib.load(open("samconfig.toml", "rb"))
+print(cfg[env]["global"]["parameters"]["stack_name"])
+PY
+)
+
+          echo "Resolved stack name: $STACK_NAME"
+
+          API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text)
+          BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' --output text)
+
           echo "api-url=$API_URL" >> $GITHUB_OUTPUT
-          echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
           echo "bucket-name=$BUCKET_NAME" >> $GITHUB_OUTPUT
           echo "stack-name=$STACK_NAME" >> $GITHUB_OUTPUT
-          
-      - name: Test deployment
-        run: |
-          echo "Testing MockNest Serverless deployment..."
-          curl -H "x-api-key: ${{ steps.outputs.outputs.api-key }}" \
-               -X GET "${{ steps.outputs.outputs.api-url }}__admin/mappings" \
-               -w "HTTP Status: %{http_code}\n"
                
       - name: Create deployment summary
         run: |
@@ -106,9 +109,8 @@ jobs:
           echo "- **Storage Bucket:** ${{ steps.outputs.outputs.bucket-name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔑 API Access" >> $GITHUB_STEP_SUMMARY
-          echo "Use the API key from CloudFormation outputs to access MockNest endpoints." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📚 Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "1. Retrieve the API key from AWS Console > CloudFormation > Stack Outputs" >> $GITHUB_STEP_SUMMARY
-          echo "2. Test the admin API: \`GET ${{ steps.outputs.outputs.api-url }}__admin/mappings\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Test the admin API: \`GET ${{ steps.outputs.outputs.api-url }}mocknest/health\`" >> $GITHUB_STEP_SUMMARY
           echo "3. Import the Postman collection from \`docs/postman/\` for testing" >> $GITHUB_STEP_SUMMARY
