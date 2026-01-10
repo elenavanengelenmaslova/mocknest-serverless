@@ -84,7 +84,7 @@ env = sys.argv[1]
 cfg = tomllib.load(open("samconfig.toml", "rb"))
 print(cfg[env]["global"]["parameters"]["stack_name"])
 PY
-)
+          )
 
           echo "Resolved stack name: $STACK_NAME"
 
