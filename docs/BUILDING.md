@@ -51,6 +51,8 @@ Clean and rebuild everything:
 ## Testing
 
 ### Running Tests
+Make sure docker (or similar) is running, e.g. `colima start`.
+
 ```bash
 # Run all tests
 ./gradlew test

@@ -3,7 +3,7 @@ plugins {
     kotlin("plugin.spring") version "2.3.0" apply false
     id("org.springframework.boot") version "4.0.0" apply false
     id("io.spring.dependency-management") version "1.1.6" apply false
-    id("org.jetbrains.kotlinx.kover") version "0.8.3"
+    id("org.jetbrains.kotlinx.kover") version "0.9.4"
 }
 
 allprojects {

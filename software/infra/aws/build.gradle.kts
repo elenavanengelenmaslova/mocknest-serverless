@@ -3,7 +3,6 @@ plugins {
     kotlin("plugin.spring")
     id("org.springframework.boot")
     id("io.spring.dependency-management")
-    id("org.jetbrains.kotlinx.kover")
 }
 
 // Configure the main class for Spring Boot
