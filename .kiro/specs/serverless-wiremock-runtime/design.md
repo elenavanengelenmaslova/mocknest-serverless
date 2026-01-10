@@ -246,6 +246,10 @@ S3 Bucket Structure:
 *For any* configuration or validation error, the system should provide clear error messages with specific details and guidance for fixes
 **Validates: Requirements 10.1, 10.3, 10.4**
 
+### Property 11: Multi-Instance Deployment Isolation
+*For any* two MockNest instances with different instance names, the instances should be completely isolated with separate storage, API endpoints, and no resource conflicts
+**Validates: Requirements 11.2, 11.3**
+
 ## Error Handling
 
 ### Storage Error Handling
@@ -299,6 +303,38 @@ fun `mock definitions persist across cold starts`() = runTest {
 - Test storage operation performance with large datasets
 
 ## Deployment Architecture
+
+### Multi-Instance Deployment Strategy
+
+MockNest supports deploying multiple independent instances for different testing purposes, moving away from traditional dev→staging→prod promotion to a more flexible instance-based model.
+
+#### Instance Naming Strategy
+```yaml
+# Instead of environment-based naming:
+stack_name = "mocknest-serverless-dev"
+
+# Use instance-based naming:
+stack_name = "mocknest-${instance_name}"
+
+# Examples:
+# - mocknest-team-a-integration
+# - mocknest-feature-auth-tests  
+# - mocknest-shared-api-tests
+```
+
+#### Resource Isolation
+Each instance gets completely isolated resources:
+```yaml
+S3 Bucket: mocknest-storage-${instance_name}-${account_id}
+Lambda Function: mocknest-${instance_name}-runtime
+API Gateway: mocknest-${instance_name}-api
+CloudWatch Logs: /aws/lambda/mocknest-${instance_name}-runtime
+```
+
+#### Instance Lifecycle Management
+- **Permanent Instances**: Long-lived instances for team shared testing (e.g., `team-a-integration`)
+- **Temporary Instances**: Short-lived instances for feature development (e.g., `feature-auth-tests`)
+- **Configurable Retention**: Different retention policies per instance type
 
 ### AWS Lambda Configuration
 ```yaml

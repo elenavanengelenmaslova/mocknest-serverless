@@ -109,6 +109,14 @@ The serverless WireMock runtime is already implemented. This plan focuses on com
   - Configure appropriate timeouts, memory settings, and Java runtime optimization
   - _Requirements: Deployment readiness_
 
+- [ ] 3.1 Implement multi-instance deployment support
+  - Replace Environment parameter with InstanceName parameter in SAM template
+  - Update resource naming to use instance-based naming (mocknest-${instance_name})
+  - Configure instance-specific S3 bucket naming with account ID suffix
+  - Update samconfig.toml to support instance-based configuration sections
+  - Modify GitHub Actions workflows to use instance names instead of environments
+  - _Requirements: 11.1, 11.2, 11.3_
+
 - [ ] 4. Prepare for AWS deployment testing
   - Create deployment configuration for test environment
   - Prepare integration tests that can run against deployed Lambda
@@ -157,6 +165,10 @@ The serverless WireMock runtime is already implemented. This plan focuses on com
 - [ ]* 4.9 Write property test for configuration and error handling
   - **Property 10: Configuration and Error Handling**
   - **Validates: Requirements 10.1, 10.3, 10.4**
+
+- [ ]* 4.10 Write property test for multi-instance deployment isolation
+  - **Property 11: Multi-Instance Deployment Isolation**
+  - **Validates: Requirements 11.2, 11.3**
 
 - [ ] 5. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.

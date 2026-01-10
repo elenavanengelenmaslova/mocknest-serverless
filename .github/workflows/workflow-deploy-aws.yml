@@ -67,7 +67,14 @@ jobs:
       - name: Build and deploy with SAM
         run: |
           cd deployment/aws/sam
-          sam deploy --config-env ${{ inputs.environment }} --no-confirm-changeset
+          if sam deploy --config-env ${{ inputs.environment }} --no-confirm-changeset; then
+            echo "✅ Deployment completed successfully"
+          elif [ $? -eq 1 ]; then
+            echo "ℹ️ No changes to deploy - stack is up to date"
+          else
+            echo "❌ Deployment failed with unexpected error"
+            exit 1
+          fi
         env:
           ENABLE_AI: ${{ inputs.enable-ai }}
           
@@ -88,6 +95,7 @@ jobs:
 
           echo "Resolved stack name: $STACK_NAME"
 
+          # Get stack outputs (these will exist whether deployment was new or no-change)
           API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text)
           BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' --output text)
 

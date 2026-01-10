@@ -19,6 +19,8 @@ This document specifies the requirements for implementing the core serverless Wi
 - **Persistent_Storage**: Cloud object storage for mock definitions, response payloads, and request logs
 - **Cold_Start**: Serverless compute initialization when no warm instances are available
 - **Store_Extension**: WireMock extension that redirects storage operations to external storage instead of in-memory storage
+- **Instance_Name**: Unique identifier for a MockNest deployment instance, used to create isolated environments for different testing purposes
+- **Deployment_Instance**: An independent MockNest deployment with its own storage, API endpoints, and configuration, identified by Instance_Name
 
 ## Requirements
 
@@ -141,3 +143,15 @@ This document specifies the requirements for implementing the core serverless Wi
 3. WHEN storage operations fail, THE MockNest_System SHALL provide meaningful error responses and suggest corrective actions
 4. WHEN Mock_Definition validation fails, THE MockNest_System SHALL return detailed validation errors with guidance for fixes
 5. WHERE system health monitoring is needed, THE MockNest_System SHALL provide health check endpoints and operational metrics
+
+### Requirement 11
+
+**User Story:** As a platform engineer, I want to deploy multiple independent MockNest instances for different testing purposes, so that teams can have isolated mock environments without conflicts.
+
+#### Acceptance Criteria
+
+1. WHEN deploying MockNest_System instances, THE deployment configuration SHALL support unique instance names instead of traditional environment promotion
+2. WHEN multiple MockNest_System instances are deployed, THE instances SHALL be completely isolated with separate storage, API endpoints, and configurations
+3. WHEN specifying instance names, THE MockNest_System SHALL use the instance name to create unique stack names, bucket names, and resource identifiers
+4. WHEN deploying temporary instances, THE MockNest_System SHALL support lifecycle management with configurable retention policies for cleanup
+5. WHERE instance naming conflicts occur, THE deployment process SHALL prevent conflicts and provide clear error messages about naming requirements
