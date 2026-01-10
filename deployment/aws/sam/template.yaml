@@ -164,19 +164,8 @@ Resources:
           ThrottlingRateLimit: 100
       AccessLogSetting:
         DestinationArn: !GetAtt ApiGatewayLogGroup.Arn
-        Format: >
-          {
-            "requestId": "$context.requestId",
-            "requestTime": "$context.requestTime",
-            "httpMethod": "$context.httpMethod",
-            "path": "$context.path",
-            "resourcePath": "$context.resourcePath",
-            "status": $context.status,
-            "responseLength": $context.responseLength,
-            "responseTime": $context.responseTime,
-            "userAgent": "$context.identity.userAgent",
-            "sourceIp": "$context.identity.sourceIp"
-          }
+        Format: '{"requestId":"$context.requestId","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","path":"$context.path","resourcePath":"$context.resourcePath","status":$context.status,"responseLength":$context.responseLength,"responseTime":$context.responseTime,"userAgent":"$context.identity.userAgent","sourceIp":"$context.identity.sourceIp"}'
+
       Auth:
         ApiKeyRequired: true
         UsagePlan:
