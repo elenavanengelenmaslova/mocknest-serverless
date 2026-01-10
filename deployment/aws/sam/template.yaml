@@ -190,7 +190,7 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       Name: !Sub "${AWS::StackName}-api"
-      StageName: prod
+      StageName: !Ref Environment
       TracingEnabled: true
       MethodSettings:
         - ResourcePath: "/*"
@@ -285,7 +285,7 @@ Resources:
       Description: !Sub "Usage plan for MockNest Serverless - ${Environment}"
       ApiStages:
         - ApiId: !Ref MockNestApi
-          Stage: prod
+          Stage: !Ref Environment
       Quota:
         Limit: 50000
         Period: MONTH
@@ -309,7 +309,7 @@ Resources:
 Outputs:
   MockNestApiUrl:
     Description: "API Gateway endpoint URL for MockNest Serverless"
-    Value: !Sub "https://${MockNestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+    Value: !Sub "https://${MockNestApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
     Export:
       Name: !Sub "${AWS::StackName}-api-url"
   
