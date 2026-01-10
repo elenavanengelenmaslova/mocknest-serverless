@@ -141,7 +141,6 @@ Resources:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           AI_ENABLED: !Ref EnableAI
-          AWS_REGION: !Ref "AWS::Region"
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "router"
           MAIN_CLASS: "io.mocknest.infra.aws.Application"
