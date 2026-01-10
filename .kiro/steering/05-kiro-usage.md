@@ -12,9 +12,10 @@ mocknest-serverless/
 │
 ├── .github/             // GitHub-specific configuration
 │   └── workflows/       // GitHub Actions workflow definitions
-│       ├── feature-aws.yml                  // Triggers AWS deployment for feature branches
-│       ├── main-aws.yml                     // Triggers AWS deployment for main branch
-│       └── workflow-build-deploy-aws.yml    // Reusable workflow for AWS Lambda build and deployment
+│       ├── feature-aws.yml                  // Triggers AWS build and deployment for feature branches
+│       ├── main-aws.yml                     // Triggers AWS build and deployment for main branch
+│       ├── workflow-build.yml               // Reusable workflow for building and testing
+│       └── workflow-deploy-aws.yml          // Reusable workflow for AWS Lambda deployment
 │
 ├── docs/               // Documentation files
 │   └── postman/                 // Postman collections and environments
@@ -98,9 +99,9 @@ Follow clean architecture principles by developing in this sequence:
 - Test SAM template changes locally before committing
 
 ### GitHub Actions Integration
-- Feature branches trigger `feature-aws.yml` workflow for validation deployments
-- Main branch changes trigger `main-aws.yml` for production-ready deployments
-- Use `workflow-build-deploy-aws.yml` as the reusable workflow template
+- Feature branches trigger `feature-aws.yml` workflow for build and deployment validation
+- Main branch changes trigger `main-aws.yml` for production-ready build and deployment
+- Use `workflow-build.yml` and `workflow-deploy-aws.yml` as reusable workflow templates
 - Ensure new features don't break existing CI/CD pipelines
 
 ### API Documentation Maintenance

@@ -17,7 +17,7 @@ MockNest Serverless is a serverless WireMock runtime for AWS that enables realis
 
 - AWS CLI configured with appropriate permissions
 - AWS SAM CLI installed
-- Docker (for local testing)
+- Docker (or equivalent such as Colima, for local testing)
 
 ### Deployment
 

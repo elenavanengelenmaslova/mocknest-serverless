@@ -32,8 +32,12 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    uses: ./.github/workflows/workflow-build.yml
+
   deploy-on-demand:
-    uses: ./.github/workflows/workflow-build-deploy-aws.yml
+    needs: test
+    uses: ./.github/workflows/workflow-deploy-aws.yml
     with:
       environment: ${{ inputs.environment }}
       enable-ai: ${{ inputs.enable-ai }}
