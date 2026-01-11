@@ -9,16 +9,17 @@ Parameters:
     AllowedValues: ['true', 'false']
     Description: Enable AI-assisted mock generation features
 
+  StageName:
+    Type: String
+    Default: 'v1'
+    Description: API Gateway stage name (e.g., v1, test, team-alpha)
+    AllowedPattern: '^[a-zA-Z0-9\-_]+$'
+    ConstraintDescription: Stage name must contain only alphanumeric characters, hyphens, and underscores
+
   BucketName:
     Type: String
     Default: ''
     Description: Custom S3 bucket name for mock storage (optional, auto-generated if empty)
-
-  Environment:
-    Type: String
-    Default: 'dev'
-    AllowedValues: ['dev', 'staging']
-    Description: Deployment environment (dev, staging)
 
   LambdaMemorySize:
     Type: Number
@@ -46,7 +47,6 @@ Globals:
     Environment:
       Variables:
         SPRING_PROFILES_ACTIVE: aws
-        ENVIRONMENT: !Ref Environment
 
 Resources:
   # S3 bucket for mock definitions and response payloads
@@ -162,7 +162,7 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       Name: !Sub "${AWS::StackName}-api"
-      StageName: !Ref Environment
+      StageName: !Ref StageName
       TracingEnabled: true
       MethodSettings:
         - ResourcePath: "/*"
@@ -180,7 +180,7 @@ Resources:
         ApiKeyRequired: false  # Disable API key requirement for initial testing
         UsagePlan:
           CreateUsagePlan: PER_API
-          Description: !Sub "Usage plan for MockNest Serverless - ${Environment}"
+          Description: !Sub "Usage plan for MockNest Serverless"
           UsagePlanName: !Sub "${AWS::StackName}-usage-plan"
           Quota:
             Limit: 50000
@@ -190,7 +190,6 @@ Resources:
             RateLimit: 100
       Tags:
         Application: MockNest-Serverless
-        Environment: !Ref Environment
 
   # Lambda function for MockNest Serverless runtime
   MockNestFunction:
@@ -215,7 +214,6 @@ Resources:
         TargetArn: !GetAtt MockNestDLQ.Arn
       Tags:
         Application: MockNest-Serverless
-        Environment: !Ref Environment
       Events:
         ProxyResource:
           Type: Api
@@ -249,19 +247,6 @@ Resources:
       Tags:
         - Key: Application
           Value: MockNest-Serverless
-        - Key: Environment
-          Value: !Ref Environment
-
-  # Explicit API Gateway Deployment to ensure proper deployment order
-  ApiGatewayDeployment:
-    Type: AWS::ApiGateway::Deployment
-    DependsOn: 
-      - MockNestFunction
-      - MockNestLambdaPermission
-    Properties:
-      RestApiId: !Ref MockNestApi
-      StageName: !Ref Environment
-      Description: !Sub "Deployment for MockNest Serverless - ${Environment}"
 
   # CloudWatch Log Group for Lambda
   LambdaLogGroup:
@@ -272,13 +257,11 @@ Resources:
       Tags:
         - Key: Application
           Value: MockNest-Serverless
-        - Key: Environment
-          Value: !Ref Environment
 
 Outputs:
   MockNestApiUrl:
     Description: "API Gateway endpoint URL for MockNest Serverless"
-    Value: !Sub "https://${MockNestApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+    Value: !Sub "https://${MockNestApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
     Export:
       Name: !Sub "${AWS::StackName}-api-url"
 
@@ -306,11 +289,11 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-region"
 
-  Environment:
-    Description: "Deployment environment"
-    Value: !Ref Environment
+  StageName:
+    Description: "API Gateway stage name"
+    Value: !Ref StageName
     Export:
-      Name: !Sub "${AWS::StackName}-environment"
+      Name: !Sub "${AWS::StackName}-stage-name"
 
   StackName:
     Description: "CloudFormation stack name"
