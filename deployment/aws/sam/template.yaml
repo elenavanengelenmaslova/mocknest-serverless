@@ -13,7 +13,7 @@ Parameters:
     Type: String
     Default: 'v1'
     Description: API Gateway stage name (e.g., v1, test, team-alpha)
-    AllowedPattern: '^[a-zA-Z0-9\-_]+$'
+    AllowedPattern: '^[a-zA-Z0-9\\-_]+$'
     ConstraintDescription: Stage name must contain only alphanumeric characters, hyphens, and underscores
 
   BucketName:
@@ -91,17 +91,8 @@ Resources:
 
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
       Policies:
-        - PolicyName: MockNestCloudWatchLogs
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: "arn:aws:logs:*:*:*"
         - PolicyName: MockNestS3Access
           PolicyDocument:
             Version: '2012-10-17'
@@ -151,6 +142,16 @@ Resources:
         - Key: Application
           Value: MockNest-Serverless
 
+  # CloudWatch Log Group for API Gateway
+  ApiGatewayLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${AWS::StackName}"
+      RetentionInDays: 30
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+
   # API Gateway REST API
   MockNestApi:
     Type: AWS::Serverless::Api
@@ -169,19 +170,6 @@ Resources:
       AccessLogSetting:
         DestinationArn: !GetAtt ApiGatewayLogGroup.Arn
         Format: '{"requestId":"$context.requestId","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","path":"$context.path","resourcePath":"$context.resourcePath","status":$context.status,"responseLength":$context.responseLength,"responseTime":$context.responseTime,"userAgent":"$context.identity.userAgent","sourceIp":"$context.identity.sourceIp"}'
-
-      Auth:
-        ApiKeyRequired: false  # Disable API key requirement for initial testing
-        UsagePlan:
-          CreateUsagePlan: PER_API
-          Description: !Sub "Usage plan for MockNest Serverless"
-          UsagePlanName: !Sub "${AWS::StackName}-usage-plan"
-          Quota:
-            Limit: 50000
-            Period: MONTH
-          Throttle:
-            BurstLimit: 200
-            RateLimit: 100
       Tags:
         Application: MockNest-Serverless
 
@@ -201,7 +189,6 @@ Resources:
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "router"
           MAIN_CLASS: "io.mocknest.infra.aws.ApplicationKt"
-          # JVM optimization for faster cold starts
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
       DeadLetterQueue:
         Type: SQS
@@ -216,31 +203,11 @@ Resources:
             Path: /{proxy+}
             Method: ANY
         RootRoute:
-          Type: Api  
+          Type: Api
           Properties:
             RestApiId: !Ref MockNestApi
             Path: /
             Method: ANY
-
-  # Lambda permission for API Gateway to invoke the function
-  MockNestLambdaPermission:
-    Type: AWS::Lambda::Permission
-    DependsOn: MockNestFunction
-    Properties:
-      FunctionName: !Ref MockNestFunction
-      Action: lambda:InvokeFunction
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MockNestApi}/*"
-
-  # CloudWatch Log Group for API Gateway
-  ApiGatewayLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/apigateway/${AWS::StackName}"
-      RetentionInDays: 30
-      Tags:
-        - Key: Application
-          Value: MockNest-Serverless
 
   # CloudWatch Log Group for Lambda
   LambdaLogGroup:
