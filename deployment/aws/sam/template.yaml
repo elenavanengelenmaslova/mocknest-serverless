@@ -76,8 +76,6 @@ Resources:
       Tags:
         - Key: Application
           Value: MockNest-Serverless
-        - Key: Environment
-          Value: !Ref Environment
 
   # IAM Role for Lambda function
   MockNestLambdaRole:
@@ -142,8 +140,6 @@ Resources:
       Tags:
         - Key: Application
           Value: MockNest-Serverless
-        - Key: Environment
-          Value: !Ref Environment
 
   # Dead Letter Queue for failed Lambda invocations
   MockNestDLQ:
@@ -154,8 +150,6 @@ Resources:
       Tags:
         - Key: Application
           Value: MockNest-Serverless
-        - Key: Environment
-          Value: !Ref Environment
 
   # API Gateway REST API
   MockNestApi:
