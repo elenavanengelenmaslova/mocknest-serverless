@@ -158,6 +158,11 @@ Resources:
       Name: !Sub "${AWS::StackName}-api"
       StageName: !Ref StageName
       TracingEnabled: true
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title: !Sub "${AWS::StackName}-api"
+        paths: {}  # Empty paths - we'll add methods explicitly
       MethodSettings:
         - ResourcePath: "/*"
           HttpMethod: "*"
@@ -241,6 +246,16 @@ Resources:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
         Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MockNestFunction.Arn}/invocations"
+
+  # Explicit deployment after methods are created
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ProxyMethod
+      - RootMethod
+    Properties:
+      RestApiId: !Ref MockNestApi
+      StageName: !Ref StageName
 
   # Lambda permission for API Gateway to invoke the function
   MockNestLambdaPermission:
