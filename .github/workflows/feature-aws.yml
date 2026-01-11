@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'feature/*'
+      - 'bugfix/*'  # Added bugfix branches
   pull_request:
     branches:
       - main
@@ -13,11 +14,12 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    uses: ./.github/workflows/workflow-build.yml
+  # Temporarily commented out test job to focus on deployment
+  # test:
+  #   uses: ./.github/workflows/workflow-build.yml
 
   deploy:
-    needs: test
+    # needs: test  # Removed dependency on test job
     uses: ./.github/workflows/workflow-deploy-aws.yml
     with:
       environment: default

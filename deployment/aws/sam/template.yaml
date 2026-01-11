@@ -94,6 +94,16 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
+        - PolicyName: MockNestCloudWatchLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "arn:aws:logs:*:*:*"
         - PolicyName: MockNestS3Access
           PolicyDocument:
             Version: '2012-10-17'
@@ -167,7 +177,7 @@ Resources:
         Format: '{"requestId":"$context.requestId","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","path":"$context.path","resourcePath":"$context.resourcePath","status":$context.status,"responseLength":$context.responseLength,"responseTime":$context.responseTime,"userAgent":"$context.identity.userAgent","sourceIp":"$context.identity.sourceIp"}'
 
       Auth:
-        ApiKeyRequired: true
+        ApiKeyRequired: false  # Disable API key requirement for initial testing
         UsagePlan:
           CreateUsagePlan: PER_API
           Description: !Sub "Usage plan for MockNest Serverless - ${Environment}"
@@ -197,7 +207,7 @@ Resources:
           AI_ENABLED: !Ref EnableAI
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "router"
-          MAIN_CLASS: "io.mocknest.infra.aws.Application"
+          MAIN_CLASS: "io.mocknest.infra.aws.ApplicationKt"
           # JVM optimization for faster cold starts
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
       DeadLetterQueue:
@@ -223,11 +233,12 @@ Resources:
   # Lambda permission for API Gateway to invoke the function
   MockNestLambdaPermission:
     Type: AWS::Lambda::Permission
+    DependsOn: MockNestFunction
     Properties:
       FunctionName: !Ref MockNestFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MockNestApi}/${Environment}/*/*"
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MockNestApi}/*"
 
   # CloudWatch Log Group for API Gateway
   ApiGatewayLogGroup:
@@ -240,6 +251,17 @@ Resources:
           Value: MockNest-Serverless
         - Key: Environment
           Value: !Ref Environment
+
+  # Explicit API Gateway Deployment to ensure proper deployment order
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: 
+      - MockNestFunction
+      - MockNestLambdaPermission
+    Properties:
+      RestApiId: !Ref MockNestApi
+      StageName: !Ref Environment
+      Description: !Sub "Deployment for MockNest Serverless - ${Environment}"
 
   # CloudWatch Log Group for Lambda
   LambdaLogGroup:

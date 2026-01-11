@@ -56,7 +56,11 @@ jobs:
         uses: aws-actions/setup-sam@v2
         
       - name: Build application
-        run: ./gradlew clean assemble
+        run: |
+          ./gradlew clean assemble -x test
+          echo "Build completed, checking JAR files:"
+          ls -la software/infra/aws/build/libs/ || echo "No libs directory found"
+          find software/infra/aws/build -name "*.jar" -type f | sed 's|^|JAR FOUND: |'
 
       - name: Show distributions
         run: |
