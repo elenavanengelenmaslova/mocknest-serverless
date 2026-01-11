@@ -141,22 +141,76 @@ curl "$MOCKNEST_URL/api/users/123" \
 
 ### AI-Assisted Mock Generation (Optional)
 
-If AI features are enabled during deployment:
+If AI features are enabled during deployment, MockNest provides intelligent mock generation capabilities:
+
+#### Generate from API Specification
 
 ```bash
-# Generate mocks from API specification
-curl -X POST "$MOCKNEST_URL/ai/generate-mappings" \
+# Generate mocks from OpenAPI specification
+curl -X POST "$MOCKNEST_URL/ai/generation/from-spec" \
   -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "description": "Create a REST API for user management",
-    "endpoints": [
-      "GET /api/users - list all users",
-      "GET /api/users/{id} - get user by ID",
-      "POST /api/users - create new user"
-    ]
+    "namespace": {
+      "apiName": "petstore",
+      "client": "demo"
+    },
+    "specification": "openapi: 3.0.0\ninfo:\n  title: Pet Store API\n  version: 1.0.0\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: Success",
+    "format": "OPENAPI_3",
+    "options": {
+      "includeExamples": true,
+      "generateErrorCases": true,
+      "realisticData": true,
+      "storeSpecification": true
+    }
   }'
 ```
+
+#### Generate from Natural Language
+
+```bash
+# Generate mocks from description
+curl -X POST "$MOCKNEST_URL/ai/generation/from-description" \
+  -H "x-api-key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": {
+      "apiName": "user-service",
+      "client": "demo"
+    },
+    "description": "Create a REST API for managing users with endpoints to get all users, get user by ID, create new user, update user, and delete user. Include proper error responses for not found (404) and validation errors (400).",
+    "useExistingSpec": false,
+    "options": {
+      "includeExamples": true,
+      "generateErrorCases": true,
+      "realisticData": true
+    }
+  }'
+```
+
+#### Retrieve Generated Mocks
+
+```bash
+# Get generated mocks (use jobId from generation response)
+curl "$MOCKNEST_URL/ai/generation/jobs/{jobId}/mocks" \
+  -H "x-api-key: $API_KEY"
+
+# Create selected mocks in WireMock (copy wireMockMapping from response)
+curl -X POST "$MOCKNEST_URL/__admin/mappings" \
+  -H "x-api-key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{...wireMockMapping from AI response...}'
+```
+
+#### Namespace Organization
+
+AI-generated mocks are organized using namespaces for better management:
+
+- **Simple API**: `mocknest/salesforce/` 
+- **Client-specific**: `mocknest/client-a/payments/`
+- **Multi-tenant**: `mocknest/tenant-b/users/`
+
+This allows multiple teams and APIs to coexist without conflicts.
 
 ## Development
 

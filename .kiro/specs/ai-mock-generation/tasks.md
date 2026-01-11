@@ -5,13 +5,13 @@ Implement AI-powered mock generation using Koog 0.6.0 Functional Agent, Kotlin, 
 
 ## Tasks
 
-- [ ] 1. Set up domain models and interfaces
+- [-] 1. Set up domain models and interfaces
   - Create domain models for mock generation requests and responses
   - Define clean architecture interfaces for AI services and storage
   - Set up namespace and generation job models
   - _Requirements: All domain modeling requirements_
 
-- [ ] 1.1 Create core domain models
+- [x] 1.1 Create core domain models
   - Implement MockGenerationRequest, NaturalLanguageRequest, GeneratedMock
   - Implement MockNamespace with prefix generation logic
   - Implement GenerationJob and related status models

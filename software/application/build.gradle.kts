@@ -21,6 +21,12 @@ dependencies {
     // JSON processing
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
+    // Koog Framework for AI Agent orchestration
+    implementation("ai.koog:koog-agents:0.6.0")
+
+    // OpenAPI specification parsing
+    implementation("io.swagger.parser.v3:swagger-parser:2.1.37")
+
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
