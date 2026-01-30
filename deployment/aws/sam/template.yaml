@@ -23,16 +23,16 @@ Parameters:
 
   LambdaMemorySize:
     Type: Number
-    Default: 1024
-    MinValue: 512
-    MaxValue: 10240
+    Default: "1024"
+    MinValue: "512"
+    MaxValue: "10240"
     Description: Lambda function memory size in MB
 
   LambdaTimeout:
     Type: Number
-    Default: 120
-    MinValue: 3
-    MaxValue: 900
+    Default: "120"
+    MinValue: "3"
+    MaxValue: "900"
     Description: Lambda function timeout in seconds
 
 Conditions:
@@ -178,7 +178,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime"
-      CodeUri: ../../../software/infra/aws/build/libs/aws-1.0.0-SNAPSHOT.jar
+      CodeUri: build/mocknest-serverless-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
       Role: !GetAtt MockNestLambdaRole.Arn
       ReservedConcurrentExecutions: 10

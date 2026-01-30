@@ -1,8 +1,11 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 plugins {
     kotlin("jvm")
     kotlin("plugin.spring")
     id("org.springframework.boot")
     id("io.spring.dependency-management")
+    id("com.gradleup.shadow")
 }
 
 // Configure the main class for Spring Boot
@@ -49,10 +52,26 @@ configurations {
     }
 }
 
-// Copy the bootJar to deployment directory for SAM
-tasks.register<Copy>("copyBootJarForDeployment") {
-    dependsOn("bootJar")
-    from(tasks.bootJar.get().archiveFile)
+tasks {
+    named<ShadowJar>("shadowJar") {
+        archiveFileName.set("mocknest-serverless-aws.jar")
+        mergeServiceFiles()
+        append("META-INF/spring.handlers")
+        append("META-INF/spring.schemas")
+        append("META-INF/spring.tooling")
+        append("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
+        append("META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports")
+        append("META-INF/spring.factories")
+        
+        exclude("META-INF/LICENSE", "META-INF/NOTICE", "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+        
+        isZip64 = true
+    }
+}
+
+// Copy the shadowJar to deployment directory for SAM
+tasks.register<Copy>("copyShadowJarForDeployment") {
+    dependsOn("shadowJar")
+    from(tasks.named("shadowJar"))
     into("${project.rootDir}/deployment/aws/sam/build")
-    rename { "mocknest-serverless-aws.jar" }
 }
