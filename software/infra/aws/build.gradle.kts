@@ -8,11 +8,6 @@ plugins {
     id("com.gradleup.shadow")
 }
 
-// Configure the main class for Spring Boot
-springBoot {
-    mainClass.set("io.mocknest.infra.aws.ApplicationKt")
-}
-
 dependencies {
     // Clean architecture dependencies
     implementation(project(":software:domain"))
@@ -49,6 +44,7 @@ dependencies {
 configurations {
     runtimeClasspath {
         exclude("org.apache.httpcomponents")
+        exclude("org.jetbrains")
     }
 }
 
@@ -56,6 +52,9 @@ tasks {
     named<ShadowJar>("shadowJar") {
         archiveFileName.set("mocknest-serverless-aws.jar")
         destinationDirectory.set(file("${project.rootDir}/build/dist"))
+        manifest {
+            attributes["Main-Class"] = "org.springframework.cloud.function.adapter.aws.FunctionInvoker"
+        }
         mergeServiceFiles()
         append("META-INF/spring.handlers")
         append("META-INF/spring.schemas")
@@ -63,10 +62,6 @@ tasks {
         append("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
         append("META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports")
         append("META-INF/spring.factories")
-        
-        exclude("META-INF/LICENSE", "META-INF/NOTICE", "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
-        
-        isZip64 = true
     }
 }
 
