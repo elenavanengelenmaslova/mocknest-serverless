@@ -55,6 +55,7 @@ configurations {
 tasks {
     named<ShadowJar>("shadowJar") {
         archiveFileName.set("mocknest-serverless-aws.jar")
+        destinationDirectory.set(file("${project.rootDir}/build/dist"))
         mergeServiceFiles()
         append("META-INF/spring.handlers")
         append("META-INF/spring.schemas")

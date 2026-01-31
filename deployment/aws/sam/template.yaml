@@ -178,7 +178,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime"
-      CodeUri: build/mocknest-serverless-aws.jar
+      CodeUri: ../../../build/dist/mocknest-serverless-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
       Role: !GetAtt MockNestLambdaRole.Arn
       ReservedConcurrentExecutions: 10
