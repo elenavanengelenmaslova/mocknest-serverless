@@ -32,7 +32,7 @@ class CompositeMappingsSource(
         logger.info { "Load composite mappings" }
         // Load from storage first
         runCatching { primary.loadMappingsInto(stubMappings) }
-            .onFailure { e -> logger.error(e) { "Primary mappings load failed; continuing with classpath" } }
+            .onFailure { e -> logger.error(e) { "Primary mappings load failed $e; continuing with classpath" } }
 
         // Then load from classpath (mocknest/mappings)
         runCatching { secondary.loadMappingsInto(stubMappings) }
