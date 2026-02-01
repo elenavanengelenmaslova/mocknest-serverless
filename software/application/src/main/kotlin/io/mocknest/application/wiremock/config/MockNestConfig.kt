@@ -18,10 +18,13 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.DependsOn
+import org.springframework.context.annotation.PropertySource
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer
 
 private val logger = KotlinLogging.logger {}
 
 @Configuration
+@PropertySource("classpath:application.properties")
 class MockNestConfig {
 
     @Value("\${mocknest.root-dir:mocknest}")
@@ -29,6 +32,9 @@ class MockNestConfig {
 
     @Bean
     fun directCallHttpServerFactory() = DirectCallHttpServerFactory()
+
+    @Bean
+    fun propertySourcesPlaceholderConfigurer() = PropertySourcesPlaceholderConfigurer()
 
     @Bean
     fun wiremockFilesBlobStore(storage: ObjectStorageInterface): BlobStore = ObjectStorageBlobStore(storage)
