@@ -57,7 +57,7 @@ jobs:
         
       - name: Build application
         run: |
-          ./gradlew clean :infra-aws:build :infra-aws:shadowJar --no-build-cache
+          ./gradlew clean software:infra:aws:build software:infra:aws:shadowJar --no-build-cache
           echo "Build completed, checking JAR files:"
           ls -la software/infra/aws/build/libs/ || echo "No libs directory found"
           find software/infra/aws/build -name "*.jar" -type f | sed 's|^|JAR FOUND: |'
