@@ -34,7 +34,7 @@ class MockNestLambdaHandler(
                         handleAdminRequest(adminPath, createHttpRequest(adminPath))
                     }
                     path.startsWith(MOCKNEST_PREFIX) -> {
-                        logger.debug { "Processing client request $path" }
+                        logger.info { "Processing client request $path" }
                         handleClientRequest(createHttpRequest(path.removePrefix(MOCKNEST_PREFIX)))
                     }
                     else -> {
