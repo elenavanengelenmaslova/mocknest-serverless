@@ -49,7 +49,7 @@ configurations {
 }
 
 tasks {
-    named<ShadowJar>("shadowJar") {
+    val shadowJar by getting(ShadowJar::class) {
         archiveFileName.set("mocknest-serverless-aws.jar")
         destinationDirectory.set(file("${project.rootDir}/build/dist"))
         manifest {
