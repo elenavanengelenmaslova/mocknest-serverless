@@ -26,6 +26,7 @@ dependencies {
     implementation("aws.sdk.kotlin:apigateway")
     implementation("aws.sdk.kotlin:bedrock")
     implementation("aws.sdk.kotlin:bedrockruntime")
+    implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
 
     // AWS Lambda runtime
     implementation("com.amazonaws:aws-lambda-java-core")
