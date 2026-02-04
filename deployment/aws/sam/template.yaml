@@ -41,7 +41,7 @@ Conditions:
 
 Globals:
   Function:
-    Runtime: java25
+    Runtime: java21
     MemorySize: !Ref LambdaMemorySize
     Timeout: !Ref LambdaTimeout
     Environment:
