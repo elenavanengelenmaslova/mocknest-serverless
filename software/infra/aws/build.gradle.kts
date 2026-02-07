@@ -8,6 +8,8 @@ plugins {
     id("com.gradleup.shadow")
 }
 
+val smithyKotlinVersion = "1.3.23"
+
 dependencies {
     // Clean architecture dependencies
     implementation(project(":software:domain"))
@@ -26,6 +28,7 @@ dependencies {
     implementation("aws.sdk.kotlin:apigateway")
     implementation("aws.sdk.kotlin:bedrock")
     implementation("aws.sdk.kotlin:bedrockruntime")
+    implementation("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
     implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
 
     // AWS Lambda runtime
