@@ -338,7 +338,7 @@ CloudWatch Logs: /aws/lambda/mocknest-${instance_name}-runtime
 
 ### AWS Lambda Configuration
 ```yaml
-Runtime: java21
+Runtime: java25
 Memory: 1024MB (configurable based on mock set size)
 Timeout: 30s
 Environment Variables:
