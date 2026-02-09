@@ -1,8 +1,12 @@
+import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
+import org.gradle.kotlin.dsl.configure
+
 plugins {
     kotlin("jvm") version "2.3.0" apply false
     kotlin("plugin.spring") version "2.3.0" apply false
-    id("org.springframework.boot") version "4.0.0" apply false
-    id("io.spring.dependency-management") version "1.1.6" apply false
+    id("org.springframework.boot") version "4.0.2" apply false
+    id("io.spring.dependency-management") version "1.1.7" apply false
+    id("com.gradleup.shadow") version "8.3.6" apply false
     id("org.jetbrains.kotlinx.kover") version "0.9.4"
 }
 
@@ -23,15 +27,15 @@ subprojects {
 
     configure<JavaPluginExtension> {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(25))
+            languageVersion.set(JavaLanguageVersion.of(21))
         }
     }
 
     // Global dependency management for all modules
     configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
         imports {
-            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.0")
-            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.0")
+            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.2")
+            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
         }
         dependencies {
             dependency("org.wiremock:wiremock-standalone:3.13.2")
@@ -53,6 +57,7 @@ subprojects {
             dependency("org.testcontainers:testcontainers:$testContainersVersion")
             dependency("org.testcontainers:junit-jupiter:$testContainersVersion")
             dependency("org.testcontainers:localstack:$testContainersVersion")
+
         }
     }
 
@@ -77,7 +82,7 @@ subprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         compilerOptions {
             freeCompilerArgs.add("-Xjsr305=strict")
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25)
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         }
     }
 

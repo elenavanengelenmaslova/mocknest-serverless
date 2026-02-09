@@ -18,7 +18,7 @@ private val logger = KotlinLogging.logger {}
 
 @Repository
 class S3ObjectStorageAdapter(
-    @Value("\${aws.s3.bucket-name}") private val bucketName: String,
+    @param:Value("\${aws.s3.bucket-name}") private val bucketName: String,
     private val s3Client: S3Client,
 ) : ObjectStorageInterface {
 
@@ -83,7 +83,7 @@ class S3ObjectStorageAdapter(
     }
 
     override fun listPrefix(prefix: String): Flow<String> = flow {
-        logger.info { "Listing objects with prefix: $prefix" }
+        logger.info { "Listing objects with prefix: $prefix and bucket: '$bucketName'" }
         var token: String? = null
         do {
             val resp = s3Client.listObjectsV2(ListObjectsV2Request {

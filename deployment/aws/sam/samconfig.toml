@@ -1,8 +1,8 @@
 version = 0.1
 
-# Default configuration for development deployments
+# Single environment configuration
 [default.global.parameters]
-stack_name = "mocknest-serverless-dev"
+stack_name = "mocknest-serverless"
 
 [default.build.parameters]
 cached = true
@@ -13,31 +13,9 @@ capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
 confirm_changeset = true
 resolve_s3 = false
 s3_bucket = "lambda-deployment-clean-architecture-example"
-s3_prefix = "mocknest-serverless-dev"
+s3_prefix = "mocknest-serverless"
 region = "eu-west-1"
 image_repositories = []
 parameter_overrides = [
-  "EnableAI=false",
-  "Environment=dev"
-]
-
-# Staging configuration
-[staging.global.parameters]
-stack_name = "mocknest-serverless-staging"
-
-[staging.build.parameters]
-cached = true
-parallel = true
-
-[staging.deploy.parameters]
-capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
-confirm_changeset = false
-resolve_s3 = false
-s3_bucket = "lambda-deployment-clean-architecture-example"
-s3_prefix = "mocknest-serverless-staging"
-region = "eu-west-1"
-image_repositories = []
-parameter_overrides = [
-  "EnableAI=false",
-  "Environment=staging"
+  "EnableAI=false"
 ]
