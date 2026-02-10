@@ -1,14 +1,14 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 plugins {
     kotlin("jvm")
     kotlin("plugin.spring")
     id("org.springframework.boot")
     id("io.spring.dependency-management")
+    id("com.gradleup.shadow")
 }
 
-// Configure the main class for Spring Boot
-springBoot {
-    mainClass.set("io.mocknest.infra.aws.ApplicationKt")
-}
+val smithyKotlinVersion = "1.3.23"
 
 dependencies {
     // Clean architecture dependencies
@@ -28,6 +28,8 @@ dependencies {
     implementation("aws.sdk.kotlin:apigateway")
     implementation("aws.sdk.kotlin:bedrock")
     implementation("aws.sdk.kotlin:bedrockruntime")
+    implementation("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
+    implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
 
     // AWS Lambda runtime
     implementation("com.amazonaws:aws-lambda-java-core")
@@ -46,13 +48,30 @@ dependencies {
 configurations {
     runtimeClasspath {
         exclude("org.apache.httpcomponents")
+        exclude("org.jetbrains")
     }
 }
 
-// Copy the bootJar to deployment directory for SAM
-tasks.register<Copy>("copyBootJarForDeployment") {
-    dependsOn("bootJar")
-    from(tasks.bootJar.get().archiveFile)
+tasks {
+    val shadowJar by getting(ShadowJar::class) {
+        archiveFileName.set("mocknest-serverless-aws.jar")
+        destinationDirectory.set(file("${project.rootDir}/build/dist"))
+        manifest {
+            attributes["Main-Class"] = "org.springframework.cloud.function.adapter.aws.FunctionInvoker"
+        }
+        mergeServiceFiles()
+        append("META-INF/spring.handlers")
+        append("META-INF/spring.schemas")
+        append("META-INF/spring.tooling")
+        append("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
+        append("META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports")
+        append("META-INF/spring.factories")
+    }
+}
+
+// Copy the shadowJar to deployment directory for SAM
+tasks.register<Copy>("copyShadowJarForDeployment") {
+    dependsOn("shadowJar")
+    from(tasks.named("shadowJar"))
     into("${project.rootDir}/deployment/aws/sam/build")
-    rename { "mocknest-serverless-aws.jar" }
 }

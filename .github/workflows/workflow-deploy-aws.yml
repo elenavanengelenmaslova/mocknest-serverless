@@ -56,7 +56,11 @@ jobs:
         uses: aws-actions/setup-sam@v2
         
       - name: Build application
-        run: ./gradlew clean assemble
+        run: |
+          ./gradlew clean software:infra:aws:build software:infra:aws:shadowJar --no-build-cache
+          echo "Build completed, checking JAR files:"
+          ls -la software/infra/aws/build/libs/ || echo "No libs directory found"
+          find software/infra/aws/build -name "*.jar" -type f | sed 's|^|JAR FOUND: |'
 
       - name: Show distributions
         run: |
@@ -67,13 +71,23 @@ jobs:
       - name: Build and deploy with SAM
         run: |
           cd deployment/aws/sam
-          if sam deploy --config-env ${{ inputs.environment }} --no-confirm-changeset; then
+          echo "🚀 Starting SAM deployment..."
+          
+          # Run SAM deploy and capture both exit code and output
+          if sam deploy --config-env default --no-confirm-changeset; then
             echo "✅ Deployment completed successfully"
-          elif [ $? -eq 1 ]; then
-            echo "ℹ️ No changes to deploy - stack is up to date"
           else
-            echo "❌ Deployment failed with unexpected error"
-            exit 1
+            EXIT_CODE=$?
+            echo "❌ SAM deployment failed with exit code: $EXIT_CODE"
+            
+            # Check if it's a "no changes" scenario vs actual failure
+            if sam deploy --config-env default --no-confirm-changeset --dry-run 2>&1 | grep -q "No changes to deploy"; then
+              echo "ℹ️ No changes to deploy - stack is up to date"
+              exit 0
+            else
+              echo "💥 Deployment failed with errors - check logs above"
+              exit $EXIT_CODE
+            fi
           fi
         env:
           ENABLE_AI: ${{ inputs.enable-ai }}
@@ -82,9 +96,9 @@ jobs:
         id: outputs
         run: |
           cd deployment/aws/sam
-          ENV="${{ inputs.environment }}"
+          ENV="default"
 
-          # Read stack_name from samconfig.toml for the selected environment
+          # Read stack_name from samconfig.toml for the default environment
           STACK_NAME=$(python - "$ENV" <<'PY'
           import sys, tomllib
           env = sys.argv[1]
@@ -95,7 +109,7 @@ jobs:
 
           echo "Resolved stack name: $STACK_NAME"
 
-          # Get stack outputs (these will exist whether deployment was new or no-change)
+          # Get stack outputs
           API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text)
           BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' --output text)
 
@@ -107,7 +121,6 @@ jobs:
         run: |
           echo "## 🚀 MockNest Serverless Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "**Region:** ${{ inputs.aws-region }}" >> $GITHUB_STEP_SUMMARY
           echo "**AI Enabled:** ${{ inputs.enable-ai }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -117,8 +130,9 @@ jobs:
           echo "- **Storage Bucket:** ${{ steps.outputs.outputs.bucket-name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔑 API Access" >> $GITHUB_STEP_SUMMARY
+          echo "No API key required for testing (disabled for initial deployment)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📚 Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. Retrieve the API key from AWS Console > CloudFormation > Stack Outputs" >> $GITHUB_STEP_SUMMARY
-          echo "2. Test the admin API: \`GET ${{ steps.outputs.outputs.api-url }}mocknest/health\`" >> $GITHUB_STEP_SUMMARY
+          echo "1. Test the API: \`GET ${{ steps.outputs.outputs.api-url }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Test admin API: \`GET ${{ steps.outputs.outputs.api-url }}__admin/mappings\`" >> $GITHUB_STEP_SUMMARY
           echo "3. Import the Postman collection from \`docs/postman/\` for testing" >> $GITHUB_STEP_SUMMARY

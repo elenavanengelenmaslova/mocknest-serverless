@@ -1,11 +1,13 @@
 package io.mocknest.infra.aws
 
 import io.mocknest.infra.aws.config.AwsLocalStackTestConfiguration
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.cloud.function.context.FunctionCatalog
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestPropertySource
 import org.testcontainers.junit.jupiter.Testcontainers
 
 @SpringBootTest(
@@ -21,9 +23,13 @@ import org.testcontainers.junit.jupiter.Testcontainers
 @Testcontainers
 class ApplicationTests {
 
+    @Autowired
+    private lateinit var functionCatalog: FunctionCatalog
+
     @Test
     fun contextLoads() {
         // This test verifies that the Spring Boot application context loads successfully
         // with LocalStack TestContainers configuration
+        assertNotNull(functionCatalog, "FunctionCatalog should be available in the context")
     }
 }

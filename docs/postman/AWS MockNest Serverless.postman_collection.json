@@ -1,85 +1,415 @@
 {
   "info": {
-    "name": "AWS MockNest Serverless",
-    "description": "Collection for testing MockNest Serverless deployed on AWS",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "_postman_id": "73a25b32-d786-457e-8e8f-a51aef166b00",
+    "name": "AWS MockNest Conf Demo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "20128017"
   },
   "item": [
     {
-      "name": "Health Check",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{api_key}}"
-          }
-        ],
-        "url": {
-          "raw": "{{AWS_URL}}/__admin/health",
-          "host": ["{{AWS_URL}}"],
-          "path": ["__admin", "health"]
-        }
-      }
-    },
-    {
-      "name": "Reset All Mappings",
+      "name": "Reset mappings",
       "request": {
         "method": "POST",
         "header": [
           {
             "key": "x-api-key",
-            "value": "{{api_key}}"
-          }
-        ],
-        "url": {
-          "raw": "{{AWS_URL}}/__admin/mappings/reset",
-          "host": ["{{AWS_URL}}"],
-          "path": ["__admin", "mappings", "reset"]
-        }
-      }
-    },
-    {
-      "name": "Create Mock Mapping",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{api_key}}"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+            "value": "{{api_key}}",
+            "description": "API key",
+            "type": "text"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"id\": \"11111111-1111-1111-1111-111111111111\",\n  \"priority\": 1,\n  \"request\": {\n    \"method\": \"GET\",\n    \"url\": \"/api/hello\"\n  },\n  \"response\": {\n    \"status\": 200,\n    \"headers\": {\n      \"Content-Type\": \"application/json\"\n    },\n    \"body\": \"{\\\"message\\\":\\\"Hello from MockNest!\\\"}\"\n  },\n  \"persistent\": true\n}"
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/mappings/reset",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "__admin",
+            "mappings",
+            "reset"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create mapping Add Soap 5+3",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"76ada7b0-55ae-4229-91c4-396a36f18123\",\n  \"priority\": 1,\n  \"request\": {\n    \"method\": \"POST\",\n    \"url\": \"/dneonline/calculator.asmx\",\n    \"bodyPatterns\": [\n      {\n        \"matchesXPath\": \"//*[local-name()='intA' and text()='5']\"\n      },\n      {\n        \"matchesXPath\": \"//*[local-name()='intB' and text()='3']\"\n      }\n    ]\n  },\n  \"response\": {\n    \"status\": 200,\n    \"headers\": {\n      \"Content-Type\": \"text/xml; charset=utf-8\"\n    },\n    \"body\": \"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n<soap:Envelope xmlns:soap=\\\"http://schemas.xmlsoap.org/soap/envelope/\\\">\\n  <soap:Body>\\n    <AddResponse xmlns=\\\"http://tempuri.org/\\\">\\n      <AddResult>42</AddResult>\\n    </AddResponse>\\n  </soap:Body>\\n</soap:Envelope>\"\n  },\n  \"persistent\": true\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
         "url": {
           "raw": "{{AWS_URL}}/__admin/mappings",
-          "host": ["{{AWS_URL}}"],
-          "path": ["__admin", "mappings"]
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "__admin",
+            "mappings"
+          ]
         }
-      }
+      },
+      "response": []
     },
     {
-      "name": "Call Mocked API",
+      "name": "Call mock Add Soap",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n               xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\n               xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soap:Body>\n    <Add xmlns=\"http://tempuri.org/\">\n      <intA>5</intA>\n      <intB>3</intB>\n    </Add>\n  </soap:Body>\n</soap:Envelope>\n",
+          "options": {
+            "raw": {
+              "language": "xml"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/mocknest/dneonline/calculator.asmx",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "mocknest",
+            "dneonline",
+            "calculator.asmx"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create mapping Bored API",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"76ada7b0-55ae-4229-91c4-396a36f18347\",\n  \"priority\": 2,\n  \"request\": {\n    \"method\": \"GET\",\n    \"urlPath\": \"/bored/api/activity\",\n    \"queryParameters\": {\n      \"type\": {\n        \"equalTo\": \"social\"\n      }\n    }\n  },\n  \"response\": {\n    \"status\": 200,\n    \"headers\": {\n      \"Content-Type\": \"application/json\"\n    },\n    \"body\": \"[\\n {\\n  \\\"activity\\\": \\\"Escape the nulls of daily life — nerd out over WireMock on AWS Lambda @ AWS Community Day\\\",\\n  \\\"type\\\": \\\"social\\\",\\n  \\\"participants\\\": 1,\\n  \\\"link\\\": \\\"https://awscommunityday.nl/\\\",\\n  \\\"price\\\": 0.3,\\n  \\\"accessibility\\\": 0.4\\n}\\n]\"\n  },\n  \"persistent\": true\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/mappings",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "__admin",
+            "mappings"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Call mock Bored API",
       "request": {
         "method": "GET",
         "header": [
           {
             "key": "x-api-key",
-            "value": "{{api_key}}"
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text",
+            "disabled": true
           }
         ],
         "url": {
-          "raw": "{{AWS_URL}}/api/hello",
-          "host": ["{{AWS_URL}}"],
-          "path": ["api", "hello"]
+          "raw": "{{AWS_URL}}/mocknest/bored/api/activity?type=social",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "mocknest",
+            "bored",
+            "api",
+            "activity"
+          ],
+          "query": [
+            {
+              "key": "type",
+              "value": "social"
+            }
+          ]
         }
-      }
+      },
+      "response": []
+    },
+    {
+      "name": "Get near misses",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/requests/unmatched/near-misses",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "__admin",
+            "requests",
+            "unmatched",
+            "near-misses"
+          ],
+          "query": [
+            {
+              "key": "",
+              "value": "",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get file",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/files/76ada7b0-55ae-4229-91c4-396a36f18347.json",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "__admin",
+            "files",
+            "76ada7b0-55ae-4229-91c4-396a36f18347.json"
+          ],
+          "query": [
+            {
+              "key": "",
+              "value": "",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Health",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/mocknest/health",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "mocknest",
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete mappings",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/mappings",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "__admin",
+            "mappings"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get mappings",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/mappings",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "__admin",
+            "mappings"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete mapping soap request",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/mappings/76ada7b0-55ae-4229-91c4-396a36f18345",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "__admin",
+            "mappings",
+            "76ada7b0-55ae-4229-91c4-396a36f18345"
+          ]
+        }
+      },
+      "response": []
     }
   ]
 }
