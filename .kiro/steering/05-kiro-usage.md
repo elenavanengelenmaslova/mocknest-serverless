@@ -140,6 +140,9 @@ Follow clean architecture principles by developing in this sequence:
   - Use `.use { }` for automatic resource management (closeable resources)
   - Leverage Kotlin's null safety and smart casts
   - Avoid `!!` operator
+  - Prefer built in functions `checkNotNull`, `check`, `error` instead of throwing `IllegalStateException`. 
+  Prefer `require` and `requireNotNull` instead of throwing `IllegalArgumentException`. These functions are to be used only for detecting bugs in the code, and not for user input validation or test assertions.
+
 - **Logging Standards**:
   - **Use kotlin-logging (KotlinLogging)** for all logging throughout the application:
     ```kotlin
