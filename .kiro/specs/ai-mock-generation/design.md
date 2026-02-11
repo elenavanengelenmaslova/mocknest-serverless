@@ -93,7 +93,8 @@ Following the established clean architecture pattern with strict dependency rule
 - `OpenAPISpecificationParser` - OpenAPI/Swagger specification parsing
 - `GraphQLSpecificationParser` - GraphQL schema parsing
 - `WSDLSpecificationParser` - SOAP/WSDL specification parsing
-- `S3GenerationStorageAdapter` - Storage for generated mocks and specifications
+- `S3GenerationStorageAdapter` - **Direct S3 storage for application data (specs, jobs, mocks)**
+- `KoogS3PersistenceConfig` - **Koog framework S3 persistence configuration**
 
 ### Clean Architecture Dependency Rules
 
@@ -271,7 +272,227 @@ class GenerateMocksFromDescriptionUseCase(
 }
 ```
 
-#### 3. Specification Parsing
+#### 3. Storage Layer Implementation
+
+The storage layer uses a two-tier approach leveraging both Koog's built-in persistence and direct S3 access:
+
+**Koog Persistence Configuration (Infrastructure Layer):**
+```kotlin
+@Configuration
+class KoogS3PersistenceConfig(
+    @Value("\${aws.s3.bucket}") private val bucketName: String,
+    @Value("\${aws.account-id}") private val accountId: String
+) {
+    
+    @Bean
+    fun mockGenerationAgentPersistence(): S3PersistenceBackend {
+        return S3PersistenceBackend(
+            bucket = "mocknest-$accountId",
+            prefix = "koog-agent-state/mock-generation/",
+            checkpointInterval = Duration.ofMinutes(5),
+            enableRollback = true,
+            retentionPolicy = RetentionPolicy.TEMPORARY // Clear after completion
+        )
+    }
+}
+```
+
+**Application Data Storage (Infrastructure Layer):**
+```kotlin
+@Component
+class S3GenerationStorageAdapter(
+    private val s3Client: S3Client,
+    @Value("\${aws.s3.bucket}") private val bucketName: String
+) : GenerationStorageInterface {
+    
+    private val logger = KotlinLogging.logger {}
+    
+    override suspend fun storeSpecification(
+        namespace: MockNamespace,
+        specification: APISpecification,
+        instructions: String?
+    ) {
+        val prefix = namespace.toStoragePath()
+        
+        // Store current specification
+        s3Client.putObject {
+            bucket = bucketName
+            key = "${prefix}api-specs/current.json"
+            body = Json.encodeToString(specification).toByteArray()
+            contentType = "application/json"
+        }
+        
+        // Store user instructions if provided
+        instructions?.let {
+            s3Client.putObject {
+                bucket = bucketName
+                key = "${prefix}api-specs/current-instructions.txt"
+                body = it.toByteArray()
+                contentType = "text/plain"
+            }
+        }
+        
+        // Store versioned copy
+        val version = specification.version
+        s3Client.putObject {
+            bucket = bucketName
+            key = "${prefix}api-specs/versions/${version}/spec.json"
+            body = Json.encodeToString(specification).toByteArray()
+            contentType = "application/json"
+        }
+        
+        instructions?.let {
+            s3Client.putObject {
+                bucket = bucketName
+                key = "${prefix}api-specs/versions/${version}/instructions.txt"
+                body = it.toByteArray()
+                contentType = "text/plain"
+            }
+        }
+        
+        logger.info { "Stored API specification: namespace=$namespace, version=$version" }
+    }
+    
+    override suspend fun storeGenerationRequest(
+        jobId: String,
+        namespace: MockNamespace,
+        request: MockGenerationRequest
+    ) {
+        val prefix = namespace.toStoragePath()
+        
+        s3Client.putObject {
+            bucket = bucketName
+            key = "${prefix}generated-mocks/jobs/${jobId}/request.json"
+            body = Json.encodeToString(request).toByteArray()
+            contentType = "application/json"
+        }
+        
+        logger.info { "Stored generation request: jobId=$jobId, namespace=$namespace" }
+    }
+    
+    override suspend fun storeGeneratedMocks(
+        jobId: String,
+        namespace: MockNamespace,
+        mocks: List<GeneratedMock>
+    ) {
+        val prefix = namespace.toStoragePath()
+        
+        // Store each generated mock
+        mocks.forEach { mock ->
+            s3Client.putObject {
+                bucket = bucketName
+                key = "${prefix}generated-mocks/jobs/${jobId}/mocks/${mock.id}.json"
+                body = mock.wireMockMapping.toByteArray()
+                contentType = "application/json"
+            }
+        }
+        
+        // Store job results summary
+        val results = GenerationResults(
+            totalGenerated = mocks.size,
+            successful = mocks.size,
+            failed = 0,
+            generatedMocks = mocks
+        )
+        
+        s3Client.putObject {
+            bucket = bucketName
+            key = "${prefix}generated-mocks/jobs/${jobId}/results.json"
+            body = Json.encodeToString(results).toByteArray()
+            contentType = "application/json"
+        }
+        
+        logger.info { "Stored ${mocks.size} generated mocks: jobId=$jobId, namespace=$namespace" }
+    }
+    
+    override suspend fun retrieveGeneratedMocks(
+        jobId: String,
+        namespace: MockNamespace
+    ): GenerationResults {
+        val prefix = namespace.toStoragePath()
+        
+        val response = s3Client.getObject {
+            bucket = bucketName
+            key = "${prefix}generated-mocks/jobs/${jobId}/results.json"
+        }
+        
+        return Json.decodeFromString(response.body.decodeToString())
+    }
+    
+    override suspend fun retrieveSpecification(
+        namespace: MockNamespace,
+        version: String? = null
+    ): APISpecification {
+        val prefix = namespace.toStoragePath()
+        val key = if (version != null) {
+            "${prefix}api-specs/versions/${version}/spec.json"
+        } else {
+            "${prefix}api-specs/current.json"
+        }
+        
+        val response = s3Client.getObject {
+            bucket = bucketName
+            key = key
+        }
+        
+        return Json.decodeFromString(response.body.decodeToString())
+    }
+}
+```
+
+**Use Case Integration:**
+```kotlin
+@Component
+class GenerateMocksFromSpecUseCase(
+    private val specificationParser: SpecificationParserInterface,
+    private val mockGenerator: MockGeneratorInterface,
+    private val generationStorage: GenerationStorageInterface,
+    private val mockGenerationAgent: MockGenerationFunctionalAgent
+) : GenerateMocksFromSpec {
+    
+    override suspend fun invoke(request: MockGenerationRequest): GenerationResult {
+        val jobId = request.jobId
+        val namespace = request.namespace
+        
+        // Store the original request for audit/replay
+        generationStorage.storeGenerationRequest(jobId, namespace, request)
+        
+        // Parse specification
+        val specification = specificationParser.parse(
+            request.specificationContent,
+            request.format
+        )
+        
+        // Store API specification for future evolution if requested
+        if (request.options.storeSpecification) {
+            generationStorage.storeSpecification(
+                namespace = namespace,
+                specification = specification,
+                instructions = request.instructions // User instructions
+            )
+        }
+        
+        // Execute Koog agent (uses its own S3 persistence for state)
+        val agentRequest = AgentRequest.fromSpec(
+            specification = specification,
+            namespace = namespace,
+            options = request.options
+        )
+        val agentResponse = mockGenerationAgent.execute(agentRequest)
+        
+        // Store generated mocks in application storage
+        generationStorage.storeGeneratedMocks(
+            jobId = jobId,
+            namespace = namespace,
+            mocks = agentResponse.mocks
+        )
+        
+        return GenerationResult.success(jobId, agentResponse.mocks.size)
+    }
+}
+```
+
+#### 4. Specification Parsing
 ```kotlin
 interface SpecificationParserInterface {
     suspend fun parse(content: String, format: SpecificationFormat): APISpecification
@@ -290,7 +511,7 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
 }
 ```
 
-#### 4. AI Model Service Abstraction
+#### 5. AI Model Service Abstraction
 ```kotlin
 // Application Layer - Abstract Interface
 interface AIModelServiceInterface {
@@ -346,6 +567,7 @@ data class MockGenerationRequest(
     val namespace: MockNamespace,
     val specificationContent: String,
     val format: SpecificationFormat,
+    val instructions: String? = null,        # Optional user instructions for customization
     val options: GenerationOptions = GenerationOptions.default()
 )
 
@@ -461,22 +683,72 @@ enum class GenerationType {
 ```
 
 ### Storage Organization
+
+MockNest uses a **two-layer S3 storage strategy** that leverages both Koog's built-in persistence and explicit application data storage:
+
+#### Layer 1: Koog Agent State (Managed by Koog Framework)
+Koog 0.3.0+ provides built-in persistence with S3 backend support for agent state management, checkpointing, and fault tolerance.
+
 ```
-S3 Bucket Structure with Namespacing:
+S3 Bucket: mocknest-{account-id}
+├── koog-agent-state/                  # Koog's persistence layer
+│   └── mock-generation/               # Agent domain
+│       └── {agent-execution-id}/
+│           ├── checkpoint-001.json    # Agent state snapshots
+│           ├── checkpoint-002.json
+│           └── latest.json            # Most recent checkpoint
+```
+
+**Koog Persistence Configuration:**
+```kotlin
+val mockGenerationAgent = FunctionalAgent {
+    domain = "mock-generation"
+    
+    persistence {
+        backend = S3PersistenceBackend(
+            bucket = "mocknest-${accountId}",
+            prefix = "koog-agent-state/mock-generation/"
+        )
+        checkpointInterval = Duration.ofMinutes(5)
+        enableRollback = true
+    }
+}
+```
+
+**What Koog Manages:**
+- Agent execution state and context
+- Intermediate processing checkpoints
+- Rollback points for error recovery
+- State machine snapshots for fault tolerance
+
+#### Layer 2: Application Data (Direct S3 Storage)
+Application-specific data is stored directly in S3 for long-term persistence, retrieval, and evolution tracking.
+
+```
+S3 Bucket: mocknest-{account-id}
 ├── mocknest/                          # Base prefix (existing)
 │   ├── {namespace}/                   # API/Client namespace
 │   │   ├── api-specs/
 │   │   │   ├── current.json           # Current API specification
-│   │   │   ├── versions/
-│   │   │   │   ├── v1.0.0.json       # Versioned specifications
-│   │   │   │   └── v1.1.0.json
+│   │   │   ├── current-instructions.txt # Latest user instructions
+│   │   │   └── versions/
+│   │   │       ├── v1.0.0/
+│   │   │       │   ├── spec.json      # Versioned specification
+│   │   │       │   └── instructions.txt # Versioned instructions
+│   │   │       └── v1.1.0/
+│   │   │           ├── spec.json
+│   │   │           └── instructions.txt
+│   │   │
 │   │   ├── generated-mocks/
-│   │   │   ├── jobs/
-│   │   │   │   ├── {job-id}/
-│   │   │   │   │   ├── metadata.json  # Job information
-│   │   │   │   │   ├── mocks/
-│   │   │   │   │   │   ├── {mock-id}.json  # Generated WireMock mappings
-│   │   │   │   │   └── results.json   # Generation results summary
+│   │   │   └── jobs/
+│   │   │       └── {job-id}/
+│   │   │           ├── metadata.json  # Job info, status, timestamps
+│   │   │           ├── request.json   # Original request (spec + instructions)
+│   │   │           ├── results.json   # Generation summary
+│   │   │           └── mocks/
+│   │   │               ├── {mock-id-1}.json # Generated WireMock mappings
+│   │   │               └── {mock-id-2}.json
+│   │   │
 │   │   └── __files/                   # WireMock response files (when created)
 │   │       ├── {mock-id}.json
 │   │       └── {mock-id}.bin
@@ -486,6 +758,45 @@ S3 Bucket Structure with Namespacing:
 │   ├── mocknest/client-a/payments/    # Example: Client-specific API namespace
 │   └── mocknest/client-b/users/       # Example: Another client's API namespace
 ```
+
+**What Application Manages:**
+- API specifications for evolution tracking
+- User instructions for audit and replay
+- Generation job metadata and results
+- Generated WireMock mappings (final output)
+- Specification version history
+
+#### Storage Responsibilities
+
+| Data Type | Storage Layer | Purpose | Retention |
+|-----------|--------------|---------|-----------|
+| Agent execution state | Koog (Layer 1) | Fault tolerance, resume on failure | Temporary (cleared after completion) |
+| Agent checkpoints | Koog (Layer 1) | Rollback capability | Temporary (configurable TTL) |
+| API specifications | Application (Layer 2) | Evolution tracking, version history | Permanent |
+| User instructions | Application (Layer 2) | Audit trail, replay capability | Permanent |
+| Generated mocks | Application (Layer 2) | User retrieval, WireMock creation | Permanent (until user deletes) |
+| Job metadata | Application (Layer 2) | Status tracking, reporting | Permanent |
+
+#### Why This Two-Layer Approach?
+
+**Koog Persistence (Layer 1):**
+- ✅ Automatic state management and checkpointing
+- ✅ Built-in fault tolerance and recovery
+- ✅ No custom serialization logic needed
+- ✅ Handles complex agent state automatically
+
+**Application Storage (Layer 2):**
+- ✅ Long-term data retention
+- ✅ User-facing data retrieval
+- ✅ Specification version tracking
+- ✅ Audit trail and compliance
+- ✅ Integration with existing WireMock storage
+
+**Benefits:**
+- **Separation of Concerns**: Agent runtime state vs. business data
+- **Optimal Retention**: Temporary agent state vs. permanent specifications
+- **Fault Tolerance**: Koog handles agent failures automatically
+- **Simplicity**: Leverage Koog's built-in capabilities instead of custom implementation
 
 ### Namespace Strategy
 ```kotlin
@@ -540,7 +851,7 @@ DELETE /__admin/mappings/{id}
 ### **2. AI Generation API (New)**
 New AI-powered endpoints for generating mocks at `/ai/generation/*`:
 
-#### Mock Generation from Specifications with Namespace
+#### Mock Generation from Specifications with Namespace and Instructions
 ```http
 POST /ai/generation/from-spec
 Content-Type: application/json
@@ -552,6 +863,7 @@ Content-Type: application/json
   },
   "specification": "openapi: 3.0.0...",
   "format": "OPENAPI_3",
+  "instructions": "Focus on error scenarios and include rate limiting examples", # Optional
   "options": {
     "includeExamples": true,
     "generateErrorCases": true,

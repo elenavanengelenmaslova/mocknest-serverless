@@ -4,6 +4,7 @@ import org.gradle.kotlin.dsl.configure
 plugins {
     kotlin("jvm") version "2.3.0" apply false
     kotlin("plugin.spring") version "2.3.0" apply false
+    kotlin("plugin.serialization") version "2.3.0" apply false
     id("org.springframework.boot") version "4.0.2" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("com.gradleup.shadow") version "8.3.6" apply false
@@ -40,6 +41,10 @@ subprojects {
         dependencies {
             dependency("org.wiremock:wiremock-standalone:3.13.2")
             
+            // Koog Framework for AI Agents
+            val koogVersion = "0.6.2"
+            dependency("ai.koog:koog-agents:$koogVersion")
+            
             // Kotlin AWS SDK
             val awsSdkKotlinVersion = "1.3.77"
             dependency("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
@@ -51,6 +56,9 @@ subprojects {
             // AWS Lambda Java
             dependency("com.amazonaws:aws-lambda-java-core:1.2.3")
             dependency("com.amazonaws:aws-lambda-java-events:3.14.0")
+            
+            // Kotlinx Serialization for JSON
+            dependency("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
             
             // TestContainers
             val testContainersVersion = "1.20.3"

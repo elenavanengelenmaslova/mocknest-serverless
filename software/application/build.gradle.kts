@@ -20,9 +20,10 @@ dependencies {
 
     // JSON processing
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
 
     // Koog Framework for AI Agent orchestration
-    implementation("ai.koog:koog-agents:0.6.0")
+    implementation("ai.koog:koog-agents")
 
     // OpenAPI specification parsing
     implementation("io.swagger.parser.v3:swagger-parser:2.1.37")
