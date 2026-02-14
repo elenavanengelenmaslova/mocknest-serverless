@@ -1,5 +1,4 @@
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
-import org.gradle.kotlin.dsl.configure
 
 plugins {
     kotlin("jvm") version "2.3.0" apply false
@@ -33,7 +32,7 @@ subprojects {
     }
 
     // Global dependency management for all modules
-    configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
+    configure<DependencyManagementExtension> {
         imports {
             mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.2")
             mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
@@ -46,7 +45,7 @@ subprojects {
             dependency("ai.koog:koog-agents:$koogVersion")
             
             // Kotlin AWS SDK
-            val awsSdkKotlinVersion = "1.3.77"
+            val awsSdkKotlinVersion = "1.6.16"
             dependency("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")

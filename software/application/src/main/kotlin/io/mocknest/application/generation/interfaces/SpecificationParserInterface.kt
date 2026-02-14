@@ -1,7 +1,6 @@
 package io.mocknest.application.generation.interfaces
 
-import io.mocknest.domain.generation.APISpecification
-import io.mocknest.domain.generation.SpecificationFormat
+import io.mocknest.domain.generation.*
 
 /**
  * Abstraction for parsing different API specification formats.
@@ -45,48 +44,3 @@ interface CompositeSpecificationParser : SpecificationParserInterface {
      */
     fun getSupportedFormats(): Set<SpecificationFormat>
 }
-
-/**
- * Result of specification validation.
- */
-data class ValidationResult(
-    val isValid: Boolean,
-    val errors: List<ValidationError> = emptyList(),
-    val warnings: List<ValidationWarning> = emptyList()
-) {
-    companion object {
-        fun valid() = ValidationResult(isValid = true)
-        fun invalid(errors: List<ValidationError>) = ValidationResult(isValid = false, errors = errors)
-    }
-}
-
-/**
- * Validation error in specification.
- */
-data class ValidationError(
-    val message: String,
-    val path: String? = null,
-    val line: Int? = null,
-    val column: Int? = null
-)
-
-/**
- * Validation warning in specification.
- */
-data class ValidationWarning(
-    val message: String,
-    val path: String? = null,
-    val line: Int? = null,
-    val column: Int? = null
-)
-
-/**
- * Basic metadata extracted from specification.
- */
-data class SpecificationMetadata(
-    val title: String,
-    val version: String,
-    val format: SpecificationFormat,
-    val endpointCount: Int,
-    val schemaCount: Int
-)

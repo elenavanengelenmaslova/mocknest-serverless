@@ -8,7 +8,7 @@ plugins {
     id("com.gradleup.shadow")
 }
 
-val smithyKotlinVersion = "1.3.23"
+val smithyKotlinVersion = "1.6.2"
 
 dependencies {
     // Clean architecture dependencies
@@ -16,7 +16,9 @@ dependencies {
     implementation(project(":software:application"))
 
     // Spring Boot
-    implementation("org.springframework.boot:spring-boot-starter")
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     // Spring Cloud Function for AWS Lambda
     implementation("org.springframework.cloud:spring-cloud-function-adapter-aws")

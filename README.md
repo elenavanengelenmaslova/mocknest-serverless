@@ -285,7 +285,7 @@ For detailed architecture information, see [Architecture Documentation](.kiro/st
 ```properties
 # AWS Configuration
 aws.region=eu-west-1
-aws.s3.bucket-name=${MOCKNEST_S3_BUCKET_NAME:mocknest-serverless-storage}
+storage.bucket.name=${MOCKNEST_S3_BUCKET_NAME:mocknest-serverless-storage}
 
 # Application Configuration
 spring.application.name=mocknest-serverless

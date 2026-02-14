@@ -3,14 +3,12 @@ package io.mocknest.application.generation.usecases
 import io.mocknest.application.generation.agent.MockGenerationFunctionalAgent
 import io.mocknest.application.generation.interfaces.GenerationStorageInterface
 import io.mocknest.domain.generation.*
-import org.springframework.stereotype.Component
 import java.time.Instant
 
 /**
  * Use case for generating mocks from natural language descriptions only.
  * Uses the MockGenerationFunctionalAgent to handle AI-powered generation.
  */
-@Component
 class GenerateMocksFromDescriptionUseCase(
     private val mockGenerationAgent: MockGenerationFunctionalAgent,
     private val generationStorage: GenerationStorageInterface

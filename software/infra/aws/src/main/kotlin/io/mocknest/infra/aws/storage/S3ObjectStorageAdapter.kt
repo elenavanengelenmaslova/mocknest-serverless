@@ -18,7 +18,7 @@ private val logger = KotlinLogging.logger {}
 
 @Repository
 class S3ObjectStorageAdapter(
-    @param:Value("\${aws.s3.bucket-name}") private val bucketName: String,
+    @param:Value("\${storage.bucket.name}") private val bucketName: String,
     private val s3Client: S3Client,
 ) : ObjectStorageInterface {
 

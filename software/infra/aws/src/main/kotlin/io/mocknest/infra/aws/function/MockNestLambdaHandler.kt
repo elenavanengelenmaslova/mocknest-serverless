@@ -7,7 +7,11 @@ import io.mocknest.domain.model.HttpResponse
 import io.mocknest.application.usecase.ADMIN_PREFIX
 import io.mocknest.application.usecase.HandleAdminRequest
 import io.mocknest.application.usecase.HandleClientRequest
+import io.mocknest.application.usecase.HandleAIGenerationRequest
+import io.mocknest.application.usecase.HandleTestAgentRequest
 import io.mocknest.application.usecase.MOCKNEST_PREFIX
+import io.mocknest.application.usecase.AI_PREFIX
+import io.mocknest.application.usecase.TEST_AI_PREFIX
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -21,6 +25,8 @@ private val logger = KotlinLogging.logger {}
 class MockNestLambdaHandler(
     private val handleClientRequest: HandleClientRequest,
     private val handleAdminRequest: HandleAdminRequest,
+    private val handleAIGenerationRequest: HandleAIGenerationRequest,
+    private val handleTestAgentRequest: HandleTestAgentRequest,
 ) {
     @Bean
     fun router(): Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -37,6 +43,16 @@ class MockNestLambdaHandler(
                         logger.info { "Processing client request $path." }
                         handleClientRequest(createHttpRequest(path.removePrefix(MOCKNEST_PREFIX)))
                     }
+                    path.startsWith(AI_PREFIX) -> {
+                        logger.info { "Processing AI generation request $path" }
+                        val aiPath = "/" + path.removePrefix(AI_PREFIX)
+                        handleAIGenerationRequest(aiPath, createHttpRequest(aiPath))
+                    }
+                    path.startsWith(TEST_AI_PREFIX) -> {
+                        logger.info { "Processing Test AI agent request $path" }
+                        val testPath = "/" + path.removePrefix(TEST_AI_PREFIX)
+                        handleTestAgentRequest(testPath, createHttpRequest(testPath))
+                    }
                     else -> {
                         logger.debug { "Did not match admin or mocknest request prefix: $path" }
                         HttpResponse(
@@ -50,7 +66,7 @@ class MockNestLambdaHandler(
                 APIGatewayProxyResponseEvent()
                     .withStatusCode(it.statusCode.value())
                     .withHeaders(it.headers?.toSingleValueMap())
-                    .withBody(it.body?.toString().orEmpty())
+                    .withBody(it.body.orEmpty())
             }
 
         }

@@ -17,7 +17,7 @@ class S3BucketPropertyResolutionTest {
     )
     @Nested
     inner class `With Environment Variable Set` {
-        @Value("\${aws.s3.bucket-name}")
+        @Value("\${storage.bucket.name}")
         lateinit var bucketName: String
 
         @Test
@@ -32,7 +32,7 @@ class S3BucketPropertyResolutionTest {
     )
     @Nested
     inner class `Without Environment Variable Set` {
-        @Value("\${aws.s3.bucket-name}")
+        @Value("\${storage.bucket.name}")
         lateinit var bucketName: String
 
         @Test

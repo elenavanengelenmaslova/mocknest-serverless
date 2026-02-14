@@ -2,14 +2,12 @@ package io.mocknest.application.generation.usecases
 
 import io.mocknest.application.generation.interfaces.*
 import io.mocknest.domain.generation.*
-import org.springframework.stereotype.Component
 import java.time.Instant
 
 /**
  * Use case for generating mocks from API specifications only.
  * Follows clean architecture principles with dependency inversion.
  */
-@Component
 class GenerateMocksFromSpecUseCase(
     private val specificationParser: SpecificationParserInterface,
     private val mockGenerator: MockGeneratorInterface,
@@ -78,23 +76,5 @@ class GenerateMocksFromSpecUseCase(
             
             GenerationResult.failure(request.jobId, e.message ?: "Unknown error occurred")
         }
-    }
-}
-
-/**
- * Result of a mock generation operation.
- */
-data class GenerationResult(
-    val jobId: String,
-    val success: Boolean,
-    val mocksGenerated: Int = 0,
-    val error: String? = null
-) {
-    companion object {
-        fun success(jobId: String, mocksGenerated: Int) = 
-            GenerationResult(jobId, true, mocksGenerated)
-        
-        fun failure(jobId: String, error: String) = 
-            GenerationResult(jobId, false, error = error)
     }
 }

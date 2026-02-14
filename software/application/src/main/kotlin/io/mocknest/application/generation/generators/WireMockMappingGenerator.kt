@@ -1,18 +1,16 @@
 package io.mocknest.application.generation.generators
 
-import io.mocknest.application.generation.interfaces.*
-import org.springframework.http.HttpMethod
-import io.mocknest.domain.generation.*
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import org.springframework.stereotype.Component
-import java.util.*
+import io.mocknest.application.generation.interfaces.MockGeneratorInterface
+import io.mocknest.application.generation.interfaces.TestDataGeneratorInterface
+import io.mocknest.domain.generation.*
+import org.springframework.http.HttpMethod
 
 /**
  * Generates WireMock mappings from API specifications.
  * Converts parsed endpoint definitions into valid WireMock JSON format.
  */
-@Component
 class WireMockMappingGenerator(
     private val testDataGenerator: TestDataGeneratorInterface
 ) : MockGeneratorInterface {

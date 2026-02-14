@@ -1,9 +1,7 @@
 package io.mocknest.application.generation.agent
 
 import io.mocknest.application.generation.interfaces.*
-import io.mocknest.application.generation.usecases.GenerationResult
 import io.mocknest.domain.generation.*
-import org.springframework.stereotype.Component
 
 /**
  * Koog 0.6.0 Functional Agent for AI-powered mock generation.
@@ -14,7 +12,6 @@ import org.springframework.stereotype.Component
  * - Handles natural language interpretation
  * - Enhances specifications with AI
  */
-@Component
 class MockGenerationFunctionalAgent(
     private val aiModelService: AIModelServiceInterface,
     private val specificationParser: SpecificationParserInterface,

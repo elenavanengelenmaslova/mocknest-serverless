@@ -18,6 +18,8 @@ import kotlin.text.Charsets.UTF_8
 const val BASE_URL = "http://mocknest.internal"
 const val ADMIN_PREFIX = "/__admin/"
 const val MOCKNEST_PREFIX = "/mocknest/"
+const val AI_PREFIX = "/ai/generation/"
+const val TEST_AI_PREFIX = "/ai/test/"
 
 private val logger = KotlinLogging.logger {}
 
@@ -25,6 +27,12 @@ fun interface HandleClientRequest {
     operator fun invoke(httpRequest: HttpRequest): HttpResponse
 }
 fun interface HandleAdminRequest {
+    operator fun invoke(path: String, httpRequest: HttpRequest): HttpResponse
+}
+fun interface HandleAIGenerationRequest {
+    operator fun invoke(path: String, httpRequest: HttpRequest): HttpResponse
+}
+fun interface HandleTestAgentRequest {
     operator fun invoke(path: String, httpRequest: HttpRequest): HttpResponse
 }
 
@@ -57,7 +65,7 @@ fun forwardToDirectCallHttpServer(typeCall: String, httpRequest: HttpRequest, di
                         HttpHeader(header.key, header.value)
                     }
                 ))
-            .withBody(httpRequest.body?.toString().orEmpty().toByteArray())
+            .withBody(httpRequest.body.orEmpty().toByteArray())
             .build()
 
     logger.info { "Calling wiremock $typeCall with request: ${httpRequest.method} ${httpRequest.path}" }

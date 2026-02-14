@@ -15,7 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
     properties = [
         "spring.main.allow-bean-definition-overriding=true",
         "spring.cloud.function.web.export.enabled=false",
-        "aws.s3.bucket-name=test-bucket"
+        "storage.bucket.name=test-bucket"
     ]
 )
 @ActiveProfiles("test")

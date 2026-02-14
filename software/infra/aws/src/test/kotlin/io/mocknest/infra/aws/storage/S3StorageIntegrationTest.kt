@@ -1,24 +1,22 @@
 package io.mocknest.infra.aws.storage
 
-import io.mocknest.application.interfaces.storage.ObjectStorageInterface
-import io.mocknest.infra.aws.config.AwsConfiguration
-import io.mocknest.infra.aws.config.SharedLocalStackContainer
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.testcontainers.containers.localstack.LocalStackContainer
+import aws.sdk.kotlin.runtime.auth.credentials.*
 import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.CreateBucketRequest
+import aws.smithy.kotlin.runtime.auth.awscredentials.*
 import aws.smithy.kotlin.runtime.net.url.Url
+import io.mocknest.application.interfaces.storage.ObjectStorageInterface
+import io.mocknest.infra.aws.config.SharedLocalStackContainer
+import io.mocknest.infra.aws.config.TEST_REGION
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.*
+import org.testcontainers.containers.localstack.LocalStackContainer
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import aws.sdk.kotlin.runtime.auth.credentials.*
-import aws.smithy.kotlin.runtime.auth.awscredentials.*
-import kotlinx.coroutines.flow.asFlow
+
+internal const val TEST_BUCKET_NAME = "test-bucket"
 
 class S3StorageIntegrationTest {
 
@@ -34,8 +32,9 @@ class S3StorageIntegrationTest {
             val s3Endpoint = container.getEndpointOverride(LocalStackContainer.Service.S3).toString()
 
             s3Client = S3Client {
-                region = AwsConfiguration.TEST_REGION
-                endpointUrl = Url.parse(s3Endpoint)
+                region = TEST_REGION
+                endpointUrl =
+                    Url.parse(s3Endpoint)
                 forcePathStyle = true  // Required for LocalStack
 
                 credentialsProvider = StaticCredentialsProvider(
@@ -49,11 +48,11 @@ class S3StorageIntegrationTest {
             // Create test bucket once for all tests
             runBlocking {
                 s3Client.createBucket(CreateBucketRequest {
-                    bucket = AwsConfiguration.TEST_BUCKET_NAME
+                    bucket = TEST_BUCKET_NAME
                 })
             }
 
-            storage = S3ObjectStorageAdapter(AwsConfiguration.TEST_BUCKET_NAME, s3Client)
+            storage = S3ObjectStorageAdapter(TEST_BUCKET_NAME, s3Client)
         }
 
         @AfterAll
@@ -67,7 +66,7 @@ class S3StorageIntegrationTest {
     }
 
     @BeforeEach
-    suspend fun setup() {
+    fun setup() {
     }
 
     @AfterEach

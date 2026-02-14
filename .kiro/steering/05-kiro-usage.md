@@ -140,14 +140,17 @@ Follow clean architecture principles by developing in this sequence:
   - Use `.use { }` for automatic resource management (closeable resources)
   - Leverage Kotlin's null safety and smart casts
   - Avoid `!!` operator
-  - Prefer built in functions `checkNotNull`, `check`, `error` instead of throwing `IllegalStateException`. 
+  - Prefer built-in functions `checkNotNull`, `check`, `error` instead of throwing `IllegalStateException`. 
   Prefer `require` and `requireNotNull` instead of throwing `IllegalArgumentException`. These functions are to be used only for detecting bugs in the code, and not for user input validation or test assertions.
+    - Prefer latest language features, such as `enum.entries` over `enum.values()` for looping through enumerations.
 
 - **Logging Standards**:
   - **Use kotlin-logging (KotlinLogging)** for all logging throughout the application:
     ```kotlin
     private val logger = KotlinLogging.logger {}
     ```
+  - Place logger instances as a private top-level member of the kt file. Private visibility avoids leaking loggers across modules.
+  
   - **Use structured logging** with consistent message formatting:
     ```kotlin
     // Good: Structured logging with context
@@ -316,12 +319,12 @@ Follow clean architecture principles by developing in this sequence:
       }
 
       @BeforeEach
-      suspend fun setup() {
+      fun setup() {
           // Clear test data before each test
       }
 
       @AfterEach
-      suspend fun tearDown() {
+      fun tearDown() {
           // Clean up test data after each test
       }
   }

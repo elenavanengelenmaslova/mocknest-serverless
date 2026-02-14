@@ -3,28 +3,23 @@ package io.mocknest.infra.aws.generation
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import aws.sdk.kotlin.services.bedrockruntime.model.InvokeModelRequest
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mocknest.application.generation.interfaces.AIModelServiceInterface
 import io.mocknest.application.generation.interfaces.AIServiceCapabilities
 import io.mocknest.domain.generation.*
-import kotlinx.coroutines.runCatching
-import mu.KotlinLogging
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.stereotype.Component
+import kotlin.runCatching
 import java.time.Instant
 
 /**
  * Amazon Bedrock implementation of AI model service.
  * Provides AI-powered mock generation using Claude 3 Sonnet.
  */
-@Component
-@ConditionalOnProperty(name = ["ai.enabled"], havingValue = "true")
 class BedrockServiceAdapter(
     private val bedrockClient: BedrockRuntimeClient
 ) : AIModelServiceInterface {
     
     private val logger = KotlinLogging.logger {}
-    private val objectMapper = ObjectMapper().registerKotlinModule()
+    private val objectMapper = ObjectMapper()
     
     companion object {
         private const val CLAUDE_MODEL_ID = "anthropic.claude-3-sonnet-20240229-v1:0"
@@ -148,11 +143,10 @@ class BedrockServiceAdapter(
         }
         
         val response = bedrockClient.invokeModel(request)
-        val responseBody = response.body?.let { String(it) }
-            ?: throw IllegalStateException("Empty response from Bedrock")
+        val responseBody = response.body.toString(Charsets.UTF_8)
         
         val responseJson = objectMapper.readTree(responseBody)
-        return responseJson.get("content")?.get(0)?.get("text")?.asText()
+        return responseJson.path("content").path(0).path("text").asText()
             ?: throw IllegalStateException("Invalid response format from Claude")
     }
     
@@ -276,10 +270,13 @@ class BedrockServiceAdapter(
             val jsonArray = objectMapper.readTree(response)
             
             if (jsonArray.isArray) {
-                jsonArray.mapIndexed { index, mappingNode ->
+                val mocks = mutableListOf<GeneratedMock>()
+                for (i in 0 until jsonArray.size()) {
+                    val mappingNode = jsonArray.get(i)
                     val wireMockMapping = objectMapper.writeValueAsString(mappingNode)
-                    createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, index)
+                    mocks.add(createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, i))
                 }
+                mocks
             } else {
                 // Single mapping
                 val wireMockMapping = objectMapper.writeValueAsString(jsonArray)
@@ -296,10 +293,13 @@ class BedrockServiceAdapter(
                 try {
                     val jsonArray = objectMapper.readTree(match.value)
                     if (jsonArray.isArray) {
-                        jsonArray.mapIndexed { index, mappingNode ->
+                        val mocks = mutableListOf<GeneratedMock>()
+                        for (i in 0 until jsonArray.size()) {
+                            val mappingNode = jsonArray.get(i)
                             val wireMockMapping = objectMapper.writeValueAsString(mappingNode)
-                            createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, index)
+                            mocks.add(createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, i))
                         }
+                        mocks
                     } else {
                         val wireMockMapping = objectMapper.writeValueAsString(jsonArray)
                         listOf(createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, 0))
@@ -324,13 +324,23 @@ class BedrockServiceAdapter(
     ): GeneratedMock {
         // Extract basic info from WireMock mapping for metadata
         val mappingJson = objectMapper.readTree(wireMockMapping)
-        val request = mappingJson.get("request")
-        val response = mappingJson.get("response")
+        val request = mappingJson.path("request")
+        val response = mappingJson.path("response")
         
-        val method = request?.get("method")?.asText() ?: "GET"
-        val path = request?.get("url")?.asText() ?: request?.get("urlPattern")?.asText() ?: "/unknown"
-        val statusCode = response?.get("status")?.asInt() ?: 200
-        val contentType = response?.get("headers")?.get("Content-Type")?.asText() ?: "application/json"
+        val method = if (request.has("method")) request.path("method").asText() else "GET"
+        val path = if (request.has("url")) {
+            request.path("url").asText()
+        } else if (request.has("urlPattern")) {
+            request.path("urlPattern").asText()
+        } else {
+            "/unknown"
+        }
+        val statusCode = if (response.has("status")) response.path("status").asInt() else 200
+        val contentType = if (response.path("headers").has("Content-Type")) {
+            response.path("headers").path("Content-Type").asText()
+        } else {
+            "application/json"
+        }
         
         return GeneratedMock(
             id = "ai-generated-${namespace.apiName}-${method.lowercase()}-${path.replace("/", "-").replace("{", "").replace("}", "")}-$index",

@@ -1,23 +1,29 @@
 package io.mocknest.infra.aws.config
 
+import aws.sdk.kotlin.runtime.auth.credentials.StaticCredentialsProvider
+import aws.sdk.kotlin.services.s3.S3Client
+import aws.sdk.kotlin.services.s3.model.CreateBucketRequest
+import aws.smithy.kotlin.runtime.auth.awscredentials.Credentials
+import aws.smithy.kotlin.runtime.net.url.Url
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mocknest.application.interfaces.storage.ObjectStorageInterface
 import io.mocknest.infra.aws.storage.S3ObjectStorageAdapter
+import io.mocknest.infra.aws.storage.TEST_BUCKET_NAME
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.localstack.LocalStackContainer
-import aws.sdk.kotlin.services.s3.S3Client
-import aws.sdk.kotlin.services.s3.model.CreateBucketRequest
-import aws.smithy.kotlin.runtime.net.url.Url
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.delay
-import aws.sdk.kotlin.runtime.auth.credentials.*
-import aws.smithy.kotlin.runtime.auth.awscredentials.*
 
+/**
+ * Test region used for LocalStack integration tests
+ * LocalStack typically runs in us-east-1 by default
+ */
+internal const val TEST_REGION = "us-east-1"
 
 @TestConfiguration
 class AwsLocalStackTestConfiguration {
@@ -35,9 +41,9 @@ class AwsLocalStackTestConfiguration {
             registry.add("aws.endpointUrl") { s3Endpoint }
             registry.add("aws.accessKeyId") { container.accessKey }
             registry.add("aws.secretAccessKey") { container.secretKey }
-            registry.add("aws.region") { AwsConfiguration.TEST_REGION }
-            registry.add("mocknest.s3.bucket-name") { AwsConfiguration.TEST_BUCKET_NAME }
-            registry.add("aws.s3.bucket-name") { AwsConfiguration.TEST_BUCKET_NAME }
+            registry.add("aws.region") { TEST_REGION }
+            registry.add("mocknest.s3.bucket-name") { TEST_BUCKET_NAME }
+            registry.add("storage.bucket.name") { TEST_BUCKET_NAME }
         }
     }
 
@@ -50,7 +56,7 @@ class AwsLocalStackTestConfiguration {
         logger.info { "Creating test S3 client with endpoint: $s3Endpoint" }
 
         return S3Client {
-            region = AwsConfiguration.TEST_REGION
+            region = TEST_REGION
             endpointUrl = Url.parse(s3Endpoint)
             forcePathStyle = true
 
@@ -75,24 +81,24 @@ class AwsLocalStackTestConfiguration {
             while (attempts < maxAttempts) {
                 s3Client.runCatching {
                     createBucket(CreateBucketRequest {
-                        bucket = AwsConfiguration.TEST_BUCKET_NAME
+                        bucket = TEST_BUCKET_NAME
                     })
                 }.onSuccess {
-                    logger.info { "Test bucket created successfully: ${AwsConfiguration.TEST_BUCKET_NAME}" }
+                    logger.info { "Test bucket created successfully: ${TEST_BUCKET_NAME}" }
                     return@runBlocking
                 }.onFailure { exception ->
                     attempts++
                     if (attempts >= maxAttempts) {
-                        logger.error(exception) { "Failed to create test bucket after $maxAttempts attempts: ${AwsConfiguration.TEST_BUCKET_NAME}" }
+                        logger.error(exception) { "Failed to create test bucket after $maxAttempts attempts: ${TEST_BUCKET_NAME}" }
                         throw exception
                     } else {
                         logger.warn { "Test bucket creation attempt $attempts failed, retrying... (${exception.message})" }
-                        kotlinx.coroutines.delay(500) // Wait 500ms before retry
+                        delay(500) // Wait 500ms before retry
                     }
                 }
             }
         }
 
-        return S3ObjectStorageAdapter(AwsConfiguration.TEST_BUCKET_NAME, s3Client)
+        return S3ObjectStorageAdapter(TEST_BUCKET_NAME, s3Client)
     }
 }

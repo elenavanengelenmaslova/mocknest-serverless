@@ -3,7 +3,6 @@ package io.mocknest.application.generation.generators
 import io.mocknest.application.generation.interfaces.TestDataGeneratorInterface
 import io.mocknest.domain.generation.JsonSchema
 import io.mocknest.domain.generation.JsonSchemaType
-import org.springframework.stereotype.Component
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -14,7 +13,6 @@ import kotlin.random.Random
  * Generates realistic test data based on JSON schemas.
  * Creates believable sample data that follows schema constraints.
  */
-@Component
 class RealisticTestDataGenerator : TestDataGeneratorInterface {
     
     private val random = Random.Default

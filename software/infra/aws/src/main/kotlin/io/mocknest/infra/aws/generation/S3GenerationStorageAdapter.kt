@@ -2,17 +2,16 @@ package io.mocknest.infra.aws.generation
 
 import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.*
+import aws.smithy.kotlin.runtime.content.ByteStream
+import aws.smithy.kotlin.runtime.content.toByteArray
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mocknest.application.generation.interfaces.GenerationStorageInterface
-import io.mocknest.application.generation.interfaces.SpecificationMetadata
 import io.mocknest.domain.generation.*
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runCatching
-import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.time.Instant
+import kotlin.runCatching
 
 /**
  * S3-based storage adapter for generated mocks and specifications.
@@ -21,11 +20,11 @@ import java.time.Instant
 @Component
 class S3GenerationStorageAdapter(
     private val s3Client: S3Client,
-    @Value("\${storage.bucket.name}") private val bucketName: String
+    @param:Value("\${storage.bucket.name:}") private val bucketName: String
 ) : GenerationStorageInterface {
     
     private val logger = KotlinLogging.logger {}
-    private val objectMapper = ObjectMapper().registerKotlinModule()
+    private val objectMapper = ObjectMapper()
     
     companion object {
         private const val GENERATED_MOCKS_PREFIX = "generated-mocks"
@@ -38,7 +37,7 @@ class S3GenerationStorageAdapter(
     override suspend fun storeGeneratedMocks(mocks: List<GeneratedMock>, jobId: String): String {
         logger.info { "Storing ${mocks.size} generated mocks for job: $jobId" }
         
-        return runCatching {
+        return s3Client.runCatching {
             val namespace = mocks.firstOrNull()?.namespace 
                 ?: throw IllegalArgumentException("No mocks provided or missing namespace")
             
@@ -49,10 +48,10 @@ class S3GenerationStorageAdapter(
                 val mockKey = "$storageKey/mocks/${mock.id}.json"
                 val mockJson = objectMapper.writeValueAsString(mock)
                 
-                s3Client.putObject {
+                putObject(PutObjectRequest {
                     bucket = bucketName
                     key = mockKey
-                    body = mockJson.toByteArray()
+                    body = ByteStream.fromBytes(mockJson.toByteArray())
                     contentType = "application/json"
                     metadata = mapOf(
                         "job-id" to jobId,
@@ -60,7 +59,7 @@ class S3GenerationStorageAdapter(
                         "namespace" to namespace.displayName(),
                         "generated-at" to mock.generatedAt.toString()
                     )
-                }
+                })
             }
             
             // Store job results summary
@@ -73,12 +72,12 @@ class S3GenerationStorageAdapter(
                 "storedAt" to Instant.now().toString()
             )
             
-            s3Client.putObject {
+            putObject(PutObjectRequest {
                 bucket = bucketName
                 key = resultsKey
-                body = objectMapper.writeValueAsBytes(results)
+                body = ByteStream.fromBytes(objectMapper.writeValueAsBytes(results))
                 contentType = "application/json"
-            }
+            })
             
             storageKey
         }.onFailure { exception ->
@@ -89,7 +88,7 @@ class S3GenerationStorageAdapter(
     override suspend fun getGeneratedMocks(jobId: String): List<GeneratedMock> {
         logger.debug { "Retrieving generated mocks for job: $jobId" }
         
-        return runCatching {
+        return s3Client.runCatching {
             // Find the job by searching across namespaces
             val jobKey = findJobKey(jobId) ?: throw IllegalArgumentException("Job not found: $jobId")
             val mocksPrefix = "$jobKey/mocks/"
@@ -99,7 +98,7 @@ class S3GenerationStorageAdapter(
                 prefix = mocksPrefix
             }
             
-            val objects = s3Client.listObjectsV2(listRequest).contents ?: emptyList()
+            val objects = listObjectsV2(listRequest).contents ?: emptyList()
             
             objects.mapNotNull { obj ->
                 try {
@@ -108,10 +107,12 @@ class S3GenerationStorageAdapter(
                         key = obj.key!!
                     }
                     
-                    val response = s3Client.getObject(getRequest)
-                    val content = response.body?.let { String(it) } ?: return@mapNotNull null
+                    var content: String? = null
+                    getObject(getRequest) { response ->
+                        content = response.body?.toByteArray()?.let { String(it) }
+                    }
                     
-                    objectMapper.readValue(content, GeneratedMock::class.java)
+                    content?.let { objectMapper.readValue(it, GeneratedMock::class.java) }
                 } catch (e: Exception) {
                     logger.warn(e) { "Failed to deserialize mock from key: ${obj.key}" }
                     null
@@ -129,17 +130,17 @@ class S3GenerationStorageAdapter(
     ): String {
         logger.info { "Storing API specification for namespace: ${namespace.displayName()}" }
         
-        return runCatching {
+        return s3Client.runCatching {
             val specJson = objectMapper.writeValueAsString(specification)
             val timestamp = Instant.now().toString()
             val actualVersion = version ?: specification.version
             
             // Store as current specification
             val currentKey = "${namespace.toPrefix()}/$API_SPECS_PREFIX/$CURRENT_SPEC_FILE"
-            s3Client.putObject {
+            putObject(PutObjectRequest {
                 bucket = bucketName
                 key = currentKey
-                body = specJson.toByteArray()
+                body = ByteStream.fromBytes(specJson.toByteArray())
                 contentType = "application/json"
                 metadata = mapOf(
                     "namespace" to namespace.displayName(),
@@ -148,14 +149,14 @@ class S3GenerationStorageAdapter(
                     "format" to specification.format.name,
                     "stored-at" to timestamp
                 )
-            }
+            })
             
             // Store versioned copy
             val versionedKey = "${namespace.toPrefix()}/$API_SPECS_PREFIX/$VERSIONS_PREFIX/$actualVersion.json"
-            s3Client.putObject {
+            putObject(PutObjectRequest {
                 bucket = bucketName
                 key = versionedKey
-                body = specJson.toByteArray()
+                body = ByteStream.fromBytes(specJson.toByteArray())
                 contentType = "application/json"
                 metadata = mapOf(
                     "namespace" to namespace.displayName(),
@@ -164,7 +165,7 @@ class S3GenerationStorageAdapter(
                     "format" to specification.format.name,
                     "stored-at" to timestamp
                 )
-            }
+            })
             
             currentKey
         }.onFailure { exception ->
@@ -175,8 +176,8 @@ class S3GenerationStorageAdapter(
     override suspend fun getSpecification(namespace: MockNamespace, version: String?): APISpecification? {
         logger.debug { "Retrieving specification for namespace: ${namespace.displayName()}, version: $version" }
         
-        return runCatching {
-            val key = if (version != null) {
+        return s3Client.runCatching {
+            val objectKey = if (version != null) {
                 "${namespace.toPrefix()}/$API_SPECS_PREFIX/$VERSIONS_PREFIX/$version.json"
             } else {
                 "${namespace.toPrefix()}/$API_SPECS_PREFIX/$CURRENT_SPEC_FILE"
@@ -184,13 +185,15 @@ class S3GenerationStorageAdapter(
             
             val getRequest = GetObjectRequest {
                 bucket = bucketName
-                key = key
+                key = objectKey
             }
             
-            val response = s3Client.getObject(getRequest)
-            val content = response.body?.let { String(it) } ?: return@runCatching null
+            var content: String? = null
+            getObject(getRequest) { response ->
+                content = response.body?.toByteArray()?.let { String(it) }
+            }
             
-            objectMapper.readValue(content, APISpecification::class.java)
+            content?.let { objectMapper.readValue(it, APISpecification::class.java) }
         }.onFailure { exception ->
             if (exception is NoSuchKey) {
                 logger.debug { "Specification not found for namespace: ${namespace.displayName()}, version: $version" }
@@ -203,14 +206,14 @@ class S3GenerationStorageAdapter(
     override suspend fun storeJob(job: GenerationJob): String {
         logger.debug { "Storing generation job: ${job.id}" }
         
-        return runCatching {
+        return s3Client.runCatching {
             val jobKey = "${job.request.namespace.toPrefix()}/$JOBS_PREFIX/${job.id}/metadata.json"
             val jobJson = objectMapper.writeValueAsString(job)
             
-            s3Client.putObject {
+            putObject(PutObjectRequest {
                 bucket = bucketName
                 key = jobKey
-                body = jobJson.toByteArray()
+                body = ByteStream.fromBytes(jobJson.toByteArray())
                 contentType = "application/json"
                 metadata = mapOf(
                     "job-id" to job.id,
@@ -219,7 +222,7 @@ class S3GenerationStorageAdapter(
                     "type" to job.request.type.name,
                     "created-at" to job.createdAt.toString()
                 )
-            }
+            })
             
             jobKey
         }.onFailure { exception ->
@@ -230,7 +233,7 @@ class S3GenerationStorageAdapter(
     override suspend fun getJob(jobId: String): GenerationJob? {
         logger.debug { "Retrieving job: $jobId" }
         
-        return runCatching {
+        return s3Client.runCatching {
             val jobKey = findJobKey(jobId) ?: return@runCatching null
             val metadataKey = "$jobKey/metadata.json"
             
@@ -239,10 +242,12 @@ class S3GenerationStorageAdapter(
                 key = metadataKey
             }
             
-            val response = s3Client.getObject(getRequest)
-            val content = response.body?.let { String(it) } ?: return@runCatching null
+            var content: String? = null
+            getObject(getRequest) { response ->
+                content = response.body?.toByteArray()?.let { String(it) }
+            }
             
-            objectMapper.readValue(content, GenerationJob::class.java)
+            content?.let { objectMapper.readValue(it, GenerationJob::class.java) }
         }.onFailure { exception ->
             if (exception !is NoSuchKey) {
                 logger.error(exception) { "Failed to retrieve job: $jobId" }
@@ -253,7 +258,7 @@ class S3GenerationStorageAdapter(
     override suspend fun updateJobStatus(jobId: String, status: JobStatus, error: String?) {
         logger.debug { "Updating job status: $jobId -> $status" }
         
-        runCatching {
+        try {
             val job = getJob(jobId) ?: throw IllegalArgumentException("Job not found: $jobId")
             
             val updatedJob = job.copy(
@@ -265,7 +270,7 @@ class S3GenerationStorageAdapter(
             )
             
             storeJob(updatedJob)
-        }.onFailure { exception ->
+        } catch (exception: Exception) {
             logger.error(exception) { "Failed to update job status: $jobId" }
         }
     }
@@ -273,16 +278,16 @@ class S3GenerationStorageAdapter(
     override suspend fun storeJobResults(jobId: String, results: GenerationResults) {
         logger.debug { "Storing job results: $jobId" }
         
-        runCatching {
+        s3Client.runCatching {
             val jobKey = findJobKey(jobId) ?: throw IllegalArgumentException("Job not found: $jobId")
             val resultsKey = "$jobKey/results.json"
             
             val resultsJson = objectMapper.writeValueAsString(results)
             
-            s3Client.putObject {
+            putObject(PutObjectRequest {
                 bucket = bucketName
                 key = resultsKey
-                body = resultsJson.toByteArray()
+                body = ByteStream.fromBytes(resultsJson.toByteArray())
                 contentType = "application/json"
                 metadata = mapOf(
                     "job-id" to jobId,
@@ -290,7 +295,7 @@ class S3GenerationStorageAdapter(
                     "successful" to results.successful.toString(),
                     "failed" to results.failed.toString()
                 )
-            }
+            })
         }.onFailure { exception ->
             logger.error(exception) { "Failed to store job results: $jobId" }
         }
@@ -299,28 +304,29 @@ class S3GenerationStorageAdapter(
     override suspend fun listSpecifications(namespace: MockNamespace): List<SpecificationMetadata> {
         logger.debug { "Listing specifications for namespace: ${namespace.displayName()}" }
         
-        return runCatching {
-            val prefix = "${namespace.toPrefix()}/$API_SPECS_PREFIX/$VERSIONS_PREFIX/"
+        return s3Client.runCatching {
+            val searchPrefix = "${namespace.toPrefix()}/$API_SPECS_PREFIX/$VERSIONS_PREFIX/"
             
             val listRequest = ListObjectsV2Request {
                 bucket = bucketName
-                prefix = prefix
+                prefix = searchPrefix
             }
             
-            val objects = s3Client.listObjectsV2(listRequest).contents ?: emptyList()
+            val objects = listObjectsV2(listRequest).contents ?: emptyList()
             
             objects.mapNotNull { obj ->
+                val key = obj.key ?: return@mapNotNull null
                 try {
-                    val metadata = obj.metadata
+                    val versionFromKey = key.substringAfter("$VERSIONS_PREFIX/").substringBefore(".json")
                     SpecificationMetadata(
-                        title = metadata?.get("title") ?: "Unknown",
-                        version = metadata?.get("version") ?: "Unknown",
-                        format = metadata?.get("format")?.let { SpecificationFormat.valueOf(it) } ?: SpecificationFormat.OPENAPI_3,
-                        endpointCount = 0, // Would need to parse spec to get this
-                        schemaCount = 0    // Would need to parse spec to get this
+                        title = "Unknown",
+                        version = versionFromKey,
+                        format = SpecificationFormat.OPENAPI_3,
+                        endpointCount = 0,
+                        schemaCount = 0
                     )
                 } catch (e: Exception) {
-                    logger.warn(e) { "Failed to extract metadata from specification: ${obj.key}" }
+                    logger.warn(e) { "Failed to parse specification metadata from key: $key" }
                     null
                 }
             }
@@ -332,16 +338,16 @@ class S3GenerationStorageAdapter(
     override suspend fun listJobs(namespace: MockNamespace, status: JobStatus?, limit: Int): List<GenerationJob> {
         logger.debug { "Listing jobs for namespace: ${namespace.displayName()}" }
         
-        return runCatching {
-            val prefix = "${namespace.toPrefix()}/$JOBS_PREFIX/"
+        return s3Client.runCatching {
+            val searchPrefix = "${namespace.toPrefix()}/$JOBS_PREFIX/"
             
             val listRequest = ListObjectsV2Request {
                 bucket = bucketName
-                prefix = prefix
+                prefix = searchPrefix
                 maxKeys = limit
             }
             
-            val objects = s3Client.listObjectsV2(listRequest).contents ?: emptyList()
+            val objects = listObjectsV2(listRequest).contents ?: emptyList()
             
             objects.mapNotNull { obj ->
                 if (obj.key?.endsWith("/metadata.json") == true) {
@@ -351,10 +357,12 @@ class S3GenerationStorageAdapter(
                             key = obj.key!!
                         }
                         
-                        val response = s3Client.getObject(getRequest)
-                        val content = response.body?.let { String(it) } ?: return@mapNotNull null
+                        var content: String? = null
+                        getObject(getRequest) { response ->
+                            content = response.body?.toByteArray()?.let { String(it) }
+                        }
                         
-                        val job = objectMapper.readValue(content, GenerationJob::class.java)
+                        val job = content?.let { objectMapper.readValue(it, GenerationJob::class.java) } ?: return@mapNotNull null
                         
                         // Filter by status if specified
                         if (status == null || job.status == status) job else null
@@ -372,7 +380,7 @@ class S3GenerationStorageAdapter(
     override suspend fun deleteGeneratedMocks(jobId: String): Boolean {
         logger.info { "Deleting generated mocks for job: $jobId" }
         
-        return runCatching {
+        return s3Client.runCatching {
             val jobKey = findJobKey(jobId) ?: return@runCatching false
             val mocksPrefix = "$jobKey/mocks/"
             
@@ -382,21 +390,21 @@ class S3GenerationStorageAdapter(
                 prefix = mocksPrefix
             }
             
-            val objects = s3Client.listObjectsV2(listRequest).contents ?: emptyList()
+            val objects = listObjectsV2(listRequest).contents ?: emptyList()
             
             // Delete all mock objects
             objects.forEach { obj ->
-                s3Client.deleteObject {
+                deleteObject(DeleteObjectRequest {
                     bucket = bucketName
                     key = obj.key!!
-                }
+                })
             }
             
             // Delete results file
-            s3Client.deleteObject {
+            deleteObject(DeleteObjectRequest {
                 bucket = bucketName
                 key = "$jobKey/results.json"
-            }
+            })
             
             true
         }.onFailure { exception ->
@@ -407,21 +415,21 @@ class S3GenerationStorageAdapter(
     override suspend fun deleteSpecification(namespace: MockNamespace, version: String?): Boolean {
         logger.info { "Deleting specification for namespace: ${namespace.displayName()}, version: $version" }
         
-        return runCatching {
+        return s3Client.runCatching {
             if (version != null) {
                 // Delete specific version
                 val versionedKey = "${namespace.toPrefix()}/$API_SPECS_PREFIX/$VERSIONS_PREFIX/$version.json"
-                s3Client.deleteObject {
+                deleteObject(DeleteObjectRequest {
                     bucket = bucketName
                     key = versionedKey
-                }
+                })
             } else {
                 // Delete current specification
                 val currentKey = "${namespace.toPrefix()}/$API_SPECS_PREFIX/$CURRENT_SPEC_FILE"
-                s3Client.deleteObject {
+                deleteObject(DeleteObjectRequest {
                     bucket = bucketName
                     key = currentKey
-                }
+                })
             }
             
             true
@@ -431,14 +439,14 @@ class S3GenerationStorageAdapter(
     }
     
     override suspend fun isHealthy(): Boolean {
-        return runCatching {
+        return s3Client.runCatching {
             // Try to list objects in the bucket to verify connectivity
             val listRequest = ListObjectsV2Request {
                 bucket = bucketName
                 maxKeys = 1
             }
             
-            s3Client.listObjectsV2(listRequest)
+            listObjectsV2(listRequest)
             true
         }.onFailure { exception ->
             logger.warn(exception) { "S3 health check failed" }
@@ -452,15 +460,12 @@ class S3GenerationStorageAdapter(
             prefix = "mocknest/"
         }
         
-        return runCatching {
-            val objects = s3Client.listObjectsV2(listRequest).contents ?: emptyList()
-            
+        return s3Client.runCatching {
+            val objects = listObjectsV2(listRequest).contents ?: emptyList()
+
             objects.find { obj ->
-                obj.key?.contains("/$JOBS_PREFIX/$jobId/") == true
-            }?.key?.let { key ->
-                // Extract job key prefix (everything up to /metadata.json or /results.json)
-                key.substringBeforeLast("/")
-            }
+                        obj.key?.contains("/$JOBS_PREFIX/$jobId/") == true
+                    }?.key?.substringBeforeLast("/")
         }.getOrNull()
     }
 }

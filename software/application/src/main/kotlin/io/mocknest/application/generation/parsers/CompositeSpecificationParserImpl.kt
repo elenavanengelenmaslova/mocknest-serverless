@@ -1,17 +1,15 @@
 package io.mocknest.application.generation.parsers
 
-import io.mocknest.application.generation.interfaces.*
-import io.mocknest.domain.generation.APISpecification
-import io.mocknest.domain.generation.SpecificationFormat
-import org.springframework.stereotype.Component
+import io.mocknest.application.generation.interfaces.CompositeSpecificationParser
+import io.mocknest.application.generation.interfaces.SpecificationParserInterface
+import io.mocknest.domain.generation.*
 
 /**
  * Composite parser that delegates to format-specific parsers.
  * Automatically registers available parsers and routes requests to the appropriate one.
  */
-@Component
 class CompositeSpecificationParserImpl(
-    private val parsers: List<SpecificationParserInterface>
+    parsers: List<SpecificationParserInterface>
 ) : CompositeSpecificationParser {
     
     private val parserMap = mutableMapOf<SpecificationFormat, SpecificationParserInterface>()
@@ -19,7 +17,7 @@ class CompositeSpecificationParserImpl(
     init {
         // Register all available parsers
         parsers.forEach { parser ->
-            SpecificationFormat.values().forEach { format ->
+            SpecificationFormat.entries.forEach { format ->
                 if (parser.supports(format)) {
                     parserMap[format] = parser
                 }
@@ -55,7 +53,7 @@ class CompositeSpecificationParserImpl(
     }
     
     override fun registerParser(parser: SpecificationParserInterface) {
-        SpecificationFormat.values().forEach { format ->
+        SpecificationFormat.entries.forEach { format ->
             if (parser.supports(format)) {
                 parserMap[format] = parser
             }

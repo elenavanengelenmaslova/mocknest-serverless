@@ -1,6 +1,6 @@
 package io.mocknest.application.generation.parsers
 
-import io.mocknest.application.generation.interfaces.*
+import io.mocknest.application.generation.interfaces.SpecificationParserInterface
 import org.springframework.http.HttpMethod
 import io.mocknest.domain.generation.*
 import io.swagger.v3.oas.models.OpenAPI
@@ -10,12 +10,10 @@ import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.responses.ApiResponse
 import io.swagger.v3.parser.OpenAPIV3Parser
-import org.springframework.stereotype.Component
 
 /**
  * Parser for OpenAPI 3.0 and Swagger 2.0 specifications.
  */
-@Component
 class OpenAPISpecificationParser : SpecificationParserInterface {
     
     override suspend fun parse(content: String, format: SpecificationFormat): APISpecification {

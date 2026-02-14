@@ -1,7 +1,6 @@
 package io.mocknest.infra.aws.storage.config
 
 import aws.sdk.kotlin.services.s3.S3Client
-import io.mocknest.infra.aws.config.AwsConfiguration
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -13,7 +12,7 @@ class S3Configuration {
 
     @Bean
     fun s3Client(
-        @Value("\${aws.region:${AwsConfiguration.DEFAULT_REGION}}") region: String
+        @Value("\${aws.region}") region: String
     ): S3Client = S3Client { 
         this.region = region 
     }

@@ -1,15 +1,22 @@
 package io.mocknest.infra.aws.generation
 
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
-import aws.sdk.kotlin.services.s3.S3Client
+import io.mocknest.application.generation.agent.MockGenerationFunctionalAgent
+import io.mocknest.application.generation.agent.TestKoogAgent
+import io.mocknest.application.generation.generators.RealisticTestDataGenerator
+import io.mocknest.application.generation.generators.WireMockMappingGenerator
 import io.mocknest.application.generation.interfaces.*
 import io.mocknest.application.generation.parsers.CompositeSpecificationParserImpl
 import io.mocknest.application.generation.parsers.OpenAPISpecificationParser
-import org.springframework.beans.factory.annotation.Value
+import io.mocknest.application.generation.usecases.*
+import io.mocknest.application.usecase.HandleAIGenerationRequest
+import io.mocknest.application.usecase.HandleTestAgentRequest
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
+import org.springframework.http.HttpStatusCode
+import org.springframework.util.LinkedMultiValueMap
 
 /**
  * Spring configuration for AI-powered mock generation components.
@@ -18,7 +25,7 @@ import org.springframework.context.annotation.Primary
 @Configuration
 @ConditionalOnProperty(name = ["ai.enabled"], havingValue = "true")
 class AIGenerationConfiguration {
-    
+
     /**
      * Bedrock Runtime Client for AI model interactions.
      */
@@ -29,24 +36,101 @@ class AIGenerationConfiguration {
             region = System.getenv("AWS_REGION") ?: "eu-west-1"
         }
     }
-    
+
     /**
      * Primary specification parser that delegates to format-specific parsers.
      */
     @Bean
     @Primary
     fun compositeSpecificationParser(
-        parsers: List<SpecificationParserInterface>
+        parsers: List<SpecificationParserInterface>,
     ): CompositeSpecificationParser {
         return CompositeSpecificationParserImpl(parsers)
     }
-    
+
     /**
      * OpenAPI specification parser.
      */
     @Bean
     fun openApiSpecificationParser(): SpecificationParserInterface {
         return OpenAPISpecificationParser()
+    }
+
+    @Bean
+    fun wireMockMappingGenerator(testDataGenerator: TestDataGeneratorInterface): MockGeneratorInterface {
+        return WireMockMappingGenerator(testDataGenerator)
+    }
+
+    @Bean
+    fun realisticTestDataGenerator(): TestDataGeneratorInterface {
+        return RealisticTestDataGenerator()
+    }
+
+    @Bean
+    fun bedrockServiceAdapter(bedrockClient: BedrockRuntimeClient): AIModelServiceInterface {
+        return BedrockServiceAdapter(bedrockClient)
+    }
+
+    @Bean
+    fun bedrockTestKoogAgent(bedrockClient: BedrockRuntimeClient): TestKoogAgent {
+        return BedrockTestKoogAgent(bedrockClient)
+    }
+
+    @Bean
+    fun mockGenerationFunctionalAgent(
+        aiModelService: AIModelServiceInterface,
+        specificationParser: SpecificationParserInterface,
+        mockGenerator: MockGeneratorInterface,
+        generationStorage: GenerationStorageInterface,
+    ): MockGenerationFunctionalAgent {
+        return MockGenerationFunctionalAgent(aiModelService, specificationParser, mockGenerator, generationStorage)
+    }
+
+    @Bean
+    fun generateMocksFromSpecUseCase(
+        specificationParser: SpecificationParserInterface,
+        mockGenerator: MockGeneratorInterface,
+        generationStorage: GenerationStorageInterface,
+    ): GenerateMocksFromSpecUseCase {
+        return GenerateMocksFromSpecUseCase(specificationParser, mockGenerator, generationStorage)
+    }
+
+    @Bean
+    fun generateMocksFromSpecWithDescriptionUseCase(
+        mockGenerationAgent: MockGenerationFunctionalAgent,
+        generationStorage: GenerationStorageInterface,
+    ): GenerateMocksFromSpecWithDescriptionUseCase {
+        return GenerateMocksFromSpecWithDescriptionUseCase(mockGenerationAgent, generationStorage)
+    }
+
+    @Bean
+    fun generateMocksFromDescriptionUseCase(
+        mockGenerationAgent: MockGenerationFunctionalAgent,
+        generationStorage: GenerationStorageInterface,
+    ): GenerateMocksFromDescriptionUseCase {
+        return GenerateMocksFromDescriptionUseCase(mockGenerationAgent, generationStorage)
+    }
+
+    @Bean
+    fun aiGenerationRequestUseCase(
+        generateFromSpecUseCase: GenerateMocksFromSpecUseCase,
+        generateFromSpecWithDescriptionUseCase: GenerateMocksFromSpecWithDescriptionUseCase,
+        generateFromDescriptionUseCase: GenerateMocksFromDescriptionUseCase,
+        generationStorageInterface: GenerationStorageInterface,
+    ): HandleAIGenerationRequest {
+        return AIGenerationRequestUseCase(
+            generateFromSpecUseCase,
+            generateFromSpecWithDescriptionUseCase,
+            generateFromDescriptionUseCase,
+            generationStorageInterface
+        )
+    }
+
+    @Bean
+    fun testAgentRequestUseCase(
+        testKoogAgent: TestKoogAgent,
+    ): HandleTestAgentRequest {
+        return TestAgentRequestUseCase(testKoogAgent)
     }
 }
 
@@ -55,17 +139,7 @@ class AIGenerationConfiguration {
  */
 @Configuration
 class MockGenerationConfiguration {
-    
-    /**
-     * S3 client for storage operations.
-     */
-    @Bean
-    fun s3Client(): S3Client {
-        return S3Client {
-            region = System.getenv("AWS_REGION") ?: "eu-west-1"
-        }
-    }
-    
+
     /**
      * Fallback specification parser when AI is disabled.
      */
@@ -74,7 +148,7 @@ class MockGenerationConfiguration {
     fun fallbackSpecificationParser(): SpecificationParserInterface {
         return OpenAPISpecificationParser()
     }
-    
+
     /**
      * Fallback composite parser when AI is disabled.
      */
@@ -83,5 +157,29 @@ class MockGenerationConfiguration {
     @Primary
     fun fallbackCompositeSpecificationParser(): CompositeSpecificationParser {
         return CompositeSpecificationParserImpl(listOf(OpenAPISpecificationParser()))
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = ["ai.enabled"], havingValue = "false", matchIfMissing = true)
+    fun disabledAiGenerationRequestUseCase(): HandleAIGenerationRequest {
+        return HandleAIGenerationRequest { _, _ ->
+            io.mocknest.domain.model.HttpResponse(
+                HttpStatusCode.valueOf(403),
+                LinkedMultiValueMap<String, String>().apply { add("Content-Type", "application/json") },
+                "{\"error\": \"AI features are disabled\"}"
+            )
+        }
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = ["ai.enabled"], havingValue = "false", matchIfMissing = true)
+    fun disabledTestAgentRequestUseCase(): HandleTestAgentRequest {
+        return HandleTestAgentRequest { _, _ ->
+            io.mocknest.domain.model.HttpResponse(
+                HttpStatusCode.valueOf(403),
+                LinkedMultiValueMap<String, String>().apply { add("Content-Type", "application/json") },
+                "{\"error\": \"AI features are disabled\"}"
+            )
+        }
     }
 }
