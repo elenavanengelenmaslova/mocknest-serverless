@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.application.interfaces.storage
+package nl.vintik.mocknest.application.core.interfaces.storage
 
 import kotlinx.coroutines.flow.Flow
 

@@ -1,12 +1,12 @@
-package nl.vintik.mocknest.application.wiremock.config
+package nl.vintik.mocknest.application.runtime.config
 
-import nl.vintik.mocknest.application.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.application.wiremock.mappings.CompositeMappingsSource
-import nl.vintik.mocknest.application.wiremock.mappings.ObjectStorageMappingsSource
-import nl.vintik.mocknest.application.wiremock.extensions.DeleteAllMappingsAndFilesFilter
-import nl.vintik.mocknest.application.wiremock.extensions.NormalizeMappingBodyFilter
-import nl.vintik.mocknest.application.wiremock.store.adapters.ObjectStorageBlobStore
-import nl.vintik.mocknest.application.wiremock.store.adapters.ObjectStorageWireMockStores
+import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.application.runtime.mappings.CompositeMappingsSource
+import nl.vintik.mocknest.application.runtime.mappings.ObjectStorageMappingsSource
+import nl.vintik.mocknest.application.runtime.extensions.DeleteAllMappingsAndFilesFilter
+import nl.vintik.mocknest.application.runtime.extensions.NormalizeMappingBodyFilter
+import nl.vintik.mocknest.application.runtime.store.adapters.ObjectStorageBlobStore
+import nl.vintik.mocknest.application.runtime.store.adapters.ObjectStorageWireMockStores
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig

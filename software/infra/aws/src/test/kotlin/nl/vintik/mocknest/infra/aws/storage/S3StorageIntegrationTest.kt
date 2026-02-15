@@ -5,7 +5,7 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.CreateBucketRequest
 import aws.smithy.kotlin.runtime.auth.awscredentials.*
 import aws.smithy.kotlin.runtime.net.url.Url
-import nl.vintik.mocknest.application.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.infra.aws.config.SharedLocalStackContainer
 import nl.vintik.mocknest.infra.aws.config.TEST_REGION
 import kotlinx.coroutines.flow.asFlow

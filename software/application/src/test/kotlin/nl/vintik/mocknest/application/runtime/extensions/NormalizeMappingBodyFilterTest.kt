@@ -1,7 +1,7 @@
-package nl.vintik.mocknest.application.wiremock.extensions
+package nl.vintik.mocknest.application.runtime.extensions
 
-import nl.vintik.mocknest.application.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.application.wiremock.store.adapters.FILES_PREFIX
+import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.application.runtime.store.adapters.FILES_PREFIX
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.tomakehurst.wiremock.http.HttpHeaders
 import com.github.tomakehurst.wiremock.http.ImmutableRequest

@@ -1,6 +1,6 @@
-package nl.vintik.mocknest.application.wiremock.store.adapters
+package nl.vintik.mocknest.application.runtime.store.adapters
 
-import nl.vintik.mocknest.application.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify

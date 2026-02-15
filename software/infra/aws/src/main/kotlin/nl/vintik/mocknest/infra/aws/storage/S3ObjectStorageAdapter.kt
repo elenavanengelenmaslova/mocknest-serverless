@@ -4,7 +4,7 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.*
 import aws.smithy.kotlin.runtime.content.ByteStream
 import aws.smithy.kotlin.runtime.content.toByteArray
-import nl.vintik.mocknest.application.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow

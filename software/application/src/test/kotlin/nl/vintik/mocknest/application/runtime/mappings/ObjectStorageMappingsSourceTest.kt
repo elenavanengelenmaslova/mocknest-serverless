@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.application.wiremock.mappings
+package nl.vintik.mocknest.application.runtime.mappings
 
 import com.github.tomakehurst.wiremock.common.Json
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import nl.vintik.mocknest.application.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 
 class ObjectStorageMappingsSourceTest {
 

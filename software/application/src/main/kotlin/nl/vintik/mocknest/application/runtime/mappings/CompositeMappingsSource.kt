@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.application.wiremock.mappings
+package nl.vintik.mocknest.application.runtime.mappings
 
 import com.github.tomakehurst.wiremock.common.ClasspathFileSource
 import com.github.tomakehurst.wiremock.common.filemaker.FilenameMaker

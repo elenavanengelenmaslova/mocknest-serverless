@@ -1,8 +1,8 @@
-package nl.vintik.mocknest.application.wiremock.extensions
+package nl.vintik.mocknest.application.runtime.extensions
 
-import nl.vintik.mocknest.application.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.application.usecase.mapper
-import nl.vintik.mocknest.application.wiremock.store.adapters.FILES_PREFIX
+import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.application.runtime.usecases.mapper
+import nl.vintik.mocknest.application.runtime.store.adapters.FILES_PREFIX
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.github.tomakehurst.wiremock.extension.requestfilter.AdminRequestFilterV2
 import com.github.tomakehurst.wiremock.extension.requestfilter.RequestFilterAction

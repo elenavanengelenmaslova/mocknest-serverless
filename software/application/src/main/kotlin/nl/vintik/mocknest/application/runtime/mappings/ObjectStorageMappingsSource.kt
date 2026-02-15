@@ -1,6 +1,6 @@
-package nl.vintik.mocknest.application.wiremock.mappings
+package nl.vintik.mocknest.application.runtime.mappings
 
-import nl.vintik.mocknest.application.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import com.github.tomakehurst.wiremock.common.Json
 import com.github.tomakehurst.wiremock.standalone.MappingsSource
 import com.github.tomakehurst.wiremock.stubbing.StubMapping

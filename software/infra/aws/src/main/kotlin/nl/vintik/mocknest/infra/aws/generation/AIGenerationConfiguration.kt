@@ -9,8 +9,8 @@ import nl.vintik.mocknest.application.generation.interfaces.*
 import nl.vintik.mocknest.application.generation.parsers.CompositeSpecificationParserImpl
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
 import nl.vintik.mocknest.application.generation.usecases.*
-import nl.vintik.mocknest.application.usecase.HandleAIGenerationRequest
-import nl.vintik.mocknest.application.usecase.HandleTestAgentRequest
+import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
+import nl.vintik.mocknest.application.runtime.usecases.HandleTestAgentRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean

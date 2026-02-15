@@ -35,7 +35,7 @@ The refactoring will be performed incrementally with validation after each major
     - Commit changes with message: "Rename base package from io.mocknest to nl.vintik.mocknest"
     - _Requirements: 1.6, 1.7, 11.3, 11.4_
 
-- [-] 3. Domain Layer Reorganization by Capability
+- [x] 3. Domain Layer Reorganization by Capability
   - [x] 3.1 Create domain capability packages
     - Create `nl.vintik.mocknest.domain.runtime` package
     - Create `nl.vintik.mocknest.domain.generation` package (already exists)
@@ -48,7 +48,7 @@ The refactoring will be performed incrementally with validation after each major
     - Verify all import statements updated in dependent modules
     - _Requirements: 2.4, 2.6, 6.4_
   
-  - [-] 3.3 Validate domain layer reorganization
+  - [x] 3.3 Validate domain layer reorganization
     - Run `./gradlew :software:domain:build` to verify domain module compiles
     - Run `./gradlew :software:application:build` to verify application module compiles
     - Run `./gradlew :software:infra:aws:build` to verify infra module compiles
@@ -57,26 +57,26 @@ The refactoring will be performed incrementally with validation after each major
     - Commit changes with message: "Organize domain layer by capability"
     - _Requirements: 1.6, 1.7, 2.7, 11.3, 11.4_
 
-- [ ] 4. Application Layer Reorganization by Capability
-  - [ ] 4.1 Create application capability packages
+- [-] 4. Application Layer Reorganization by Capability
+  - [x] 4.1 Create application capability packages
     - Create `nl.vintik.mocknest.application.runtime` package
     - Create `nl.vintik.mocknest.application.generation` package (already exists)
     - Create `nl.vintik.mocknest.application.core` package
     - _Requirements: 3.1, 3.2, 3.4_
   
-  - [ ] 4.2 Move core interfaces
+  - [x] 4.2 Move core interfaces
     - Use IDE "Move Package" to move `application.interfaces.storage` → `application.core.interfaces.storage`
     - Verify ObjectStorageInterface.kt moved correctly
     - Verify all import statements updated in dependent code
     - _Requirements: 3.4, 3.6, 6.4_
   
-  - [ ] 4.3 Move runtime use cases
+  - [x] 4.3 Move runtime use cases
     - Use IDE "Move Package" to move `application.usecase` → `application.runtime.usecases`
     - Verify AdminRequestUseCase.kt, ClientRequestUseCase.kt, HandleRequest.kt moved
     - Verify all import statements updated
     - _Requirements: 3.1, 3.5, 6.1_
   
-  - [ ] 4.4 Move WireMock runtime code
+  - [x] 4.4 Move WireMock runtime code
     - Use IDE "Move Package" to move `application.wiremock.config` → `application.runtime.config`
     - Use IDE "Move Package" to move `application.wiremock.extensions` → `application.runtime.extensions`
     - Use IDE "Move Package" to move `application.wiremock.mappings` → `application.runtime.mappings`
@@ -85,12 +85,12 @@ The refactoring will be performed incrementally with validation after each major
     - Verify all import statements updated
     - _Requirements: 3.1, 3.5, 6.1_
   
-  - [ ] 4.5 Create runtime interfaces package
+  - [x] 4.5 Create runtime interfaces package
     - Create `nl.vintik.mocknest.application.runtime.interfaces` package
     - Add package documentation explaining runtime uses core storage interfaces
     - _Requirements: 3.1, 5.1_
   
-  - [ ] 4.6 Validate application layer reorganization
+  - [-] 4.6 Validate application layer reorganization
     - Run `./gradlew :software:application:build` to verify application module compiles
     - Run `./gradlew :software:infra:aws:build` to verify infra module compiles
     - Run `./gradlew test` to verify all tests pass

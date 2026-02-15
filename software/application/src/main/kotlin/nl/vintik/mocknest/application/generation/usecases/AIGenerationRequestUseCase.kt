@@ -3,7 +3,7 @@ package nl.vintik.mocknest.application.generation.usecases
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.GenerationStorageInterface
-import nl.vintik.mocknest.application.usecase.HandleAIGenerationRequest
+import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.domain.generation.*
 import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse

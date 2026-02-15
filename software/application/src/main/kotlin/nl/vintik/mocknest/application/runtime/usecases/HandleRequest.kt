@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.application.usecase
+package nl.vintik.mocknest.application.runtime.usecases
 
 import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse

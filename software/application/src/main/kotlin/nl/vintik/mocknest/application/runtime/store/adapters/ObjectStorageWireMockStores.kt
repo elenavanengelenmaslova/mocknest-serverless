@@ -1,6 +1,6 @@
-package nl.vintik.mocknest.application.wiremock.store.adapters
+package nl.vintik.mocknest.application.runtime.store.adapters
 
-import nl.vintik.mocknest.application.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import com.github.tomakehurst.wiremock.store.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.util.concurrent.ConcurrentHashMap
