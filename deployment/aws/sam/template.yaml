@@ -188,7 +188,7 @@ Resources:
           AI_ENABLED: !Ref EnableAI
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "router"
-          MAIN_CLASS: "io.mocknest.infra.aws.Application"
+          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.runtime.Application"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
       DeadLetterQueue:
         Type: SQS

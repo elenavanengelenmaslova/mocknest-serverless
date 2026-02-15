@@ -51,6 +51,44 @@ mocknest-serverless/
             └── update-existing-oidc-role.sh // OIDC role update script
 ```
 
+## Package Organization
+
+MockNest Serverless uses `nl.vintik.mocknest` as the base package namespace. Code is organized by capability within each architectural layer to clearly separate functional areas:
+
+### Package Structure by Layer
+
+**Domain Layer** (`nl.vintik.mocknest.domain.*`):
+- `domain.runtime` - Serverless WireMock runtime domain models
+- `domain.generation` - AI-assisted mock generation domain models
+- `domain.analysis` - AI-powered traffic analysis domain models (future)
+- `domain.core` - Shared domain models (HTTP models, etc.)
+
+**Application Layer** (`nl.vintik.mocknest.application.*`):
+- `application.runtime` - WireMock runtime use cases and orchestration
+- `application.generation` - Mock generation use cases and interfaces
+- `application.analysis` - Traffic analysis use cases (future)
+- `application.core` - Shared application logic and generic interfaces
+
+**Infrastructure Layer** (`nl.vintik.mocknest.infra.aws.*`):
+- `infra.aws.runtime` - Runtime AWS adapters (Lambda handlers, Spring config)
+- `infra.aws.runtime.storage` - Runtime-specific S3 adapters (mappings, files)
+- `infra.aws.generation` - Generation AWS adapters
+- `infra.aws.generation.storage` - Generation-specific S3 adapters (specs)
+- `infra.aws.generation.ai` - Generation AI implementations (Bedrock agents)
+- `infra.aws.analysis` - Analysis AWS adapters (future)
+- `infra.aws.core` - Shared AWS infrastructure
+- `infra.aws.core.storage` - Shared S3 configuration
+- `infra.aws.core.ai` - Shared Bedrock configuration
+
+### Package Organization Guidelines
+
+When adding new code:
+- Place capability-specific code in the appropriate capability package (`runtime`, `generation`, `analysis`)
+- Place shared code used across multiple capabilities in `core` packages
+- Maintain clean architecture boundaries: infra → application → domain
+- Keep AWS-specific code in the infrastructure layer only
+- Use sub-packages for storage and AI implementations within capabilities
+
 ## Development Workflow
 
 ### Incremental Feature Development Strategy

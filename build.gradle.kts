@@ -11,7 +11,7 @@ plugins {
 }
 
 allprojects {
-    group = "com.mocknest"
+    group = "nl.vintik.mocknest"
     version = "1.0.0-SNAPSHOT"
 
     repositories {
@@ -113,7 +113,7 @@ kover {
                 excludes {
                     classes(
                         // interfaces
-                        "io.mocknest.*.interfaces.*",
+                        "nl.vintik.mocknest.*.interfaces.*",
 
                         // entry points
                         "*ApplicationKt"
