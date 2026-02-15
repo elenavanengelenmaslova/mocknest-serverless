@@ -57,7 +57,7 @@ The refactoring will be performed incrementally with validation after each major
     - Commit changes with message: "Organize domain layer by capability"
     - _Requirements: 1.6, 1.7, 2.7, 11.3, 11.4_
 
-- [-] 4. Application Layer Reorganization by Capability
+- [x] 4. Application Layer Reorganization by Capability
   - [x] 4.1 Create application capability packages
     - Create `nl.vintik.mocknest.application.runtime` package
     - Create `nl.vintik.mocknest.application.generation` package (already exists)
@@ -90,7 +90,7 @@ The refactoring will be performed incrementally with validation after each major
     - Add package documentation explaining runtime uses core storage interfaces
     - _Requirements: 3.1, 5.1_
   
-  - [-] 4.6 Validate application layer reorganization
+  - [x] 4.6 Validate application layer reorganization
     - Run `./gradlew :software:application:build` to verify application module compiles
     - Run `./gradlew :software:infra:aws:build` to verify infra module compiles
     - Run `./gradlew test` to verify all tests pass
@@ -98,8 +98,8 @@ The refactoring will be performed incrementally with validation after each major
     - Commit changes with message: "Organize application layer by capability"
     - _Requirements: 1.6, 1.7, 3.7, 11.3, 11.4_
 
-- [ ] 5. Infrastructure Layer Reorganization by Capability
-  - [ ] 5.1 Create infrastructure capability packages
+- [-] 5. Infrastructure Layer Reorganization by Capability
+  - [x] 5.1 Create infrastructure capability packages
     - Create `nl.vintik.mocknest.infra.aws.runtime` package
     - Create `nl.vintik.mocknest.infra.aws.generation` package
     - Create `nl.vintik.mocknest.infra.aws.core` package
@@ -109,7 +109,7 @@ The refactoring will be performed incrementally with validation after each major
     - Create `nl.vintik.mocknest.infra.aws.generation.ai` package
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 13.1, 13.2, 14.1, 14.2_
   
-  - [ ] 5.2 Move runtime infrastructure code
+  - [x] 5.2 Move runtime infrastructure code
     - Use IDE "Move Package" to move `infra.aws.config` → `infra.aws.runtime.config`
     - Use IDE "Move Package" to move `infra.aws.function` → `infra.aws.runtime.function`
     - Move `infra.aws.Application.kt` → `infra.aws.runtime.Application.kt`
@@ -117,32 +117,32 @@ The refactoring will be performed incrementally with validation after each major
     - Verify all import statements updated
     - _Requirements: 4.1, 4.5, 6.1_
   
-  - [ ] 5.3 Move core storage configuration
+  - [x] 5.3 Move core storage configuration
     - Move `infra.aws.storage.config.S3Configuration.kt` → `infra.aws.core.storage.config.S3Configuration.kt`
     - Verify this is shared S3 client configuration used by all capabilities
     - Verify all import statements updated
     - _Requirements: 4.4, 13.1, 13.5_
   
-  - [ ] 5.4 Move runtime storage adapter
+  - [x] 5.4 Move runtime storage adapter
     - Move `infra.aws.storage.S3ObjectStorageAdapter.kt` → `infra.aws.runtime.storage.S3ObjectStorageAdapter.kt`
     - Verify this implements ObjectStorageInterface for runtime mappings and files
     - Verify all import statements updated
     - _Requirements: 4.1, 13.2, 13.6_
   
-  - [ ] 5.5 Move core AI configuration
+  - [x] 5.5 Move core AI configuration
     - Move `infra.aws.generation.AIGenerationConfiguration.kt` → `infra.aws.core.ai.AIGenerationConfiguration.kt`
     - Verify this is shared Bedrock client configuration
     - Verify all import statements updated
     - _Requirements: 4.4, 14.1, 14.4, 14.8_
   
-  - [ ] 5.6 Move generation AI implementations
+  - [x] 5.6 Move generation AI implementations
     - Move `infra.aws.generation.BedrockServiceAdapter.kt` → `infra.aws.generation.ai.BedrockServiceAdapter.kt`
     - Move `infra.aws.generation.BedrockTestKoogAgent.kt` → `infra.aws.generation.ai.BedrockTestKoogAgent.kt`
     - Verify these are generation-specific AI implementations
     - Verify all import statements updated
     - _Requirements: 4.2, 14.2, 14.5_
   
-  - [ ] 5.7 Validate infrastructure layer reorganization
+  - [-] 5.7 Validate infrastructure layer reorganization
     - Run `./gradlew :software:infra:aws:build` to verify infra module compiles
     - Run `./gradlew test` to verify all tests pass
     - Verify infra module depends on both application and domain modules
