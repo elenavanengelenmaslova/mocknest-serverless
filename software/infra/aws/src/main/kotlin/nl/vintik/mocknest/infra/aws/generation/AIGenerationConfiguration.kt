@@ -11,6 +11,7 @@ import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationPar
 import nl.vintik.mocknest.application.generation.usecases.*
 import nl.vintik.mocknest.application.usecase.HandleAIGenerationRequest
 import nl.vintik.mocknest.application.usecase.HandleTestAgentRequest
+import nl.vintik.mocknest.domain.core.HttpResponse
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -163,7 +164,7 @@ class MockGenerationConfiguration {
     @ConditionalOnProperty(name = ["ai.enabled"], havingValue = "false", matchIfMissing = true)
     fun disabledAiGenerationRequestUseCase(): HandleAIGenerationRequest {
         return HandleAIGenerationRequest { _, _ ->
-            nl.vintik.mocknest.domain.model.HttpResponse(
+            HttpResponse(
                 HttpStatusCode.valueOf(403),
                 LinkedMultiValueMap<String, String>().apply { add("Content-Type", "application/json") },
                 "{\"error\": \"AI features are disabled\"}"
@@ -175,7 +176,7 @@ class MockGenerationConfiguration {
     @ConditionalOnProperty(name = ["ai.enabled"], havingValue = "false", matchIfMissing = true)
     fun disabledTestAgentRequestUseCase(): HandleTestAgentRequest {
         return HandleTestAgentRequest { _, _ ->
-            nl.vintik.mocknest.domain.model.HttpResponse(
+            HttpResponse(
                 HttpStatusCode.valueOf(403),
                 LinkedMultiValueMap<String, String>().apply { add("Content-Type", "application/json") },
                 "{\"error\": \"AI features are disabled\"}"

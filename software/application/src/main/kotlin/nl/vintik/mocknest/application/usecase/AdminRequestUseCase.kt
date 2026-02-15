@@ -1,7 +1,7 @@
 package nl.vintik.mocknest.application.usecase
 
-import nl.vintik.mocknest.domain.model.HttpRequest
-import nl.vintik.mocknest.domain.model.HttpResponse
+import nl.vintik.mocknest.domain.core.HttpRequest
+import nl.vintik.mocknest.domain.core.HttpResponse
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.tomakehurst.wiremock.direct.DirectCallHttpServer
 import io.github.oshai.kotlinlogging.KotlinLogging

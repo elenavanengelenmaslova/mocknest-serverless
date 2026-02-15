@@ -2,8 +2,8 @@ package nl.vintik.mocknest.infra.aws.function
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
-import nl.vintik.mocknest.domain.model.HttpRequest
-import nl.vintik.mocknest.domain.model.HttpResponse
+import nl.vintik.mocknest.domain.core.HttpRequest
+import nl.vintik.mocknest.domain.core.HttpResponse
 import nl.vintik.mocknest.application.usecase.ADMIN_PREFIX
 import nl.vintik.mocknest.application.usecase.HandleAdminRequest
 import nl.vintik.mocknest.application.usecase.HandleClientRequest

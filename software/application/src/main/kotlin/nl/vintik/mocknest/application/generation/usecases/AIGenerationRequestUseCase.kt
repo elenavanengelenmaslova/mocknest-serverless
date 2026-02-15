@@ -5,8 +5,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.GenerationStorageInterface
 import nl.vintik.mocknest.application.usecase.HandleAIGenerationRequest
 import nl.vintik.mocknest.domain.generation.*
-import nl.vintik.mocknest.domain.model.HttpRequest
-import nl.vintik.mocknest.domain.model.HttpResponse
+import nl.vintik.mocknest.domain.core.HttpRequest
+import nl.vintik.mocknest.domain.core.HttpResponse
 import kotlinx.coroutines.runBlocking
 import org.springframework.http.HttpStatusCode
 import org.springframework.util.LinkedMultiValueMap

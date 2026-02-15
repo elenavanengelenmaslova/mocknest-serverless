@@ -5,8 +5,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.agent.TestKoogAgent
 import nl.vintik.mocknest.application.usecase.HandleTestAgentRequest
 import nl.vintik.mocknest.domain.generation.TestAgentRequest
-import nl.vintik.mocknest.domain.model.HttpRequest
-import nl.vintik.mocknest.domain.model.HttpResponse
+import nl.vintik.mocknest.domain.core.HttpRequest
+import nl.vintik.mocknest.domain.core.HttpResponse
 import kotlinx.coroutines.runBlocking
 import org.springframework.http.HttpStatusCode
 import org.springframework.util.LinkedMultiValueMap

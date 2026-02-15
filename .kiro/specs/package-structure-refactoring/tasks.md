@@ -15,7 +15,7 @@ The refactoring will be performed incrementally with validation after each major
   - Create backup of current state
   - _Requirements: 11.1, 11.7_
 
-- [-] 2. Base Package Rename (io.mocknest → nl.vintik.mocknest)
+- [x] 2. Base Package Rename (io.mocknest → nl.vintik.mocknest)
   - [x] 2.1 Rename base package using IDE refactoring
     - Use IntelliJ IDEA "Rename Package" on `io.mocknest` → `nl.vintik.mocknest`
     - Verify all package declarations updated in all modules
@@ -28,27 +28,27 @@ The refactoring will be performed incrementally with validation after each major
     - Change from `"io.mocknest"` to `"nl.vintik.mocknest"`
     - _Requirements: 8.3_
   
-  - [-] 2.3 Validate base package rename
+  - [x] 2.3 Validate base package rename
     - Run `./gradlew clean build -x test` to verify compilation
     - Run `./gradlew test` to verify all tests pass
     - Review git diff to ensure only package/import changes
     - Commit changes with message: "Rename base package from io.mocknest to nl.vintik.mocknest"
     - _Requirements: 1.6, 1.7, 11.3, 11.4_
 
-- [ ] 3. Domain Layer Reorganization by Capability
-  - [ ] 3.1 Create domain capability packages
+- [-] 3. Domain Layer Reorganization by Capability
+  - [x] 3.1 Create domain capability packages
     - Create `nl.vintik.mocknest.domain.runtime` package
     - Create `nl.vintik.mocknest.domain.generation` package (already exists)
     - Create `nl.vintik.mocknest.domain.core` package
     - _Requirements: 2.1, 2.2, 2.4_
   
-  - [ ] 3.2 Move domain.model to domain.core
+  - [x] 3.2 Move domain.model to domain.core
     - Use IDE "Move Package" to move `domain.model` → `domain.core`
     - Verify HttpRequest.kt and HttpResponse.kt moved correctly
     - Verify all import statements updated in dependent modules
     - _Requirements: 2.4, 2.6, 6.4_
   
-  - [ ] 3.3 Validate domain layer reorganization
+  - [-] 3.3 Validate domain layer reorganization
     - Run `./gradlew :software:domain:build` to verify domain module compiles
     - Run `./gradlew :software:application:build` to verify application module compiles
     - Run `./gradlew :software:infra:aws:build` to verify infra module compiles

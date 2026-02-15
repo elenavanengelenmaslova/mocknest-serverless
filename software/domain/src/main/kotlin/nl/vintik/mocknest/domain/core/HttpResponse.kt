@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.domain.model
+package nl.vintik.mocknest.domain.core
 
 import org.springframework.http.HttpStatusCode
 import org.springframework.util.MultiValueMap
