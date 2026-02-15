@@ -149,7 +149,7 @@ The refactoring will be performed incrementally with validation after each major
     - Commit changes with message: "Organize infrastructure layer by capability with storage and AI sub-packages"
     - _Requirements: 1.6, 1.7, 4.7, 11.3, 11.4_
 
-- [-] 6. Build Configuration Updates
+- [x] 6. Build Configuration Updates
   - [x] 6.1 Update Gradle group property
     - Update `group = "com.mocknest"` → `group = "nl.vintik.mocknest"` in root build.gradle.kts
     - Verify change applied to all subprojects
@@ -160,7 +160,7 @@ The refactoring will be performed incrementally with validation after each major
     - Update any other package-based patterns in build configuration
     - _Requirements: 8.2_
   
-  - [-] 6.3 Validate build configuration
+  - [x] 6.3 Validate build configuration
     - Run `./gradlew clean build` to verify full build succeeds
     - Run `./gradlew test` to verify all tests pass
     - Run `./gradlew shadowJar` to verify Lambda package builds correctly
@@ -169,65 +169,65 @@ The refactoring will be performed incrementally with validation after each major
     - Commit changes with message: "Update build configuration to use nl.vintik.mocknest group"
     - _Requirements: 8.5, 8.6, 8.8, 11.3, 11.4_
 
-- [ ] 7. Documentation Updates
-  - [ ] 7.1 Update README.md
+- [x] 7. Documentation Updates
+  - [x] 7.1 Update README.md
     - Update any package name references in code examples
     - Update any Maven coordinate examples
     - Verify all code snippets use new package names
     - _Requirements: 9.1, 9.4_
   
-  - [ ] 7.2 Update architecture steering document
+  - [x] 7.2 Update architecture steering document
     - Update `.kiro/steering/02-architecture.md` with new package structure
     - Update package structure examples and diagrams
     - Ensure consistency with actual code structure
     - _Requirements: 9.2, 9.3, 9.5, 9.6_
   
-  - [ ] 7.3 Update usage guidelines
+  - [x] 7.3 Update usage guidelines
     - Update `.kiro/steering/05-kiro-usage.md` with new package examples
     - Update any code generation examples
     - Update any package organization guidance
     - _Requirements: 9.2, 9.4_
   
-  - [ ] 7.4 Validate documentation updates
+  - [x] 7.4 Validate documentation updates
     - Review all documentation for consistency
     - Verify no references to old package names remain
     - Commit changes with message: "Update documentation to reflect new package structure"
     - _Requirements: 9.6_
 
-- [ ] 8. SAM Template and Deployment Configuration Updates
-  - [ ] 8.1 Update SAM template handler references
+- [x] 8. SAM Template and Deployment Configuration Updates
+  - [x] 8.1 Update SAM template handler references
     - Update Lambda function handler references in `deployment/aws/sam/template.yaml`
     - Change handler class references from `io.mocknest` to `nl.vintik.mocknest`
     - Verify handler format: `nl.vintik.mocknest.infra.aws.runtime.function.MockNestLambdaHandler`
     - _Requirements: 10.6_
   
-  - [ ] 8.2 Validate SAM template
+  - [x] 8.2 Validate SAM template
     - Run `sam validate` to verify template syntax
     - Review template for any other package references
     - Commit changes with message: "Update SAM template for new package structure"
     - _Requirements: 10.6_
 
-- [ ] 9. Final Validation and Testing
-  - [ ] 9.1 Run comprehensive build
+- [x] 9. Final Validation and Testing
+  - [x] 9.1 Run comprehensive build
     - Run `./gradlew clean build` for full clean build
     - Verify all modules compile successfully
     - Verify no compilation warnings related to imports or packages
     - _Requirements: 1.6, 11.3_
   
-  - [ ] 9.2 Run full test suite
+  - [x] 9.2 Run full test suite
     - Run `./gradlew test` to execute all tests
     - Verify all unit tests pass
     - Verify all integration tests pass
     - Verify no test failures or errors
     - _Requirements: 1.7, 11.4_
   
-  - [ ] 9.3 Run coverage verification
+  - [x] 9.3 Run coverage verification
     - Run `./gradlew koverHtmlReport` to generate coverage report
     - Run `./gradlew koverVerify` to verify 90% threshold
     - Verify coverage meets project standards
     - _Requirements: 0.12_
   
-  - [ ] 9.4 Test Spring Boot application startup
+  - [x] 9.4 Test Spring Boot application startup
     - Start application locally: `./gradlew :software:infra:aws:bootRun`
     - Verify application starts without errors
     - Verify component scanning finds all beans
@@ -235,14 +235,14 @@ The refactoring will be performed incrementally with validation after each major
     - Stop application
     - _Requirements: 0.12, 8.3_
   
-  - [ ] 9.5 Build Lambda deployment package
+  - [x] 9.5 Build Lambda deployment package
     - Run `./gradlew shadowJar` to build Lambda package
     - Verify JAR created in `build/dist/mocknest-serverless-aws.jar`
     - Verify JAR contains correct package structure
     - Inspect JAR manifest for correct main class reference
     - _Requirements: 8.8_
   
-- [ ] 10. Checkpoint - Final Review
+- [x] 10. Checkpoint - Final Review
   - Ensure all validation steps passed
   - Ensure documentation is updated and accurate
   - Ensure no breaking changes to runtime behavior
