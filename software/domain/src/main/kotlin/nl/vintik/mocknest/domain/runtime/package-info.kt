@@ -1,5 +1,5 @@
 /**
- * Domain models for the serverless WireMock runtime capability.
+ * Domain models for the serverless MockNest runtime capability.
  *
  * This package contains business entities and domain rules related to:
  * - WireMock server management

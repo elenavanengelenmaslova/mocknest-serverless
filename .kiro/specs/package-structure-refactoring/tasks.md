@@ -98,7 +98,7 @@ The refactoring will be performed incrementally with validation after each major
     - Commit changes with message: "Organize application layer by capability"
     - _Requirements: 1.6, 1.7, 3.7, 11.3, 11.4_
 
-- [-] 5. Infrastructure Layer Reorganization by Capability
+- [x] 5. Infrastructure Layer Reorganization by Capability
   - [x] 5.1 Create infrastructure capability packages
     - Create `nl.vintik.mocknest.infra.aws.runtime` package
     - Create `nl.vintik.mocknest.infra.aws.generation` package
@@ -142,25 +142,25 @@ The refactoring will be performed incrementally with validation after each major
     - Verify all import statements updated
     - _Requirements: 4.2, 14.2, 14.5_
   
-  - [-] 5.7 Validate infrastructure layer reorganization
+  - [x] 5.7 Validate infrastructure layer reorganization
     - Run `./gradlew :software:infra:aws:build` to verify infra module compiles
     - Run `./gradlew test` to verify all tests pass
     - Verify infra module depends on both application and domain modules
     - Commit changes with message: "Organize infrastructure layer by capability with storage and AI sub-packages"
     - _Requirements: 1.6, 1.7, 4.7, 11.3, 11.4_
 
-- [ ] 6. Build Configuration Updates
-  - [ ] 6.1 Update Gradle group property
+- [-] 6. Build Configuration Updates
+  - [x] 6.1 Update Gradle group property
     - Update `group = "com.mocknest"` → `group = "nl.vintik.mocknest"` in root build.gradle.kts
     - Verify change applied to all subprojects
     - _Requirements: 8.1_
   
-  - [ ] 6.2 Update Kover exclusion patterns
+  - [x] 6.2 Update Kover exclusion patterns
     - Update Kover exclusions from `"io.mocknest.*.interfaces.*"` to `"nl.vintik.mocknest.*.interfaces.*"`
     - Update any other package-based patterns in build configuration
     - _Requirements: 8.2_
   
-  - [ ] 6.3 Validate build configuration
+  - [-] 6.3 Validate build configuration
     - Run `./gradlew clean build` to verify full build succeeds
     - Run `./gradlew test` to verify all tests pass
     - Run `./gradlew shadowJar` to verify Lambda package builds correctly

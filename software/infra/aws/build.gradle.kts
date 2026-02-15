@@ -58,6 +58,7 @@ tasks {
     val shadowJar by getting(ShadowJar::class) {
         archiveFileName.set("mocknest-serverless-aws.jar")
         destinationDirectory.set(file("${project.rootDir}/build/dist"))
+        isZip64 = true
         manifest {
             attributes["Main-Class"] = "org.springframework.cloud.function.adapter.aws.FunctionInvoker"
         }
