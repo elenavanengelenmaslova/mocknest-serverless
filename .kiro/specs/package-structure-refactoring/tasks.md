@@ -8,27 +8,27 @@ The refactoring will be performed incrementally with validation after each major
 
 ## Tasks
 
-- [-] 1. Preparation and Analysis
+- [x] 1. Preparation and Analysis
   - Document current package structure and file locations
   - Identify all files that need to be moved
   - Review code for potential issues (reflection, serialization, string-based references)
   - Create backup of current state
   - _Requirements: 11.1, 11.7_
 
-- [ ] 2. Base Package Rename (io.mocknest → nl.vintik.mocknest)
-  - [ ] 2.1 Rename base package using IDE refactoring
+- [-] 2. Base Package Rename (io.mocknest → nl.vintik.mocknest)
+  - [x] 2.1 Rename base package using IDE refactoring
     - Use IntelliJ IDEA "Rename Package" on `io.mocknest` → `nl.vintik.mocknest`
     - Verify all package declarations updated in all modules
     - Verify all import statements updated in all modules
     - Verify directory structure updated (io/mocknest → nl/vintik/mocknest)
     - _Requirements: 1.1, 1.2, 1.3_
   
-  - [ ] 2.2 Update Spring Boot component scanning
+  - [x] 2.2 Update Spring Boot component scanning
     - Update `@SpringBootApplication(scanBasePackages = ...)` in Application.kt
     - Change from `"io.mocknest"` to `"nl.vintik.mocknest"`
     - _Requirements: 8.3_
   
-  - [ ] 2.3 Validate base package rename
+  - [-] 2.3 Validate base package rename
     - Run `./gradlew clean build -x test` to verify compilation
     - Run `./gradlew test` to verify all tests pass
     - Review git diff to ensure only package/import changes
