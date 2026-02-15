@@ -19,7 +19,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
           
       - name: Run tests with coverage
-        run: ./gradlew test koverHtmlReport koverXmlReport koverVerify
+        run: ./gradlew test koverHtmlReport koverXmlReport koverVerify --stacktrace --info
         
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
