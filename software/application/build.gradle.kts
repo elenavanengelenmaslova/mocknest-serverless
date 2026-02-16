@@ -15,8 +15,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
-    // WireMock
-    implementation("org.wiremock:wiremock-standalone")
+    // WireMock - use shaded Guava, exclude external Guava
+    implementation("org.wiremock:wiremock-standalone") {
+        exclude(group = "com.google.guava", module = "guava")
+    }
 
     // JSON processing
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")

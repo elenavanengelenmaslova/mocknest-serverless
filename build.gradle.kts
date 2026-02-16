@@ -38,7 +38,7 @@ subprojects {
             mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
         }
         dependencies {
-            dependency("org.wiremock:wiremock-standalone:3.13.2")
+            dependency("org.wiremock:wiremock:3.13.2")
             
             // Koog Framework for AI Agents
             val koogVersion = "0.6.2"
