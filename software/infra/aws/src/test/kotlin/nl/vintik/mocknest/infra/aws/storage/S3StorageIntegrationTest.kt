@@ -5,12 +5,12 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.CreateBucketRequest
 import aws.smithy.kotlin.runtime.auth.awscredentials.*
 import aws.smithy.kotlin.runtime.net.url.Url
-import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.infra.aws.config.SharedLocalStackContainer
-import nl.vintik.mocknest.infra.aws.config.TEST_REGION
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.infra.aws.config.SharedLocalStackContainer
+import nl.vintik.mocknest.infra.aws.config.TEST_REGION
 import org.junit.jupiter.api.*
 import org.testcontainers.containers.localstack.LocalStackContainer
 import kotlin.test.assertEquals
@@ -18,7 +18,6 @@ import kotlin.test.assertTrue
 
 internal const val TEST_BUCKET_NAME = "test-bucket"
 
-@Disabled("WIP")
 class S3StorageIntegrationTest {
 
     companion object {

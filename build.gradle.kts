@@ -60,10 +60,11 @@ subprojects {
             dependency("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
             
             // TestContainers
-            val testContainersVersion = "1.20.3"
+            val testContainersVersion = "2.0.3"
+            val testContainersExtensions = "1.21.4"
             dependency("org.testcontainers:testcontainers:$testContainersVersion")
-            dependency("org.testcontainers:junit-jupiter:$testContainersVersion")
-            dependency("org.testcontainers:localstack:$testContainersVersion")
+            dependency("org.testcontainers:junit-jupiter:$testContainersExtensions")
+            dependency("org.testcontainers:localstack:$testContainersExtensions")
 
         }
     }
