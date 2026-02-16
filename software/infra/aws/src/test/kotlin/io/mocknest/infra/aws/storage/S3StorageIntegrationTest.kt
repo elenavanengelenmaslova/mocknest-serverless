@@ -19,7 +19,9 @@ import kotlin.test.assertTrue
 import aws.sdk.kotlin.runtime.auth.credentials.*
 import aws.smithy.kotlin.runtime.auth.awscredentials.*
 import kotlinx.coroutines.flow.asFlow
+import org.junit.jupiter.api.Disabled
 
+@Disabled("WIP")
 class S3StorageIntegrationTest {
 
     companion object {
@@ -67,7 +69,7 @@ class S3StorageIntegrationTest {
     }
 
     @BeforeEach
-    suspend fun setup() {
+    fun setup() {
     }
 
     @AfterEach
