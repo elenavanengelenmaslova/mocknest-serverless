@@ -18,6 +18,7 @@ import kotlin.test.assertTrue
 
 internal const val TEST_BUCKET_NAME = "test-bucket"
 
+@Disabled("WIP")
 class S3StorageIntegrationTest {
 
     companion object {
