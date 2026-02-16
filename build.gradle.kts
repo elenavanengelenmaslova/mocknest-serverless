@@ -32,7 +32,7 @@ subprojects {
     }
 
     // Global dependency management for all modules
-    configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
+    configure<DependencyManagementExtension> {
         imports {
             mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.2")
             mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
@@ -53,10 +53,11 @@ subprojects {
             dependency("com.amazonaws:aws-lambda-java-events:3.14.0")
             
             // TestContainers
-            val testContainersVersion = "1.20.3"
+            val testContainersVersion = "2.0.3"
+            val testContainersExtensions = "1.21.4"
             dependency("org.testcontainers:testcontainers:$testContainersVersion")
-            dependency("org.testcontainers:junit-jupiter:$testContainersVersion")
-            dependency("org.testcontainers:localstack:$testContainersVersion")
+            dependency("org.testcontainers:junit-jupiter:$testContainersExtensions")
+            dependency("org.testcontainers:localstack:$testContainersExtensions")
 
         }
     }
