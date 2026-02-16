@@ -11,12 +11,22 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.ContextConfiguration
+import org.springframework.test.context.TestExecutionListeners
+import org.springframework.test.context.support.DependencyInjectionTestExecutionListener
+import nl.vintik.mocknest.infra.aws.config.TestContextDebugListener
 import kotlin.test.assertEquals
 import kotlin.test.assertContains
 
 @SpringBootTest(classes = [nl.vintik.mocknest.infra.aws.Application::class])
 @TestPropertySource(locations = ["classpath:application-test.properties"])
 @ContextConfiguration(classes = [AwsLocalStackTestConfiguration::class])
+@TestExecutionListeners(
+    listeners = [
+        TestContextDebugListener::class,
+        DependencyInjectionTestExecutionListener::class
+    ],
+    mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS
+)
 class RestApiMockingIntegrationTest {
 
     // Spring Boot will inject the lambda handler
