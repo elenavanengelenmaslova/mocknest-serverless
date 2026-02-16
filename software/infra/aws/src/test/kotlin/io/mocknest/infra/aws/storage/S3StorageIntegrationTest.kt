@@ -1,27 +1,21 @@
 package io.mocknest.infra.aws.storage
 
+import aws.sdk.kotlin.runtime.auth.credentials.StaticCredentialsProvider
+import aws.sdk.kotlin.services.s3.S3Client
+import aws.sdk.kotlin.services.s3.model.CreateBucketRequest
+import aws.smithy.kotlin.runtime.auth.awscredentials.Credentials
+import aws.smithy.kotlin.runtime.net.url.Url
 import io.mocknest.application.interfaces.storage.ObjectStorageInterface
 import io.mocknest.infra.aws.config.AwsConfiguration
 import io.mocknest.infra.aws.config.SharedLocalStackContainer
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import org.testcontainers.containers.localstack.LocalStackContainer
-import aws.sdk.kotlin.services.s3.S3Client
-import aws.sdk.kotlin.services.s3.model.CreateBucketRequest
-import aws.smithy.kotlin.runtime.net.url.Url
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import aws.sdk.kotlin.runtime.auth.credentials.*
-import aws.smithy.kotlin.runtime.auth.awscredentials.*
-import kotlinx.coroutines.flow.asFlow
-import org.junit.jupiter.api.Disabled
 
-@Disabled("WIP")
 class S3StorageIntegrationTest {
 
     companion object {
