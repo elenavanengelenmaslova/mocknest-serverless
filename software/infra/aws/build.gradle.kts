@@ -106,8 +106,6 @@ tasks {
         exclude("META-INF/LICENSE*")
         exclude("META-INF/NOTICE*")
         exclude("META-INF/maven/**")
-        exclude("**/*.kotlin_metadata")
-        exclude("**/*.kotlin_builtins")
         exclude("module-info.class")
         
         // Exclude Swagger UI assets - not needed in Lambda
