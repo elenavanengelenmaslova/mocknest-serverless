@@ -1,46 +1,58 @@
-# Design Document: AI Mock Generation
+# Design Document: AI Mock Generation - Phase 1
 
 ## Overview
 
-The AI Mock Generation feature provides intelligent mock creation capabilities using the Koog framework for AI agent orchestration, Kotlin implementation, and Amazon Bedrock integration. This design implements a clear separation between AI-powered mock generation and standard WireMock operations: AI generates and prepares mocks, users retrieve them, and then create them using standard WireMock admin APIs.
+Phase 1 of the AI Mock Generation feature establishes the foundation for AI-powered mock creation using the Koog 0.6.0 framework, Kotlin implementation, and Amazon Bedrock integration. This phase focuses on validating the Bedrock integration and implementing core OpenAPI-based mock generation.
+
+**Phase 1 Goals:**
+1. **Hello World Endpoint**: Validate Bedrock + Koog integration with simple text processing
+2. **OpenAPI Mock Generation**: Generate WireMock-ready mocks from OpenAPI 3.0 and Swagger 2.0 specifications
+3. **Scenario Coverage**: Generate mocks for happy path, error cases (4xx, 5xx), and edge cases
+4. **Namespace Support**: Organize mocks by API and optional client identifier
+5. **Specification Storage**: Store API specifications for future evolution features
+
+**Deferred to Future Phases:**
+- Mock evolution (detecting API changes and updating mocks)
+- Mock enhancement and refinement using AI
+- Traffic analysis integration
+- GraphQL and WSDL support
+- Batch generation
+- Conversational interfaces (MCP)
 
 ## Architecture
 
-### High-Level Architecture
+### High-Level Architecture - Phase 1
 
 ```mermaid
 flowchart TB
     subgraph Input["Input Sources"]
-        SPEC[API Specifications]
-        DESC[Natural Language Descriptions]
-        EXISTING[Existing Mocks]
+        SPEC[OpenAPI Specifications]
+        TEXT[Text Input - Hello World]
     end
     
-    subgraph APIs["MockNest APIs"]
+    subgraph APIs["MockNest APIs - Phase 1"]
         ADMIN[WireMock Admin API<br/>/__admin/*]
-        AIGEN[AI Generation API<br/>/ai/generation/*]
+        HELLO[Hello World API<br/>/ai/hello]
+        AIGEN[AI Generation API<br/>/ai/generation/from-spec]
     end
     
-    subgraph AIGeneration["AI Mock Generation Engine"]
-        KOOG[Koog Agent Framework 0.6.0]
-        PARSER[Specification Parser]
+    subgraph AIGeneration["AI Mock Generation Engine - Phase 1"]
+        KOOG[Koog Functional Agent 0.6.0]
+        PARSER[OpenAPI Parser Only]
         GENERATOR[Mock Generator]
-        EVOLVER[Mock Evolution Engine]
         
         KOOG --> PARSER
         KOOG --> GENERATOR
-        KOOG --> EVOLVER
     end
     
     subgraph CloudAI["Amazon Bedrock"]
         BEDROCK[Foundation Models]
-        CLAUDE[Claude for Natural Language]
-        TITAN[Titan for Text Generation]
+        CLAUDE[Claude 3 Sonnet]
     end
     
-    subgraph Storage["Storage Layer"]
-        GENSTORE[(Generated Mocks Storage)]
-        SPECSTORE[(Specification Versions)]
+    subgraph Storage["Storage Layer - Phase 1"]
+        GENSTORE[(Generated Mocks)]
+        SPECSTORE[(API Specifications)]
         JOBSTORE[(Generation Jobs)]
         MOCKSTORE[(WireMock Runtime Storage)]
     end
@@ -50,15 +62,14 @@ flowchart TB
         ENDPOINTS[Mock Endpoints]
     end
     
+    TEXT --> HELLO
     SPEC --> AIGEN
-    DESC --> AIGEN
-    EXISTING --> AIGEN
     
+    HELLO --> KOOG
     AIGEN --> KOOG
     KOOG <--> BEDROCK
     GENERATOR --> GENSTORE
     PARSER --> SPECSTORE
-    EVOLVER --> GENSTORE
     
     GENSTORE -.->|User retrieves & creates| ADMIN
     ADMIN --> MOCKSTORE
@@ -66,35 +77,37 @@ flowchart TB
     RUNTIME --> ENDPOINTS
 ```
 
-### Clean Architecture Implementation
+### Clean Architecture Implementation - Phase 1
 
 Following the established clean architecture pattern with strict dependency rules:
 
 **Domain Layer:**
-- `MockGenerationRequest` - Request for generating mocks from specifications or descriptions
+- `MockGenerationRequest` - Request for generating mocks from OpenAPI specifications
 - `GeneratedMock` - Domain model representing a prepared mock before WireMock creation
-- `APISpecification` - Domain model for parsed API specifications
+- `APISpecification` - Domain model for parsed OpenAPI specifications
 - `GenerationJob` - Asynchronous mock generation process
-- `SpecificationDiff` - Comparison between specification versions
+- `MockNamespace` - Organizational structure for grouping mocks
 
 **Application Layer:**
-- `GenerateMocksFromSpecUseCase` - Generate mocks from API specifications only
-- `GenerateMocksFromSpecWithDescriptionUseCase` - Generate mocks from API spec + natural language enhancement
-- `GenerateMocksFromDescriptionUseCase` - Generate mocks from natural language only (via abstraction)
-- `EvolveMocksUseCase` - Update mocks based on specification changes
-- `BatchGenerationUseCase` - Handle multiple specifications in one job
+- `HelloWorldUseCase` - Validate Bedrock integration with simple text processing
+- `GenerateMocksFromSpecUseCase` - Generate mocks from OpenAPI specifications only
 - `KoogMockGenerationAgent` - **Koog 0.6.0 Functional Agent implementation (cloud-independent)**
-- `SpecificationParserInterface` - Abstraction for parsing different spec formats
+- `SpecificationParserInterface` - Abstraction for parsing OpenAPI formats
 - `MockGeneratorInterface` - Abstraction for mock generation logic
 - `AIModelServiceInterface` - **Abstraction for AI model interactions (hides Bedrock)**
 
 **Infrastructure Layer:**
 - `BedrockServiceAdapter` - **Amazon Bedrock integration (implements AIModelServiceInterface)**
-- `OpenAPISpecificationParser` - OpenAPI/Swagger specification parsing
-- `GraphQLSpecificationParser` - GraphQL schema parsing
-- `WSDLSpecificationParser` - SOAP/WSDL specification parsing
+- `OpenAPISpecificationParser` - OpenAPI 3.0 and Swagger 2.0 specification parsing
 - `S3GenerationStorageAdapter` - **Direct S3 storage for application data (specs, jobs, mocks)**
 - `KoogS3PersistenceConfig` - **Koog framework S3 persistence configuration**
+
+**Phase 1 Simplifications:**
+- No mock evolution engine
+- No natural language generation (beyond hello world validation)
+- No GraphQL or WSDL parsers
+- No batch generation
+- Single specification processing only
 
 ### Clean Architecture Dependency Rules
 
@@ -136,143 +149,155 @@ flowchart TB
 
 ## Components and Interfaces
 
-### Core Components
+### Core Components - Phase 1
 
-#### 1. Koog Functional Agent Framework Integration (0.6.0)
+#### 1. Hello World Endpoint (Bedrock Validation)
+
+**Purpose**: Validate that Bedrock integration works correctly through Koog before building complex generation features.
+
+```kotlin
+@Component
+class HelloWorldUseCase(
+    private val aiModelService: AIModelServiceInterface
+) {
+    private val logger = KotlinLogging.logger {}
+    
+    suspend fun invoke(textInput: String): HelloWorldResponse {
+        logger.info { "Processing hello world request with input: ${textInput.take(50)}..." }
+        
+        return runCatching {
+            val response = aiModelService.processHelloWorld(textInput)
+            HelloWorldResponse.success(response)
+        }.onFailure { exception ->
+            logger.error(exception) { "Hello world request failed" }
+        }.getOrElse { exception ->
+            HelloWorldResponse.error("Bedrock service unavailable: ${exception.message}")
+        }
+    }
+}
+
+data class HelloWorldResponse(
+    val success: Boolean,
+    val response: String?,
+    val error: String?
+) {
+    companion object {
+        fun success(response: String) = HelloWorldResponse(true, response, null)
+        fun error(message: String) = HelloWorldResponse(false, null, message)
+    }
+}
+```
+
+#### 2. Koog Functional Agent Framework Integration (0.6.0) - Phase 1
 
 **Agent Type: Functional Agent**
 - **Domain-Specific**: Mock generation is a well-defined functional domain
-- **Tool Coordination**: Orchestrates parsers, generators, and AI services  
-- **Structured I/O**: Takes structured requests, produces structured WireMock JSON
-- **Domain Expertise**: Encapsulates knowledge about API specs and mock generation patterns
+- **Tool Coordination**: Orchestrates parsers and generators
+- **Structured I/O**: Takes OpenAPI specs, produces WireMock JSON
+- **Domain Expertise**: Encapsulates knowledge about OpenAPI and mock generation patterns
 
 ```kotlin
 @Component
 class MockGenerationFunctionalAgent(
-    private val aiModelService: AIModelServiceInterface, // Abstraction - no Bedrock coupling
     private val specificationParser: SpecificationParserInterface,
     private val mockGenerator: MockGeneratorInterface
 ) : FunctionalAgent {
     
     override val domain = "mock-generation"
     override val capabilities = setOf(
-        "parse-api-specifications",
-        "generate-wiremock-mappings", 
-        "natural-language-interpretation",
-        "spec-enhancement"
+        "parse-openapi-specifications",
+        "generate-wiremock-mappings",
+        "scenario-based-generation"
     )
     
     override suspend fun execute(request: AgentRequest): AgentResponse {
         return when (request.type) {
             RequestType.SPECIFICATION_GENERATION -> generateFromSpec(request)
-            RequestType.NATURAL_LANGUAGE_GENERATION -> generateFromDescription(request)
-            RequestType.SPEC_WITH_DESCRIPTION -> generateFromSpecWithDescription(request)
-            RequestType.MOCK_EVOLUTION -> evolveMocks(request)
+            else -> AgentResponse.error("Unsupported request type in Phase 1: ${request.type}")
         }
     }
     
     private suspend fun generateFromSpec(request: AgentRequest): AgentResponse {
-        val specification = specificationParser.parse(request.specificationContent, request.format)
-        val generatedMocks = mockGenerator.generateFromSpecification(specification, request.namespace)
-        return AgentResponse.success(generatedMocks)
-    }
-    
-    private suspend fun generateFromDescription(request: AgentRequest): AgentResponse {
-        // Uses abstraction - doesn't know about Bedrock
-        val generatedMocks = aiModelService.generateMockFromDescription(request.description)
-        return AgentResponse.success(generatedMocks)
-    }
-    
-    private suspend fun generateFromSpecWithDescription(request: AgentRequest): AgentResponse {
-        // Parse specification first
-        val specification = specificationParser.parse(request.specificationContent, request.format)
-        
-        // Use AI service to enhance generation with natural language context
-        val enhancedMocks = aiModelService.generateMockFromSpecWithDescription(
-            specification = specification,
-            description = request.description,
-            namespace = request.namespace
+        val specification = specificationParser.parse(
+            request.specificationContent, 
+            request.format
         )
-        return AgentResponse.success(enhancedMocks)
+        
+        val generatedMocks = mockGenerator.generateFromSpecification(
+            specification = specification,
+            namespace = request.namespace,
+            options = request.options
+        )
+        
+        return AgentResponse.success(generatedMocks)
     }
 }
 ```
 
-**Why Functional Agent is Perfect for Mock Generation:**
-- ✅ **Specific Domain Task**: Mock generation is a well-defined functional domain
-- ✅ **Multi-Service Coordination**: Orchestrates parsers, generators, Bedrock, and storage
-- ✅ **Structured Processing**: Handles API specs and produces WireMock JSON mappings
-- ✅ **Domain Knowledge**: Understands API specification formats and mock generation patterns
-- ✅ **Right Complexity**: More sophisticated than basic agents, simpler than workflow agents
+**Phase 1 Limitations:**
+- Only supports `SPECIFICATION_GENERATION` request type
+- No natural language generation (beyond hello world)
+- No mock evolution or enhancement
+- Single specification processing only
 
-#### 2. Use Case Layer
-The application uses clean architecture with dedicated use cases for different generation scenarios:
+#### 3. Use Case Layer - Phase 1
 
 ```kotlin
 @Component
 class GenerateMocksFromSpecUseCase(
     private val specificationParser: SpecificationParserInterface,
     private val mockGenerator: MockGeneratorInterface,
-    private val generationStorage: GenerationStorageInterface
+    private val generationStorage: GenerationStorageInterface,
+    private val mockGenerationAgent: MockGenerationFunctionalAgent
 ) : GenerateMocksFromSpec {
     
+    private val logger = KotlinLogging.logger {}
+    
     override suspend fun invoke(request: MockGenerationRequest): GenerationResult {
-        val specification = specificationParser.parse(request.specificationContent, request.format)
-        val generatedMocks = mockGenerator.generateFromSpecification(specification, request.namespace)
+        val jobId = request.jobId
+        val namespace = request.namespace
+        
+        logger.info { "Starting mock generation: jobId=$jobId, namespace=$namespace" }
+        
+        // Store the original request for audit/replay
+        generationStorage.storeGenerationRequest(jobId, namespace, request)
+        
+        // Parse specification
+        val specification = specificationParser.parse(
+            request.specificationContent,
+            request.format
+        )
         
         // Store API specification for future evolution if requested
         if (request.options.storeSpecification) {
-            generationStorage.storeSpecification(request.namespace, specification)
+            generationStorage.storeSpecification(
+                namespace = namespace,
+                specification = specification,
+                instructions = request.instructions
+            )
         }
         
-        val jobId = generationStorage.storeGeneratedMocks(generatedMocks, request.jobId)
-        return GenerationResult.success(jobId, generatedMocks.size)
-    }
-}
-
-@Component
-class GenerateMocksFromSpecWithDescriptionUseCase(
-    private val specificationParser: SpecificationParserInterface,
-    private val mockGenerationAgent: MockGenerationFunctionalAgent,
-    private val generationStorage: GenerationStorageInterface
-) : GenerateMocksFromSpecWithDescription {
-    
-    override suspend fun invoke(request: SpecWithDescriptionRequest): GenerationResult {
-        // Use Functional Agent to handle spec + description generation
-        val agentRequest = AgentRequest.specWithDescription(
-            specificationContent = request.specificationContent,
-            format = request.format,
-            description = request.description,
-            namespace = request.namespace
+        // Execute Koog agent (uses its own S3 persistence for state)
+        val agentRequest = AgentRequest.fromSpec(
+            specification = specification,
+            namespace = namespace,
+            options = request.options
         )
         val agentResponse = mockGenerationAgent.execute(agentRequest)
         
-        val jobId = generationStorage.storeGeneratedMocks(agentResponse.mocks, request.jobId)
-        return GenerationResult.success(jobId, agentResponse.mocks.size)
-    }
-}
-
-@Component  
-class GenerateMocksFromDescriptionUseCase(
-    private val mockGenerationAgent: MockGenerationFunctionalAgent,
-    private val generationStorage: GenerationStorageInterface
-) : GenerateMocksFromDescription {
-    
-    override suspend fun invoke(request: NaturalLanguageRequest): GenerationResult {
-        val agentRequest = AgentRequest.naturalLanguage(
-            description = request.description, 
-            namespace = request.namespace,
-            useExistingSpec = request.useExistingSpec
+        // Store generated mocks in application storage
+        generationStorage.storeGeneratedMocks(
+            jobId = jobId,
+            namespace = namespace,
+            mocks = agentResponse.mocks
         )
-        val agentResponse = mockGenerationAgent.execute(agentRequest)
         
-        val jobId = generationStorage.storeGeneratedMocks(agentResponse.mocks, request.jobId)
+        logger.info { "Mock generation completed: jobId=$jobId, mocksGenerated=${agentResponse.mocks.size}" }
+        
         return GenerationResult.success(jobId, agentResponse.mocks.size)
     }
 }
 ```
-
-#### 3. Storage Layer Implementation
 
 The storage layer uses a two-tier approach leveraging both Koog's built-in persistence and direct S3 access:
 
@@ -492,7 +517,8 @@ class GenerateMocksFromSpecUseCase(
 }
 ```
 
-#### 4. Specification Parsing
+#### 4. Specification Parsing - Phase 1 (OpenAPI Only)
+
 ```kotlin
 interface SpecificationParserInterface {
     suspend fun parse(content: String, format: SpecificationFormat): APISpecification
@@ -501,9 +527,23 @@ interface SpecificationParserInterface {
 
 @Component
 class OpenAPISpecificationParser : SpecificationParserInterface {
+    
+    private val logger = KotlinLogging.logger {}
+    
     override suspend fun parse(content: String, format: SpecificationFormat): APISpecification {
-        val openApiSpec = OpenAPIV3Parser().readContents(content)
-        return APISpecification.fromOpenAPI(openApiSpec.openAPI)
+        logger.info { "Parsing OpenAPI specification, format=$format" }
+        
+        return runCatching {
+            val openApiSpec = OpenAPIV3Parser().readContents(content)
+            
+            checkNotNull(openApiSpec.openAPI) { 
+                "Failed to parse OpenAPI specification: ${openApiSpec.messages}" 
+            }
+            
+            APISpecification.fromOpenAPI(openApiSpec.openAPI)
+        }.onFailure { exception ->
+            logger.error(exception) { "OpenAPI parsing failed" }
+        }.getOrThrow()
     }
     
     override fun supports(format: SpecificationFormat): Boolean = 
@@ -511,54 +551,182 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
 }
 ```
 
-#### 5. AI Model Service Abstraction
+**Phase 1 Limitations:**
+- Only OpenAPI 3.0 and Swagger 2.0 support
+- No GraphQL schema parsing
+- No WSDL parsing
+- No composite parser for multiple formats
+
+#### 5. Mock Generation Logic - Phase 1
+
+```kotlin
+interface MockGeneratorInterface {
+    suspend fun generateFromSpecification(
+        specification: APISpecification,
+        namespace: MockNamespace,
+        options: GenerationOptions
+    ): List<GeneratedMock>
+}
+
+@Component
+class WireMockMappingGenerator : MockGeneratorInterface {
+    
+    private val logger = KotlinLogging.logger {}
+    
+    override suspend fun generateFromSpecification(
+        specification: APISpecification,
+        namespace: MockNamespace,
+        options: GenerationOptions
+    ): List<GeneratedMock> {
+        logger.info { "Generating mocks for ${specification.endpoints.size} endpoints" }
+        
+        val mocks = mutableListOf<GeneratedMock>()
+        
+        specification.endpoints.forEach { endpoint ->
+            // Generate happy path mock (2xx)
+            endpoint.responses.filter { it.key in 200..299 }.forEach { (statusCode, response) ->
+                mocks.add(generateMock(endpoint, statusCode, response, namespace, "happy-path"))
+            }
+            
+            // Generate error case mocks if requested
+            if (options.generateErrorCases) {
+                // Client errors (4xx)
+                endpoint.responses.filter { it.key in 400..499 }.forEach { (statusCode, response) ->
+                    mocks.add(generateMock(endpoint, statusCode, response, namespace, "client-error"))
+                }
+                
+                // Server errors (5xx)
+                endpoint.responses.filter { it.key in 500..599 }.forEach { (statusCode, response) ->
+                    mocks.add(generateMock(endpoint, statusCode, response, namespace, "server-error"))
+                }
+            }
+        }
+        
+        logger.info { "Generated ${mocks.size} mocks for namespace=$namespace" }
+        return mocks
+    }
+    
+    private fun generateMock(
+        endpoint: EndpointDefinition,
+        statusCode: Int,
+        response: ResponseDefinition,
+        namespace: MockNamespace,
+        scenario: String
+    ): GeneratedMock {
+        val mockId = generateMockId(endpoint, statusCode, namespace)
+        val wireMockJson = buildWireMockMapping(endpoint, statusCode, response)
+        
+        return GeneratedMock(
+            id = mockId,
+            name = "${endpoint.method} ${endpoint.path} - $statusCode",
+            namespace = namespace,
+            wireMockMapping = wireMockJson,
+            metadata = MockMetadata(
+                sourceType = "SPECIFICATION",
+                scenario = scenario,
+                endpoint = endpoint.path,
+                method = endpoint.method.name,
+                statusCode = statusCode
+            )
+        )
+    }
+    
+    private fun buildWireMockMapping(
+        endpoint: EndpointDefinition,
+        statusCode: Int,
+        response: ResponseDefinition
+    ): String {
+        // Build WireMock JSON format
+        val mapping = mapOf(
+            "request" to mapOf(
+                "method" to endpoint.method.name,
+                "urlPath" to endpoint.path
+            ),
+            "response" to mapOf(
+                "status" to statusCode,
+                "headers" to mapOf("Content-Type" to "application/json"),
+                "body" to generateResponseBody(response)
+            )
+        )
+        
+        return Json.encodeToString(mapping)
+    }
+    
+    private fun generateResponseBody(response: ResponseDefinition): String {
+        // Use example if available, otherwise generate from schema
+        return response.examples.values.firstOrNull()?.toString()
+            ?: generateFromSchema(response.schema)
+    }
+}
+```
+
+#### 6. AI Model Service Abstraction - Phase 1 (Hello World Only)
+
 ```kotlin
 // Application Layer - Abstract Interface
 interface AIModelServiceInterface {
-    suspend fun generateMockFromDescription(description: String): List<GeneratedMock>
-    suspend fun refineMock(existingMock: GeneratedMock, refinementRequest: String): GeneratedMock
-    suspend fun enhanceResponseRealism(mockResponse: String, schema: JsonSchema): String
+    suspend fun processHelloWorld(textInput: String): String
 }
 
 // Infrastructure Layer - Bedrock Implementation (Hidden from Application)
 @Component
 class BedrockServiceAdapter(
-    private val bedrockClient: BedrockRuntimeClient
+    private val bedrockClient: BedrockRuntimeClient,
+    @Value("\${bedrock.model.id:anthropic.claude-3-sonnet-20240229-v1:0}") 
+    private val modelId: String
 ) : AIModelServiceInterface {
     
-    override suspend fun generateMockFromDescription(description: String): List<GeneratedMock> {
-        val request = InvokeModelRequest {
-            modelId = "anthropic.claude-3-sonnet-20240229-v1:0"
-            contentType = "application/json"
-            body = buildClaudePrompt(description).toByteArray()
-        }
+    private val logger = KotlinLogging.logger {}
+    
+    override suspend fun processHelloWorld(textInput: String): String {
+        logger.info { "Processing hello world request with Bedrock" }
         
-        val response = bedrockClient.invokeModel(request)
-        return parseClaudeResponse(response.body)
+        return runCatching {
+            val request = InvokeModelRequest {
+                this.modelId = this@BedrockServiceAdapter.modelId
+                contentType = "application/json"
+                body = buildHelloWorldPrompt(textInput).toByteArray()
+            }
+            
+            val response = bedrockClient.invokeModel(request)
+            parseClaudeResponse(response.body)
+        }.onFailure { exception ->
+            logger.error(exception) { "Bedrock invocation failed" }
+        }.getOrThrow()
     }
     
-    private fun buildClaudePrompt(description: String): String {
-        return """
-        You are an expert API mock generator. Generate WireMock JSON mappings based on this description:
-        
-        Description: $description
-        
-        Requirements:
-        - Generate valid WireMock JSON mapping format
-        - Include realistic response data
-        - Handle appropriate HTTP status codes
-        - Include relevant headers
-        - Ensure response matches described behavior
-        
-        Return only valid JSON in WireMock mapping format.
-        """.trimIndent()
+    private fun buildHelloWorldPrompt(textInput: String): String {
+        return Json.encodeToString(mapOf(
+            "anthropic_version" to "bedrock-2023-05-31",
+            "max_tokens" to 1000,
+            "messages" to listOf(
+                mapOf(
+                    "role" to "user",
+                    "content" to "Echo this message back with a friendly greeting: $textInput"
+                )
+            )
+        ))
+    }
+    
+    private fun parseClaudeResponse(responseBody: ByteArray): String {
+        val json = Json.decodeFromString<Map<String, Any>>(responseBody.decodeToString())
+        val content = json["content"] as? List<*>
+        val firstContent = content?.firstOrNull() as? Map<*, *>
+        return firstContent?.get("text") as? String 
+            ?: throw IllegalStateException("Invalid Claude response format")
     }
 }
 ```
 
+**Phase 1 Limitations:**
+- Only hello world text processing for Bedrock validation
+- No natural language mock generation
+- No mock refinement or enhancement
+- Future phases will expand this interface
+
 ## Data Models
 
-### Domain Models
+### Domain Models - Phase 1
 
 #### Core Generation Models
 ```kotlin
@@ -567,22 +735,13 @@ data class MockGenerationRequest(
     val namespace: MockNamespace,
     val specificationContent: String,
     val format: SpecificationFormat,
-    val instructions: String? = null,        # Optional user instructions for customization
-    val options: GenerationOptions = GenerationOptions.default()
-)
-
-data class NaturalLanguageRequest(
-    val jobId: String = UUID.randomUUID().toString(),
-    val namespace: MockNamespace,
-    val description: String,
-    val useExistingSpec: Boolean = false,    # Use stored API spec as context
-    val context: Map<String, String> = emptyMap(),
+    val instructions: String? = null,        // Optional user instructions for customization
     val options: GenerationOptions = GenerationOptions.default()
 )
 
 data class MockNamespace(
-    val apiName: String,                     # Required: API identifier
-    val client: String? = null              # Optional: Client/tenant identifier
+    val apiName: String,                     // Required: API identifier
+    val client: String? = null              // Optional: Client/tenant identifier
 ) {
     fun toPrefix(): String = when {
         client != null -> "mocknest/$client/$apiName"
@@ -601,17 +760,29 @@ data class GeneratedMock(
     val generatedAt: Instant = Instant.now()
 )
 
+data class MockMetadata(
+    val sourceType: String,                  // "SPECIFICATION" for Phase 1
+    val scenario: String,                    // "happy-path", "client-error", "server-error"
+    val endpoint: String,
+    val method: String,
+    val statusCode: Int
+)
+
 data class GenerationOptions(
     val includeExamples: Boolean = true,
     val generateErrorCases: Boolean = true,
     val realisticData: Boolean = true,
-    val storeSpecification: Boolean = true,  # Store API spec for future use
-    val enhanceExisting: Boolean = false,    # Enhance existing mocks vs create new
-    val preserveCustomizations: Boolean = true
+    val storeSpecification: Boolean = true  // Store API spec for future use
 ) {
     companion object {
         fun default() = GenerationOptions()
     }
+}
+
+enum class SpecificationFormat {
+    OPENAPI_3,
+    SWAGGER_2
+    // Future: GRAPHQL, WSDL
 }
 ```
 
@@ -633,8 +804,7 @@ data class EndpointDefinition(
     val summary: String?,
     val parameters: List<ParameterDefinition>,
     val requestBody: RequestBodyDefinition?,
-    val responses: Map<Int, ResponseDefinition>,
-    val security: List<SecurityRequirement> = emptyList()
+    val responses: Map<Int, ResponseDefinition>
 )
 
 data class ResponseDefinition(
@@ -651,18 +821,12 @@ data class ResponseDefinition(
 data class GenerationJob(
     val id: String,
     val status: JobStatus,
-    val request: GenerationJobRequest,
+    val namespace: MockNamespace,
+    val request: MockGenerationRequest,
     val results: GenerationResults?,
     val createdAt: Instant,
     val completedAt: Instant? = null,
     val error: String? = null
-)
-
-data class GenerationJobRequest(
-    val type: GenerationType,
-    val specifications: List<SpecificationInput> = emptyList(),
-    val descriptions: List<String> = emptyList(),
-    val options: GenerationOptions
 )
 
 data class GenerationResults(
@@ -674,13 +838,21 @@ data class GenerationResults(
 )
 
 enum class JobStatus {
-    PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
+    PENDING, IN_PROGRESS, COMPLETED, FAILED
 }
 
-enum class GenerationType {
-    SPECIFICATION, NATURAL_LANGUAGE, BATCH, EVOLUTION
-}
+data class GenerationError(
+    val endpoint: String?,
+    val message: String,
+    val details: String?
+)
 ```
+
+**Phase 1 Simplifications:**
+- No `SpecificationDiff` model (no evolution)
+- No `NaturalLanguageRequest` model (beyond hello world)
+- No `BatchGenerationRequest` model
+- Simplified `GenerationOptions` without enhancement flags
 
 ### Storage Organization
 
@@ -819,8 +991,8 @@ data class MockNamespace(
 
 MockNest Serverless exposes **two distinct APIs** that work together:
 
-### **1. Standard WireMock Admin API (Existing)**
-The existing WireMock admin API for managing mocks - **completely unchanged**:
+### **1. Standard WireMock Admin API (Existing - Unchanged)**
+The existing WireMock admin API for managing mocks:
 
 ```http
 # Create/Update Mock (Standard WireMock)
@@ -848,7 +1020,145 @@ GET /__admin/mappings
 DELETE /__admin/mappings/{id}
 ```
 
-### **2. AI Generation API (New)**
+### **2. AI Generation API - Phase 1 Endpoints**
+
+#### Hello World Endpoint (Bedrock Validation)
+```http
+POST /ai/hello
+Content-Type: application/json
+
+{
+  "text": "Hello, Bedrock!"
+}
+
+Response:
+{
+  "success": true,
+  "response": "Hello! I received your message: Hello, Bedrock!",
+  "error": null
+}
+```
+
+#### Mock Generation from OpenAPI Specification
+```http
+POST /ai/generation/from-spec
+Content-Type: application/json
+
+{
+  "namespace": {
+    "apiName": "salesforce",
+    "client": "client-a"              // Optional
+  },
+  "specification": "openapi: 3.0.0...",
+  "format": "OPENAPI_3",
+  "instructions": "Focus on error scenarios and include rate limiting examples", // Optional
+  "options": {
+    "includeExamples": true,
+    "generateErrorCases": true,
+    "realisticData": true,
+    "storeSpecification": true        // Store spec for future evolution
+  }
+}
+
+Response:
+{
+  "jobId": "gen-123e4567-e89b-12d3-a456-426614174000",
+  "namespace": "mocknest/client-a/salesforce",
+  "status": "COMPLETED",
+  "mocksGenerated": 15
+}
+```
+
+#### Retrieve Generated Mocks (Ready for WireMock)
+```http
+GET /ai/generation/jobs/{jobId}/mocks
+
+Response:
+{
+  "jobId": "gen-123e4567-e89b-12d3-a456-426614174000",
+  "status": "COMPLETED",
+  "namespace": "mocknest/client-a/salesforce",
+  "results": {
+    "totalGenerated": 15,
+    "successful": 15,
+    "failed": 0,
+    "mocks": [
+      {
+        "id": "mock-users-list-200",
+        "name": "GET /users - 200",
+        "wireMockMapping": "{\"request\":{\"method\":\"GET\",\"urlPath\":\"/users\"},\"response\":{\"status\":200,...}}",
+        "metadata": {
+          "sourceType": "SPECIFICATION",
+          "scenario": "happy-path",
+          "endpoint": "/users",
+          "method": "GET",
+          "statusCode": 200
+        }
+      },
+      {
+        "id": "mock-users-list-404",
+        "name": "GET /users - 404",
+        "wireMockMapping": "{\"request\":{\"method\":\"GET\",\"urlPath\":\"/users\"},\"response\":{\"status\":404,...}}",
+        "metadata": {
+          "sourceType": "SPECIFICATION",
+          "scenario": "client-error",
+          "endpoint": "/users",
+          "method": "GET",
+          "statusCode": 404
+        }
+      }
+    ]
+  }
+}
+```
+
+### **Phase 1 Workflow Example**
+
+```bash
+# Step 1: Validate Bedrock integration (Hello World)
+curl -X POST /ai/hello \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Testing Bedrock connection"}'
+# Returns: {"success": true, "response": "Hello! I received your message..."}
+
+# Step 2: Generate mocks from OpenAPI spec with namespace (AI Generation API)
+curl -X POST /ai/generation/from-spec \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": {"apiName": "salesforce", "client": "client-a"},
+    "specification": "openapi: 3.0.0...", 
+    "format": "OPENAPI_3",
+    "options": {"storeSpecification": true, "generateErrorCases": true}
+  }'
+# Returns: {"jobId": "gen-123", "namespace": "mocknest/client-a/salesforce", "status": "COMPLETED"}
+
+# Step 3: Retrieve generated mocks (AI Generation API)  
+curl /ai/generation/jobs/gen-123/mocks
+# Returns: {"mocks": [{"wireMockMapping": "{...WireMock JSON...}"}]}
+
+# Step 4: Create selected mocks in WireMock (Standard Admin API)
+curl -X POST /__admin/mappings \
+  -H "Content-Type: application/json" \
+  -d '{"request":{"method":"GET","urlPath":"/users"},"response":{"status":200,...}}'
+# Mocks created and ready to use
+
+# Step 5: Use mocks normally (Standard WireMock)
+curl /users  # Returns mocked response
+```
+
+### **Key Design Principles**
+
+1. **Complete Separation**: AI generation API is independent of WireMock admin API
+2. **Standard Integration**: Generated mocks use standard WireMock JSON format
+3. **User Control**: Users can review, edit, and selectively create generated mocks
+4. **No Lock-in**: Generated mocks are standard WireMock mappings
+5. **Flexible Workflow**: Users can modify generated mocks before creating them
+
+**Phase 1 Limitations:**
+- No natural language generation endpoint (beyond hello world)
+- No batch generation endpoint
+- No mock evolution endpoint
+- No mock enhancement endpointon API (New)**
 New AI-powered endpoints for generating mocks at `/ai/generation/*`:
 
 #### Mock Generation from Specifications with Namespace and Instructions
@@ -1026,102 +1336,125 @@ Content-Type: application/json
 
 *A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
-### Property 1: Specification Parsing Completeness
-*For any* valid API specification in supported formats, the parser should extract all endpoint definitions and generate corresponding mock mappings without data loss
-**Validates: Requirements 1.1, 1.2**
+### Property 1: Hello World Bedrock Integration
+*For any* text input to the hello world endpoint, the system should successfully communicate with Bedrock and return a response or clear error message
+**Validates: Requirements 1.1, 1.2, 1.3**
 
-### Property 2: Generated Mock Validity
-*For any* generated mock, the WireMock mapping should be syntactically valid and executable by the WireMock runtime
-**Validates: Requirements 1.3, 2.3**
+### Property 2: OpenAPI Parsing Completeness
+*For any* valid OpenAPI 3.0 or Swagger 2.0 specification, the parser should extract all endpoint definitions without data loss
+**Validates: Requirements 2.1, 2.2, 2.3**
 
-### Property 3: Schema Compliance
-*For any* generated mock response, the response structure should comply with the schema definitions from the source API specification
-**Validates: Requirements 1.2, 1.4**
+### Property 3: Generated Mock Validity
+*For any* generated mock, the WireMock mapping should be syntactically valid JSON and executable by the WireMock runtime
+**Validates: Requirements 3.1, 3.5**
 
-### Property 4: Natural Language Interpretation Consistency
-*For any* natural language description processed via Bedrock, the generated mocks should accurately reflect the described behavior and include appropriate error handling
-**Validates: Requirements 2.1, 2.2, 2.4**
+### Property 4: Schema Compliance
+*For any* generated mock response, the response structure should comply with the schema definitions from the source OpenAPI specification
+**Validates: Requirements 3.2**
 
-### Property 5: Batch Generation Isolation
-*For any* batch generation job with multiple specifications, naming conflicts should be resolved consistently and failures in individual specifications should not affect others
-**Validates: Requirements 4.2, 4.3**
+### Property 5: Scenario Coverage
+*For any* OpenAPI specification with multiple response status codes, the generator should create separate mocks for happy path (2xx), client errors (4xx), and server errors (5xx) when error generation is enabled
+**Validates: Requirements 7.1, 7.2, 7.3, 7.4**
 
-### Property 6: Specification Change Detection Accuracy
-*For any* two versions of an API specification, the diff detection should accurately identify all added, modified, and removed endpoints
-**Validates: Requirements 3.1, 3.2**
+### Property 6: Namespace Isolation
+*For any* two different namespaces, generated mocks should be stored in separate storage paths without collision
+**Validates: Requirements 4.1, 4.2, 4.3, 4.5**
 
-### Property 7: Mock Evolution Preservation
-*For any* mock evolution process, existing customizations should be preserved when possible and conflicts should be clearly reported
-**Validates: Requirements 3.4, 5.5**
+### Property 7: Specification Storage Persistence
+*For any* generation request with storeSpecification enabled, the API specification should be persistently stored and retrievable with version information
+**Validates: Requirements 5.1, 5.2, 5.3, 5.4**
 
-### Property 8: Generation Job Persistence
-*For any* generation job, the job status, results, and generated mocks should be persistently stored and retrievable until explicitly deleted
-**Validates: Requirements 6.1, 6.3**
+### Property 8: Generation Job Tracking
+*For any* generation job, the job status and results should be persistently stored and retrievable until explicitly deleted
+**Validates: Requirements 6.1, 6.2, 6.3, 6.4**
 
-### Property 9: Bedrock Integration Resilience
-*For any* Bedrock service interaction, failures should be handled gracefully with appropriate fallbacks and error messages
-**Validates: Requirements 2.5, 5.5**
+### Property 9: Example Response Preservation
+*For any* OpenAPI specification with example responses, those examples should be used as mock response templates in generated mocks
+**Validates: Requirements 2.4, 3.2**
 
-### Property 10: Multi-Format Support Consistency
-*For any* supported specification format (OpenAPI, GraphQL, WSDL), the generation process should produce equivalent mock quality and coverage
-**Validates: Requirements 7.1, 8.1**
+### Property 10: Error Handling Resilience
+*For any* invalid OpenAPI specification, the parser should return detailed validation errors without crashing the system
+**Validates: Requirements 2.5, 6.5**
+
+**Deferred to Future Phases:**
+- Mock evolution properties (specification change detection)
+- Natural language interpretation properties
+- Batch generation properties
+- Mock enhancement properties
 
 ## Error Handling
 
-### Specification Parsing Errors
-- **Invalid Format**: Clear error messages indicating specific format issues
+### Specification Parsing Errors - Phase 1
+- **Invalid OpenAPI Format**: Clear error messages indicating specific format issues with line numbers
 - **Missing Required Fields**: Detailed validation errors with field-level guidance
-- **Schema Resolution**: Handle external schema references with appropriate fallbacks
+- **Unsupported Version**: Clear message indicating only OpenAPI 3.0 and Swagger 2.0 are supported in Phase 1
 
-### Bedrock Integration Errors
-- **Service Unavailable**: Graceful degradation with local generation fallbacks
-- **Rate Limiting**: Implement exponential backoff and queue management
-- **Invalid Responses**: Validate and sanitize AI-generated content
+### Bedrock Integration Errors - Phase 1
+- **Service Unavailable**: Return clear error message indicating Bedrock is not available
+- **Invalid Model Response**: Validate and handle malformed responses from Claude
+- **Timeout Handling**: Configurable timeouts with appropriate error messages
 
-### Generation Process Errors
-- **Memory Limits**: Stream processing for large specifications
-- **Timeout Handling**: Configurable timeouts with partial result recovery
-- **Concurrent Processing**: Handle race conditions in batch generation
+### Generation Process Errors - Phase 1
+- **Memory Limits**: Handle large specifications gracefully with appropriate error messages
+- **Invalid Schema**: Handle specifications with invalid or missing schemas
+- **Storage Failures**: Retry logic for S3 operations with exponential backoff
 
 ## Testing Strategy
 
-### Unit Testing
-- Test specification parsers with various valid and invalid inputs
-- Test mock generators with different endpoint configurations
-- Test Bedrock integration with mock responses
+### Unit Testing - Phase 1
+- Test hello world endpoint with various text inputs
+- Test OpenAPI parser with valid and invalid specifications
+- Test mock generator with different endpoint configurations
+- Test namespace path generation and collision prevention
 - Test error handling scenarios with fault injection
 
-### Property-Based Testing
+### Property-Based Testing - Phase 1
 Property-based tests will be implemented using Kotest Property Testing framework, with each test running a minimum of 100 iterations.
 
 Each property-based test will be tagged with comments referencing the design document property:
 
 ```kotlin
-// **Feature: ai-mock-generation, Property 1: Specification Parsing Completeness**
+// **Feature: ai-mock-generation, Property 2: OpenAPI Parsing Completeness**
 @Test
-fun `specification parsing preserves all endpoint information`() = runTest {
+suspend fun `openapi parsing preserves all endpoint information`() {
     checkAll<OpenAPISpecification> { spec ->
         val parsed = parser.parse(spec.toJson(), SpecificationFormat.OPENAPI_3)
         parsed.endpoints.size shouldBe spec.paths.size
     }
 }
+
+// **Feature: ai-mock-generation, Property 3: Generated Mock Validity**
+@Test
+suspend fun `generated mocks are valid wiremock json`() {
+    checkAll<APISpecification> { spec ->
+        val mocks = generator.generateFromSpecification(spec, testNamespace, defaultOptions)
+        mocks.forEach { mock ->
+            // Should parse as valid JSON
+            Json.parseToJsonElement(mock.wireMockMapping)
+            // Should contain required WireMock fields
+            mock.wireMockMapping shouldContain "request"
+            mock.wireMockMapping shouldContain "response"
+        }
+    }
+}
 ```
 
-### Integration Testing
-- Use TestContainers with LocalStack for S3 and Bedrock testing
-- Test complete generation workflows with real specifications
+### Integration Testing - Phase 1
+- Use TestContainers with LocalStack for S3 testing
+- Test complete generation workflows with real OpenAPI specifications
 - Test Koog agent orchestration with mock Bedrock responses
 - Validate generated mocks work with actual WireMock runtime
+- Test hello world endpoint with actual Bedrock integration
 
-### Performance Testing
+### Performance Testing - Phase 1
 - Measure generation times for various specification sizes
-- Test concurrent generation job handling
-- Validate memory usage with large batch operations
-- Test Bedrock API rate limiting and retry behavior
+- Test memory usage with large specifications
+- Validate S3 storage operations performance
+- Test Bedrock API latency and timeout handling
 
 ## Deployment Considerations
 
-### Koog Framework Integration
+### Koog Framework Integration - Phase 1
 ```yaml
 Dependencies:
   - koog-core: 0.6.0
@@ -1131,60 +1464,78 @@ Dependencies:
 
 Configuration:
   - Functional Agent registration with Koog runtime
-  - Agent domain and capabilities definition
-  - Bedrock model configuration
-  - Generation job queue management
+  - Agent domain: "mock-generation"
+  - Capabilities: parse-openapi, generate-wiremock, scenario-generation
+  - Bedrock model configuration for hello world validation
 ```
 
-### AWS Bedrock Configuration
+### AWS Bedrock Configuration - Phase 1
 ```yaml
 Required Models:
-  - anthropic.claude-3-sonnet-20240229-v1:0 (Natural language generation)
-  - amazon.titan-text-express-v1 (Text enhancement)
+  - anthropic.claude-3-sonnet-20240229-v1:0 (Hello world validation only)
 
 IAM Permissions:
   - bedrock:InvokeModel
   - bedrock:ListFoundationModels
-  - bedrock:GetModelInvocationLoggingConfiguration
+
+Phase 1 Usage:
+  - Hello world endpoint only
+  - No natural language mock generation yet
+  - Future phases will expand Bedrock usage
 ```
 
-### Resource Scaling
-- **Lambda Memory**: 2048MB minimum for Koog agent processing
-- **Timeout**: 15 minutes for complex batch generation
-- **Concurrency**: Configurable based on Bedrock quotas
+### Resource Scaling - Phase 1
+- **Lambda Memory**: 1024MB minimum for OpenAPI parsing and generation
+- **Timeout**: 5 minutes for specification processing
+- **Concurrency**: Start with default, monitor usage
 - **Storage**: Separate S3 prefix for generation artifacts
 
 ## Security Considerations
 
-### API Specification Security
-- **Sanitization**: Remove sensitive data from specifications before processing
-- **Validation**: Strict input validation for all specification formats
-- **Access Control**: Role-based access to generation endpoints
+### API Specification Security - Phase 1
+- **Sanitization**: Remove sensitive data from specifications before storage
+- **Validation**: Strict input validation for OpenAPI format
+- **Access Control**: API key-based access to generation endpoints
 
-### Bedrock Integration Security
-- **Model Access**: Restrict to approved foundation models only
-- **Prompt Injection**: Sanitize natural language inputs
-- **Response Validation**: Validate AI-generated content before storage
+### Bedrock Integration Security - Phase 1
+- **Model Access**: Restrict to Claude 3 Sonnet only
+- **Input Validation**: Sanitize text inputs for hello world endpoint
+- **Response Validation**: Validate Bedrock responses before returning
 
-### Generated Mock Security
-- **Content Filtering**: Remove potentially sensitive generated data
-- **Access Isolation**: Separate storage per user/tenant
+### Generated Mock Security - Phase 1
+- **Content Filtering**: Basic validation of generated mock content
+- **Namespace Isolation**: Separate storage per namespace
 - **Audit Logging**: Track all generation activities
 
 ## Monitoring and Observability
 
-### Generation Metrics
-- **Success Rate**: Percentage of successful generations per specification type
+### Generation Metrics - Phase 1
+- **Success Rate**: Percentage of successful generations
 - **Processing Time**: Average generation time by specification size
-- **Bedrock Usage**: API calls, tokens consumed, cost tracking
+- **Bedrock Usage**: Hello world endpoint usage tracking
 - **Error Rate**: Failed generations by error type
 
-### Koog Agent Monitoring
-- **Agent Health**: Koog framework health and performance metrics
-- **Job Queue**: Pending, processing, and completed job counts
-- **Resource Usage**: Memory and CPU utilization during generation
+### Business Metrics - Phase 1
+- **Adoption**: Number of specifications processed
+- **Namespace Usage**: Number of unique namespaces created
+- **Mock Volume**: Total mocks generated over time
 
-### Business Metrics
-- **Adoption**: Number of specifications processed over time
-- **Usage Patterns**: Most common generation types and options
-- **Quality**: User feedback on generated mock accuracy
+## Future Phase Enhancements
+
+The following features are explicitly deferred to future phases:
+
+### Future Phase 2: Mock Evolution
+- Specification change detection and diff generation
+- Automated mock update suggestions
+- Version comparison and rollback capabilities
+
+### Future Phase 3: AI-Powered Enhancement
+- Natural language mock generation using Bedrock
+- Mock refinement and improvement suggestions
+- Response realism enhancement
+
+### Future Phase 4: Advanced Features
+- GraphQL and WSDL support
+- Batch generation for multiple specifications
+- Traffic analysis integration
+- Conversational interfaces (MCP)
