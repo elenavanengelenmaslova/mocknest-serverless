@@ -16,6 +16,3 @@ s3_bucket = "lambda-deployment-clean-architecture-example"
 s3_prefix = "mocknest-serverless"
 region = "eu-west-1"
 image_repositories = []
-parameter_overrides = [
-  "EnableAI=false"
-]

@@ -21,17 +21,15 @@ import org.springframework.util.LinkedMultiValueMap
 
 /**
  * Spring configuration for AI-powered mock generation components.
- * Conditionally enables AI features based on configuration.
+ * AI features are always enabled.
  */
 @Configuration
-@ConditionalOnProperty(name = ["ai.enabled"], havingValue = "true")
 class AIGenerationConfiguration {
 
     /**
      * Bedrock Runtime Client for AI model interactions.
      */
     @Bean
-    @ConditionalOnProperty(name = ["ai.enabled"], havingValue = "true")
     fun bedrockRuntimeClient(): BedrockRuntimeClient {
         return BedrockRuntimeClient {
             region = System.getenv("AWS_REGION") ?: "eu-west-1"

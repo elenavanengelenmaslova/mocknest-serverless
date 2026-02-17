@@ -3,12 +3,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: MockNest Serverless - AWS-native serverless mock runtime
 
 Parameters:
-  EnableAI:
-    Type: String
-    Default: 'false'
-    AllowedValues: ['true', 'false']
-    Description: Enable AI-assisted mock generation features
-
   StageName:
     Type: String
     Default: 'v1'
@@ -37,7 +31,6 @@ Parameters:
 
 Conditions:
   HasCustomBucketName: !Not [!Equals [!Ref BucketName, '']]
-  IsAIEnabled: !Equals [!Ref EnableAI, 'true']
 
 Globals:
   Function:
@@ -112,22 +105,19 @@ Resources:
                   - sqs:SendMessage
                 Resource: !GetAtt MockNestDLQ.Arn
 
-        - !If
-          - IsAIEnabled
-          - PolicyName: MockNestBedrockAccess
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - bedrock:InvokeModel
-                    - bedrock:InvokeModelWithResponseStream
-                    - bedrock:ListFoundationModels
-                  Resource: "*"
-                  Condition:
-                    StringEquals:
-                      "aws:RequestedRegion": !Ref "AWS::Region"
-          - !Ref "AWS::NoValue"
+        - PolicyName: MockNestBedrockAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                  - bedrock:ListFoundationModels
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    "aws:RequestedRegion": !Ref "AWS::Region"
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -185,7 +175,6 @@ Resources:
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
-          AI_ENABLED: !Ref EnableAI
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "router"
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.Application"
