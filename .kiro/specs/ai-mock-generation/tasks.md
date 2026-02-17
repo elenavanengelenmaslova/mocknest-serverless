@@ -318,28 +318,42 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - _Requirements: API routing_
   - _Note: Using catch-all proxy routes, specific routes handled by Spring routing_
 
-- [ ] 11. Add comprehensive testing
-  - Write unit tests for all use cases and domain logic
-  - Write integration tests with LocalStack and mock Bedrock
-  - Write property-based tests for generation consistency
-  - _Requirements: Testing strategy_
+- [ ] 11. Achieve 90% test coverage with comprehensive unit and integration tests
+  - Write unit tests for all use cases, domain logic, and components
+  - Write integration tests with TestContainers (LocalStack for S3, mock Bedrock)
+  - Use Kover to measure and verify 90% aggregated code coverage
+  - Focus on integration tests over artificial per-module coverage
+  - _Requirements: Testing strategy, 90% coverage target_
 
-- [ ]* 11.1 Unit tests
-  - Test hello world use case
-  - Test OpenAPI parser
-  - Test mock generator
-  - Test Functional Agent
-  - Test storage adapter
-  - _Requirements: Unit testing_
+- [ ] 11.1 Unit tests for core components
+  - Test TestAgentRequestUseCase (hello world functionality)
+  - Test OpenAPISpecificationParser with valid/invalid specs
+  - Test WireMockMappingGenerator for all scenarios
+  - Test RealisticTestDataGenerator for schema-based data generation
+  - Test MockGenerationFunctionalAgent request handling
+  - Test S3GenerationStorageAdapter methods
+  - Test GenerateMocksFromSpecUseCase workflow orchestration
+  - _Requirements: Unit testing, code coverage_
 
-- [ ]* 11.2 Integration tests
-  - Test complete generation workflows with TestContainers
-  - Test S3 storage with LocalStack
-  - Test Bedrock integration with mock responses
-  - Test generated mocks with WireMock runtime
-  - _Requirements: Integration testing_
+- [ ] 11.2 Integration tests with TestContainers
+  - Set up LocalStack container for S3 testing with proper lifecycle management
+  - Test complete generation workflow: spec upload → parse → generate → store → retrieve
+  - Test S3 storage operations with real S3 client against LocalStack
+  - Test namespace isolation in storage
+  - Test generated mocks can be loaded by WireMock runtime
+  - Test error scenarios: invalid specs, storage failures, parsing errors
+  - Use @BeforeAll/@AfterAll for container setup, @BeforeEach/@AfterEach for data cleanup
+  - _Requirements: Integration testing, TestContainers, LocalStack_
 
-- [ ]* 11.3 Property-based tests
+- [ ] 11.3 Verify 90% coverage target
+  - Run `./gradlew koverHtmlReport` to generate coverage report
+  - Run `./gradlew koverVerify` to enforce 90% threshold
+  - Review coverage report and identify gaps
+  - Add targeted tests for uncovered code paths
+  - Ensure aggregated project-level coverage meets 90% target
+  - _Requirements: Code coverage verification_
+
+- [ ]* 11.4 Property-based tests (optional but recommended)
   - **Property 2**: OpenAPI parsing completeness
   - **Property 3**: Generated mock validity
   - **Property 4**: Schema compliance

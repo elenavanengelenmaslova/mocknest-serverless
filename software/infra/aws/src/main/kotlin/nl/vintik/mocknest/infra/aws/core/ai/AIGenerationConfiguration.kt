@@ -11,13 +11,9 @@ import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationPar
 import nl.vintik.mocknest.application.generation.usecases.*
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.application.runtime.usecases.HandleTestAgentRequest
-import nl.vintik.mocknest.domain.core.HttpResponse
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
-import org.springframework.http.HttpStatusCode
-import org.springframework.util.LinkedMultiValueMap
 
 /**
  * Spring configuration for AI-powered mock generation components.
@@ -130,55 +126,5 @@ class AIGenerationConfiguration {
         testKoogAgent: TestKoogAgent,
     ): HandleTestAgentRequest {
         return TestAgentRequestUseCase(testKoogAgent)
-    }
-}
-
-/**
- * Base configuration for mock generation components (always enabled).
- */
-@Configuration
-class MockGenerationConfiguration {
-
-    /**
-     * Fallback specification parser when AI is disabled.
-     */
-    @Bean
-    @ConditionalOnProperty(name = ["ai.enabled"], havingValue = "false", matchIfMissing = true)
-    fun fallbackSpecificationParser(): SpecificationParserInterface {
-        return OpenAPISpecificationParser()
-    }
-
-    /**
-     * Fallback composite parser when AI is disabled.
-     */
-    @Bean
-    @ConditionalOnProperty(name = ["ai.enabled"], havingValue = "false", matchIfMissing = true)
-    @Primary
-    fun fallbackCompositeSpecificationParser(): CompositeSpecificationParser {
-        return CompositeSpecificationParserImpl(listOf(OpenAPISpecificationParser()))
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = ["ai.enabled"], havingValue = "false", matchIfMissing = true)
-    fun disabledAiGenerationRequestUseCase(): HandleAIGenerationRequest {
-        return HandleAIGenerationRequest { _, _ ->
-            HttpResponse(
-                HttpStatusCode.valueOf(403),
-                LinkedMultiValueMap<String, String>().apply { add("Content-Type", "application/json") },
-                "{\"error\": \"AI features are disabled\"}"
-            )
-        }
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = ["ai.enabled"], havingValue = "false", matchIfMissing = true)
-    fun disabledTestAgentRequestUseCase(): HandleTestAgentRequest {
-        return HandleTestAgentRequest { _, _ ->
-            HttpResponse(
-                HttpStatusCode.valueOf(403),
-                LinkedMultiValueMap<String, String>().apply { add("Content-Type", "application/json") },
-                "{\"error\": \"AI features are disabled\"}"
-            )
-        }
     }
 }

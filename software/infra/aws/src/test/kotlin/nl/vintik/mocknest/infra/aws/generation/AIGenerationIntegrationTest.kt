@@ -20,7 +20,6 @@ import kotlin.test.assertTrue
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = [
-    "ai.enabled=false", // Disable AI for basic integration test
     "storage.bucket.name=test-bucket"
 ])
 @Testcontainers
