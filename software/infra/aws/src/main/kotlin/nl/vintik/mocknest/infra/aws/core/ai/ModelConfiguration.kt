@@ -21,7 +21,7 @@ private val logger = KotlinLogging.logger {}
  */
 @Component
 class ModelConfiguration(
-    @param:Value("\${bedrock.model.name:AnthropicClaude35SonnetV2}")
+    @param:Value($$"${bedrock.model.name:AnthropicClaude35SonnetV2}")
     private val modelName: String
 ) {
     

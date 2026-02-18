@@ -17,15 +17,15 @@ class ModelConfigurationTest {
         properties = ["bedrock.model.name=AnthropicClaude35SonnetV2"]
     )
     @Nested
-    inner class `Valid Model Name Mapping` {
-        @Value("\${bedrock.model.name}")
+    inner class ValidModelNameMapping {
+        @Value($$"${bedrock.model.name}")
         lateinit var modelName: String
 
         @Test
         suspend fun `Given Claude 3-5 Sonnet v2 model name When getting Bedrock model Then should return AnthropicClaude35SonnetV2`() {
             val config = ModelConfiguration(modelName)
             val model = config.getBedrockModel()
-            
+
             assertEquals(BedrockModels.AnthropicClaude35SonnetV2, model)
             assertEquals("AnthropicClaude35SonnetV2", config.getModelName())
         }
@@ -36,15 +36,15 @@ class ModelConfigurationTest {
         properties = ["bedrock.model.name=AnthropicClaude4_5Sonnet"]
     )
     @Nested
-    inner class `Valid Claude Sonnet Model` {
-        @Value("\${bedrock.model.name}")
+    inner class ValidClaudeSonnetModel {
+        @Value($$"${bedrock.model.name}")
         lateinit var modelName: String
 
         @Test
         suspend fun `Given Claude 4-5 Sonnet model name When getting Bedrock model Then should return AnthropicClaude4_5Sonnet`() {
             val config = ModelConfiguration(modelName)
             val model = config.getBedrockModel()
-            
+
             assertEquals(BedrockModels.AnthropicClaude4_5Sonnet, model)
             assertEquals("AnthropicClaude4_5Sonnet", config.getModelName())
         }
@@ -55,15 +55,15 @@ class ModelConfigurationTest {
         properties = ["bedrock.model.name=AmazonNovaPro"]
     )
     @Nested
-    inner class `Valid Amazon Nova Model` {
-        @Value("\${bedrock.model.name}")
+    inner class ValidAmazonNovaModel {
+        @Value($$"${bedrock.model.name}")
         lateinit var modelName: String
 
         @Test
         suspend fun `Given Amazon Nova Pro model name When getting Bedrock model Then should return AmazonNovaPro`() {
             val config = ModelConfiguration(modelName)
             val model = config.getBedrockModel()
-            
+
             assertEquals(BedrockModels.AmazonNovaPro, model)
             assertEquals("AmazonNovaPro", config.getModelName())
         }
@@ -74,15 +74,15 @@ class ModelConfigurationTest {
         properties = ["bedrock.model.name=MetaLlama3_1_70BInstruct"]
     )
     @Nested
-    inner class `Valid Meta Llama Model` {
-        @Value("\${bedrock.model.name}")
+    inner class ValidMetaLlamaModel {
+        @Value($$"${bedrock.model.name}")
         lateinit var modelName: String
 
         @Test
         suspend fun `Given Meta Llama 3-1 70B model name When getting Bedrock model Then should return MetaLlama3_1_70BInstruct`() {
             val config = ModelConfiguration(modelName)
             val model = config.getBedrockModel()
-            
+
             assertEquals(BedrockModels.MetaLlama3_1_70BInstruct, model)
             assertEquals("MetaLlama3_1_70BInstruct", config.getModelName())
         }
@@ -93,15 +93,15 @@ class ModelConfigurationTest {
         properties = ["bedrock.model.name=InvalidModelName"]
     )
     @Nested
-    inner class `Invalid Model Name Fallback` {
-        @Value("\${bedrock.model.name}")
+    inner class InvalidModelNameFallback {
+        @Value($$"${bedrock.model.name}")
         lateinit var modelName: String
 
         @Test
         suspend fun `Given invalid model name When getting Bedrock model Then should fallback to AnthropicClaude35SonnetV2 and log warning`() {
             val config = ModelConfiguration(modelName)
             val model = config.getBedrockModel()
-            
+
             // Should fallback to default
             assertEquals(BedrockModels.AnthropicClaude35SonnetV2, model)
             assertEquals("InvalidModelName", config.getModelName())
@@ -113,15 +113,15 @@ class ModelConfigurationTest {
         properties = ["bedrock.model.name="]
     )
     @Nested
-    inner class `Empty Model Name Fallback` {
-        @Value("\${bedrock.model.name}")
+    inner class EmptyModelNameFallback {
+        @Value($$"${bedrock.model.name}")
         lateinit var modelName: String
 
         @Test
         suspend fun `Given empty model name When getting Bedrock model Then should fallback to AnthropicClaude35SonnetV2`() {
             val config = ModelConfiguration(modelName)
             val model = config.getBedrockModel()
-            
+
             // Should fallback to default
             assertEquals(BedrockModels.AnthropicClaude35SonnetV2, model)
         }
@@ -131,15 +131,15 @@ class ModelConfigurationTest {
         classes = [TestConfig::class]
     )
     @Nested
-    inner class `Default Model Name` {
-        @Value("\${bedrock.model.name:AnthropicClaude35SonnetV2}")
+    inner class DefaultModelName {
+        @Value($$"${bedrock.model.name:AnthropicClaude35SonnetV2}")
         lateinit var modelName: String
 
         @Test
         suspend fun `Given no model name property When getting Bedrock model Then should use default AnthropicClaude35SonnetV2`() {
             val config = ModelConfiguration(modelName)
             val model = config.getBedrockModel()
-            
+
             assertEquals(BedrockModels.AnthropicClaude35SonnetV2, model)
             assertEquals("AnthropicClaude35SonnetV2", config.getModelName())
         }
@@ -150,15 +150,15 @@ class ModelConfigurationTest {
         properties = ["bedrock.model.name=NonExistentModel123"]
     )
     @Nested
-    inner class `Non-Existent Model Name` {
-        @Value("\${bedrock.model.name}")
+    inner class NonExistentModelName {
+        @Value($$"${bedrock.model.name}")
         lateinit var modelName: String
 
         @Test
         suspend fun `Given non-existent model name When getting Bedrock model Then should fallback to default and log warning`() {
             val config = ModelConfiguration(modelName)
             val model = config.getBedrockModel()
-            
+
             // Should fallback to default
             assertNotNull(model)
             assertEquals(BedrockModels.AnthropicClaude35SonnetV2, model)
