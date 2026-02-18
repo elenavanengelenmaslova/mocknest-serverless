@@ -180,7 +180,9 @@ Follow clean architecture principles by developing in this sequence:
   - Avoid `!!` operator
   - Prefer built-in functions `checkNotNull`, `check`, `error` instead of throwing `IllegalStateException`. 
   Prefer `require` and `requireNotNull` instead of throwing `IllegalArgumentException`. These functions are to be used only for detecting bugs in the code, and not for user input validation or test assertions.
-    - Prefer latest language features, such as `enum.entries` over `enum.values()` for looping through enumerations.
+  - Prefer latest language features, such as `enum.entries` over `enum.values()` for looping through enumerations.
+  - When escaping the `$` sign, use multi-dollar string interpolation: instead of `"\${file}"`, use `$$"${file}"`.
+  - When annotating a constructor or method parameter with `@Qualifier` in Spring Boot, use the `param:` use-site target: `@param:Qualifier("serviceName")`.
 
 - **Logging Standards**:
   - **Use kotlin-logging (KotlinLogging)** for all logging throughout the application:
@@ -280,10 +282,10 @@ Follow clean architecture principles by developing in this sequence:
 - Prefer `coEvery` and `coVerify` for suspend functions
 
 #### Test Organization
-- Group related test methods using nested classes when appropriate:
+- Group related test methods using nested classes when appropriate. Nested test class names must follow standard Kotlin class naming conventions (PascalCase) with no spaces:
   ```kotlin
   @Nested
-  inner class `Mapping Normalization` {
+  inner class MappingNormalization {
       // Related tests here
   }
   ```
