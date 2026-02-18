@@ -13,7 +13,7 @@ This implementation plan refactors the AI generation code to follow Kotlin codin
   - Use KotlinLogging for structured logging
   - _Requirements: 1.4, 1.5, 1.6, 1.7, 1.8, 4.1, 4.2, 4.3, 4.4, 4.6_
 
-- [-] 1.1 Write unit tests for ModelConfiguration
+- [x] 1.1 Write unit tests for ModelConfiguration
   - Test valid model name mapping for common models (Claude, Nova, Llama)
   - Test fallback behavior for invalid model names
   - Test default value when environment variable not set
