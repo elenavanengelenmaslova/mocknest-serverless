@@ -31,6 +31,9 @@ dependencies {
     implementation("aws.sdk.kotlin:s3")
     implementation("aws.sdk.kotlin:bedrockruntime")
     
+    // Koog Framework for AI Agent orchestration
+    implementation("ai.koog:koog-agents")
+    
     // HTTP client for AWS SDK
     implementation("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
     implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")

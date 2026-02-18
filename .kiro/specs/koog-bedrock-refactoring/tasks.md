@@ -6,14 +6,14 @@ This implementation plan refactors the AI generation code to follow Kotlin codin
 
 ## Tasks
 
-- [ ] 1. Add ModelConfiguration class for centralized model selection
+- [x] 1. Add ModelConfiguration class for centralized model selection
   - Create `ModelConfiguration.kt` in `software/infra/aws/src/main/kotlin/nl/vintik/mocknest/infra/aws/core/ai/`
   - Implement model name to LLModel mapping using Kotlin reflection
   - Add fallback logic for invalid model names with warning logging
   - Use KotlinLogging for structured logging
   - _Requirements: 1.4, 1.5, 1.6, 1.7, 1.8, 4.1, 4.2, 4.3, 4.4, 4.6_
 
-- [ ]* 1.1 Write unit tests for ModelConfiguration
+- [-] 1.1 Write unit tests for ModelConfiguration
   - Test valid model name mapping for common models (Claude, Nova, Llama)
   - Test fallback behavior for invalid model names
   - Test default value when environment variable not set
