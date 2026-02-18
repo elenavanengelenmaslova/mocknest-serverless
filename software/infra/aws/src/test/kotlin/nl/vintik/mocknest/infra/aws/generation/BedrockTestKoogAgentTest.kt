@@ -9,6 +9,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import nl.vintik.mocknest.domain.generation.TestAgentRequest
 import kotlinx.coroutines.test.runTest
+import nl.vintik.mocknest.infra.aws.core.ai.ModelConfiguration
 import nl.vintik.mocknest.infra.aws.generation.ai.BedrockTestKoogAgent
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -17,7 +18,8 @@ import kotlin.test.assertTrue
 class BedrockTestKoogAgentTest {
     
     private val bedrockClient: BedrockRuntimeClient = mockk(relaxed = true)
-    private val agent = BedrockTestKoogAgent(bedrockClient)
+    private val modelConfiguration: ModelConfiguration = mockk(relaxed = true)
+    private val agent = BedrockTestKoogAgent(bedrockClient, modelConfiguration)
     private val objectMapper = ObjectMapper()
     
     @Test

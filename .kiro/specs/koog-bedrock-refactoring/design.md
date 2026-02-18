@@ -105,7 +105,7 @@ import org.springframework.context.annotation.Configuration
  */
 @Configuration
 class ModelConfiguration(
-    @Value("\${bedrock.model.name:AnthropicClaude35SonnetV2}")
+    @Value("\${bedrock.model.name:AnthropicClaude45Opus}")
     private val modelName: String
 ) {
     private val logger = KotlinLogging.logger {}
@@ -119,7 +119,7 @@ class ModelConfiguration(
             mapModelNameToLLModel(modelName)
         }.onFailure { exception ->
             logger.warn(exception) { "Failed to map model name '$modelName' to BedrockModel, using default" }
-        }.getOrDefault(BedrockModels.AnthropicClaude35SonnetV2)
+        }.getOrDefault(BedrockModels.AnthropicClaude45Opus)
     }
     
     /**
@@ -140,7 +140,7 @@ class ModelConfiguration(
             logger.warn(exception) { "Failed to find model: $modelName" }
         }.getOrElse {
             logger.warn { "Unknown model name: $modelName, using Claude 3.5 Sonnet v2" }
-            BedrockModels.AnthropicClaude35SonnetV2
+            BedrockModels.AnthropicClaude45Opus
         }
     }
 }
@@ -271,7 +271,7 @@ class AIGenerationConfiguration {
     
     @Bean
     fun modelConfiguration(
-        @Value("\${bedrock.model.name:AnthropicClaude35SonnetV2}") modelName: String
+        @Value("\${bedrock.model.name:AnthropicClaude45Opus}") modelName: String
     ): ModelConfiguration {
         return ModelConfiguration(modelName)
     }
@@ -304,7 +304,7 @@ Parameters:
   
   BedrockModelName:
     Type: String
-    Default: 'AnthropicClaude35SonnetV2'
+    Default: 'AnthropicClaude45Opus'
     Description: |
       Bedrock model name for AI-powered mock generation.
       Choose from available Claude, Nova, Jamba, or Llama models.
@@ -408,17 +408,17 @@ After analyzing all acceptance criteria, I identified the following redundancies
 ### Edge Cases
 
 **Edge Case 1: Missing Environment Variable**
-When BEDROCK_MODEL_NAME environment variable is not set, the system should use the default value "AnthropicClaude35SonnetV2".
+When BEDROCK_MODEL_NAME environment variable is not set, the system should use the default value "AnthropicClaude45Opus".
 **Validates: Requirements 1.6**
 
 **Edge Case 2: Invalid Model Name**
-When an unrecognized model name is provided (not found in BedrockModels object), the system should log a warning and fall back to BedrockModels.AnthropicClaude35SonnetV2.
+When an unrecognized model name is provided (not found in BedrockModels object), the system should log a warning and fall back to BedrockModels.AnthropicClaude45Opus.
 **Validates: Requirements 1.8, 2.6**
 
 ### Examples
 
 **Example 1: SAM Template Parameter Definition**
-The SAM template should contain a BedrockModelName parameter with default value "AnthropicClaude35SonnetV2" and description of valid model names.
+The SAM template should contain a BedrockModelName parameter with default value "AnthropicClaude45Opus" and description of valid model names.
 **Validates: Requirements 1.1, 1.2**
 
 **Example 2: SAM Template Environment Variable Mapping**
@@ -475,7 +475,7 @@ fun getBedrockModel(): LLModel {
         mapModelNameToLLModel(modelName)
     }.onFailure { exception ->
         logger.warn(exception) { "Failed to map model name '$modelName', using default" }
-    }.getOrDefault(BedrockModels.AnthropicClaude35SonnetV2)
+    }.getOrDefault(BedrockModels.AnthropicClaude45Opus)
 }
 
 // Agent execution with structured error logging
@@ -565,7 +565,7 @@ fun `Given Claude 3-5 Sonnet v2 model name When mapping to LLModel Then should r
 fun `Given invalid model name When mapping to LLModel Then should log warning and return default`() {
     val config = ModelConfiguration("InvalidModelName")
     val model = config.getBedrockModel()
-    assertEquals(BedrockModels.AnthropicClaude35SonnetV2, model)
+    assertEquals(BedrockModels.AnthropicClaude45Opus, model)
     // Verify warning was logged
 }
 
@@ -705,6 +705,6 @@ BEDROCK_MODEL_NAME: AmazonNovaPro
 
 If issues arise:
 1. Redeploy with previous SAM template (no BedrockModelName parameter)
-2. System will use default model name ("AnthropicClaude35SonnetV2")
+2. System will use default model name ("AnthropicClaude45Opus")
 3. No data migration or state cleanup required
 4. Rollback is safe and immediate

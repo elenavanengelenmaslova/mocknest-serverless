@@ -56,13 +56,19 @@ class AIGenerationConfiguration {
     }
 
     @Bean
-    fun bedrockServiceAdapter(bedrockClient: BedrockRuntimeClient): AIModelServiceInterface {
-        return BedrockServiceAdapter(bedrockClient)
+    fun bedrockServiceAdapter(
+        bedrockClient: BedrockRuntimeClient,
+        modelConfiguration: ModelConfiguration
+    ): AIModelServiceInterface {
+        return BedrockServiceAdapter(bedrockClient, modelConfiguration)
     }
 
     @Bean
-    fun bedrockTestKoogAgent(bedrockClient: BedrockRuntimeClient): TestKoogAgent {
-        return BedrockTestKoogAgent(bedrockClient)
+    fun bedrockTestKoogAgent(
+        bedrockClient: BedrockRuntimeClient,
+        modelConfiguration: ModelConfiguration
+    ): TestKoogAgent {
+        return BedrockTestKoogAgent(bedrockClient, modelConfiguration)
     }
 
     @Bean

@@ -21,7 +21,7 @@ TestKoogAgent (Application Layer)
     ↓
 BedrockRuntimeClient (Infrastructure Layer)
     ↓
-AWS Bedrock (Claude 3 Sonnet)
+AWS Bedrock (Claude 4.5 Opus)
     ↓
 Response back through the stack
 ```
@@ -135,7 +135,6 @@ Import the collection: `docs/postman/AI Test Agent.postman_collection.json`
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `AI_ENABLED` | Enable AI features | `false` |
 | `AWS_REGION` | AWS region for Bedrock | `eu-west-1` |
 | `MOCK_STORAGE_BUCKET` | S3 bucket for storage | Auto-generated |
 
@@ -143,7 +142,7 @@ Import the collection: `docs/postman/AI Test Agent.postman_collection.json`
 
 ### "Bedrock service unavailable"
 - Ensure Bedrock is enabled in your AWS account
-- Check that you have access to Claude 3 Sonnet model
+- Check that you have access to Claude 4.5 Opus model
 - Verify IAM permissions include `bedrock:InvokeModel`
 
 ### "Access Denied" errors

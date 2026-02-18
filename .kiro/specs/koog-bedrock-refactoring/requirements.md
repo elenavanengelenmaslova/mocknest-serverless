@@ -25,14 +25,14 @@ This document specifies requirements for refactoring the AI generation code in M
 
 #### Acceptance Criteria
 
-1. THE SAM_Template SHALL define a parameter named "BedrockModelName" with a default value of "AnthropicClaude35SonnetV2"
+1. THE SAM_Template SHALL define a parameter named "BedrockModelName" with a default value of "AnthropicClaude45Opus"
 2. THE SAM_Template SHALL include parameter description explaining valid Bedrock model names from the BedrockModels object
 3. WHEN the SAM_Template is deployed, THE System SHALL pass the BedrockModelName parameter to the Lambda function as an environment variable named "BEDROCK_MODEL_NAME"
 4. WHEN BedrockTestKoogAgent is initialized, THE System SHALL read the model name from the BEDROCK_MODEL_NAME environment variable
 5. WHEN BedrockServiceAdapter is initialized, THE System SHALL read the model name from the BEDROCK_MODEL_NAME environment variable
-6. IF the BEDROCK_MODEL_NAME environment variable is not set, THE System SHALL use the default value "AnthropicClaude35SonnetV2"
+6. IF the BEDROCK_MODEL_NAME environment variable is not set, THE System SHALL use the default value "AnthropicClaude45Opus"
 7. WHEN the model name is read, THE System SHALL map it to the corresponding BedrockModels constant (e.g., BedrockModels.AnthropicClaude35SonnetV2)
-8. IF the model name cannot be mapped to a BedrockModels constant, THE System SHALL log a warning and use BedrockModels.AnthropicClaude35SonnetV2 as the default
+8. IF the model name cannot be mapped to a BedrockModels constant, THE System SHALL log a warning and use BedrockModels.AnthropicClaude45Opus as the default
 
 ### Requirement 2: Koog Framework Integration
 

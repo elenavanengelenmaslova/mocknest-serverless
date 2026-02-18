@@ -55,7 +55,7 @@ Successfully implemented the AI Mock Generation feature for MockNest Serverless,
 
 #### Amazon Bedrock Integration
 - **BedrockServiceAdapter**: Implements AIModelServiceInterface
-- Uses Claude 3 Sonnet for natural language processing
+- Uses Claude 4.5 Opus for natural language processing
 - Structured prompt engineering for WireMock generation
 - Fallback mechanisms when AI generation fails
 - Proper error handling and logging

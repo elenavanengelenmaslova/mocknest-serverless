@@ -7,13 +7,15 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.agent.TestKoogAgent
 import nl.vintik.mocknest.domain.generation.TestAgentRequest
 import nl.vintik.mocknest.domain.generation.TestAgentResponse
+import nl.vintik.mocknest.infra.aws.core.ai.ModelConfiguration
 
 /**
  * Bedrock-based implementation of TestKoogAgent.
  * Provides a minimal implementation to validate the REST API -> Koog -> Bedrock flow.
  */
 class BedrockTestKoogAgent(
-    private val bedrockClient: BedrockRuntimeClient
+    private val bedrockClient: BedrockRuntimeClient,
+    private val modelConfiguration: ModelConfiguration
 ) : TestKoogAgent {
     
     private val logger = KotlinLogging.logger {}
@@ -82,7 +84,7 @@ Please respond to the user's instructions in a helpful and concise manner.
         
         // Invoke Bedrock
         val request = InvokeModelRequest {
-            modelId = "anthropic.claude-3-sonnet-20240229-v1:0"
+            modelId = modelConfiguration.getModelName()
             contentType = "application/json"
             accept = "application/json"
             body = objectMapper.writeValueAsBytes(requestBody)

@@ -7,23 +7,24 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.interfaces.AIServiceCapabilities
 import nl.vintik.mocknest.domain.generation.*
+import nl.vintik.mocknest.infra.aws.core.ai.ModelConfiguration
 import org.springframework.http.HttpMethod
 import kotlin.runCatching
 import java.time.Instant
 
 /**
  * Amazon Bedrock implementation of AI model service.
- * Provides AI-powered mock generation using Claude 3 Sonnet.
+ * Provides AI-powered mock generation using Claude 4.5 Opus.
  */
 class BedrockServiceAdapter(
-    private val bedrockClient: BedrockRuntimeClient
+    private val bedrockClient: BedrockRuntimeClient,
+    private val modelConfiguration: ModelConfiguration
 ) : AIModelServiceInterface {
     
     private val logger = KotlinLogging.logger {}
     private val objectMapper = ObjectMapper()
     
     companion object {
-        private const val CLAUDE_MODEL_ID = "anthropic.claude-3-sonnet-20240229-v1:0"
         private const val MAX_TOKENS = 4096
         private const val TEMPERATURE = 0.7
     }
@@ -118,7 +119,7 @@ class BedrockServiceAdapter(
             supportsSpecEnhancement = true,
             supportsMockRefinement = true,
             supportsResponseEnhancement = true,
-            maxInputTokens = 200000, // Claude 3 Sonnet limit
+            maxInputTokens = 200000, // Claude 4.5 Opus limit
             maxOutputTokens = MAX_TOKENS,
             supportedLanguages = setOf("en", "es", "fr", "de", "it", "pt", "ja", "ko", "zh")
         )
@@ -138,7 +139,7 @@ class BedrockServiceAdapter(
         )
         
         val request = InvokeModelRequest {
-            modelId = CLAUDE_MODEL_ID
+            modelId = modelConfiguration.getModelName()
             contentType = "application/json"
             body = objectMapper.writeValueAsBytes(requestBody)
         }

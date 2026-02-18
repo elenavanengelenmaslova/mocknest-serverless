@@ -98,12 +98,12 @@ class ModelConfigurationTest {
         lateinit var modelName: String
 
         @Test
-        suspend fun `Given invalid model name When getting Bedrock model Then should fallback to AnthropicClaude35SonnetV2 and log warning`() {
+        suspend fun `Given invalid model name When getting Bedrock model Then should fallback to AnthropicClaude45Opus and log warning`() {
             val config = ModelConfiguration(modelName)
             val model = config.getBedrockModel()
 
             // Should fallback to default
-            assertEquals(BedrockModels.AnthropicClaude35SonnetV2, model)
+            assertEquals(BedrockModels.AnthropicClaude45Opus, model)
             assertEquals("InvalidModelName", config.getModelName())
         }
     }
@@ -118,12 +118,12 @@ class ModelConfigurationTest {
         lateinit var modelName: String
 
         @Test
-        suspend fun `Given empty model name When getting Bedrock model Then should fallback to AnthropicClaude35SonnetV2`() {
+        suspend fun `Given empty model name When getting Bedrock model Then should fallback to AnthropicClaude45Opus`() {
             val config = ModelConfiguration(modelName)
             val model = config.getBedrockModel()
 
             // Should fallback to default
-            assertEquals(BedrockModels.AnthropicClaude35SonnetV2, model)
+            assertEquals(BedrockModels.AnthropicClaude45Opus, model)
         }
     }
 
@@ -132,16 +132,16 @@ class ModelConfigurationTest {
     )
     @Nested
     inner class DefaultModelName {
-        @Value($$"${bedrock.model.name:AnthropicClaude35SonnetV2}")
+        @Value($$"${bedrock.model.name:AnthropicClaude45Opus}")
         lateinit var modelName: String
 
         @Test
-        suspend fun `Given no model name property When getting Bedrock model Then should use default AnthropicClaude35SonnetV2`() {
+        suspend fun `Given no model name property When getting Bedrock model Then should use default AnthropicClaude45Opus`() {
             val config = ModelConfiguration(modelName)
             val model = config.getBedrockModel()
 
-            assertEquals(BedrockModels.AnthropicClaude35SonnetV2, model)
-            assertEquals("AnthropicClaude35SonnetV2", config.getModelName())
+            assertEquals(BedrockModels.AnthropicClaude45Opus, model)
+            assertEquals("AnthropicClaude45Opus", config.getModelName())
         }
     }
 
@@ -161,7 +161,7 @@ class ModelConfigurationTest {
 
             // Should fallback to default
             assertNotNull(model)
-            assertEquals(BedrockModels.AnthropicClaude35SonnetV2, model)
+            assertEquals(BedrockModels.AnthropicClaude45Opus, model)
             assertEquals("NonExistentModel123", config.getModelName())
         }
     }
@@ -169,7 +169,7 @@ class ModelConfigurationTest {
     @Configuration
     class TestConfig {
         @Bean
-        fun modelConfiguration(@Value("\${bedrock.model.name:AnthropicClaude35SonnetV2}") modelName: String): ModelConfiguration {
+        fun modelConfiguration(@Value("\${bedrock.model.name:AnthropicClaude45Opus}") modelName: String): ModelConfiguration {
             return ModelConfiguration(modelName)
         }
     }

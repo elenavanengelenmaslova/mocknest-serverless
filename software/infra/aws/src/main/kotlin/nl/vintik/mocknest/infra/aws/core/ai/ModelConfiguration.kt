@@ -14,20 +14,20 @@ private val logger = KotlinLogging.logger {}
  * 
  * The model name is read from the BEDROCK_MODEL_NAME environment variable,
  * which is set by the SAM template's BedrockModelName parameter.
- * If the environment variable is not set, defaults to "AnthropicClaude35SonnetV2".
+ * If the environment variable is not set, defaults to "AnthropicClaude45Opus".
  * 
  * If an invalid model name is provided, logs a warning and falls back to
- * BedrockModels.AnthropicClaude35SonnetV2.
+ * BedrockModels.AnthropicClaude45Opus.
  */
 @Component
 class ModelConfiguration(
-    @param:Value($$"${bedrock.model.name:AnthropicClaude35SonnetV2}")
+    @param:Value($$"${bedrock.model.name:AnthropicClaude45Opus}")
     private val modelName: String
 ) {
     
     /**
      * Get the LLModel for the configured model name.
-     * Falls back to Claude 3.5 Sonnet v2 if mapping fails.
+     * Falls back to Claude 4.5 Opus if mapping fails.
      * 
      * @return The LLModel corresponding to the configured model name
      */
@@ -35,8 +35,8 @@ class ModelConfiguration(
         return runCatching {
             mapModelNameToLLModel(modelName)
         }.onFailure { exception ->
-            logger.warn(exception) { "Failed to map model name '$modelName' to BedrockModel, using default AnthropicClaude35SonnetV2" }
-        }.getOrDefault(BedrockModels.AnthropicClaude35SonnetV2)
+            logger.warn(exception) { "Failed to map model name '$modelName' to BedrockModel, using default AnthropicClaude45Opus" }
+        }.getOrDefault(BedrockModels.AnthropicClaude45Opus)
     }
     
     /**
@@ -50,7 +50,7 @@ class ModelConfiguration(
      * Maps a model name string to the corresponding LLModel from BedrockModels.
      * Uses Kotlin reflection to look up BedrockModels properties by name.
      * 
-     * @param modelName The model name to map (e.g., "AnthropicClaude35SonnetV2")
+     * @param modelName The model name to map (e.g., "AnthropicClaude45Opus")
      * @return The corresponding LLModel
      * @throws IllegalStateException if the model name is not found or is not an LLModel
      */
@@ -70,8 +70,8 @@ class ModelConfiguration(
         }.onFailure { exception ->
             logger.warn(exception) { "Failed to find model: $modelName in BedrockModels" }
         }.getOrElse {
-            logger.warn { "Unknown model name: $modelName, using default AnthropicClaude35SonnetV2" }
-            BedrockModels.AnthropicClaude35SonnetV2
+            logger.warn { "Unknown model name: $modelName, using default AnthropicClaude45Opus" }
+            BedrockModels.AnthropicClaude45Opus
         }
     }
 }
