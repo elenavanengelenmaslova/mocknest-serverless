@@ -18,19 +18,11 @@ import org.springframework.context.annotation.Primary
 /**
  * Spring configuration for AI-powered mock generation components.
  * AI features are always enabled.
+ * 
+ * Note: BedrockRuntimeClient bean is provided by BedrockConfiguration.
  */
 @Configuration
 class AIGenerationConfiguration {
-
-    /**
-     * Bedrock Runtime Client for AI model interactions.
-     */
-    @Bean
-    fun bedrockRuntimeClient(): BedrockRuntimeClient {
-        return BedrockRuntimeClient {
-            region = System.getenv("AWS_REGION") ?: "eu-west-1"
-        }
-    }
 
     /**
      * Primary specification parser that delegates to format-specific parsers.
