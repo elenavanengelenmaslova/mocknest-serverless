@@ -320,7 +320,6 @@ MockNestRuntimeFunction:
 ```yaml
 MockNestGenerationFunction:
   Type: AWS::Serverless::Function
-  Condition: IsAIEnabled
   Properties:
     FunctionName: !Sub "${AWS::StackName}-generation"
     CodeUri: ../../../build/dist/mocknest-generation.jar
@@ -438,7 +437,6 @@ API Gateway
 
 **Runtime Only:**
 ```bash
-sam deploy --parameter-overrides EnableAI=false
 ```
 - Deploys only runtime Lambda
 - Generation Lambda not created
@@ -446,7 +444,7 @@ sam deploy --parameter-overrides EnableAI=false
 
 **Runtime + Generation:**
 ```bash
-sam deploy --parameter-overrides EnableAI=true
+sam deploy
 ```
 - Deploys both Lambdas
 - Full AI capabilities available

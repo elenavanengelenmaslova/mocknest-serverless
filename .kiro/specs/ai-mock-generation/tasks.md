@@ -300,15 +300,12 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Update API Gateway routes for /ai/* endpoints
   - Set appropriate Lambda memory and timeout
   - _Requirements: AWS deployment_
-  - _Note: SAM template has conditional Bedrock permissions and AI_ENABLED parameter_
 
 - [x] 10.1 SAM template AI configuration
   - Add conditional Bedrock IAM policies
-  - Configure AI_ENABLED environment variable
   - Set Lambda memory to 1024MB minimum
   - Set timeout to 5 minutes
   - _Requirements: Bedrock integration_
-  - _Note: Fully configured with EnableAI parameter and conditional IAM policies_
 
 - [x] 10.2 API Gateway AI routes
   - Add /ai/hello route

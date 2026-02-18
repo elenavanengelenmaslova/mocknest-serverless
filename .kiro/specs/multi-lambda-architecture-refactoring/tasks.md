@@ -72,7 +72,7 @@ This task list implements the refactoring from a monolithic Lambda deployment to
 
 - [ ] 3.2 Add MockNestGenerationFunction to SAM template
   - Update `deployment/aws/sam/template.yaml`
-  - Define `MockNestGenerationFunction` resource with `Condition: IsAIEnabled`
+  - Define `MockNestGenerationFunction` resource 
   - Set `CodeUri` to `../../../build/dist/mocknest-generation.jar`
   - Configure environment variables including `SPRING_CLOUD_FUNCTION_DEFINITION: "generationRouter"`
   - Set `ReservedConcurrentExecutions: 5` and `Timeout: 300`
@@ -166,7 +166,7 @@ This task list implements the refactoring from a monolithic Lambda deployment to
 
 - [ ] 6.3 Deploy to test environment
   - Execute `cd deployment/aws/sam && ./deploy.sh`
-  - Deploy with `EnableAI=true` parameter
+  - Deploy 
   - Verify both Lambda functions are created
   - Verify API Gateway routes are configured correctly
   - Validates: Requirements 1.3, 1.4, 6.3, 6.4
@@ -194,7 +194,6 @@ This task list implements the refactoring from a monolithic Lambda deployment to
   - Document new multi-Lambda architecture
   - Update deployment instructions
   - Add information about independent Lambda scaling
-  - Document `EnableAI` parameter usage
 
 - [ ] 7.2 Update deployment documentation
   - Update `docs/DEPLOYMENT.md` with new build and deploy process

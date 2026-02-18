@@ -117,7 +117,7 @@ MockNest Serverless can be deployed to any AWS region that supports:
 
 ### AI Features Region Support
 
-If you enable AI features (`EnableAI=true`), ensure your chosen region supports Amazon Bedrock:
+Ensure your chosen region supports Amazon Bedrock:
 
 **Bedrock-supported regions** (as of 2025):
 - us-east-1 (N. Virginia)

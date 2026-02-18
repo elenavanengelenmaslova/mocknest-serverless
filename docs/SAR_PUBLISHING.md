@@ -53,15 +53,6 @@ Metadata:
 All parameters must have clear descriptions for the SAR UI:
 
 ```yaml
-Parameters:
-  EnableAI:
-    Type: String
-    Default: 'false'
-    AllowedValues: ['true', 'false']
-    Description: |
-      Enable AI-assisted mock generation features using Amazon Bedrock.
-      Note: Requires Bedrock-supported region and incurs additional costs.
-  
   BucketName:
     Type: String
     Default: ''
