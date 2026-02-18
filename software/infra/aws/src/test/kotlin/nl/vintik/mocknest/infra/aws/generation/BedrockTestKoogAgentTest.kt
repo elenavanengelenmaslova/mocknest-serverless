@@ -9,6 +9,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import nl.vintik.mocknest.domain.generation.TestAgentRequest
 import kotlinx.coroutines.test.runTest
+import nl.vintik.mocknest.infra.aws.generation.ai.BedrockTestKoogAgent
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

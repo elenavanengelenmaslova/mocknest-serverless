@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.generation
+package nl.vintik.mocknest.infra.aws.generation.ai
 
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import aws.sdk.kotlin.services.bedrockruntime.model.InvokeModelRequest

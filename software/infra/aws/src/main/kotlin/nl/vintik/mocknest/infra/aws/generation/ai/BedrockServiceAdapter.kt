@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.generation
+package nl.vintik.mocknest.infra.aws.generation.ai
 
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import aws.sdk.kotlin.services.bedrockruntime.model.InvokeModelRequest
@@ -7,6 +7,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.interfaces.AIServiceCapabilities
 import nl.vintik.mocknest.domain.generation.*
+import org.springframework.http.HttpMethod
 import kotlin.runCatching
 import java.time.Instant
 
@@ -351,7 +352,7 @@ class BedrockServiceAdapter(
                 sourceType = sourceType,
                 sourceReference = sourceReference,
                 endpoint = EndpointInfo(
-                    method = org.springframework.http.HttpMethod.valueOf(method.uppercase()),
+                    method = HttpMethod.valueOf(method.uppercase()),
                     path = path,
                     statusCode = statusCode,
                     contentType = contentType
@@ -397,7 +398,7 @@ class BedrockServiceAdapter(
                 sourceType = SourceType.NATURAL_LANGUAGE,
                 sourceReference = "Fallback: $description",
                 endpoint = EndpointInfo(
-                    method = org.springframework.http.HttpMethod.GET,
+                    method = HttpMethod.GET,
                     path = "/api/fallback",
                     statusCode = 200,
                     contentType = "application/json"

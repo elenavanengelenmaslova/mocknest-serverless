@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.generation
+package nl.vintik.mocknest.infra.aws.core.ai
 
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import nl.vintik.mocknest.application.generation.agent.MockGenerationFunctionalAgent
@@ -11,6 +11,8 @@ import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationPar
 import nl.vintik.mocknest.application.generation.usecases.*
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.application.runtime.usecases.HandleTestAgentRequest
+import nl.vintik.mocknest.infra.aws.generation.ai.BedrockServiceAdapter
+import nl.vintik.mocknest.infra.aws.generation.ai.BedrockTestKoogAgent
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
