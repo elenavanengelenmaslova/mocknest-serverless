@@ -29,6 +29,52 @@ Parameters:
     MaxValue: "900"
     Description: Lambda function timeout in seconds
 
+  BedrockModelName:
+    Type: String
+    Default: 'AnthropicClaude45Opus'
+    Description: |
+      Bedrock model name for AI-powered mock generation.
+      Choose from available Claude, Nova, Jamba, or Llama models.
+      See https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html for details.
+    AllowedValues:
+      # Claude 4.5 models
+      - AnthropicClaude45Opus
+      - AnthropicClaude4_5Sonnet
+      - AnthropicClaude4_5Haiku
+      # Claude 4 models
+      - AnthropicClaude4Opus
+      - AnthropicClaude41Opus
+      - AnthropicClaude4Sonnet
+      # Claude 3.5 models
+      - AnthropicClaude35SonnetV2
+      - AnthropicClaude35Haiku
+      # Claude 3 models
+      - AnthropicClaude3Opus
+      - AnthropicClaude3Sonnet
+      - AnthropicClaude3Haiku
+      - AnthropicClaude21
+      - AnthropicClaudeInstant
+      # Amazon Nova models
+      - AmazonNovaMicro
+      - AmazonNovaLite
+      - AmazonNovaPro
+      - AmazonNovaPremier
+      # AI21 Jamba models
+      - AI21JambaLarge
+      - AI21JambaMini
+      # Meta Llama models
+      - MetaLlama3_0_8BInstruct
+      - MetaLlama3_0_70BInstruct
+      - MetaLlama3_1_8BInstruct
+      - MetaLlama3_1_70BInstruct
+      - MetaLlama3_1_405BInstruct
+      - MetaLlama3_2_1BInstruct
+      - MetaLlama3_2_3BInstruct
+      - MetaLlama3_2_11BInstruct
+      - MetaLlama3_2_90BInstruct
+      - MetaLlama3_3_70BInstruct
+    ConstraintDescription: Must be a valid BedrockModels constant name
+
 Conditions:
   HasCustomBucketName: !Not [!Equals [!Ref BucketName, '']]
 
@@ -176,6 +222,7 @@ Resources:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
+          BEDROCK_MODEL_NAME: !Ref BedrockModelName
           SPRING_CLOUD_FUNCTION_DEFINITION: "router"
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.Application"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"

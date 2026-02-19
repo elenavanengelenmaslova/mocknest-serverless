@@ -20,14 +20,14 @@ This implementation plan refactors the AI generation code to follow Kotlin codin
   - Verify warning logs for invalid model names
   - _Requirements: 1.6, 1.8, 4.6, 7.1_
 
-- [ ] 2. Update SAM template with BedrockModelName parameter
+- [x] 2. Update SAM template with BedrockModelName parameter
   - Add `BedrockModelName` parameter with default "AnthropicClaude45Opus"
   - Add `AllowedValues` list with all valid BedrockModels property names
   - Add parameter description explaining model choices
   - Map parameter to `BEDROCK_MODEL_NAME` environment variable in Lambda configuration
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ]* 2.1 Verify SAM template parameter configuration
+- [ ] 2.1 Verify SAM template parameter configuration
   - Parse SAM template YAML and verify BedrockModelName parameter exists
   - Verify default value is "AnthropicClaude45Opus"
   - Verify AllowedValues contains expected model names
