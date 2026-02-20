@@ -27,14 +27,14 @@ This implementation plan refactors the AI generation code to follow Kotlin codin
   - Map parameter to `BEDROCK_MODEL_NAME` environment variable in Lambda configuration
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 2.1 Verify SAM template parameter configuration
+- [x] 2.1 Verify SAM template parameter configuration
   - Parse SAM template YAML and verify BedrockModelName parameter exists
   - Verify default value is "AnthropicClaude45Opus"
   - Verify AllowedValues contains expected model names
   - Verify environment variable mapping exists
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 3. Refactor BedrockTestKoogAgent to use Koog properly
+- [x] 3. Refactor BedrockTestKoogAgent to use Koog properly
   - Remove direct BedrockRuntimeClient.invokeModel calls
   - Remove Jackson ObjectMapper usage for request construction
   - Add lazy initialization of Koog simpleBedrockExecutor

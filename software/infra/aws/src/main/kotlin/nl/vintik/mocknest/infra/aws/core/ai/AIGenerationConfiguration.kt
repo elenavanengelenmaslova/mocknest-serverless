@@ -65,10 +65,11 @@ class AIGenerationConfiguration {
 
     @Bean
     fun bedrockTestKoogAgent(
-        bedrockClient: BedrockRuntimeClient,
-        modelConfiguration: ModelConfiguration
+        modelConfiguration: ModelConfiguration,
+        @org.springframework.beans.factory.annotation.Value("\${aws.region:eu-west-1}")
+        region: String
     ): TestKoogAgent {
-        return BedrockTestKoogAgent(bedrockClient, modelConfiguration)
+        return BedrockTestKoogAgent(modelConfiguration, region)
     }
 
     @Bean
