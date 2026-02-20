@@ -58,7 +58,6 @@ subprojects {
             
             // Kotlinx Serialization for JSON
             dependency("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-            
             // TestContainers
             val testContainersVersion = "2.0.3"
             val testContainersExtensions = "1.21.4"
@@ -79,6 +78,8 @@ subprojects {
 
         // Logging
         implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
+
+        implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
 
         // Testing
         testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")

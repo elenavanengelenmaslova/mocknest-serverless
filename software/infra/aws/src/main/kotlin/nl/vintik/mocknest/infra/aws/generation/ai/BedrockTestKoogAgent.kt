@@ -1,9 +1,12 @@
 package nl.vintik.mocknest.infra.aws.generation.ai
 
-import ai.koog.agents.AIAgent
-import ai.koog.prompt.executor.clients.bedrock.BedrockModels
-import ai.koog.prompt.executor.clients.bedrock.simpleBedrockExecutor
-import ai.koog.tools.ToolRegistry
+import ai.koog.agents.core.agent.AIAgent
+import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.prompt.executor.clients.bedrock.BedrockClientSettings
+import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
+import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
+import aws.sdk.kotlin.runtime.auth.credentials.DefaultChainCredentialsProvider
+import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.agent.TestKoogAgent
 import nl.vintik.mocknest.domain.generation.TestAgentRequest
@@ -23,15 +26,20 @@ private val logger = KotlinLogging.logger {}
 class BedrockTestKoogAgent(
     private val modelConfiguration: ModelConfiguration,
     @param:Value("\${aws.region:eu-west-1}")
-    private val region: String
+    private val region: String,
+    private val bedrockRuntimeClient: BedrockRuntimeClient? = null
 ) : TestKoogAgent {
     
     // Lazy initialization of Koog components to avoid cold start penalty
     private val executor by lazy {
         logger.info { "Initializing Bedrock executor: region=$region" }
-        simpleBedrockExecutor(
-            region = region
-            // Uses DefaultChainCredentialsProvider automatically (Lambda IAM role)
+        val client = bedrockRuntimeClient ?: BedrockLLMClient(
+            identityProvider = DefaultChainCredentialsProvider(),
+            settings = BedrockClientSettings(region = region)
+        )
+        SingleLLMPromptExecutor(
+            if (client is BedrockLLMClient) client
+            else BedrockLLMClient(client as BedrockRuntimeClient)
         )
     }
     
@@ -46,7 +54,7 @@ class BedrockTestKoogAgent(
                 You help users with their requests in a clear and concise manner.
             """.trimIndent(),
             temperature = 0.7,
-            toolRegistry = ToolRegistry() // Empty registry for now
+            toolRegistry = ToolRegistry.EMPTY
         )
     }
     
