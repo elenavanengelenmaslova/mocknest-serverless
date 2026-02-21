@@ -66,7 +66,7 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - _Requirements: 1.1, 1.2, 1.3_
   - _Note: Implemented as /ai/test-agent/chat endpoint_
 
-- [ ]* 2.3 Test hello world integration
+- [x]* 2.3 Test hello world integration
   - Write unit tests for HelloWorldUseCase
   - Write integration tests with mock Bedrock responses
   - Test error handling when Bedrock is unavailable
@@ -173,7 +173,7 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 7.1, 7.2, 7.3_
 
 - [x] 6. Implement Koog Functional Agent
-  - Set up Koog 0.6.0 dependencies in build.gradle.kts
+  - Set up Koog 0.6.3 dependencies in build.gradle.kts
   - Implement MockGenerationFunctionalAgent
   - Configure agent domain and capabilities
   - Implement execute method for specification generation
