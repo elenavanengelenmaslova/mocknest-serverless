@@ -71,6 +71,7 @@ subprojects {
     dependencies {
         val implementation by configurations
         val testImplementation by configurations
+        val runtimeOnly by configurations
 
         // Kotlin standard library
         implementation("org.jetbrains.kotlin:kotlin-stdlib")
@@ -79,7 +80,7 @@ subprojects {
         // Logging
         implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
 
-        implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
+        runtimeOnly("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
 
         // Testing
         testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
