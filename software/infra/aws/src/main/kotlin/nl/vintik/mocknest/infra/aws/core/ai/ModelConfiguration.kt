@@ -3,6 +3,7 @@ package nl.vintik.mocknest.infra.aws.core.ai
 import ai.koog.prompt.executor.clients.bedrock.BedrockInferencePrefixes
 import ai.koog.prompt.executor.clients.bedrock.BedrockModel
 import ai.koog.prompt.executor.clients.bedrock.BedrockModels
+import ai.koog.prompt.executor.clients.bedrock.withInferenceProfile
 import ai.koog.prompt.llm.LLModel
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
@@ -32,14 +33,13 @@ class ModelConfiguration(
 ) {
     
     /**
-     * Get the BedrockModel for the configured model name with GLOBAL inference profile.
+     * Get the LLModel for the configured model name with GLOBAL inference profile.
      * Falls back to Claude 4.5 Opus with GLOBAL prefix if mapping fails.
      * 
-     * @return The BedrockModel corresponding to the configured model name with GLOBAL prefix
+     * @return The LLModel corresponding to the configured model name with GLOBAL prefix
      */
-    fun getBedrockModel(): BedrockModel {
-        val baseModel = mapModelNameToLLModel(modelName)
-        return applyGlobalInferenceProfile(baseModel)
+    fun getModel(): LLModel {
+        return mapModelNameToLLModel(modelName).withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix)
     }
     
     /**
@@ -53,7 +53,7 @@ class ModelConfiguration(
         // Create a new BedrockModel wrapping the LLModel with GLOBAL prefix
         return BedrockModel(
             model = model,
-            modelId = model.id,
+            modelId = model.id.substringAfter("."),
             inferenceProfilePrefix = BedrockInferencePrefixes.GLOBAL.prefix
         )
     }
@@ -76,6 +76,7 @@ class ModelConfiguration(
     private fun mapModelNameToLLModel(modelName: String): LLModel {
         return runCatching {
             // Use Kotlin reflection to look up BedrockModels property by name
+
             val property = BedrockModels::class.members
                 .firstOrNull { it.name == modelName }
                 ?: error("Model name not found in BedrockModels: $modelName")

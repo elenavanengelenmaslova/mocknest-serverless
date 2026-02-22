@@ -2,6 +2,7 @@ package nl.vintik.mocknest.infra.aws.core.ai
 
 import ai.koog.prompt.executor.clients.bedrock.BedrockInferencePrefixes
 import ai.koog.prompt.executor.clients.bedrock.BedrockModels
+import ai.koog.prompt.executor.clients.bedrock.withInferenceProfile
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Value
@@ -25,10 +26,9 @@ class ModelConfigurationTest {
         @Test
         suspend fun `Given Claude 3-5 Sonnet v2 model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName)
-            val model = config.getBedrockModel()
+            val model = config.getModel()
 
-            assertEquals(BedrockModels.AnthropicClaude35SonnetV2.id, model.modelId)
-            assertEquals(BedrockInferencePrefixes.GLOBAL.prefix, model.inferenceProfilePrefix)
+            assertEquals(BedrockModels.AnthropicClaude35SonnetV2.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
             assertEquals("AnthropicClaude35SonnetV2", config.getModelName())
         }
     }
@@ -45,10 +45,9 @@ class ModelConfigurationTest {
         @Test
         suspend fun `Given Claude 4-5 Sonnet model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName)
-            val model = config.getBedrockModel()
+            val model = config.getModel()
 
-            assertEquals(BedrockModels.AnthropicClaude4_5Sonnet.id, model.modelId)
-            assertEquals(BedrockInferencePrefixes.GLOBAL.prefix, model.inferenceProfilePrefix)
+            assertEquals(BedrockModels.AnthropicClaude4_5Sonnet.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
             assertEquals("AnthropicClaude4_5Sonnet", config.getModelName())
         }
     }
@@ -65,10 +64,9 @@ class ModelConfigurationTest {
         @Test
         suspend fun `Given Amazon Nova Pro model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName)
-            val model = config.getBedrockModel()
+            val model = config.getModel()
 
-            assertEquals(BedrockModels.AmazonNovaPro.id, model.modelId)
-            assertEquals(BedrockInferencePrefixes.GLOBAL.prefix, model.inferenceProfilePrefix)
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
             assertEquals("AmazonNovaPro", config.getModelName())
         }
     }
@@ -85,10 +83,9 @@ class ModelConfigurationTest {
         @Test
         suspend fun `Given Meta Llama 3-1 70B model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName)
-            val model = config.getBedrockModel()
+            val model = config.getModel()
 
-            assertEquals(BedrockModels.MetaLlama3_1_70BInstruct.id, model.modelId)
-            assertEquals(BedrockInferencePrefixes.GLOBAL.prefix, model.inferenceProfilePrefix)
+            assertEquals(BedrockModels.MetaLlama3_1_70BInstruct.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
             assertEquals("MetaLlama3_1_70BInstruct", config.getModelName())
         }
     }
@@ -105,11 +102,10 @@ class ModelConfigurationTest {
         @Test
         suspend fun `Given invalid model name When getting Bedrock model Then should fallback to AnthropicClaude45Opus with GLOBAL prefix and log warning`() {
             val config = ModelConfiguration(modelName)
-            val model = config.getBedrockModel()
+            val model = config.getModel()
 
             // Should fallback to default with GLOBAL prefix
-            assertEquals(BedrockModels.AnthropicClaude45Opus.id, model.modelId)
-            assertEquals(BedrockInferencePrefixes.GLOBAL.prefix, model.inferenceProfilePrefix)
+            assertEquals(BedrockModels.AnthropicClaude45Opus.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
             assertEquals("InvalidModelName", config.getModelName())
         }
     }
@@ -126,11 +122,10 @@ class ModelConfigurationTest {
         @Test
         suspend fun `Given empty model name When getting Bedrock model Then should fallback to AnthropicClaude45Opus with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName)
-            val model = config.getBedrockModel()
+            val model = config.getModel()
 
             // Should fallback to default with GLOBAL prefix
-            assertEquals(BedrockModels.AnthropicClaude45Opus.id, model.modelId)
-            assertEquals(BedrockInferencePrefixes.GLOBAL.prefix, model.inferenceProfilePrefix)
+            assertEquals(BedrockModels.AnthropicClaude45Opus.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
         }
     }
 
@@ -145,10 +140,9 @@ class ModelConfigurationTest {
         @Test
         suspend fun `Given no model name property When getting Bedrock model Then should use default AnthropicClaude45Opus with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName)
-            val model = config.getBedrockModel()
+            val model = config.getModel()
 
-            assertEquals(BedrockModels.AnthropicClaude45Opus.id, model.modelId)
-            assertEquals(BedrockInferencePrefixes.GLOBAL.prefix, model.inferenceProfilePrefix)
+            assertEquals(BedrockModels.AnthropicClaude45Opus.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
             assertEquals("AnthropicClaude45Opus", config.getModelName())
         }
     }
@@ -165,12 +159,11 @@ class ModelConfigurationTest {
         @Test
         suspend fun `Given non-existent model name When getting Bedrock model Then should fallback to default with GLOBAL prefix and log warning`() {
             val config = ModelConfiguration(modelName)
-            val model = config.getBedrockModel()
+            val model = config.getModel()
 
             // Should fallback to default with GLOBAL prefix
             assertNotNull(model)
-            assertEquals(BedrockModels.AnthropicClaude45Opus.id, model.modelId)
-            assertEquals(BedrockInferencePrefixes.GLOBAL.prefix, model.inferenceProfilePrefix)
+            assertEquals(BedrockModels.AnthropicClaude45Opus.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
             assertEquals("NonExistentModel123", config.getModelName())
         }
     }
