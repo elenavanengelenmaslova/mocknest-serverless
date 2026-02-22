@@ -4,18 +4,23 @@
 Implement Phase 1 of AI-powered mock generation focusing on:
 1. **Hello World Endpoint**: Validate Bedrock + Koog integration
 2. **OpenAPI Mock Generation**: Generate WireMock-ready mocks from OpenAPI 3.0 and Swagger 2.0
-3. **Namespace Support**: Organize mocks by API and optional client
-4. **Specification Storage**: Store API specs for future evolution
+3. **Synchronous Response**: Return generated mocks immediately in HTTP response
+4. **Brave Mode**: Optional direct application of mocks to MockNest via WireMock admin API
 
 **Phase 1 Scope:**
 - Hello world endpoint for Bedrock validation
 - OpenAPI specification parsing only (no GraphQL/WSDL)
 - Scenario-based mock generation (happy path, errors, edge cases)
-- Single specification processing (no batch)
-- Foundation for future evolution features
+- Synchronous generation with immediate response
+- Optional brave mode for direct mock application
+
+**Deferred to Future Spec (Mock Evolution):**
+- Specification storage and versioning
+- Detecting API changes and updating mocks
+- Namespace storage organization
+- Mock evolution based on traffic patterns
 
 **Deferred to Future Phases:**
-- Mock evolution and change detection
 - Natural language mock generation (beyond hello world)
 - Mock enhancement and refinement
 - GraphQL and WSDL support
@@ -26,22 +31,22 @@ Implement Phase 1 of AI-powered mock generation focusing on:
 
 - [x] 1. Set up domain models and interfaces for Phase 1
   - Create domain models for mock generation requests and responses
-  - Define clean architecture interfaces for AI services and storage
-  - Set up namespace and generation job models
-  - _Requirements: 1, 2, 3, 4, 5, 6, 7_
+  - Define clean architecture interfaces for AI services and WireMock admin
+  - Set up synchronous generation models
+  - _Requirements: 1, 2, 3, 4, 5, 6_
 
 - [x] 1.1 Create core domain models
-  - Implement MockGenerationRequest with namespace support
+  - Implement MockGenerationRequest with optional brave mode
   - Implement GeneratedMock with WireMock JSON format
-  - Implement MockNamespace with prefix generation logic
-  - Implement GenerationJob and JobStatus models
-  - _Requirements: 3.1, 4.1, 4.2, 6.1_
+  - Implement GenerationResponse with applied mocks tracking
+  - Implement ApplyOptions for brave mode configuration
+  - _Requirements: 3.1, 5.1, 5.2, 6.1_
 
 - [x] 1.2 Define application layer interfaces
   - Create AIModelServiceInterface abstraction (hides Bedrock)
   - Create SpecificationParserInterface for OpenAPI formats
   - Create MockGeneratorInterface for generation logic
-  - Create GenerationStorageInterface for persistence
+  - Create WireMockAdminInterface for brave mode
   - _Requirements: Clean architecture separation_
 
 - [x] 2. Implement hello world endpoint (Bedrock validation)
@@ -176,8 +181,8 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Set up Koog 0.6.3 dependencies in build.gradle.kts
   - Implement MockGenerationFunctionalAgent
   - Configure agent domain and capabilities
-  - Implement execute method for specification generation
-  - _Requirements: 3.1, 3.5_
+  - Implement synchronous generation methods
+  - _Requirements: 3.1, 3.5, 4.1_
   - _Note: Implemented as MockGenerationFunctionalAgent with multiple generation methods_
 
 - [x] 6.1 Add Koog dependencies
@@ -191,8 +196,8 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Create MockGenerationFunctionalAgent class
   - Set domain to "mock-generation"
   - Define capabilities: parse-openapi, generate-wiremock, scenario-generation
-  - Implement execute method for SPECIFICATION_GENERATION
-  - _Requirements: 3.1, 3.5_
+  - Implement synchronous generation methods
+  - _Requirements: 3.1, 3.5, 4.1_
   - _Note: Implemented with generateFromSpec, generateFromDescription, and generateFromSpecWithDescription methods_
 
 - [ ]* 6.3 Test Functional Agent
@@ -201,123 +206,100 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Test error handling in agent
   - _Requirements: 3.1, 3.5_
 
-- [x] 7. Implement storage layer
-  - Create S3GenerationStorageAdapter
-  - Implement namespace-based storage organization
-  - Store generated mocks, specifications, and job metadata
-  - Configure Koog S3 persistence for agent state
-  - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.4, 5.5_
-  - _Note: Implemented in S3GenerationStorageAdapter_
+- [ ] 7. Implement WireMock admin adapter for brave mode
+  - Create WireMockAdminAdapter implementing WireMockAdminInterface
+  - Implement createMapping method for applying mocks
+  - Add error handling for WireMock admin API failures
+  - Configure WireMock admin URL from environment
+  - _Requirements: 5.1, 5.2, 5.3_
 
-- [x] 7.1 S3 storage adapter
-  - Implement GenerationStorageInterface with S3 backend
-  - Use namespace prefixes for storage paths
-  - Store API specifications with versions
-  - Store user instructions alongside specifications
-  - _Requirements: 5.1, 5.2, 5.3, 5.4_
-  - _Note: Implemented in S3GenerationStorageAdapter_
+- [ ] 7.1 WireMock admin adapter implementation
+  - Implement WireMockAdminInterface with HTTP client
+  - Create mapping via POST /__admin/mappings
+  - Parse mapping ID from WireMock response
+  - Handle namespace prefixes if provided
+  - _Requirements: 5.1, 5.2_
 
-- [x] 7.2 Generated mocks storage
-  - Store generated mocks by job ID and namespace
-  - Store job metadata and results
-  - Implement retrieval by job ID
-  - _Requirements: 6.3, 6.4_
-  - _Note: Implemented in S3GenerationStorageAdapter_
+- [ ] 7.2 Brave mode error handling
+  - Handle WireMock service unavailable errors
+  - Handle invalid mapping format errors
+  - Implement timeout handling
+  - Add comprehensive logging
+  - _Requirements: 5.4_
 
-- [ ] 7.3 Koog persistence configuration
-  - Configure Koog S3 persistence backend
-  - Set up agent state checkpointing
-  - Configure retention policies
-  - _Requirements: Agent state management_
-  - _Note: May not be needed if Koog handles this internally_
+- [ ]* 7.3 Test WireMock admin adapter
+  - Test mapping creation with mock WireMock API
+  - Test error scenarios and timeouts
+  - Test namespace prefix handling
+  - _Requirements: 5.1, 5.3_
 
-- [ ]* 7.4 Test storage layer
-  - Test specification storage and retrieval
-  - Test generated mocks storage
-  - Test namespace isolation
-  - Use LocalStack for S3 testing
-  - _Requirements: 4.1, 4.2, 4.3, 5.1, 6.3_
-
-- [x] 8. Implement generation use case
+- [ ] 8. Implement generation use case with brave mode
   - Create GenerateMocksFromSpecUseCase
-  - Orchestrate parsing, generation, and storage
-  - Store API specification for future evolution
-  - Handle generation job lifecycle
-  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 5.1, 5.2, 5.3, 6.1, 6.2, 6.3_
-  - _Note: Implemented with full job tracking and error handling_
+  - Orchestrate parsing, generation, and optional application
+  - Handle brave mode application logic
+  - Return synchronous response with all mocks
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 5.1, 5.3, 6.1, 6.2, 6.3_
 
-- [x] 8.1 Generation use case implementation
+- [ ] 8.1 Generation use case implementation
   - Implement invoke method with full workflow
-  - Store generation request for audit
   - Parse specification and generate mocks
-  - Store specification when requested
   - Execute Koog agent for generation
-  - Store generated mocks in S3
+  - Apply mocks if brave mode is enabled
+  - Return GenerationResponse with mocks and application status
   - _Requirements: 3.1, 5.1, 5.3, 6.1, 6.2, 6.3_
-  - _Note: Fully implemented in GenerateMocksFromSpecUseCase_
 
 - [ ]* 8.2 Test generation use case
   - Test complete generation workflow
-  - Test specification storage
-  - Test job tracking
+  - Test brave mode application
   - Test error handling
+  - Test synchronous response
   - _Requirements: 3.1, 5.1, 6.1_
 
-- [x] 9. Implement AI Generation API endpoints
-  - Create REST controllers for /ai/* endpoints
-  - Implement POST /ai/hello endpoint
-  - Implement POST /ai/generation/from-spec endpoint
-  - Implement GET /ai/generation/jobs/{jobId}/mocks endpoint
-  - _Requirements: API design_
+- [ ] 9. Implement AI Generation API endpoints
+  - Add routing for /ai/generation/from-spec endpoint
+  - Integrate with GenerateMocksFromSpecUseCase
+  - Add request validation and error handling
+  - Return synchronous response with generated mocks
+  - _Requirements: API design, 6.1, 6.5_
   - _Note: Using MockNestLambdaHandler entry point, REST controllers not needed for Phase 1_
 
-- [x] 9.1 Hello world endpoint
-  - Create AIHelloController
-  - Implement POST /ai/hello
-  - Accept text input, return AI response
-  - Handle errors gracefully
-  - _Requirements: 1.1, 1.2, 1.3_
-  - _Note: Implemented as /ai/test-agent/chat via TestAgentRequestUseCase, routed through MockNestLambdaHandler_
+- [ ] 9.1 Generation endpoint implementation
+  - Add route handler for POST /ai/generation/from-spec
+  - Parse MockGenerationRequest from HTTP request
+  - Invoke GenerateMocksFromSpecUseCase
+  - Return GenerationResponse as JSON
+  - Handle errors gracefully with appropriate HTTP status codes
+  - _Requirements: 3.1, 6.1, 6.5_
 
-- [x] 9.2 Generation endpoints
-  - Create AIGenerationController
-  - Implement POST /ai/generation/from-spec
-  - Implement GET /ai/generation/jobs/{jobId}/mocks
-  - Add request validation and error handling
-  - _Requirements: 3.1, 6.3, 6.4_
-  - _Note: Using MockNestLambdaHandler for routing, REST controllers deferred to multi-lambda refactoring_
-
-- [ ]* 9.3 Test API endpoints
-  - Test hello world endpoint
+- [ ]* 9.2 Test API endpoint
   - Test generation endpoint with valid specs
-  - Test job retrieval endpoint
+  - Test brave mode application
   - Test error scenarios
+  - Test synchronous response format
   - _Requirements: API endpoints_
 
 - [x] 10. Update SAM template for AI features
   - Add Bedrock IAM permissions when AI is enabled
   - Configure Lambda environment variables
-  - Update API Gateway routes for /ai/* endpoints
+  - Update API Gateway routes for /ai/generation/* endpoints
   - Set appropriate Lambda memory and timeout
   - _Requirements: AWS deployment_
 
 - [x] 10.1 SAM template AI configuration
   - Add conditional Bedrock IAM policies
   - Set Lambda memory to 1024MB minimum
-  - Set timeout to 5 minutes
+  - Set timeout to 30 seconds for synchronous generation
   - _Requirements: Bedrock integration_
 
 - [x] 10.2 API Gateway AI routes
-  - Add /ai/hello route
   - Add /ai/generation/from-spec route
-  - Add /ai/generation/jobs/{jobId}/mocks route
   - Configure CORS and authentication
   - _Requirements: API routing_
   - _Note: Using catch-all proxy routes, specific routes handled by Spring routing_
 
 - [ ] 11. Achieve 90% test coverage with comprehensive unit and integration tests
   - Write unit tests for all use cases, domain logic, and components
-  - Write integration tests with TestContainers (LocalStack for S3, mock Bedrock)
+  - Write integration tests with TestContainers (mock Bedrock, mock WireMock admin)
   - Use Kover to measure and verify 90% aggregated code coverage
   - Focus on integration tests over artificial per-module coverage
   - _Requirements: Testing strategy, 90% coverage target_
@@ -328,19 +310,18 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Test WireMockMappingGenerator for all scenarios
   - Test RealisticTestDataGenerator for schema-based data generation
   - Test MockGenerationFunctionalAgent request handling
-  - Test S3GenerationStorageAdapter methods
+  - Test WireMockAdminAdapter methods
   - Test GenerateMocksFromSpecUseCase workflow orchestration
   - _Requirements: Unit testing, code coverage_
 
 - [ ] 11.2 Integration tests with TestContainers
-  - Set up LocalStack container for S3 testing with proper lifecycle management
-  - Test complete generation workflow: spec upload → parse → generate → store → retrieve
-  - Test S3 storage operations with real S3 client against LocalStack
-  - Test namespace isolation in storage
-  - Test generated mocks can be loaded by WireMock runtime
-  - Test error scenarios: invalid specs, storage failures, parsing errors
+  - Set up mock Bedrock service for testing with proper lifecycle management
+  - Test complete generation workflow: spec → parse → generate → return
+  - Test brave mode: spec → parse → generate → apply → return
+  - Test WireMock admin integration with mock admin API
+  - Test error scenarios: invalid specs, Bedrock failures, WireMock failures
   - Use @BeforeAll/@AfterAll for container setup, @BeforeEach/@AfterEach for data cleanup
-  - _Requirements: Integration testing, TestContainers, LocalStack_
+  - _Requirements: Integration testing, TestContainers_
 
 - [ ] 11.3 Verify 90% coverage target
   - Run `./gradlew koverHtmlReport` to generate coverage report
@@ -354,29 +335,33 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - **Property 2**: OpenAPI parsing completeness
   - **Property 3**: Generated mock validity
   - **Property 4**: Schema compliance
-  - **Property 6**: Namespace isolation
+  - **Property 7**: Synchronous response completeness
+  - **Property 8**: Brave mode application
   - _Requirements: Property-based testing_
 
 - [ ] 12. Documentation and examples
   - Update README with Phase 1 AI generation examples
-  - Create Postman collection for AI endpoints
-  - Document namespace organization
+  - Create Postman collection for AI generation endpoint
+  - Document brave mode usage and limitations
   - Document Phase 1 limitations and future phases
   - _Requirements: Documentation_
 
 - [ ] 13. Final integration and testing
   - Test hello world endpoint validates Bedrock integration
-  - Test complete workflow: generate → retrieve → create → use
+  - Test complete workflow: generate → review → create → use
+  - Test brave mode workflow: generate → apply → use
   - Validate SAM deployment with AI features enabled
-  - Verify namespace isolation works correctly
+  - Verify synchronous response times meet requirements
   - _Requirements: End-to-end validation_
 
 ## Notes
 
-- **Phase 1 Focus**: Hello world + OpenAPI generation only
-- **Deferred Features**: Evolution, enhancement, GraphQL/WSDL, batch, natural language generation
+- **Phase 1 Focus**: Hello world + OpenAPI synchronous generation + brave mode
+- **Deferred to Future Spec (Mock Evolution)**: Specification storage, versioning, change detection, namespace organization
+- **Deferred to Future Phases**: Enhancement, refinement, GraphQL/WSDL, batch, natural language generation
 - **Clean Architecture**: Maintain strict layer boundaries throughout
 - **Bedrock Usage**: Hello world validation only in Phase 1
-- **Future Foundation**: Store specifications for evolution in future phases
+- **Stateless Design**: No storage layer for specifications or generated mocks
+- **Brave Mode**: Optional direct application to MockNest via WireMock admin API
 - Tasks marked with `*` are optional but recommended for quality
 - Each task should be completed and tested before moving to the next

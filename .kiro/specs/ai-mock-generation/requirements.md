@@ -2,17 +2,22 @@
 
 ## Introduction
 
-This document specifies Phase 1 requirements for implementing AI-powered mock generation from OpenAPI specifications in MockNest Serverless. Phase 1 focuses on validating the Bedrock + Koog integration and establishing the core generation workflow: OpenAPI spec → AI generation → WireMock-ready JSON → User imports via standard WireMock admin API.
+This document specifies requirements for implementing AI-powered mock generation from OpenAPI specifications in MockNest Serverless. The focus is on the core value proposition: generate mocks from OpenAPI specs and return them to users, with optional direct application to MockNest.
 
-**Phase 1 Scope:**
+**Core Scope:**
 - Hello world endpoint to validate Bedrock integration
 - OpenAPI specification parsing (OpenAPI 3.0 and Swagger 2.0 only)
-- Mock generation for different scenarios (happy path, error cases, edge cases)
-- Namespace support for organizing mocks by API/client
-- Storage of API specifications for future use
+- Synchronous mock generation from specifications with optional natural language instructions
+- Return generated mocks in WireMock import JSON format
+- Optional "brave mode" to apply mocks directly to MockNest via WireMock admin API
+
+**Deferred to Future Spec (Mock Evolution):**
+- Detecting API specification changes and updating existing mocks
+- Specification storage and versioning
+- Mock evolution based on traffic patterns
+- Namespace storage organization
 
 **Deferred to Future Phases:**
-- Mock evolution (detecting API changes and updating mocks)
 - Mock enhancement and refinement
 - Traffic analysis integration
 - GraphQL and WSDL support
@@ -27,9 +32,9 @@ This document specifies Phase 1 requirements for implementing AI-powered mock ge
 - **API_Specification**: OpenAPI 3.0 or Swagger 2.0 specification describing REST API endpoints, schemas, and behaviors
 - **Schema_Compliance**: Alignment between mock response structure and OpenAPI schema definitions
 - **Bedrock_Service**: Amazon Bedrock AI service used for generating mocks from natural language descriptions
-- **Generation_Job**: Asynchronous process for creating mocks from specifications
-- **Mock_Namespace**: Organizational structure for grouping mocks by API and optional client identifier
 - **Koog_Agent**: Functional agent framework used for orchestrating mock generation logic
+- **Brave_Mode**: Optional mode that applies generated mocks directly to MockNest via WireMock admin API
+- **WireMock_Import_Format**: Standard WireMock JSON format for importing mappings via admin API
 
 ## Requirements
 
@@ -67,86 +72,75 @@ This document specifies Phase 1 requirements for implementing AI-powered mock ge
 2. WHEN generating response data, THE Mock_Generator SHALL create realistic JSON responses based on OpenAPI schemas
 3. WHEN specifications define multiple response status codes, THE Mock_Generator SHALL generate separate mocks for happy path (2xx), client errors (4xx), and server errors (5xx)
 4. WHEN specifications include example responses, THE Mock_Generator SHALL use those examples as mock response templates
-5. THE Mock_Generator SHALL generate mocks in valid WireMock JSON format that can be imported via standard WireMock admin API
+5. THE Mock_Generator SHALL return generated mocks in WireMock_Import_Format that can be imported via standard WireMock admin API
 
-### Requirement 4: Namespace Organization
+### Requirement 4: Natural Language Instructions
 
-**User Story:** As a platform engineer, I want to organize generated mocks by API and client, so that I can manage mocks for multiple APIs and tenants independently.
-
-#### Acceptance Criteria
-
-1. WHEN generating mocks, THE MockNest_System SHALL accept a Mock_Namespace with required apiName and optional client identifier
-2. WHEN storing generated mocks, THE MockNest_System SHALL organize them under namespace-specific storage paths
-3. WHEN retrieving generated mocks, THE MockNest_System SHALL filter results by Mock_Namespace
-4. WHERE no client is specified, THE MockNest_System SHALL use a default namespace structure with only apiName
-5. THE MockNest_System SHALL prevent namespace collisions by using consistent path prefixes
-
-### Requirement 5: API Specification Storage
-
-**User Story:** As a developer, I want to store API specifications for future use, so that I can reference them for mock evolution and enhancement in future phases.
+**User Story:** As a developer, I want to provide natural language instructions with my OpenAPI spec, so that I can customize mock generation behavior without modifying the specification.
 
 #### Acceptance Criteria
 
-1. WHEN generating mocks from specifications, THE MockNest_System SHALL store the OpenAPI specification in namespace-specific storage
-2. WHEN storing specifications, THE MockNest_System SHALL include version information and timestamps
-3. WHEN users provide optional instructions with specifications, THE MockNest_System SHALL store those instructions alongside the specification
-4. THE MockNest_System SHALL store both current and versioned copies of specifications for historical tracking
-5. WHERE specifications are updated, THE MockNest_System SHALL preserve previous versions for future evolution features
+1. WHEN users provide optional instructions with specifications, THE Mock_Generator SHALL use those instructions to guide mock generation
+2. WHEN instructions specify response characteristics, THE Mock_Generator SHALL incorporate those characteristics into generated mocks
+3. WHERE no instructions are provided, THE Mock_Generator SHALL generate standard mocks based solely on the OpenAPI specification
+4. THE Mock_Generator SHALL combine OpenAPI schema constraints with natural language instructions to create appropriate mocks
 
-### Requirement 6: Generation Job Management
+### Requirement 5: Brave Mode Application
 
-**User Story:** As a developer, I want to track mock generation jobs and retrieve results, so that I can monitor generation progress and access generated mocks.
-
-#### Acceptance Criteria
-
-1. WHEN a generation request is submitted, THE MockNest_System SHALL create a Generation_Job with unique identifier
-2. WHEN generation is in progress, THE MockNest_System SHALL track job status and provide status updates
-3. WHEN generation completes, THE MockNest_System SHALL store all generated mocks with job metadata
-4. WHEN users request job results, THE MockNest_System SHALL return WireMock-ready JSON for all generated mocks
-5. WHERE generation fails, THE MockNest_System SHALL store error details and partial results if available
-
-### Requirement 7: Scenario-Based Mock Generation
-
-**User Story:** As a test engineer, I want to generate mocks for different scenarios, so that I can test happy paths, error cases, and edge cases comprehensively.
+**User Story:** As a developer, I want to optionally apply generated mocks directly to MockNest, so that I can quickly test generated mocks without manual import steps.
 
 #### Acceptance Criteria
 
-1. WHEN generating mocks, THE Mock_Generator SHALL create happy path mocks with 2xx status codes and valid response data
-2. WHEN generating error case mocks, THE Mock_Generator SHALL create mocks for 4xx client errors with appropriate error messages
-3. WHEN generating error case mocks, THE Mock_Generator SHALL create mocks for 5xx server errors with appropriate error responses
-4. WHERE specifications define multiple response schemas, THE Mock_Generator SHALL generate mocks for each defined scenario
-5. THE Mock_Generator SHALL generate edge case mocks for boundary conditions when schema constraints are present
+1. WHERE Brave_Mode is enabled, THE MockNest_System SHALL apply generated mocks directly to WireMock via admin API
+2. WHEN applying mocks in Brave_Mode, THE MockNest_System SHALL use namespace prefixes to organize mocks
+3. WHEN Brave_Mode application succeeds, THE MockNest_System SHALL return both the generated mocks and confirmation of successful application
+4. WHERE Brave_Mode application fails, THE MockNest_System SHALL return the generated mocks with error details about the application failure
+5. WHERE Brave_Mode is not enabled, THE MockNest_System SHALL only return generated mocks without applying them
+
+### Requirement 6: Synchronous Generation Response
+
+**User Story:** As a developer, I want to receive generated mocks immediately in the API response, so that I can quickly iterate on mock generation without polling for results.
+
+#### Acceptance Criteria
+
+1. WHEN generation completes successfully, THE MockNest_System SHALL return all generated mocks in the HTTP response
+2. WHEN generation fails, THE MockNest_System SHALL return error details with partial results if available
+3. THE MockNest_System SHALL complete generation requests within reasonable timeout limits (e.g., 30 seconds)
+4. WHERE generation would exceed timeout limits, THE MockNest_System SHALL return an error indicating the specification is too large
+5. THE MockNest_System SHALL return generated mocks in WireMock_Import_Format ready for immediate use
 
 ## Future Phase Requirements
 
 The following requirements are explicitly deferred to future phases:
 
-### Future Requirement 1: Mock Evolution
+### Future Spec: Mock Evolution
 - Detect API specification changes and suggest mock updates
 - Compare specification versions and identify affected mocks
 - Generate update suggestions for modified endpoints
+- Store API specifications with versioning
+- Namespace storage organization for tracking specifications over time
 
-### Future Requirement 2: Mock Enhancement and Refinement
+### Future Requirement 1: Mock Enhancement and Refinement
 - AI-powered enhancement of existing mocks
 - Improve mock realism using Bedrock
 - Suggest additional response variations
 
-### Future Requirement 3: Traffic Analysis Integration
+### Future Requirement 2: Traffic Analysis Integration
 - Analyze traffic patterns to identify mock gaps
 - Suggest new mocks based on unmatched requests
 - Provide coverage analysis against specifications
 
-### Future Requirement 4: Additional Protocol Support
+### Future Requirement 3: Additional Protocol Support
 - GraphQL schema parsing and mock generation
 - WSDL parsing and SOAP mock generation
 - Protocol-specific mock patterns
 
-### Future Requirement 5: Batch Generation
+### Future Requirement 4: Batch Generation
 - Process multiple specifications in single job
 - Handle naming conflicts with consistent prefixing
 - Provide batch generation summary reports
 
-### Future Requirement 6: Conversational Interfaces
+### Future Requirement 5: Conversational Interfaces
 - MCP (Model Context Protocol) support
 - Interactive mock refinement through dialogue
 - Context-aware mock generation
