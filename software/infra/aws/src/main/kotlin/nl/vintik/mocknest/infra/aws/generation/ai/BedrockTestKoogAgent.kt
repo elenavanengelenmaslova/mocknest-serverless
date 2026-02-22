@@ -25,7 +25,7 @@ private val logger = KotlinLogging.logger {}
  */
 class BedrockTestKoogAgent(
     private val modelConfiguration: ModelConfiguration,
-    @param:Value("\${aws.region:eu-west-1}")
+    @param:Value($$"${aws.region:eu-west-1}")
     private val region: String,
     private val bedrockRuntimeClient: BedrockRuntimeClient? = null
 ) : TestKoogAgent {
