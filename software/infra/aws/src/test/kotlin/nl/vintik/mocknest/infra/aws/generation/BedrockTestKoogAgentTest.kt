@@ -1,5 +1,7 @@
 package nl.vintik.mocknest.infra.aws.generation
 
+import ai.koog.prompt.executor.clients.bedrock.BedrockInferencePrefixes
+import ai.koog.prompt.executor.clients.bedrock.BedrockModel
 import ai.koog.prompt.executor.clients.bedrock.BedrockModels
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import aws.sdk.kotlin.services.bedrockruntime.model.InvokeModelRequest
@@ -27,7 +29,12 @@ class BedrockTestKoogAgentTest {
     
     @BeforeEach
     fun setUp() {
-        every { modelConfiguration.getBedrockModel() } returns BedrockModels.AnthropicClaude35SonnetV2
+        // Return BedrockModel with GLOBAL prefix
+        every { modelConfiguration.getBedrockModel() } returns BedrockModel(
+            model = BedrockModels.AnthropicClaude35SonnetV2,
+            modelId = BedrockModels.AnthropicClaude35SonnetV2.id,
+            inferenceProfilePrefix = BedrockInferencePrefixes.GLOBAL.prefix
+        )
         agent = BedrockTestKoogAgent(modelConfiguration, "eu-west-1", bedrockClient)
     }
     

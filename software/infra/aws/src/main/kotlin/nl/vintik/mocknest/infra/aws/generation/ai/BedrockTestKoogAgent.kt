@@ -38,17 +38,16 @@ class BedrockTestKoogAgent(
             settings = BedrockClientSettings(region = region)
         )
         SingleLLMPromptExecutor(
-            if (client is BedrockLLMClient) client
-            else BedrockLLMClient(client as BedrockRuntimeClient)
+            client as? BedrockLLMClient ?: BedrockLLMClient(client as BedrockRuntimeClient)
         )
     }
     
     private val agent by lazy {
         val model = modelConfiguration.getBedrockModel()
-        logger.info { "Initializing AI agent: model=${model.id}, region=$region" }
+        logger.info { "Initializing AI agent: model=${model.modelId}, region=$region" }
         AIAgent(
             promptExecutor = executor,
-            llmModel = model,
+            llmModel = model.model,
             systemPrompt = """
                 You are a helpful AI assistant integrated with MockNest Serverless.
                 You help users with their requests in a clear and concise manner.

@@ -1,5 +1,7 @@
 package nl.vintik.mocknest.infra.aws.core.ai
 
+import ai.koog.prompt.executor.clients.bedrock.BedrockInferencePrefixes
+import ai.koog.prompt.executor.clients.bedrock.BedrockModel
 import ai.koog.prompt.executor.clients.bedrock.BedrockModels
 import ai.koog.prompt.llm.LLModel
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -10,14 +12,18 @@ private val logger = KotlinLogging.logger {}
 
 /**
  * Configuration for Bedrock model selection.
- * Maps environment variable model names to Koog BedrockModels constants.
+ * Maps environment variable model names to Koog BedrockModels constants
+ * and applies GLOBAL inference profile prefix for optimal AWS routing.
  * 
  * The model name is read from the BEDROCK_MODEL_NAME environment variable,
  * which is set by the SAM template's BedrockModelName parameter.
  * If the environment variable is not set, defaults to "AnthropicClaude45Opus".
  * 
+ * Uses GLOBAL inference profile prefix to allow AWS to route requests
+ * to the best available region, which is appropriate for mock data generation.
+ * 
  * If an invalid model name is provided, logs a warning and falls back to
- * BedrockModels.AnthropicClaude45Opus.
+ * BedrockModels.AnthropicClaude45Opus with GLOBAL prefix.
  */
 @Component
 class ModelConfiguration(
@@ -26,17 +32,30 @@ class ModelConfiguration(
 ) {
     
     /**
-     * Get the LLModel for the configured model name.
-     * Falls back to Claude 4.5 Opus if mapping fails.
+     * Get the BedrockModel for the configured model name with GLOBAL inference profile.
+     * Falls back to Claude 4.5 Opus with GLOBAL prefix if mapping fails.
      * 
-     * @return The LLModel corresponding to the configured model name
+     * @return The BedrockModel corresponding to the configured model name with GLOBAL prefix
      */
-    fun getBedrockModel(): LLModel {
-        return runCatching {
-            mapModelNameToLLModel(modelName)
-        }.onFailure { exception ->
-            logger.warn(exception) { "Failed to map model name '$modelName' to BedrockModel, using default AnthropicClaude45Opus" }
-        }.getOrDefault(BedrockModels.AnthropicClaude45Opus)
+    fun getBedrockModel(): BedrockModel {
+        val baseModel = mapModelNameToLLModel(modelName)
+        return applyGlobalInferenceProfile(baseModel)
+    }
+    
+    /**
+     * Apply GLOBAL inference profile prefix to the model.
+     * This allows AWS to route requests to the best available region.
+     * 
+     * @param model The base LLModel to configure
+     * @return A BedrockModel with GLOBAL inference profile applied
+     */
+    private fun applyGlobalInferenceProfile(model: LLModel): BedrockModel {
+        // Create a new BedrockModel wrapping the LLModel with GLOBAL prefix
+        return BedrockModel(
+            model = model,
+            modelId = model.id,
+            inferenceProfilePrefix = BedrockInferencePrefixes.GLOBAL.prefix
+        )
     }
     
     /**
@@ -49,10 +68,10 @@ class ModelConfiguration(
     /**
      * Maps a model name string to the corresponding LLModel from BedrockModels.
      * Uses Kotlin reflection to look up BedrockModels properties by name.
+     * Falls back to AnthropicClaude45Opus if model name is not found.
      * 
      * @param modelName The model name to map (e.g., "AnthropicClaude45Opus")
      * @return The corresponding LLModel
-     * @throws IllegalStateException if the model name is not found or is not an LLModel
      */
     private fun mapModelNameToLLModel(modelName: String): LLModel {
         return runCatching {
@@ -68,7 +87,7 @@ class ModelConfiguration(
             value as? LLModel
                 ?: error("Property $modelName in BedrockModels is not an LLModel")
         }.onFailure { exception ->
-            logger.warn(exception) { "Failed to find model: $modelName in BedrockModels" }
+            logger.warn(exception) { "Failed to find model: $modelName in BedrockModels, using default AnthropicClaude45Opus" }
         }.getOrElse {
             logger.warn { "Unknown model name: $modelName, using default AnthropicClaude45Opus" }
             BedrockModels.AnthropicClaude45Opus
