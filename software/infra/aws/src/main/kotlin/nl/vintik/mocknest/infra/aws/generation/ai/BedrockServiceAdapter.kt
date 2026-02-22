@@ -137,19 +137,20 @@ class BedrockServiceAdapter(
                 )
             )
         )
-        
+
         val request = InvokeModelRequest {
             modelId = modelConfiguration.getModelName()
             contentType = "application/json"
             body = objectMapper.writeValueAsBytes(requestBody)
         }
-        
+
         val response = bedrockClient.invokeModel(request)
         val responseBody = response.body.toString(Charsets.UTF_8)
-        
+
         val responseJson = objectMapper.readTree(responseBody)
-        return responseJson.path("content").path(0).path("text").asText()
-            ?: throw IllegalStateException("Invalid response format from Claude")
+        val text = responseJson.path("content").path(0).path("text").asText()
+        check(text.isNotBlank()) { "Invalid response format from Claude" }
+        return text
     }
     
     private fun buildNaturalLanguagePrompt(description: String, context: Map<String, String>): String {
@@ -266,11 +267,16 @@ class BedrockServiceAdapter(
         """.trimIndent()
     }
     
-    private fun parseClaudeResponse(response: String, namespace: MockNamespace, sourceType: SourceType, sourceReference: String): List<GeneratedMock> {
-        return try {
+    private fun parseClaudeResponse(
+        response: String,
+        namespace: MockNamespace,
+        sourceType: SourceType,
+        sourceReference: String
+    ): List<GeneratedMock> {
+        return runCatching {
             // Try to parse as JSON array first
             val jsonArray = objectMapper.readTree(response)
-            
+
             if (jsonArray.isArray) {
                 val mocks = mutableListOf<GeneratedMock>()
                 for (i in 0 until jsonArray.size()) {
@@ -284,15 +290,15 @@ class BedrockServiceAdapter(
                 val wireMockMapping = objectMapper.writeValueAsString(jsonArray)
                 listOf(createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, 0))
             }
-        } catch (e: Exception) {
+        }.onFailure { e ->
             logger.warn(e) { "Failed to parse Claude response as JSON, attempting text extraction" }
-            
+        }.getOrElse {
             // Try to extract JSON from text response
             val jsonPattern = Regex("""(\[.*\]|\{.*\})""", RegexOption.DOT_MATCHES_ALL)
             val match = jsonPattern.find(response)
-            
+
             if (match != null) {
-                try {
+                runCatching {
                     val jsonArray = objectMapper.readTree(match.value)
                     if (jsonArray.isArray) {
                         val mocks = mutableListOf<GeneratedMock>()
@@ -306,8 +312,9 @@ class BedrockServiceAdapter(
                         val wireMockMapping = objectMapper.writeValueAsString(jsonArray)
                         listOf(createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, 0))
                     }
-                } catch (e: Exception) {
+                }.onFailure { e ->
                     logger.error(e) { "Failed to parse extracted JSON from Claude response" }
+                }.getOrElse {
                     emptyList()
                 }
             } else {

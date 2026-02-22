@@ -1,8 +1,11 @@
 package nl.vintik.mocknest.application.generation.parsers
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.CompositeSpecificationParser
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import nl.vintik.mocknest.domain.generation.*
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Composite parser that delegates to format-specific parsers.
@@ -26,9 +29,8 @@ class CompositeSpecificationParserImpl(
     }
     
     override suspend fun parse(content: String, format: SpecificationFormat): APISpecification {
-        val parser = parserMap[format] 
-            ?: throw UnsupportedOperationException("No parser available for format: $format")
-        
+        val parser = requireNotNull(parserMap[format]) { "No parser available for format: $format" }
+
         return parser.parse(content, format)
     }
     
@@ -46,9 +48,8 @@ class CompositeSpecificationParserImpl(
     }
     
     override suspend fun extractMetadata(content: String, format: SpecificationFormat): SpecificationMetadata {
-        val parser = parserMap[format] 
-            ?: throw UnsupportedOperationException("No parser available for format: $format")
-        
+        val parser = requireNotNull(parserMap[format]) { "No parser available for format: $format" }
+
         return parser.extractMetadata(content, format)
     }
     

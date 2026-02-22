@@ -8,13 +8,14 @@ import java.util.*
 data class MockGenerationRequest(
     val jobId: String = UUID.randomUUID().toString(),
     val namespace: MockNamespace,
-    val specificationContent: String,
+    val specificationContent: String? = null,
+    val specificationUrl: String? = null,
     val format: SpecificationFormat,
     val options: GenerationOptions = GenerationOptions.default()
 ) {
     init {
         require(jobId.isNotBlank()) { "Job ID cannot be blank" }
-        require(specificationContent.isNotBlank()) { "Specification content cannot be blank" }
+        require(specificationContent?.isNotBlank()?: false || specificationUrl?.isNotBlank()?: false) { "One of Specification content or URL must be present" }
     }
 }
 
@@ -41,14 +42,15 @@ data class NaturalLanguageRequest(
 data class SpecWithDescriptionRequest(
     val jobId: String = UUID.randomUUID().toString(),
     val namespace: MockNamespace,
-    val specificationContent: String,
+    val specificationContent: String? = null,
+    val specificationUrl: String? = null,
     val format: SpecificationFormat,
     val description: String,
     val options: GenerationOptions = GenerationOptions.default()
 ) {
     init {
         require(jobId.isNotBlank()) { "Job ID cannot be blank" }
-        require(specificationContent.isNotBlank()) { "Specification content cannot be blank" }
+        require(specificationContent?.isNotBlank()?: false || specificationUrl?.isNotBlank()?: false) { "One of Specification content or URL must be present" }
         require(description.isNotBlank()) { "Description cannot be blank" }
     }
 }
@@ -64,12 +66,7 @@ enum class SpecificationFormat {
  * Options for controlling mock generation behavior.
  */
 data class GenerationOptions(
-    val includeExamples: Boolean = true,
-    val generateErrorCases: Boolean = true,
-    val realisticData: Boolean = true,
-    val storeSpecification: Boolean = true,  // Store API spec for future use
-    val enhanceExisting: Boolean = false,    // Enhance existing mocks vs create new
-    val preserveCustomizations: Boolean = true
+    val brave: Boolean = true,
 ) {
     companion object {
         fun default() = GenerationOptions()

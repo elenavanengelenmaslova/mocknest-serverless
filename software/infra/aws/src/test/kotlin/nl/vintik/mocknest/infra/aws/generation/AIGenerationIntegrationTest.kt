@@ -68,9 +68,7 @@ class AIGenerationIntegrationTest {
             specificationContent = openApiSpec,
             format = SpecificationFormat.OPENAPI_3,
             options = GenerationOptions(
-                includeExamples = true,
-                generateErrorCases = false,
-                storeSpecification = false
+                brave = true
             )
         )
         
@@ -78,7 +76,7 @@ class AIGenerationIntegrationTest {
         // Full integration would require LocalStack setup and Spring context
         assertTrue(request.namespace.apiName == "test-api")
         assertTrue(request.format == SpecificationFormat.OPENAPI_3)
-        assertTrue(request.specificationContent.contains("openapi: 3.0.0"))
+        assertTrue(request.specificationContent?.contains("openapi: 3.0.0") == true)
     }
     
     @Test

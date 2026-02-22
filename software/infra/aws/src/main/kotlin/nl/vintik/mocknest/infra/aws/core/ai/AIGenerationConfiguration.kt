@@ -84,41 +84,31 @@ class AIGenerationConfiguration {
 
     @Bean
     fun generateMocksFromSpecUseCase(
-        specificationParser: SpecificationParserInterface,
-        mockGenerator: MockGeneratorInterface,
-        generationStorage: GenerationStorageInterface,
+        mockGenerationAgent: MockGenerationFunctionalAgent,
     ): GenerateMocksFromSpecUseCase {
-        return GenerateMocksFromSpecUseCase(specificationParser, mockGenerator, generationStorage)
+        return GenerateMocksFromSpecUseCase(mockGenerationAgent)
     }
 
     @Bean
     fun generateMocksFromSpecWithDescriptionUseCase(
         mockGenerationAgent: MockGenerationFunctionalAgent,
-        generationStorage: GenerationStorageInterface,
     ): GenerateMocksFromSpecWithDescriptionUseCase {
-        return GenerateMocksFromSpecWithDescriptionUseCase(mockGenerationAgent, generationStorage)
+        return GenerateMocksFromSpecWithDescriptionUseCase(mockGenerationAgent)
     }
 
     @Bean
     fun generateMocksFromDescriptionUseCase(
         mockGenerationAgent: MockGenerationFunctionalAgent,
-        generationStorage: GenerationStorageInterface,
     ): GenerateMocksFromDescriptionUseCase {
-        return GenerateMocksFromDescriptionUseCase(mockGenerationAgent, generationStorage)
+        return GenerateMocksFromDescriptionUseCase(mockGenerationAgent)
     }
 
     @Bean
     fun aiGenerationRequestUseCase(
-        generateFromSpecUseCase: GenerateMocksFromSpecUseCase,
-        generateFromSpecWithDescriptionUseCase: GenerateMocksFromSpecWithDescriptionUseCase,
-        generateFromDescriptionUseCase: GenerateMocksFromDescriptionUseCase,
-        generationStorageInterface: GenerationStorageInterface,
+        generateFromSpecWithDescriptionUseCase: GenerateMocksFromSpecWithDescriptionUseCase
     ): HandleAIGenerationRequest {
         return AIGenerationRequestUseCase(
-            generateFromSpecUseCase,
-            generateFromSpecWithDescriptionUseCase,
-            generateFromDescriptionUseCase,
-            generationStorageInterface
+            generateFromSpecWithDescriptionUseCase
         )
     }
 

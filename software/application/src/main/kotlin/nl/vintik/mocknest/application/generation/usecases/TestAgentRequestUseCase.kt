@@ -21,15 +21,25 @@ class TestAgentRequestUseCase(
     override fun invoke(path: String, httpRequest: HttpRequest): HttpResponse = runBlocking {
         logger.info { "Handling Test Agent request: ${httpRequest.method} $path" }
 
-        when {
-            path == "/chat" && httpRequest.method.name() == "POST" -> chat(httpRequest)
-            path == "/health" && httpRequest.method.name() == "GET" -> health()
-            else -> HttpResponse(HttpStatusCode.valueOf(404), body = "Path $path not found for Test Agent")
+        runCatching {
+            when (path) {
+                "/chat" if httpRequest.method.name() == "POST" -> chat(httpRequest)
+                "/health" if httpRequest.method.name() == "GET" -> health()
+                else -> HttpResponse(HttpStatusCode.valueOf(404), body = "Path $path not found for Test Agent")
+            }
+        }.onFailure { e ->
+            logger.error(e) { "Error processing Test Agent request: $path" }
+        }.getOrElse { e ->
+            HttpResponse(
+                HttpStatusCode.valueOf(500),
+                jsonHeaders(),
+                mapper.writeValueAsString(mapOf("error" to (e.message ?: "Internal Server Error")))
+            )
         }
     }
 
     private suspend fun chat(request: HttpRequest): HttpResponse {
-        val body = request.body ?: throw IllegalArgumentException("Body must be a string")
+        val body = requireNotNull(request.body) { "Body must be a string" }
         val testRequest = mapper.readValue(body, TestAgentRequest::class.java)
         
         logger.info { "Received test agent request: ${testRequest.instructions}" }

@@ -3,6 +3,7 @@ package nl.vintik.mocknest.application.generation.parsers
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import org.springframework.http.HttpMethod
 import nl.vintik.mocknest.domain.generation.*
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.PathItem
@@ -11,54 +12,55 @@ import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.responses.ApiResponse
 import io.swagger.v3.parser.OpenAPIV3Parser
 
+private val logger = KotlinLogging.logger {}
 /**
  * Parser for OpenAPI 3.0 and Swagger 2.0 specifications.
  */
 class OpenAPISpecificationParser : SpecificationParserInterface {
-    
+
     override suspend fun parse(content: String, format: SpecificationFormat): APISpecification {
         val parseResult = OpenAPIV3Parser().readContents(content)
-        
-        if (parseResult.messages.isNotEmpty()) {
-            throw IllegalArgumentException("OpenAPI parsing errors: ${parseResult.messages.joinToString(", ")}")
-        }
-        
-        val openAPI = parseResult.openAPI 
-            ?: throw IllegalArgumentException("Failed to parse OpenAPI specification")
-        
+
+        require(parseResult.messages.isEmpty()) { "OpenAPI parsing errors: ${parseResult.messages.joinToString(", ")}" }
+
+        val openAPI = requireNotNull(parseResult.openAPI) { "Failed to parse OpenAPI specification" }
+
         return convertToAPISpecification(openAPI, format)
     }
-    
-    override fun supports(format: SpecificationFormat): Boolean = 
+
+    override fun supports(format: SpecificationFormat): Boolean =
         format in listOf(SpecificationFormat.OPENAPI_3, SpecificationFormat.SWAGGER_2)
-    
-    override suspend fun validate(content: String, format: SpecificationFormat): ValidationResult {
-        return try {
-            val parseResult = OpenAPIV3Parser().readContents(content)
-            
-            if (parseResult.openAPI == null) {
-                ValidationResult.invalid(listOf(
+
+    override suspend fun validate(content: String, format: SpecificationFormat): ValidationResult = runCatching {
+        val parseResult = OpenAPIV3Parser().readContents(content)
+
+        if (parseResult.openAPI == null) {
+            ValidationResult.invalid(
+                listOf(
                     ValidationError("Failed to parse OpenAPI specification")
-                ))
-            } else if (parseResult.messages.isNotEmpty()) {
-                ValidationResult(
-                    isValid = true,
-                    warnings = parseResult.messages.map { ValidationWarning(it) }
                 )
-            } else {
-                ValidationResult.valid()
-            }
-        } catch (e: Exception) {
-            ValidationResult.invalid(listOf(
-                ValidationError("Validation failed: ${e.message}")
-            ))
+            )
+        } else if (parseResult.messages.isNotEmpty()) {
+            ValidationResult(
+                isValid = true,
+                warnings = parseResult.messages.map { ValidationWarning(it) }
+            )
+        } else {
+            ValidationResult.valid()
         }
+    }.onFailure { e ->
+        logger.warn(e) { "Validation failed" }
+    }.getOrElse { e ->
+        ValidationResult.invalid(
+            listOf(
+                ValidationError("Validation failed: ${e.message}")
+            )
+        )
     }
-    
+
     override suspend fun extractMetadata(content: String, format: SpecificationFormat): SpecificationMetadata {
         val parseResult = OpenAPIV3Parser().readContents(content)
-        val openAPI = parseResult.openAPI 
-            ?: throw IllegalArgumentException("Failed to parse OpenAPI specification")
+        val openAPI = requireNotNull(parseResult.openAPI) { "Failed to parse OpenAPI specification" }
         
         val endpointCount = openAPI.paths?.values?.sumOf { pathItem ->
             listOfNotNull(

@@ -3,7 +3,8 @@ package nl.vintik.mocknest.domain.generation
 // Request DTOs
 data class GenerateFromSpecRequest(
     val namespace: MockNamespace,
-    val specification: String,
+    val specification: String? = null,
+    val specificationUrl: String? = null,
     val format: SpecificationFormat,
     val options: GenerationOptions = GenerationOptions.default()
 )
@@ -18,7 +19,8 @@ data class GenerateFromDescriptionRequest(
 
 data class GenerateFromSpecWithDescriptionRequest(
     val namespace: MockNamespace,
-    val specification: String,
+    val specification: String? = null,
+    val specificationUrl: String? = null,
     val format: SpecificationFormat,
     val description: String,
     val options: GenerationOptions = GenerationOptions.default()
@@ -35,31 +37,7 @@ data class GenerationResponse(
 )
 
 data class MocksResponse(
-    val jobId: String,
-    val status: String,
-    val mocks: List<MockResponse>,
-    val totalMocks: Int
-)
-
-data class MockResponse(
-    val id: String,
-    val name: String,
-    val wireMockMapping: String,
-    val metadata: MockMetadataResponse,
-    val generatedAt: String
-)
-
-data class MockMetadataResponse(
-    val sourceType: String,
-    val endpoint: EndpointResponse,
-    val tags: List<String>
-)
-
-data class EndpointResponse(
-    val method: String,
-    val path: String,
-    val statusCode: Int,
-    val contentType: String
+    val mappings: List<Any>
 )
 
 data class JobStatusResponse(
@@ -85,11 +63,12 @@ data class GenerationResult(
     val jobId: String,
     val success: Boolean,
     val mocksGenerated: Int = 0,
+    val mocks: List<GeneratedMock> = emptyList(),
     val error: String? = null
 ) {
     companion object {
-        fun success(jobId: String, mocksGenerated: Int) =
-            GenerationResult(jobId, true, mocksGenerated)
+        fun success(jobId: String, mocks: List<GeneratedMock>) =
+            GenerationResult(jobId, true, mocks.size, mocks)
 
         fun failure(jobId: String, error: String) =
             GenerationResult(jobId, false, error = error)

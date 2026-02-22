@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.generation
+package nl.vintik.mocknest.infra.aws.generation.storage
 
 import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.*
@@ -36,11 +36,10 @@ class S3GenerationStorageAdapter(
     
     override suspend fun storeGeneratedMocks(mocks: List<GeneratedMock>, jobId: String): String {
         logger.info { "Storing ${mocks.size} generated mocks for job: $jobId" }
-        
+
         return s3Client.runCatching {
-            val namespace = mocks.firstOrNull()?.namespace 
-                ?: throw IllegalArgumentException("No mocks provided or missing namespace")
-            
+            val namespace = requireNotNull(mocks.firstOrNull()?.namespace) { "No mocks provided or missing namespace" }
+
             val storageKey = "${namespace.toPrefix()}/$GENERATED_MOCKS_PREFIX/$JOBS_PREFIX/$jobId"
             
             // Store individual mocks
@@ -87,36 +86,35 @@ class S3GenerationStorageAdapter(
     
     override suspend fun getGeneratedMocks(jobId: String): List<GeneratedMock> {
         logger.debug { "Retrieving generated mocks for job: $jobId" }
-        
+
         return s3Client.runCatching {
             // Find the job by searching across namespaces
-            val jobKey = findJobKey(jobId) ?: throw IllegalArgumentException("Job not found: $jobId")
+            val jobKey = requireNotNull(findJobKey(jobId)) { "Job not found: $jobId" }
             val mocksPrefix = "$jobKey/mocks/"
-            
+
             val listRequest = ListObjectsV2Request {
                 bucket = bucketName
                 prefix = mocksPrefix
             }
-            
+
             val objects = listObjectsV2(listRequest).contents ?: emptyList()
-            
+
             objects.mapNotNull { obj ->
-                try {
+                runCatching {
                     val getRequest = GetObjectRequest {
                         bucket = bucketName
                         key = obj.key!!
                     }
-                    
+
                     var content: String? = null
                     getObject(getRequest) { response ->
                         content = response.body?.toByteArray()?.let { String(it) }
                     }
-                    
+
                     content?.let { objectMapper.readValue(it, GeneratedMock::class.java) }
-                } catch (e: Exception) {
+                }.onFailure { e ->
                     logger.warn(e) { "Failed to deserialize mock from key: ${obj.key}" }
-                    null
-                }
+                }.getOrNull()
             }
         }.onFailure { exception ->
             logger.error(exception) { "Failed to retrieve generated mocks for job: $jobId" }
@@ -257,10 +255,10 @@ class S3GenerationStorageAdapter(
     
     override suspend fun updateJobStatus(jobId: String, status: JobStatus, error: String?) {
         logger.debug { "Updating job status: $jobId -> $status" }
-        
-        try {
-            val job = getJob(jobId) ?: throw IllegalArgumentException("Job not found: $jobId")
-            
+
+        runCatching {
+            val job = requireNotNull(getJob(jobId)) { "Job not found: $jobId" }
+
             val updatedJob = job.copy(
                 status = status,
                 error = error,
@@ -268,18 +266,18 @@ class S3GenerationStorageAdapter(
                     Instant.now()
                 } else job.completedAt
             )
-            
+
             storeJob(updatedJob)
-        } catch (exception: Exception) {
+        }.onFailure { exception ->
             logger.error(exception) { "Failed to update job status: $jobId" }
         }
     }
-    
+
     override suspend fun storeJobResults(jobId: String, results: GenerationResults) {
         logger.debug { "Storing job results: $jobId" }
-        
+
         s3Client.runCatching {
-            val jobKey = findJobKey(jobId) ?: throw IllegalArgumentException("Job not found: $jobId")
+            val jobKey = requireNotNull(findJobKey(jobId)) { "Job not found: $jobId" }
             val resultsKey = "$jobKey/results.json"
             
             val resultsJson = objectMapper.writeValueAsString(results)
@@ -303,20 +301,20 @@ class S3GenerationStorageAdapter(
     
     override suspend fun listSpecifications(namespace: MockNamespace): List<SpecificationMetadata> {
         logger.debug { "Listing specifications for namespace: ${namespace.displayName()}" }
-        
+
         return s3Client.runCatching {
             val searchPrefix = "${namespace.toPrefix()}/$API_SPECS_PREFIX/$VERSIONS_PREFIX/"
-            
+
             val listRequest = ListObjectsV2Request {
                 bucket = bucketName
                 prefix = searchPrefix
             }
-            
+
             val objects = listObjectsV2(listRequest).contents ?: emptyList()
-            
+
             objects.mapNotNull { obj ->
                 val key = obj.key ?: return@mapNotNull null
-                try {
+                runCatching {
                     val versionFromKey = key.substringAfter("$VERSIONS_PREFIX/").substringBefore(".json")
                     SpecificationMetadata(
                         title = "Unknown",
@@ -325,51 +323,50 @@ class S3GenerationStorageAdapter(
                         endpointCount = 0,
                         schemaCount = 0
                     )
-                } catch (e: Exception) {
+                }.onFailure { e ->
                     logger.warn(e) { "Failed to parse specification metadata from key: $key" }
-                    null
-                }
+                }.getOrNull()
             }
         }.onFailure { exception ->
             logger.error(exception) { "Failed to list specifications for namespace: ${namespace.displayName()}" }
         }.getOrElse { emptyList() }
     }
-    
+
     override suspend fun listJobs(namespace: MockNamespace, status: JobStatus?, limit: Int): List<GenerationJob> {
         logger.debug { "Listing jobs for namespace: ${namespace.displayName()}" }
-        
+
         return s3Client.runCatching {
             val searchPrefix = "${namespace.toPrefix()}/$JOBS_PREFIX/"
-            
+
             val listRequest = ListObjectsV2Request {
                 bucket = bucketName
                 prefix = searchPrefix
                 maxKeys = limit
             }
-            
+
             val objects = listObjectsV2(listRequest).contents ?: emptyList()
-            
+
             objects.mapNotNull { obj ->
                 if (obj.key?.endsWith("/metadata.json") == true) {
-                    try {
+                    runCatching {
                         val getRequest = GetObjectRequest {
                             bucket = bucketName
                             key = obj.key!!
                         }
-                        
+
                         var content: String? = null
                         getObject(getRequest) { response ->
                             content = response.body?.toByteArray()?.let { String(it) }
                         }
-                        
-                        val job = content?.let { objectMapper.readValue(it, GenerationJob::class.java) } ?: return@mapNotNull null
-                        
+
+                        val job =
+                            content?.let { objectMapper.readValue(it, GenerationJob::class.java) } ?: return@runCatching null
+
                         // Filter by status if specified
                         if (status == null || job.status == status) job else null
-                    } catch (e: Exception) {
+                    }.onFailure { e ->
                         logger.warn(e) { "Failed to deserialize job from key: ${obj.key}" }
-                        null
-                    }
+                    }.getOrNull()
                 } else null
             }.take(limit)
         }.onFailure { exception ->

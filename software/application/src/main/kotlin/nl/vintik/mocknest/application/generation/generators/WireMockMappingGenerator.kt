@@ -2,11 +2,13 @@ package nl.vintik.mocknest.application.generation.generators
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.MockGeneratorInterface
 import nl.vintik.mocknest.application.generation.interfaces.TestDataGeneratorInterface
 import nl.vintik.mocknest.domain.generation.*
 import org.springframework.http.HttpMethod
 
+private val logger = KotlinLogging.logger {}
 /**
  * Generates WireMock mappings from API specifications.
  * Converts parsed endpoint definitions into valid WireMock JSON format.
@@ -14,7 +16,7 @@ import org.springframework.http.HttpMethod
 class WireMockMappingGenerator(
     private val testDataGenerator: TestDataGeneratorInterface
 ) : MockGeneratorInterface {
-    
+
     private val objectMapper = ObjectMapper().registerKotlinModule()
     
     override suspend fun generateFromSpecification(
@@ -27,7 +29,7 @@ class WireMockMappingGenerator(
                 val mocks = mutableListOf(mock)
                 
                 // Generate error cases if requested
-                if (options.generateErrorCases) {
+                if (options.brave) {
                     mocks.addAll(generateErrorCases(endpoint, namespace, options))
                 }
                 
@@ -49,7 +51,7 @@ class WireMockMappingGenerator(
         
         val responseData = generateResponseData(
             schema = successResponse.schema ?: JsonSchema(JsonSchemaType.OBJECT),
-            useExamples = options.includeExamples
+            useExamples = options.brave
         )
         
         val wireMockMapping = createWireMockMapping(endpoint, responseData, successStatusCode)
@@ -179,47 +181,49 @@ class WireMockMappingGenerator(
         return objectMapper.writeValueAsString(mapping)
     }
     
-    override suspend fun validateWireMockMapping(mapping: String): ValidationResult {
-        return try {
-            val parsedMapping = objectMapper.readTree(mapping)
-            
-            val errors = mutableListOf<ValidationError>()
-            
-            // Check required fields
-            if (!parsedMapping.has("request")) {
-                errors.add(ValidationError("Missing required field: request"))
-            }
-            if (!parsedMapping.has("response")) {
-                errors.add(ValidationError("Missing required field: response"))
-            }
-            
-            // Validate request structure
-            parsedMapping.get("request")?.let { request ->
-                if (!request.has("method")) {
-                    errors.add(ValidationError("Missing required field: request.method"))
-                }
-                if (!request.has("url") && !request.has("urlPattern")) {
-                    errors.add(ValidationError("Missing required field: request.url or request.urlPattern"))
-                }
-            }
-            
-            // Validate response structure
-            parsedMapping.get("response")?.let { response ->
-                if (!response.has("status")) {
-                    errors.add(ValidationError("Missing required field: response.status"))
-                }
-            }
-            
-            if (errors.isEmpty()) {
-                ValidationResult.valid()
-            } else {
-                ValidationResult.invalid(errors)
-            }
-        } catch (e: Exception) {
-            ValidationResult.invalid(listOf(
-                ValidationError("Invalid JSON format: ${e.message}")
-            ))
+    override suspend fun validateWireMockMapping(mapping: String): ValidationResult = runCatching {
+        val parsedMapping = objectMapper.readTree(mapping)
+
+        val errors = mutableListOf<ValidationError>()
+
+        // Check required fields
+        if (!parsedMapping.has("request")) {
+            errors.add(ValidationError("Missing required field: request"))
         }
+        if (!parsedMapping.has("response")) {
+            errors.add(ValidationError("Missing required field: response"))
+        }
+
+        // Validate request structure
+        parsedMapping.get("request")?.let { request ->
+            if (!request.has("method")) {
+                errors.add(ValidationError("Missing required field: request.method"))
+            }
+            if (!request.has("url") && !request.has("urlPattern")) {
+                errors.add(ValidationError("Missing required field: request.url or request.urlPattern"))
+            }
+        }
+
+        // Validate response structure
+        parsedMapping.get("response")?.let { response ->
+            if (!response.has("status")) {
+                errors.add(ValidationError("Missing required field: response.status"))
+            }
+        }
+
+        if (errors.isEmpty()) {
+            ValidationResult.valid()
+        } else {
+            ValidationResult.invalid(errors)
+        }
+    }.onFailure { e ->
+        logger.warn(e) { "Validation of WireMock mapping failed" }
+    }.getOrElse { e ->
+        ValidationResult.invalid(
+            listOf(
+                ValidationError("Invalid JSON format: ${e.message}")
+            )
+        )
     }
     
     private suspend fun generateErrorCases(
