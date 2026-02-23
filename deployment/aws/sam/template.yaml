@@ -161,9 +161,6 @@ Resources:
                   - bedrock:InvokeModelWithResponseStream
                   - bedrock:ListFoundationModels
                 Resource: "*"
-                Condition:
-                  StringEquals:
-                    "aws:RequestedRegion": !Ref "AWS::Region"
       Tags:
         - Key: Application
           Value: MockNest-Serverless
