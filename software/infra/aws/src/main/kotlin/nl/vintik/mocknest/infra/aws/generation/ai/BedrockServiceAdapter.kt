@@ -1,7 +1,10 @@
 package nl.vintik.mocknest.infra.aws.generation.ai
 
+import ai.koog.agents.core.agent.AIAgent
+import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
+import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
-import aws.sdk.kotlin.services.bedrockruntime.model.InvokeModelRequest
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
@@ -14,7 +17,7 @@ import java.time.Instant
 
 /**
  * Amazon Bedrock implementation of AI model service.
- * Provides AI-powered mock generation using Claude 4.5 Opus.
+ * Provides AI-powered mock generation.
  */
 class BedrockServiceAdapter(
     private val bedrockClient: BedrockRuntimeClient,
@@ -24,6 +27,26 @@ class BedrockServiceAdapter(
     private val logger = KotlinLogging.logger {}
     private val objectMapper = ObjectMapper()
     
+    // Lazy initialization of Koog components to avoid cold start penalty
+    private val executor by lazy {
+        SingleLLMPromptExecutor(BedrockLLMClient(bedrockClient))
+    }
+
+    private val agent by lazy {
+        val model = modelConfiguration.getModel()
+        logger.info { "Initializing AI agent: model=${model.id}" }
+        AIAgent(
+            promptExecutor = executor,
+            llmModel = model,
+            systemPrompt = """
+                You are an expert API mock generator.
+                You generate WireMock JSON mappings based on user instructions and specifications.
+            """.trimIndent(),
+            temperature = TEMPERATURE,
+            toolRegistry = ToolRegistry.EMPTY
+        )
+    }
+
     companion object {
         private const val MAX_TOKENS = 4096
         private const val TEMPERATURE = 0.7
@@ -39,8 +62,8 @@ class BedrockServiceAdapter(
         val prompt = buildNaturalLanguagePrompt(description, context)
         
         return runCatching {
-            val response = invokeClaudeModel(prompt)
-            parseClaudeResponse(response, namespace, SourceType.NATURAL_LANGUAGE, description)
+            val response = invokeModel(prompt)
+            parseModelResponse(response, namespace, SourceType.NATURAL_LANGUAGE, description)
         }.onFailure { exception ->
             logger.error(exception) { "Failed to generate mocks from description: $description" }
         }.getOrElse { 
@@ -59,8 +82,8 @@ class BedrockServiceAdapter(
         val prompt = buildSpecWithDescriptionPrompt(specification, description)
         
         return runCatching {
-            val response = invokeClaudeModel(prompt)
-            parseClaudeResponse(response, namespace, SourceType.SPEC_WITH_DESCRIPTION, "${specification.title}: $description")
+            val response = invokeModel(prompt)
+            parseModelResponse(response, namespace, SourceType.SPEC_WITH_DESCRIPTION, "${specification.title}: $description")
         }.onFailure { exception ->
             logger.error(exception) { "Failed to generate enhanced mocks for spec: ${specification.title}" }
         }.getOrElse {
@@ -78,8 +101,8 @@ class BedrockServiceAdapter(
         val prompt = buildRefinementPrompt(existingMock, refinementRequest)
         
         return runCatching {
-            val response = invokeClaudeModel(prompt)
-            val refinedMocks = parseClaudeResponse(response, existingMock.namespace, SourceType.REFINEMENT, refinementRequest)
+            val response = invokeModel(prompt)
+            val refinedMocks = parseModelResponse(response, existingMock.namespace, SourceType.REFINEMENT, refinementRequest)
             refinedMocks.firstOrNull() ?: existingMock
         }.onFailure { exception ->
             logger.error(exception) { "Failed to refine mock: ${existingMock.name}" }
@@ -96,7 +119,7 @@ class BedrockServiceAdapter(
         val prompt = buildResponseEnhancementPrompt(mockResponse, schema, context)
         
         return runCatching {
-            val response = invokeClaudeModel(prompt)
+            val response = invokeModel(prompt)
             extractEnhancedResponse(response)
         }.onFailure { exception ->
             logger.warn(exception) { "Failed to enhance response realism, using original" }
@@ -106,7 +129,7 @@ class BedrockServiceAdapter(
     override suspend fun isHealthy(): Boolean {
         return runCatching {
             val testPrompt = "Respond with 'OK' if you can process this request."
-            val response = invokeClaudeModel(testPrompt)
+            val response = invokeModel(testPrompt)
             response.contains("OK", ignoreCase = true)
         }.onFailure { exception ->
             logger.warn(exception) { "Bedrock health check failed" }
@@ -119,37 +142,15 @@ class BedrockServiceAdapter(
             supportsSpecEnhancement = true,
             supportsMockRefinement = true,
             supportsResponseEnhancement = true,
-            maxInputTokens = 200000, // Claude 4.5 Opus limit
+            maxInputTokens = 200000,
             maxOutputTokens = MAX_TOKENS,
             supportedLanguages = setOf("en", "es", "fr", "de", "it", "pt", "ja", "ko", "zh")
         )
     }
     
-    private suspend fun invokeClaudeModel(prompt: String): String {
-        val requestBody = mapOf(
-            "anthropic_version" to "bedrock-2023-05-31",
-            "max_tokens" to MAX_TOKENS,
-            "temperature" to TEMPERATURE,
-            "messages" to listOf(
-                mapOf(
-                    "role" to "user",
-                    "content" to prompt
-                )
-            )
-        )
-
-        val request = InvokeModelRequest {
-            modelId = modelConfiguration.getModelName()
-            contentType = "application/json"
-            body = objectMapper.writeValueAsBytes(requestBody)
-        }
-
-        val response = bedrockClient.invokeModel(request)
-        val responseBody = response.body.toString(Charsets.UTF_8)
-
-        val responseJson = objectMapper.readTree(responseBody)
-        val text = responseJson.path("content").path(0).path("text").asText()
-        check(text.isNotBlank()) { "Invalid response format from Claude" }
+    private suspend fun invokeModel(prompt: String): String {
+        val text = agent.run(prompt)
+        check(text.isNotBlank()) { "Invalid response format from model" }
         return text
     }
     
@@ -267,7 +268,7 @@ class BedrockServiceAdapter(
         """.trimIndent()
     }
     
-    private fun parseClaudeResponse(
+    private fun parseModelResponse(
         response: String,
         namespace: MockNamespace,
         sourceType: SourceType,
@@ -291,7 +292,7 @@ class BedrockServiceAdapter(
                 listOf(createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, 0))
             }
         }.onFailure { e ->
-            logger.warn(e) { "Failed to parse Claude response as JSON, attempting text extraction" }
+            logger.warn(e) { "Failed to parse model response as JSON, attempting text extraction" }
         }.getOrElse {
             // Try to extract JSON from text response
             val jsonPattern = Regex("""(\[.*\]|\{.*\})""", RegexOption.DOT_MATCHES_ALL)
@@ -313,12 +314,12 @@ class BedrockServiceAdapter(
                         listOf(createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, 0))
                     }
                 }.onFailure { e ->
-                    logger.error(e) { "Failed to parse extracted JSON from Claude response" }
+                    logger.error(e) { "Failed to parse extracted JSON from model response" }
                 }.getOrElse {
                     emptyList()
                 }
             } else {
-                logger.error { "No valid JSON found in Claude response: $response" }
+                logger.error { "No valid JSON found in model response: $response" }
                 emptyList()
             }
         }

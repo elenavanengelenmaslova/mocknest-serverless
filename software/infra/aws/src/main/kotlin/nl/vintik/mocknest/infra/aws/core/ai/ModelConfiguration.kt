@@ -34,7 +34,7 @@ class ModelConfiguration(
     
     /**
      * Get the LLModel for the configured model name with GLOBAL inference profile.
-     * Falls back to Claude 4.5 Opus with GLOBAL prefix if mapping fails.
+     * Falls back to the default model with GLOBAL prefix if mapping fails.
      * 
      * @return The LLModel corresponding to the configured model name with GLOBAL prefix
      */
@@ -68,7 +68,7 @@ class ModelConfiguration(
     /**
      * Maps a model name string to the corresponding LLModel from BedrockModels.
      * Uses Kotlin reflection to look up BedrockModels properties by name.
-     * Falls back to AnthropicClaude45Opus if model name is not found.
+     * Falls back to the default model if model name is not found.
      * 
      * @param modelName The model name to map (e.g., "AnthropicClaude45Opus")
      * @return The corresponding LLModel
