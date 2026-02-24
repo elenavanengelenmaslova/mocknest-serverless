@@ -219,7 +219,7 @@ Resources:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
-          BEDROCK_MODEL_NAME: !Ref BedrockModelName
+          BEDROCK_MODEL_NAME: 'AmazonNovaPro'
           SPRING_CLOUD_FUNCTION_DEFINITION: "router"
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.Application"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
