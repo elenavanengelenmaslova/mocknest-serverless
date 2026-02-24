@@ -41,6 +41,7 @@ class AIGenerationRequestUseCase(
 
     private suspend fun generateFromSpecWithDescription(request: HttpRequest): HttpResponse {
         val body = requireNotNull(request.body) { "Body must be a string" }
+        logger.info { "Parsing request body for AI generation with description" }
         val dto = mapper.readValue(body, GenerateFromSpecWithDescriptionRequest::class.java)
 
         val specWithDescRequest = SpecWithDescriptionRequest(
@@ -51,10 +52,11 @@ class AIGenerationRequestUseCase(
             description = dto.description,
             options = dto.options
         )
-
+        logger.info { "About to generate mocks from spec with description." }
         val result = generateFromSpecWithDescriptionUseCase.execute(specWithDescRequest)
 
         return if (result.success) {
+            logger.info { "Generated successfully: ${result.mocks.size} mocks" }
             ok(
                 MocksResponse(
                     mappings = result.mocks.map { mock ->
@@ -63,6 +65,7 @@ class AIGenerationRequestUseCase(
                 )
             )
         } else {
+            logger.info { "Generation failed: ${result.error}." }
             HttpResponse(
                 HttpStatusCode.valueOf(500),
                 jsonHeaders(),
