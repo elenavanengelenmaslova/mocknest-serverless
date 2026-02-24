@@ -18,17 +18,17 @@ private val logger = KotlinLogging.logger {}
  * 
  * The model name is read from the BEDROCK_MODEL_NAME environment variable,
  * which is set by the SAM template's BedrockModelName parameter.
- * If the environment variable is not set, defaults to "AnthropicClaude45Opus".
+ * If the environment variable is not set, defaults to "AmazonNovaPro".
  * 
  * Uses GLOBAL inference profile prefix to allow AWS to route requests
  * to the best available region, which is appropriate for mock data generation.
  * 
  * If an invalid model name is provided, logs a warning and falls back to
- * BedrockModels.AnthropicClaude45Opus with GLOBAL prefix.
+ * BedrockModels.AmazonNovaPro with GLOBAL prefix.
  */
 @Component
 class ModelConfiguration(
-    @param:Value($$"${bedrock.model.name:AnthropicClaude45Opus}")
+    @param:Value($$"${bedrock.model.name:AmazonNovaPro}")
     private val modelName: String
 ) {
     
@@ -70,7 +70,7 @@ class ModelConfiguration(
      * Uses Kotlin reflection to look up BedrockModels properties by name.
      * Falls back to the default model if model name is not found.
      * 
-     * @param modelName The model name to map (e.g., "AnthropicClaude45Opus")
+     * @param modelName The model name to map (e.g., "AmazonNovaPro")
      * @return The corresponding LLModel
      */
     private fun mapModelNameToLLModel(modelName: String): LLModel {
@@ -88,10 +88,10 @@ class ModelConfiguration(
             value as? LLModel
                 ?: error("Property $modelName in BedrockModels is not an LLModel")
         }.onFailure { exception ->
-            logger.warn(exception) { "Failed to find model: $modelName in BedrockModels, using default AnthropicClaude45Opus" }
+            logger.warn(exception) { "Failed to find model: $modelName in BedrockModels, using default AmazonNovaPro" }
         }.getOrElse {
-            logger.warn { "Unknown model name: $modelName, using default AnthropicClaude45Opus" }
-            BedrockModels.AnthropicClaude45Opus
+            logger.warn { "Unknown model name: $modelName, using default AmazonNovaPro" }
+            BedrockModels.AmazonNovaPro
         }
     }
 }

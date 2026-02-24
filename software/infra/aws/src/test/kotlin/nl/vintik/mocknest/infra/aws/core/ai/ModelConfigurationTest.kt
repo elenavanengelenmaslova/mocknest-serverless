@@ -100,12 +100,12 @@ class ModelConfigurationTest {
         lateinit var modelName: String
 
         @Test
-        suspend fun `Given invalid model name When getting Bedrock model Then should fallback to AnthropicClaude45Opus with GLOBAL prefix and log warning`() {
+        suspend fun `Given invalid model name When getting Bedrock model Then should fallback to AmazonNovaPro with GLOBAL prefix and log warning`() {
             val config = ModelConfiguration(modelName)
             val model = config.getModel()
 
             // Should fallback to default with GLOBAL prefix
-            assertEquals(BedrockModels.AnthropicClaude45Opus.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
             assertEquals("InvalidModelName", config.getModelName())
         }
     }
@@ -120,12 +120,12 @@ class ModelConfigurationTest {
         lateinit var modelName: String
 
         @Test
-        suspend fun `Given empty model name When getting Bedrock model Then should fallback to AnthropicClaude45Opus with GLOBAL prefix`() {
+        suspend fun `Given empty model name When getting Bedrock model Then should fallback to AmazonNovaPro with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName)
             val model = config.getModel()
 
             // Should fallback to default with GLOBAL prefix
-            assertEquals(BedrockModels.AnthropicClaude45Opus.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
         }
     }
 
@@ -134,16 +134,16 @@ class ModelConfigurationTest {
     )
     @Nested
     inner class DefaultModelName {
-        @Value($$"${bedrock.model.name:AnthropicClaude45Opus}")
+        @Value($$"${bedrock.model.name:AmazonNovaPro}")
         lateinit var modelName: String
 
         @Test
-        suspend fun `Given no model name property When getting Bedrock model Then should use default AnthropicClaude45Opus with GLOBAL prefix`() {
+        suspend fun `Given no model name property When getting Bedrock model Then should use default AmazonNovaPro with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName)
             val model = config.getModel()
 
-            assertEquals(BedrockModels.AnthropicClaude45Opus.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
-            assertEquals("AnthropicClaude45Opus", config.getModelName())
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            assertEquals("AmazonNovaPro", config.getModelName())
         }
     }
 
@@ -163,7 +163,7 @@ class ModelConfigurationTest {
 
             // Should fallback to default with GLOBAL prefix
             assertNotNull(model)
-            assertEquals(BedrockModels.AnthropicClaude45Opus.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
             assertEquals("NonExistentModel123", config.getModelName())
         }
     }
@@ -171,7 +171,7 @@ class ModelConfigurationTest {
     @Configuration
     class TestConfig {
         @Bean
-        fun modelConfiguration(@Value("\${bedrock.model.name:AnthropicClaude45Opus}") modelName: String): ModelConfiguration {
+        fun modelConfiguration(@Value("\${bedrock.model.name:AmazonNovaPro}") modelName: String): ModelConfiguration {
             return ModelConfiguration(modelName)
         }
     }
