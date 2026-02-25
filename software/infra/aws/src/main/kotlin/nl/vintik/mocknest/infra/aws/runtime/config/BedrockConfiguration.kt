@@ -20,8 +20,8 @@ class BedrockConfiguration {
     
     @Bean
     fun bedrockRuntimeClient(
-        @Value("\${aws.region:eu-west-1}") region: String,
-        @Value("\${aws.bedrock.endpoint:}") customEndpoint: String?
+        @Value("\${aws.region}") region: String,
+        @Value("\${aws.bedrock.endpoint}") customEndpoint: String?
     ): BedrockRuntimeClient {
         logger.info { "Initializing Bedrock Runtime client for region: $region" }
         

@@ -28,33 +28,35 @@ private val logger = KotlinLogging.logger {}
  */
 @Component
 class ModelConfiguration(
-    @param:Value($$"${bedrock.model.name:AmazonNovaPro}")
-    private val modelName: String
+    @param:Value($$"${bedrock.model.name}")
+    private val modelName: String,
+    @param:Value($$"${bedrock.inference.prefix}")
+    private val inferenceProfilePrefix: String
 ) {
     
     /**
-     * Get the LLModel for the configured model name with GLOBAL inference profile.
-     * Falls back to the default model with GLOBAL prefix if mapping fails.
+     * Get the LLModel for the configured model name with inference profile.
+     * Falls back to the default model with configured prefix if mapping fails.
      * 
-     * @return The LLModel corresponding to the configured model name with GLOBAL prefix
+     * @return The LLModel corresponding to the configured model name with inference profile prefix
      */
     fun getModel(): LLModel {
-        return mapModelNameToLLModel(modelName).withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix)
+        return mapModelNameToLLModel(modelName).withInferenceProfile(inferenceProfilePrefix)
     }
     
     /**
-     * Apply GLOBAL inference profile prefix to the model.
+     * Apply configured inference profile prefix to the model.
      * This allows AWS to route requests to the best available region.
      * 
      * @param model The base LLModel to configure
-     * @return A BedrockModel with GLOBAL inference profile applied
+     * @return A BedrockModel with inference profile applied
      */
-    private fun applyGlobalInferenceProfile(model: LLModel): BedrockModel {
-        // Create a new BedrockModel wrapping the LLModel with GLOBAL prefix
+    private fun applyInferenceProfile(model: LLModel): BedrockModel {
+        // Create a new BedrockModel wrapping the LLModel with configured prefix
         return BedrockModel(
             model = model,
             modelId = model.id.substringAfter("."),
-            inferenceProfilePrefix = BedrockInferencePrefixes.GLOBAL.prefix
+            inferenceProfilePrefix = inferenceProfilePrefix
         )
     }
     

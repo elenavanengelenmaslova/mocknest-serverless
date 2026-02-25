@@ -92,7 +92,7 @@ MockNest Serverless defaults to **eu-west-1** (Ireland) because:
 
 **Enable AI Features** (requires Bedrock-supported region):
 ```bash
-sam deploy --parameter-overrides EnableAI=true
+sam deploy --parameter-overrides BedrockInferencePrefix=eu
 ```
 
 **Custom S3 Bucket Name**:
@@ -102,7 +102,7 @@ sam deploy --parameter-overrides BucketName=my-custom-bucket-name
 
 **Combined Customizations**:
 ```bash
-sam deploy --region us-east-1 --parameter-overrides EnableAI=true BucketName=my-bucket
+sam deploy --region us-east-1 --parameter-overrides BedrockInferencePrefix=us BucketName=my-bucket
 ```
 
 ## Usage
@@ -270,21 +270,28 @@ For detailed architecture information, see [Architecture Documentation](.kiro/st
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `AWS_REGION` | AWS region for deployment | `eu-west-1` |
+| `BEDROCK_INFERENCE_PREFIX` | Bedrock inference profile prefix | `eu` |
+| `BEDROCK_MODEL_NAME` | Bedrock model name | `AmazonNovaPro` |
 | `MOCKNEST_S3_BUCKET_NAME` | S3 bucket for mock storage | Auto-generated |
 
 ### SAM Parameters
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `Region` | AWS region | `eu-west-1` |
+| `AppRegion` | AWS region for deployment | `eu-west-1` |
+| `BedrockInferencePrefix` | Bedrock inference profile prefix | `eu` |
+| `BedrockModelName` | Bedrock model name | `AmazonNovaPro` |
 | `BucketName` | S3 bucket name | Auto-generated |
-| `EnableAI` | Enable AI features | `false` |
 
 ### Application Properties
 
 ```properties
 # AWS Configuration
-aws.region=eu-west-1
+aws.region=${AWS_REGION:eu-west-1}
+bedrock.inference.prefix=${BEDROCK_INFERENCE_PREFIX:eu}
+bedrock.model.name=${BEDROCK_MODEL_NAME:AmazonNovaPro}
+
+# S3 Configuration
 storage.bucket.name=${MOCKNEST_S3_BUCKET_NAME:mocknest-serverless-storage}
 
 # Application Configuration

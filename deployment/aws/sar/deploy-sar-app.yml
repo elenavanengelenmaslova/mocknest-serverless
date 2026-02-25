@@ -10,7 +10,9 @@ Resources:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:YOUR_ACCOUNT_ID:applications/mocknest-serverless
         SemanticVersion: 1.0.0
       Parameters:
-        EnableAI: 'false'  # Set to 'true' to enable AI features
+        AppRegion: 'eu-west-1'
+        BedrockInferencePrefix: 'eu'
+        BedrockModelName: 'AmazonNovaPro'
         Environment: 'dev'
         # BucketName: 'my-custom-bucket-name'  # Optional: specify custom bucket name
         # LambdaMemorySize: 1024  # Optional: customize Lambda memory

@@ -98,7 +98,7 @@ Run the application locally with mock Bedrock responses:
 cd deployment/aws/sam
 ./build.sh
 sam deploy \
-  --parameter-overrides EnableAI=true \
+  --parameter-overrides BedrockInferencePrefix=eu \
   --guided
 ```
 
@@ -147,7 +147,7 @@ Import the collection: `docs/postman/AI Test Agent.postman_collection.json`
 
 ### "Access Denied" errors
 - Check Lambda execution role has Bedrock permissions
-- Verify the SAM template was deployed with `EnableAI=true`
+- Verify the SAM template was deployed with correct Bedrock parameters (e.g. `BedrockInferencePrefix=eu`)
 
 ### Cold start timeouts
 - Increase Lambda timeout in SAM template
