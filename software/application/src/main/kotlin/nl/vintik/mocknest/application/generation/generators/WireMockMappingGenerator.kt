@@ -141,6 +141,7 @@ class WireMockMappingGenerator(
         if (requestBody != null && endpoint.method in listOf(HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH)) {
             val contentType = requestBody.content.keys.firstOrNull() ?: "application/json"
             if (contentType.contains("json")) {
+                @Suppress("UNCHECKED_CAST")
                 request["headers"] = (request["headers"] as? MutableMap<String, Any> ?: mutableMapOf()).apply {
                     put("Content-Type", mapOf("equalTo" to contentType))
                 }
