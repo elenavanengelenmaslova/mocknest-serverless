@@ -8,8 +8,8 @@ Phase 1 of the AI Mock Generation feature establishes the foundation for AI-powe
 1. **Hello World Endpoint**: Validate Bedrock + Koog integration with simple text processing
 2. **OpenAPI Mock Generation**: Generate WireMock-ready mocks from OpenAPI 3.0 and Swagger 2.0 specifications
 3. **Synchronous Response**: Return generated mocks immediately in HTTP response (no job tracking)
-4. **Stateless Generation**: No storage of specifications or generated mocks (unless brave mode)
-5. **Brave Mode**: Optional direct application of mocks to MockNest via WireMock admin API
+4. **Stateless Generation**: No storage of specifications or generated mocks
+5. **Mock Application Endpoint**: Separate endpoint to apply generated mocks to MockNest via WireMock admin API
 
 **Deferred to Future Spec (Mock Evolution):**
 - Specification storage and versioning
@@ -39,6 +39,7 @@ flowchart TB
         ADMIN[WireMock Admin API<br/>/__admin/*]
         HELLO[Hello World API<br/>/ai/hello]
         AIGEN[AI Generation API<br/>/ai/generation/from-spec]
+        AIAPPLY[AI Apply API<br/>/ai/generation/apply]
     end
     
     subgraph AIGeneration["AI Mock Generation Engine - Phase 1"]
@@ -69,7 +70,7 @@ flowchart TB
     KOOG <--> BEDROCK
     
     AIGEN -.->|Returns mocks in response| Input
-    AIGEN -.->|Brave mode: applies mocks| ADMIN
+    AIAPPLY -.->|Applies mocks| ADMIN
     ADMIN --> MOCKSTORE
     MOCKSTORE --> RUNTIME
     RUNTIME --> ENDPOINTS
@@ -91,12 +92,14 @@ Following the established clean architecture pattern with strict dependency rule
 - `KoogMockGenerationAgent` - **Koog 0.6.0 Functional Agent implementation (cloud-independent)**
 - `SpecificationParserInterface` - Abstraction for parsing OpenAPI formats
 - `MockGeneratorInterface` - Abstraction for mock generation logic
+- `MockValidatorInterface` - **Abstraction for validating generated mocks against OpenAPI specifications**
 - `AIModelServiceInterface` - **Abstraction for AI model interactions (hides Bedrock)**
 - `WireMockAdminInterface` - **Abstraction for WireMock admin API (for brave mode)**
 
 **Infrastructure Layer:**
 - `BedrockServiceAdapter` - **Amazon Bedrock integration (implements AIModelServiceInterface)**
 - `OpenAPISpecificationParser` - OpenAPI 3.0 and Swagger 2.0 specification parsing
+- `OpenAPIMockValidator` - **Validates generated mocks against OpenAPI specifications**
 - `WireMockAdminAdapter` - **WireMock admin API client (for brave mode)**
 
 **Phase 1 Simplifications:**
@@ -244,8 +247,9 @@ class MockGenerationFunctionalAgent(
 class GenerateMocksFromSpecUseCase(
     private val specificationParser: SpecificationParserInterface,
     private val mockGenerator: MockGeneratorInterface,
-    private val wireMockAdmin: WireMockAdminInterface?,  // Optional for brave mode
-    private val mockGenerationAgent: MockGenerationFunctionalAgent
+    private val mockValidator: MockValidatorInterface,
+    private val mockGenerationAgent: MockGenerationFunctionalAgent,
+    private val aiModelService: AIModelServiceInterface
 ) : GenerateMocksFromSpec {
     
     private val logger = KotlinLogging.logger {}
@@ -259,7 +263,7 @@ class GenerateMocksFromSpecUseCase(
             request.format
         )
         
-        // Execute Koog agent to generate mocks
+        // Generate mocks
         val agentRequest = AgentRequest.fromSpec(
             specification = specification,
             instructions = request.instructions,
@@ -267,54 +271,149 @@ class GenerateMocksFromSpecUseCase(
         )
         val agentResponse = mockGenerationAgent.execute(agentRequest)
         
-        // Apply mocks if brave mode is enabled
-        val appliedMocks = if (request.apply?.brave == true) {
-            applyMocksToBrave(agentResponse.mocks, request.apply.namespace)
-        } else {
-            emptyList()
-        }
+        logger.info { "Generated ${agentResponse.mocks.size} mocks, starting validation" }
         
-        logger.info { "Mock generation completed: generated=${agentResponse.mocks.size}, applied=${appliedMocks.size}" }
+        // Validate and fix mocks
+        val validatedMocks = validateAndFixMocks(agentResponse.mocks, specification)
+        
+        logger.info { "Mock generation completed: valid=${validatedMocks.size}, discarded=${agentResponse.mocks.size - validatedMocks.size}" }
         
         return GenerationResponse(
-            mocks = agentResponse.mocks,
-            appliedMocks = appliedMocks,
-            totalGenerated = agentResponse.mocks.size
+            mocks = validatedMocks,
+            totalGenerated = validatedMocks.size
         )
     }
     
-    private suspend fun applyMocksToBrave(
+    private suspend fun validateAndFixMocks(
         mocks: List<GeneratedMock>,
-        namespace: String?
-    ): List<AppliedMock> {
-        if (wireMockAdmin == null) {
-            logger.warn { "Brave mode requested but WireMock admin not available" }
-            return emptyList()
+        specification: APISpecification
+    ): List<GeneratedMock> {
+        // Validate all mocks
+        val validationResults = mocks.map { mock ->
+            mock to mockValidator.validate(mock, specification)
         }
         
-        return mocks.mapNotNull { mock ->
-            runCatching {
-                val mappingId = wireMockAdmin.createMapping(
-                    mapping = mock.wireMockMapping,
-                    namespace = namespace
-                )
-                AppliedMock(mockId = mock.id, mappingId = mappingId)
-            }.onFailure { exception ->
-                logger.error(exception) { "Failed to apply mock ${mock.id} in brave mode" }
-            }.getOrNull()
+        val validMocks = validationResults.filter { it.second.isValid }.map { it.first }.toMutableList()
+        val invalidMocks = validationResults.filter { !it.second.isValid }
+        
+        logger.info { "Initial validation: valid=${validMocks.size}, invalid=${invalidMocks.size}" }
+        
+        // Log all validation failures
+        invalidMocks.forEach { (mock, result) ->
+            logger.warn { "Mock ${mock.id} failed validation: ${result.errors.joinToString(", ")}" }
         }
+        
+        // If there are invalid mocks, attempt batch correction
+        if (invalidMocks.isNotEmpty()) {
+            logger.info { "Attempting batch correction for ${invalidMocks.size} invalid mocks" }
+            
+            val correctedMocks = attemptBatchMockCorrection(invalidMocks, specification)
+            
+            if (correctedMocks.isNotEmpty()) {
+                validMocks.addAll(correctedMocks)
+                logger.info { "Successfully corrected ${correctedMocks.size} mocks" }
+            }
+            
+            val stillInvalid = invalidMocks.size - correctedMocks.size
+            if (stillInvalid > 0) {
+                logger.warn { "Failed to correct $stillInvalid mocks, excluding from response" }
+            }
+        }
+        
+        return validMocks
+    }
+    
+    private suspend fun attemptBatchMockCorrection(
+        invalidMocks: List<Pair<GeneratedMock, ValidationResult>>,
+        specification: APISpecification
+    ): List<GeneratedMock> {
+        return runCatching {
+            // Build batch correction prompt with all invalid mocks and their errors
+            val batchCorrectionPrompt = buildBatchCorrectionPrompt(invalidMocks)
+            
+            logger.debug { "Sending ${invalidMocks.size} mocks to AI for batch correction" }
+            logger.debug { "Batch correction prompt: ${batchCorrectionPrompt.take(500)}..." }
+            
+            // Send to AI for batch correction
+            val correctedMocksJson = aiModelService.correctMocks(batchCorrectionPrompt)
+            
+            // Parse corrected mocks (expecting JSON array)
+            val correctedMocksList = Json.parseToJsonElement(correctedMocksJson).jsonArray
+            
+            logger.info { "Received ${correctedMocksList.size} corrected mocks from AI" }
+            
+            // Validate each corrected mock
+            val validCorrectedMocks = mutableListOf<GeneratedMock>()
+            
+            correctedMocksList.forEachIndexed { index, correctedMockJson ->
+                if (index < invalidMocks.size) {
+                    val (originalMock, _) = invalidMocks[index]
+                    
+                    val correctedMock = GeneratedMock(
+                        id = originalMock.id,
+                        name = originalMock.name,
+                        wireMockMapping = correctedMockJson.toString(),
+                        metadata = originalMock.metadata
+                    )
+                    
+                    // Validate the corrected mock
+                    val correctedValidation = mockValidator.validate(correctedMock, specification)
+                    
+                    if (correctedValidation.isValid) {
+                        validCorrectedMocks.add(correctedMock)
+                        logger.info { "Mock ${originalMock.id} correction successful" }
+                    } else {
+                        logger.warn { "Mock ${originalMock.id} correction still failed validation: ${correctedValidation.errors.joinToString(", ")}" }
+                    }
+                }
+            }
+            
+            validCorrectedMocks
+        }.onFailure { exception ->
+            logger.error(exception) { "Error during batch mock correction" }
+        }.getOrElse { emptyList() }
+    }
+    
+    private fun buildBatchCorrectionPrompt(
+        invalidMocks: List<Pair<GeneratedMock, ValidationResult>>
+    ): String {
+        val mocksWithErrors = invalidMocks.mapIndexed { index, (mock, result) ->
+            """
+            Mock ${index + 1}: ${mock.name} (ID: ${mock.id})
+            Validation Errors:
+            ${result.errors.joinToString("\n") { "  - $it" }}
+            
+            Invalid WireMock Mapping:
+            ${mock.wireMockMapping}
+            """.trimIndent()
+        }.joinToString("\n\n---\n\n")
+        
+        return """
+        The following ${invalidMocks.size} WireMock mappings failed validation. Please correct ALL of them to fix their respective errors.
+        
+        $mocksWithErrors
+        
+        Please return a JSON array containing ONLY the corrected WireMock mapping JSONs in the same order, one for each mock above.
+        
+        Format: [
+          { corrected mock 1 },
+          { corrected mock 2 },
+          ...
+        ]
+        
+        For each mock, ensure:
+        - The request matcher (method, URL path, query parameters) matches the OpenAPI specification
+        - The response status code is defined in the specification for this endpoint
+        - The response body structure matches the OpenAPI schema exactly
+        - All required fields are present
+        - Data types match the schema (strings, numbers, booleans, arrays, objects)
+        """.trimIndent()
     }
 }
 
 data class GenerationResponse(
     val mocks: List<GeneratedMock>,
-    val appliedMocks: List<AppliedMock>,
     val totalGenerated: Int
-)
-
-data class AppliedMock(
-    val mockId: String,
-    val mappingId: String
 )
 ```
 
@@ -459,51 +558,277 @@ class WireMockMappingGenerator : MockGeneratorInterface {
 }
 ```
 
-#### 6. WireMock Admin Adapter - Phase 1 (Brave Mode)
+#### 6. Mock Validation - Phase 1
 
 ```kotlin
-// Application Layer - Abstract Interface
-interface WireMockAdminInterface {
-    suspend fun createMapping(mapping: String, namespace: String?): String
+interface MockValidatorInterface {
+    suspend fun validate(mock: GeneratedMock, specification: APISpecification): ValidationResult
 }
 
-// Infrastructure Layer - WireMock Admin Implementation
-@Component
-class WireMockAdminAdapter(
-    @Value("\${wiremock.admin.url:http://localhost:8080/__admin}") 
-    private val adminUrl: String
-) : WireMockAdminInterface {
-    
-    private val logger = KotlinLogging.logger {}
-    private val httpClient = HttpClient()
-    
-    override suspend fun createMapping(mapping: String, namespace: String?): String {
-        logger.info { "Creating WireMock mapping via admin API" }
-        
-        return runCatching {
-            val response = httpClient.post("$adminUrl/mappings") {
-                contentType(ContentType.Application.Json)
-                setBody(mapping)
-            }
-            
-            val responseBody = response.body<String>()
-            val mappingId = Json.parseToJsonElement(responseBody)
-                .jsonObject["id"]?.jsonPrimitive?.content
-                ?: throw IllegalStateException("No mapping ID in response")
-            
-            logger.info { "Created WireMock mapping: id=$mappingId" }
-            mappingId
-        }.onFailure { exception ->
-            logger.error(exception) { "Failed to create WireMock mapping" }
-        }.getOrThrow()
+data class ValidationResult(
+    val isValid: Boolean,
+    val errors: List<String> = emptyList()
+) {
+    companion object {
+        fun valid() = ValidationResult(true, emptyList())
+        fun invalid(errors: List<String>) = ValidationResult(false, errors)
     }
 }
+
+@Component
+class OpenAPIMockValidator : MockValidatorInterface {
+    
+    private val logger = KotlinLogging.logger {}
+    
+    override suspend fun validate(mock: GeneratedMock, specification: APISpecification): ValidationResult {
+        logger.debug { "Validating mock ${mock.id} against OpenAPI specification" }
+        
+        val errors = mutableListOf<String>()
+        
+        runCatching {
+            // Parse the WireMock mapping
+            val mapping = Json.parseToJsonElement(mock.wireMockMapping).jsonObject
+            
+            // Extract request details
+            val request = mapping["request"]?.jsonObject
+                ?: return ValidationResult.invalid(listOf("Missing request section in WireMock mapping"))
+            
+            val method = request["method"]?.jsonPrimitive?.content
+                ?: return ValidationResult.invalid(listOf("Missing method in request"))
+            
+            val urlPath = request["urlPath"]?.jsonPrimitive?.content
+                ?: request["url"]?.jsonPrimitive?.content
+                ?: return ValidationResult.invalid(listOf("Missing URL path in request"))
+            
+            // Find matching endpoint in specification
+            val endpoint = specification.endpoints.find { 
+                it.path == urlPath && it.method.name == method 
+            }
+            
+            if (endpoint == null) {
+                errors.add("No matching endpoint found in specification for $method $urlPath")
+                return ValidationResult.invalid(errors)
+            }
+            
+            // Extract response details
+            val response = mapping["response"]?.jsonObject
+                ?: return ValidationResult.invalid(listOf("Missing response section in WireMock mapping"))
+            
+            val statusCode = response["status"]?.jsonPrimitive?.int
+                ?: return ValidationResult.invalid(listOf("Missing status code in response"))
+            
+            // Check if status code is defined in specification
+            val responseDefinition = endpoint.responses[statusCode]
+            if (responseDefinition == null) {
+                errors.add("Status code $statusCode not defined in specification for $method $urlPath")
+                return ValidationResult.invalid(errors)
+            }
+            
+            // Validate response body against schema if present
+            val responseBody = response["jsonBody"] ?: response["body"]
+            if (responseBody != null && responseDefinition.schema != null) {
+                val schemaErrors = validateResponseBodyAgainstSchema(
+                    responseBody, 
+                    responseDefinition.schema,
+                    "$method $urlPath - $statusCode"
+                )
+                errors.addAll(schemaErrors)
+            }
+            
+            // Validate query parameters if present
+            val queryParams = request["queryParameters"]?.jsonObject
+            if (queryParams != null) {
+                val paramErrors = validateQueryParameters(queryParams, endpoint, "$method $urlPath")
+                errors.addAll(paramErrors)
+            }
+            
+        }.onFailure { exception ->
+            logger.error(exception) { "Validation failed for mock ${mock.id}" }
+            errors.add("Validation error: ${exception.message}")
+        }
+        
+        return if (errors.isEmpty()) {
+            ValidationResult.valid()
+        } else {
+            ValidationResult.invalid(errors)
+        }
+    }
+    
+    private fun validateResponseBodyAgainstSchema(
+        responseBody: JsonElement,
+        schema: JsonSchema,
+        context: String
+    ): List<String> {
+        val errors = mutableListOf<String>()
+        
+        // Basic type validation
+        when (schema.type) {
+            "object" -> {
+                if (responseBody !is JsonObject) {
+                    errors.add("$context: Expected object but got ${responseBody::class.simpleName}")
+                    return errors
+                }
+                
+                // Validate required properties
+                schema.required?.forEach { requiredProp ->
+                    if (!responseBody.containsKey(requiredProp)) {
+                        errors.add("$context: Missing required property '$requiredProp'")
+                    }
+                }
+                
+                // Validate property types
+                schema.properties?.forEach { (propName, propSchema) ->
+                    val propValue = responseBody[propName]
+                    if (propValue != null) {
+                        val propErrors = validateResponseBodyAgainstSchema(
+                            propValue, 
+                            propSchema, 
+                            "$context.$propName"
+                        )
+                        errors.addAll(propErrors)
+                    }
+                }
+            }
+            "array" -> {
+                if (responseBody !is JsonArray) {
+                    errors.add("$context: Expected array but got ${responseBody::class.simpleName}")
+                }
+            }
+            "string" -> {
+                if (responseBody !is JsonPrimitive || !responseBody.isString) {
+                    errors.add("$context: Expected string but got ${responseBody::class.simpleName}")
+                }
+            }
+            "number", "integer" -> {
+                if (responseBody !is JsonPrimitive || responseBody.isString) {
+                    errors.add("$context: Expected number but got ${responseBody::class.simpleName}")
+                }
+            }
+            "boolean" -> {
+                if (responseBody !is JsonPrimitive || responseBody.content !in listOf("true", "false")) {
+                    errors.add("$context: Expected boolean but got ${responseBody::class.simpleName}")
+                }
+            }
+        }
+        
+        return errors
+    }
+    
+    private fun validateQueryParameters(
+        queryParams: JsonObject,
+        endpoint: EndpointDefinition,
+        context: String
+    ): List<String> {
+        val errors = mutableListOf<String>()
+        
+        // Check if query parameters are defined in specification
+        queryParams.keys.forEach { paramName ->
+            val paramDef = endpoint.parameters.find { it.name == paramName && it.location == "query" }
+            if (paramDef == null) {
+                errors.add("$context: Query parameter '$paramName' not defined in specification")
+            }
+        }
+        
+        return errors
+    }
+}
+```
+
+#### 7. Apply Generated Mocks Use Case - Phase 1
+
+```kotlin
+@Component
+class ApplyGeneratedMocksUseCase(
+    private val adminRequestUseCase: AdminRequestUseCase
+) {
+    
+    private val logger = KotlinLogging.logger {}
+    
+    suspend fun invoke(request: ApplyMocksRequest): ApplyMocksResponse {
+        logger.info { "Applying ${request.mocks.size} generated mocks to MockNest" }
+        
+        val appliedMocks = mutableListOf<AppliedMockResult>()
+        val errors = mutableListOf<MockApplicationError>()
+        
+        request.mocks.forEach { generatedMock ->
+            runCatching {
+                // Convert to complete WireMock mapping format
+                val wireMockMapping = convertToWireMockMapping(generatedMock)
+                
+                // Apply via AdminRequestUseCase
+                val mappingId = adminRequestUseCase.createMapping(wireMockMapping)
+                
+                appliedMocks.add(AppliedMockResult(
+                    mockId = generatedMock.id,
+                    mappingId = mappingId,
+                    success = true
+                ))
+                
+                logger.info { "Successfully applied mock ${generatedMock.id} with mapping ID $mappingId" }
+            }.onFailure { exception ->
+                logger.error(exception) { "Failed to apply mock ${generatedMock.id}" }
+                errors.add(MockApplicationError(
+                    mockId = generatedMock.id,
+                    error = exception.message ?: "Unknown error"
+                ))
+            }
+        }
+        
+        logger.info { "Applied ${appliedMocks.size} mocks successfully, ${errors.size} failures" }
+        
+        return ApplyMocksResponse(
+            appliedMocks = appliedMocks,
+            errors = errors,
+            totalApplied = appliedMocks.size,
+            totalFailed = errors.size
+        )
+    }
+    
+    private fun convertToWireMockMapping(generatedMock: GeneratedMock): String {
+        // Parse the generated mock JSON
+        val mockJson = Json.parseToJsonElement(generatedMock.wireMockMapping).jsonObject.toMutableMap()
+        
+        // Add UUID
+        mockJson["id"] = JsonPrimitive(UUID.randomUUID().toString())
+        
+        // Add priority (default to 2)
+        mockJson["priority"] = JsonPrimitive(2)
+        
+        // Add persistent flag
+        mockJson["persistent"] = JsonPrimitive(true)
+        
+        return Json.encodeToString(JsonObject(mockJson))
+    }
+}
+
+data class ApplyMocksRequest(
+    val mocks: List<GeneratedMock>
+)
+
+data class ApplyMocksResponse(
+    val appliedMocks: List<AppliedMockResult>,
+    val errors: List<MockApplicationError>,
+    val totalApplied: Int,
+    val totalFailed: Int
+)
+
+data class AppliedMockResult(
+    val mockId: String,
+    val mappingId: String,
+    val success: Boolean
+)
+
+data class MockApplicationError(
+    val mockId: String,
+    val error: String
+)
 ```
 
 ```kotlin
 // Application Layer - Abstract Interface
 interface AIModelServiceInterface {
     suspend fun processHelloWorld(textInput: String): String
+    suspend fun correctMocks(batchCorrectionPrompt: String): String
 }
 
 // Infrastructure Layer - Bedrock Implementation (Hidden from Application)
@@ -533,6 +858,23 @@ class BedrockServiceAdapter(
         }.getOrThrow()
     }
     
+    override suspend fun correctMocks(batchCorrectionPrompt: String): String {
+        logger.info { "Processing batch mock correction request with Bedrock" }
+        
+        return runCatching {
+            val request = InvokeModelRequest {
+                this.modelId = this@BedrockServiceAdapter.modelId
+                contentType = "application/json"
+                body = buildCorrectionPrompt(batchCorrectionPrompt).toByteArray()
+            }
+            
+            val response = bedrockClient.invokeModel(request)
+            parseClaudeResponse(response.body)
+        }.onFailure { exception ->
+            logger.error(exception) { "Bedrock batch mock correction failed" }
+        }.getOrThrow()
+    }
+    
     private fun buildHelloWorldPrompt(textInput: String): String {
         return Json.encodeToString(mapOf(
             "anthropic_version" to "bedrock-2023-05-31",
@@ -541,6 +883,19 @@ class BedrockServiceAdapter(
                 mapOf(
                     "role" to "user",
                     "content" to "Echo this message back with a friendly greeting: $textInput"
+                )
+            )
+        ))
+    }
+    
+    private fun buildCorrectionPrompt(correctionPrompt: String): String {
+        return Json.encodeToString(mapOf(
+            "anthropic_version" to "bedrock-2023-05-31",
+            "max_tokens" to 4000,  // Increased for batch corrections
+            "messages" to listOf(
+                mapOf(
+                    "role" to "user",
+                    "content" to correctionPrompt
                 )
             )
         ))
@@ -571,7 +926,6 @@ class BedrockServiceAdapter(
 data class MockGenerationRequest(
     val spec: SpecificationSource,
     val instructions: String? = null,        // Optional user instructions for customization
-    val apply: ApplyOptions? = null,         // Optional brave mode configuration
     val options: GenerationOptions = GenerationOptions.default()
 )
 
@@ -586,11 +940,6 @@ data class SpecificationSource(
         }
     }
 }
-
-data class ApplyOptions(
-    val brave: Boolean = false,              // Apply mocks directly to MockNest
-    val namespace: String? = null            // Optional namespace prefix for brave mode
-)
 
 data class GeneratedMock(
     val id: String,
@@ -741,10 +1090,6 @@ Content-Type: application/json
     "url": "https://example.com/api/openapi.yaml"
   },
   "instructions": "Focus on error scenarios and include rate limiting examples",
-  "apply": {
-    "brave": true,
-    "namespace": "bored"
-  },
   "options": {
     "includeExamples": true,
     "generateErrorCases": true,
@@ -753,7 +1098,7 @@ Content-Type: application/json
   }
 }
 
-Response (without brave mode):
+Response:
 {
   "mocks": [
     {
@@ -769,11 +1114,15 @@ Response (without brave mode):
       }
     }
   ],
-  "appliedMocks": [],
   "totalGenerated": 15
 }
+```
 
-Response (with brave mode):
+#### Apply Generated Mocks to MockNest
+```http
+POST /ai/generation/apply
+Content-Type: application/json
+
 {
   "mocks": [
     {
@@ -788,14 +1137,21 @@ Response (with brave mode):
         "statusCode": 200
       }
     }
-  ],
+  ]
+}
+
+Response:
+{
   "appliedMocks": [
     {
       "mockId": "mock-activity-get-200",
-      "mappingId": "wiremock-uuid-123"
+      "mappingId": "76ada7b0-55ae-4229-91c4-396a36f18347",
+      "success": true
     }
   ],
-  "totalGenerated": 15
+  "errors": [],
+  "totalApplied": 1,
+  "totalFailed": 0
 }
 ```
 
@@ -818,21 +1174,20 @@ curl -X POST /ai/generation/from-spec \
   }'
 # Returns: {"mocks": [...], "totalGenerated": 10}
 
-# Step 3: Create selected mocks in WireMock (Standard Admin API)
-curl -X POST /__admin/mappings \
-  -H "Content-Type: application/json" \
-  -d '{"request":{"method":"GET","urlPath":"/activity"},"response":{"status":200,...}}'
-# Mocks created and ready to use
-
-# Alternative: Use brave mode to apply directly
-curl -X POST /ai/generation/from-spec \
+# Step 3: Review generated mocks and apply selected ones
+curl -X POST /ai/generation/apply \
   -H "Content-Type: application/json" \
   -d '{
-    "spec": {"url": "https://bored-api.appbrewery.com/openapi.yaml"},
-    "apply": {"brave": true, "namespace": "bored"},
-    "options": {"maxMappings": 10}
+    "mocks": [
+      {
+        "id": "mock-activity-get-200",
+        "name": "GET /activity - 200",
+        "wireMockMapping": "{\"request\":{\"method\":\"GET\",\"urlPath\":\"/activity\"},\"response\":{\"status\":200,...}}",
+        "metadata": {...}
+      }
+    ]
   }'
-# Returns: {"mocks": [...], "appliedMocks": [...], "totalGenerated": 10}
+# Returns: {"appliedMocks": [...], "errors": [], "totalApplied": 1, "totalFailed": 0}
 
 # Step 4: Use mocks normally (Standard WireMock)
 curl /activity  # Returns mocked response
@@ -843,8 +1198,8 @@ curl /activity  # Returns mocked response
 1. **Synchronous Response**: Generated mocks returned immediately in HTTP response
 2. **Stateless Generation**: No storage of specifications or generated mocks
 3. **Standard Integration**: Generated mocks use standard WireMock JSON format
-4. **User Control**: Users can review and selectively create generated mocks
-5. **Brave Mode**: Optional direct application to MockNest for quick testing
+4. **User Control**: Users can review and selectively apply generated mocks via dedicated endpoint
+5. **Complete WireMock Format**: Apply endpoint adds UUID, priority, and persistence flag
 6. **No Lock-in**: Generated mocks are standard WireMock mappings
 
 **Phase 1 Limitations:**
@@ -886,12 +1241,41 @@ curl /activity  # Returns mocked response
 *For any* successful generation request, all generated mocks should be returned in the HTTP response in WireMock import format
 **Validates: Requirements 6.1, 6.5**
 
-### Property 8: Brave Mode Application
-*For any* generation request with brave mode enabled, successfully applied mocks should be confirmed in the response with mapping IDs
-**Validates: Requirements 5.1, 5.3**
+### Property 8: Mock Application Completeness
+*For any* apply request with generated mocks, each mock should be converted to complete WireMock format with UUID, priority=2, and persistent=true before being applied via AdminRequestUseCase
+**Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5**
 
-### Property 9: Instructions Integration
-*For any* generation request with natural language instructions, the generated mocks should reflect those instructions while maintaining schema compliance
+### Property 9: Mock Application Success Tracking
+*For any* apply request, successfully applied mocks should be returned with their WireMock mapping IDs, and failures should be tracked with error details
+**Validates: Requirements 5.6, 5.7**
+
+### Property 10: Mock Validation Completeness
+*For any* generated mock, the validator should verify that the mock conforms to the source OpenAPI specification including request matchers, response schemas, and status codes
+**Validates: Requirements 3.6**
+
+### Property 11: Batch Mock Correction
+*For any* set of invalid mocks, the system should send all invalid mocks with their respective validation errors to AI in a single batch correction request
+**Validates: Requirements 3.7, 3.8**
+
+### Property 12: Corrected Mock Validation
+*For any* corrected mock returned from batch correction, the system should validate it again and only include it in the response if it passes validation
+**Validates: Requirements 3.9, 3.10**
+
+### Property 13: Valid Mock Collection
+*For any* generation request, the response should contain all valid mocks including both originally valid mocks and successfully corrected mocks from the batch correction
+**Validates: Requirements 3.11**
+
+### Property 14: Comprehensive Logging
+*For any* validation and correction process, the system should log all validation failures, batch correction attempts, and final results
+**Validates: Requirements 3.12**
+
+### Property 10: Instructions Integration
+*For any* generation request with natural language instructions, the generated mocks should reflect those instructions in their response characteristics
+**Validates: Requirements 4.1, 4.2, 4.4**
+
+### Property 11: Error Handling Resilience
+*For any* invalid OpenAPI specification, the parser should return detailed validation errors without crashing the system
+**Validates: Requirements 2.5**ect those instructions while maintaining schema compliance
 **Validates: Requirements 4.1, 4.2, 4.4**
 
 ### Property 10: Error Handling Resilience
@@ -922,7 +1306,7 @@ curl /activity  # Returns mocked response
 - **Memory Limits**: Handle large specifications gracefully with appropriate error messages
 - **Invalid Schema**: Handle specifications with invalid or missing schemas
 - **Timeout Errors**: Return partial results if generation exceeds timeout limits
-- **Brave Mode Failures**: Return generated mocks even if WireMock application fails
+- **Mock Application Failures**: Return error details with list of successfully applied mocks when some applications fail
 
 ## Testing Strategy
 

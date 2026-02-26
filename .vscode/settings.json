@@ -1,7 +1,7 @@
 {
     "kiroAgent.configureMCP": "Disabled",
     "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.configuration.updateBuildConfiguration": "interactive",
     "java.home": "/Users/e.maslova/.sdkman/candidates/java/current",
     "java.configuration.runtimes": [
         {
