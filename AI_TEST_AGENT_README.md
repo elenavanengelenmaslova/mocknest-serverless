@@ -135,7 +135,7 @@ Import the collection: `docs/postman/AI Test Agent.postman_collection.json`
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `AWS_REGION` | AWS region for Bedrock | `eu-west-1` |
+| `MOCKNEST_APP_REGION` | AWS region for Bedrock | `eu-west-1` |
 | `MOCK_STORAGE_BUCKET` | S3 bucket for storage | Auto-generated |
 
 ## Troubleshooting

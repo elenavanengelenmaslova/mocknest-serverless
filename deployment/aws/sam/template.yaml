@@ -241,7 +241,7 @@ Resources:
       ReservedConcurrentExecutions: 10
       Environment:
         Variables:
-          AWS_REGION: !Ref AppRegion
+          MOCKNEST_APP_REGION: !Ref AppRegion
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           BEDROCK_MODEL_NAME: !Ref BedrockModelName

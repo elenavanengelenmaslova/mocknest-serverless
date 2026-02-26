@@ -269,7 +269,7 @@ For detailed architecture information, see [Architecture Documentation](.kiro/st
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `AWS_REGION` | AWS region for deployment | `eu-west-1` |
+| `MOCKNEST_APP_REGION` | AWS region for application routing | `eu-west-1` |
 | `BEDROCK_INFERENCE_PREFIX` | Bedrock inference profile prefix | `eu` |
 | `BEDROCK_MODEL_NAME` | Bedrock model name | `AmazonNovaPro` |
 | `MOCKNEST_S3_BUCKET_NAME` | S3 bucket for mock storage | Auto-generated |
@@ -287,7 +287,7 @@ For detailed architecture information, see [Architecture Documentation](.kiro/st
 
 ```properties
 # AWS Configuration
-aws.region=${AWS_REGION:eu-west-1}
+aws.region=${MOCKNEST_APP_REGION:${AWS_REGION:eu-west-1}}
 bedrock.inference.prefix=${BEDROCK_INFERENCE_PREFIX:eu}
 bedrock.model.name=${BEDROCK_MODEL_NAME:AmazonNovaPro}
 
