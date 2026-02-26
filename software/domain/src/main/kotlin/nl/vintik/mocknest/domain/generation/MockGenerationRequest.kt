@@ -3,23 +3,6 @@ package nl.vintik.mocknest.domain.generation
 import java.util.*
 
 /**
- * Request for generating mocks from API specifications.
- */
-data class MockGenerationRequest(
-    val jobId: String = UUID.randomUUID().toString(),
-    val namespace: MockNamespace,
-    val specificationContent: String? = null,
-    val specificationUrl: String? = null,
-    val format: SpecificationFormat,
-    val options: GenerationOptions = GenerationOptions.default()
-) {
-    init {
-        require(jobId.isNotBlank()) { "Job ID cannot be blank" }
-        require(specificationContent?.isNotBlank()?: false || specificationUrl?.isNotBlank()?: false) { "One of Specification content or URL must be present" }
-    }
-}
-
-/**
  * Request for generating mocks from natural language descriptions.
  */
 data class NaturalLanguageRequest(

@@ -19,42 +19,9 @@ private val logger = KotlinLogging.logger {}
 class MockGenerationFunctionalAgent(
     private val aiModelService: AIModelServiceInterface,
     private val specificationParser: SpecificationParserInterface,
-    private val mockGenerator: MockGeneratorInterface,
     private val generationStorage: GenerationStorageInterface
 ) {
     
-    /**
-     * Generate mocks from API specification only.
-     */
-    suspend fun generateFromSpec(request: MockGenerationRequest): GenerationResult = runCatching {
-        val url = request.specificationUrl
-        val content = if (url != null) {
-            downloadSpecification(url)
-        } else {
-            requireNotNull(request.specificationContent) { "Missing specification source" }
-        }
-
-        // Parse specification
-        val specification = specificationParser.parse(content, request.format)
-
-        // Generate mocks
-        val generatedMocks = mockGenerator.generateFromSpecification(
-            specification = specification,
-            namespace = request.namespace,
-            options = request.options
-        )
-
-        // Store generated mocks
-        // generationStorage.storeGeneratedMocks(generatedMocks, request.jobId)
-
-        GenerationResult.success(request.jobId, generatedMocks)
-
-    }.onFailure { e ->
-        logger.error(e) { "Generation from spec failed for jobId: ${request.jobId}" }
-    }.getOrElse { e ->
-        GenerationResult.failure(request.jobId, e.message ?: "Unknown error occurred")
-    }
-
     /**
      * Generate mocks from natural language description.
      */

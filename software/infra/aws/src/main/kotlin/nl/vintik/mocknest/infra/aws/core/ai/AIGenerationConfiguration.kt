@@ -3,8 +3,6 @@ package nl.vintik.mocknest.infra.aws.core.ai
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import nl.vintik.mocknest.application.generation.agent.MockGenerationFunctionalAgent
 import nl.vintik.mocknest.application.generation.agent.TestKoogAgent
-import nl.vintik.mocknest.application.generation.generators.RealisticTestDataGenerator
-import nl.vintik.mocknest.application.generation.generators.WireMockMappingGenerator
 import nl.vintik.mocknest.application.generation.interfaces.*
 import nl.vintik.mocknest.application.generation.parsers.CompositeSpecificationParserImpl
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
@@ -46,16 +44,6 @@ class AIGenerationConfiguration {
     }
 
     @Bean
-    fun wireMockMappingGenerator(testDataGenerator: TestDataGeneratorInterface): MockGeneratorInterface {
-        return WireMockMappingGenerator(testDataGenerator)
-    }
-
-    @Bean
-    fun realisticTestDataGenerator(): TestDataGeneratorInterface {
-        return RealisticTestDataGenerator()
-    }
-
-    @Bean
     fun bedrockServiceAdapter(
         bedrockClient: BedrockRuntimeClient,
         modelConfiguration: ModelConfiguration
@@ -76,17 +64,9 @@ class AIGenerationConfiguration {
     fun mockGenerationFunctionalAgent(
         aiModelService: AIModelServiceInterface,
         specificationParser: SpecificationParserInterface,
-        mockGenerator: MockGeneratorInterface,
         generationStorage: GenerationStorageInterface,
     ): MockGenerationFunctionalAgent {
-        return MockGenerationFunctionalAgent(aiModelService, specificationParser, mockGenerator, generationStorage)
-    }
-
-    @Bean
-    fun generateMocksFromSpecUseCase(
-        mockGenerationAgent: MockGenerationFunctionalAgent,
-    ): GenerateMocksFromSpecUseCase {
-        return GenerateMocksFromSpecUseCase(mockGenerationAgent)
+        return MockGenerationFunctionalAgent(aiModelService, specificationParser, generationStorage)
     }
 
     @Bean

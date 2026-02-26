@@ -1,6 +1,5 @@
 package nl.vintik.mocknest.infra.aws.generation
 
-import nl.vintik.mocknest.application.generation.usecases.GenerateMocksFromSpecUseCase
 import nl.vintik.mocknest.domain.generation.*
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -63,10 +62,11 @@ class AIGenerationIntegrationTest {
         """.trimIndent()
         
         val namespace = MockNamespace(apiName = "test-api")
-        val request = MockGenerationRequest(
+        val request = SpecWithDescriptionRequest(
             namespace = namespace,
             specificationContent = openApiSpec,
             format = SpecificationFormat.OPENAPI_3,
+            description = "test-description",
             options = GenerationOptions(
                 brave = true
             )
