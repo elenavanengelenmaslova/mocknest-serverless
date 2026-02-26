@@ -11,11 +11,6 @@ on:
         options:
           - default
           - staging
-      enable-ai:
-        description: 'Enable AI features'
-        required: false
-        default: false
-        type: boolean
       aws-region:
         description: 'AWS region for deployment'
         required: false
@@ -40,7 +35,6 @@ jobs:
     uses: ./.github/workflows/workflow-deploy-aws.yml
     with:
       environment: ${{ inputs.environment }}
-      enable-ai: ${{ inputs.enable-ai }}
       aws-region: ${{ inputs.aws-region }}
       github-actions-role-name: ${{ inputs.github-actions-role-name }}
     secrets:

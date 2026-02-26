@@ -21,7 +21,6 @@ jobs:
     uses: ./.github/workflows/workflow-deploy-aws.yml
     with:
       environment: default
-      enable-ai: false
       aws-region: 'eu-west-1'
       github-actions-role-name: 'GitHubOIDCAdmin'  # Change this to your existing role name
     secrets:

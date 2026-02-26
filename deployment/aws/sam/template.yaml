@@ -3,12 +3,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: MockNest Serverless - AWS-native serverless mock runtime
 
 Parameters:
-  EnableAI:
-    Type: String
-    Default: 'false'
-    AllowedValues: ['true', 'false']
-    Description: Enable AI-assisted mock generation features
-
   StageName:
     Type: String
     Default: 'v1'
@@ -35,9 +29,78 @@ Parameters:
     MaxValue: "900"
     Description: Lambda function timeout in seconds
 
+  BedrockModelName:
+    Type: String
+    Default: 'AmazonNovaPro'
+    Description: |
+      Bedrock model name for AI-powered mock generation.
+      Choose from available Claude, Nova, Jamba, or Llama models.
+      See https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html for details.
+    AllowedValues:
+      # Claude 4.5 models
+      - AnthropicClaude45Opus
+      - AnthropicClaude4_5Sonnet
+      - AnthropicClaude4_5Haiku
+      # Claude 4 models
+      - AnthropicClaude4Opus
+      - AnthropicClaude41Opus
+      - AnthropicClaude4Sonnet
+      # Claude 3.5 models
+      - AnthropicClaude35SonnetV2
+      - AnthropicClaude35Haiku
+      # Claude 3 models
+      - AnthropicClaude3Opus
+      - AnthropicClaude3Sonnet
+      - AnthropicClaude3Haiku
+      - AnthropicClaude21
+      - AnthropicClaudeInstant
+      # Amazon Nova models
+      - AmazonNovaMicro
+      - AmazonNovaLite
+      - AmazonNovaPro
+      - AmazonNovaPremier
+      # AI21 Jamba models
+      - AI21JambaLarge
+      - AI21JambaMini
+      # Meta Llama models
+      - MetaLlama3_0_8BInstruct
+      - MetaLlama3_0_70BInstruct
+      - MetaLlama3_1_8BInstruct
+      - MetaLlama3_1_70BInstruct
+      - MetaLlama3_1_405BInstruct
+      - MetaLlama3_2_1BInstruct
+      - MetaLlama3_2_3BInstruct
+      - MetaLlama3_2_11BInstruct
+      - MetaLlama3_2_90BInstruct
+      - MetaLlama3_3_70BInstruct
+    ConstraintDescription: Must be a valid BedrockModels constant name
+
+  BedrockInferencePrefix:
+    Type: String
+    Default: 'eu'
+    Description: |
+      Bedrock inference profile prefix for cross-region routing.
+      Use 'eu' for Europe, 'us' for USA.
+      Note: Nova models require 'eu' or 'us' prefix for cross-region access.
+    AllowedValues:
+      - global
+      - us
+      - ca
+      - mx
+      - af
+      - ap
+      - eu
+      - il
+      - me
+      - sa
+
+  AppRegion:
+    Type: String
+    Default: 'eu-west-1'
+    Description: AWS region for deployment and Bedrock access.
+
 Conditions:
   HasCustomBucketName: !Not [!Equals [!Ref BucketName, '']]
-  IsAIEnabled: !Equals [!Ref EnableAI, 'true']
 
 Globals:
   Function:
@@ -112,22 +175,16 @@ Resources:
                   - sqs:SendMessage
                 Resource: !GetAtt MockNestDLQ.Arn
 
-        - !If
-          - IsAIEnabled
-          - PolicyName: MockNestBedrockAccess
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - bedrock:InvokeModel
-                    - bedrock:InvokeModelWithResponseStream
-                    - bedrock:ListFoundationModels
-                  Resource: "*"
-                  Condition:
-                    StringEquals:
-                      "aws:RequestedRegion": !Ref "AWS::Region"
-          - !Ref "AWS::NoValue"
+        - PolicyName: MockNestBedrockAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                  - bedrock:ListFoundationModels
+                Resource: "*"
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -184,11 +241,13 @@ Resources:
       ReservedConcurrentExecutions: 10
       Environment:
         Variables:
+          MOCKNEST_APP_REGION: !Ref AppRegion
           MOCK_STORAGE_BUCKET: !Ref MockStorage
-          AI_ENABLED: !Ref EnableAI
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
+          BEDROCK_MODEL_NAME: !Ref BedrockModelName
+          BEDROCK_INFERENCE_PREFIX: !Ref BedrockInferencePrefix
           SPRING_CLOUD_FUNCTION_DEFINITION: "router"
-          MAIN_CLASS: "io.mocknest.infra.aws.Application"
+          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.Application"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
       DeadLetterQueue:
         Type: SQS

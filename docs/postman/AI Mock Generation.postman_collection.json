@@ -1,0 +1,189 @@
+{
+  "info": {
+    "name": "AI Mock Generation",
+    "description": "Collection for testing MockNest Serverless AI-powered mock generation features",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "x-api-key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://your-api-gateway-url.execute-api.region.amazonaws.com/dev",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "your-api-key-here",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/ai/generation/health",
+          "host": ["{{base_url}}"],
+          "path": ["ai", "generation", "health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generate from OpenAPI Spec",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"namespace\": {\n    \"apiName\": \"petstore\",\n    \"client\": \"demo\"\n  },\n  \"specification\": \"openapi: 3.0.0\\ninfo:\\n  title: Pet Store API\\n  version: 1.0.0\\npaths:\\n  /pets:\\n    get:\\n      operationId: getPets\\n      summary: Get all pets\\n      responses:\\n        '200':\\n          description: Success\\n          content:\\n            application/json:\\n              schema:\\n                type: array\\n                items:\\n                  type: object\\n                  properties:\\n                    id:\\n                      type: integer\\n                    name:\\n                      type: string\\n                    status:\\n                      type: string\\n                      enum: [available, pending, sold]\\n    post:\\n      operationId: createPet\\n      summary: Create a new pet\\n      requestBody:\\n        required: true\\n        content:\\n          application/json:\\n            schema:\\n              type: object\\n              properties:\\n                name:\\n                  type: string\\n                status:\\n                  type: string\\n      responses:\\n        '201':\\n          description: Created\\n          content:\\n            application/json:\\n              schema:\\n                type: object\\n                properties:\\n                  id:\\n                    type: integer\\n                  name:\\n                    type: string\\n                  status:\\n                    type: string\",\n  \"format\": \"OPENAPI_3\",\n  \"options\": {\n    \"includeExamples\": true,\n    \"generateErrorCases\": true,\n    \"realisticData\": true,\n    \"storeSpecification\": true\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/ai/generation/from-spec",
+          "host": ["{{base_url}}"],
+          "path": ["ai", "generation", "from-spec"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generate from Natural Language",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"namespace\": {\n    \"apiName\": \"user-service\",\n    \"client\": \"demo\"\n  },\n  \"description\": \"Create a REST API for managing users with endpoints to get all users, get user by ID, create new user, update user, and delete user. Include proper error responses for not found (404) and validation errors (400).\",\n  \"useExistingSpec\": false,\n  \"context\": {\n    \"domain\": \"user management\",\n    \"style\": \"RESTful\"\n  },\n  \"options\": {\n    \"includeExamples\": true,\n    \"generateErrorCases\": true,\n    \"realisticData\": true\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/ai/generation/from-description",
+          "host": ["{{base_url}}"],
+          "path": ["ai", "generation", "from-description"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generate from Spec + Description",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"namespace\": {\n    \"apiName\": \"enhanced-petstore\",\n    \"client\": \"demo\"\n  },\n  \"specification\": \"openapi: 3.0.0\\ninfo:\\n  title: Pet Store API\\n  version: 1.0.0\\npaths:\\n  /pets:\\n    get:\\n      operationId: getPets\\n      responses:\\n        '200':\\n          description: Success\",\n  \"format\": \"OPENAPI_3\",\n  \"description\": \"Enhance this API with realistic pet data including different breeds, ages, and adoption statuses. Add error scenarios for when the pet store is closed or when there are no pets available.\",\n  \"options\": {\n    \"includeExamples\": true,\n    \"generateErrorCases\": true,\n    \"realisticData\": true\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/ai/generation/from-spec-with-description",
+          "host": ["{{base_url}}"],
+          "path": ["ai", "generation", "from-spec-with-description"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Generated Mocks",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/ai/generation/jobs/{{job_id}}/mocks",
+          "host": ["{{base_url}}"],
+          "path": ["ai", "generation", "jobs", "{{job_id}}", "mocks"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Job Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/ai/generation/jobs/{{job_id}}/status",
+          "host": ["{{base_url}}"],
+          "path": ["ai", "generation", "jobs", "{{job_id}}", "status"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Mock in WireMock (Admin API)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"request\": {\n    \"method\": \"GET\",\n    \"url\": \"/pets\"\n  },\n  \"response\": {\n    \"status\": 200,\n    \"headers\": {\n      \"Content-Type\": \"application/json\",\n      \"Access-Control-Allow-Origin\": \"*\"\n    },\n    \"body\": \"[{\\\"id\\\":1,\\\"name\\\":\\\"Buddy\\\",\\\"status\\\":\\\"available\\\"},{\\\"id\\\":2,\\\"name\\\":\\\"Max\\\",\\\"status\\\":\\\"pending\\\"}]\"\n  },\n  \"metadata\": {\n    \"generatedBy\": \"MockNest AI Generation\",\n    \"endpoint\": \"GET /pets\",\n    \"namespace\": \"mocknest/demo/petstore\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/__admin/mappings",
+          "host": ["{{base_url}}"],
+          "path": ["__admin", "mappings"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Test Generated Mock",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/pets",
+          "host": ["{{base_url}}"],
+          "path": ["pets"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List All WireMock Mappings",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/__admin/mappings",
+          "host": ["{{base_url}}"],
+          "path": ["__admin", "mappings"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

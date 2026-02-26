@@ -51,6 +51,44 @@ mocknest-serverless/
             └── update-existing-oidc-role.sh // OIDC role update script
 ```
 
+## Package Organization
+
+MockNest Serverless uses `nl.vintik.mocknest` as the base package namespace. Code is organized by capability within each architectural layer to clearly separate functional areas:
+
+### Package Structure by Layer
+
+**Domain Layer** (`nl.vintik.mocknest.domain.*`):
+- `domain.runtime` - Serverless WireMock runtime domain models
+- `domain.generation` - AI-assisted mock generation domain models
+- `domain.analysis` - AI-powered traffic analysis domain models (future)
+- `domain.core` - Shared domain models (HTTP models, etc.)
+
+**Application Layer** (`nl.vintik.mocknest.application.*`):
+- `application.runtime` - WireMock runtime use cases and orchestration
+- `application.generation` - Mock generation use cases and interfaces
+- `application.analysis` - Traffic analysis use cases (future)
+- `application.core` - Shared application logic and generic interfaces
+
+**Infrastructure Layer** (`nl.vintik.mocknest.infra.aws.*`):
+- `infra.aws.runtime` - Runtime AWS adapters (Lambda handlers, Spring config)
+- `infra.aws.runtime.storage` - Runtime-specific S3 adapters (mappings, files)
+- `infra.aws.generation` - Generation AWS adapters
+- `infra.aws.generation.storage` - Generation-specific S3 adapters (specs)
+- `infra.aws.generation.ai` - Generation AI implementations (Bedrock agents)
+- `infra.aws.analysis` - Analysis AWS adapters (future)
+- `infra.aws.core` - Shared AWS infrastructure
+- `infra.aws.core.storage` - Shared S3 configuration
+- `infra.aws.core.ai` - Shared Bedrock configuration
+
+### Package Organization Guidelines
+
+When adding new code:
+- Place capability-specific code in the appropriate capability package (`runtime`, `generation`, `analysis`)
+- Place shared code used across multiple capabilities in `core` packages
+- Maintain clean architecture boundaries: infra → application → domain
+- Keep AWS-specific code in the infrastructure layer only
+- Use sub-packages for storage and AI implementations within capabilities
+
 ## Development Workflow
 
 ### Incremental Feature Development Strategy
@@ -118,7 +156,7 @@ Follow clean architecture principles by developing in this sequence:
 - Generate Kotlin 2.3.0/Spring Boot 4.0 code targeting JVM 25, using Gradle 9.0.0, relying on the shared Gradle settings for dependency management and Kotlin logging; keep new tasks compatible with the existing toolchain.
 - **Use Kotlin AWS SDK** (not Java SDK) for all AWS cloud infrastructure interactions - these must always be kept in the `software/infra/aws/` module to maintain clean architecture boundaries.
 - **Use proper imports** instead of fully qualified class names in code:
-  ```kotlin
+ ```kotlin
   // Good: Use proper imports
   import org.springframework.beans.factory.annotation.Autowired
   
@@ -130,15 +168,29 @@ Follow clean architecture principles by developing in this sequence:
   private lateinit var lambdaHandler: MockNestLambdaHandler
   ```
 - **Prefer Kotlin idioms** for error handling and resource management:
-  - Use `runCatching { }` instead of try-catch-finally blocks
+  - Use `runCatching { }` instead of try-catch-finally blocks. e.g:
+    ```kotlin
+    runCatching { input.toInt() }
+        .onFailure { e -> logger.error(e){"Failed parsing integer"}} // Log error
+        .getOrThrow()
+    ```
+
   - Use `.use { }` for automatic resource management (closeable resources)
   - Leverage Kotlin's null safety and smart casts
   - Avoid `!!` operator
+  - Prefer built-in functions `checkNotNull`, `check`, `error` instead of throwing `IllegalStateException`. 
+  Prefer `require` and `requireNotNull` instead of throwing `IllegalArgumentException`. These functions are to be used only for detecting bugs in the code, and not for user input validation or test assertions.
+  - Prefer latest language features, such as `enum.entries` over `enum.values()` for looping through enumerations.
+  - When escaping the `$` sign, use multi-dollar string interpolation: instead of `"\${file}"`, use `$$"${file}"`.
+  - When annotating a constructor or method parameter with `@Qualifier` in Spring Boot, use the `param:` use-site target: `@param:Qualifier("serviceName")`.
+
 - **Logging Standards**:
   - **Use kotlin-logging (KotlinLogging)** for all logging throughout the application:
     ```kotlin
     private val logger = KotlinLogging.logger {}
     ```
+  - Place logger instances as a private top-level member of the kt file. Private visibility avoids leaking loggers across modules.
+  
   - **Use structured logging** with consistent message formatting:
     ```kotlin
     // Good: Structured logging with context
@@ -230,10 +282,10 @@ Follow clean architecture principles by developing in this sequence:
 - Prefer `coEvery` and `coVerify` for suspend functions
 
 #### Test Organization
-- Group related test methods using nested classes when appropriate:
+- Group related test methods using nested classes when appropriate. Nested test class names must follow standard Kotlin class naming conventions (PascalCase) with no spaces:
   ```kotlin
   @Nested
-  inner class `Mapping Normalization` {
+  inner class MappingNormalization {
       // Related tests here
   }
   ```
@@ -307,12 +359,12 @@ Follow clean architecture principles by developing in this sequence:
       }
 
       @BeforeEach
-      suspend fun setup() {
+      fun setup() {
           // Clear test data before each test
       }
 
       @AfterEach
-      suspend fun tearDown() {
+      fun tearDown() {
           // Clean up test data after each test
       }
   }

@@ -1,0 +1,100 @@
+{
+  "info": {
+    "name": "AI Test Agent - Koog + Bedrock Integration",
+    "_postman_id": "test-agent-collection",
+    "description": "Test collection for validating REST API → Koog → Bedrock integration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/ai/test/health",
+          "host": ["{{base_url}}"],
+          "path": ["ai", "test", "health"]
+        },
+        "description": "Check if the AI test service is healthy and ready"
+      },
+      "response": []
+    },
+    {
+      "name": "Simple Chat Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"instructions\": \"Tell me a joke about serverless computing\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/ai/test/chat",
+          "host": ["{{base_url}}"],
+          "path": ["ai", "test", "chat"]
+        },
+        "description": "Send a simple instruction to Bedrock via Koog agent"
+      },
+      "response": []
+    },
+    {
+      "name": "Chat with Context",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"instructions\": \"Explain the benefits of using WireMock for API testing\",\n  \"context\": {\n    \"user\": \"developer\",\n    \"environment\": \"test\",\n    \"project\": \"MockNest Serverless\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/ai/test/chat",
+          "host": ["{{base_url}}"],
+          "path": ["ai", "test", "chat"]
+        },
+        "description": "Send instructions with additional context to Bedrock"
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Mock Scenario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"instructions\": \"Generate a WireMock JSON stub for a GET /users/{id} endpoint that returns a user object with id, name, and email fields\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/ai/test/chat",
+          "host": ["{{base_url}}"],
+          "path": ["ai", "test", "chat"]
+        },
+        "description": "Test AI's ability to generate WireMock stubs"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ]
+}

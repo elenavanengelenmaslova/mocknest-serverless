@@ -92,7 +92,7 @@ MockNest Serverless defaults to **eu-west-1** (Ireland) because:
 
 **Enable AI Features** (requires Bedrock-supported region):
 ```bash
-sam deploy --parameter-overrides EnableAI=true
+sam deploy --parameter-overrides BedrockInferencePrefix=eu
 ```
 
 **Custom S3 Bucket Name**:
@@ -102,7 +102,7 @@ sam deploy --parameter-overrides BucketName=my-custom-bucket-name
 
 **Combined Customizations**:
 ```bash
-sam deploy --region us-east-1 --parameter-overrides EnableAI=true BucketName=my-bucket
+sam deploy --region us-east-1 --parameter-overrides BedrockInferencePrefix=us BucketName=my-bucket
 ```
 
 ## Usage
@@ -141,22 +141,76 @@ curl "$MOCKNEST_URL/api/users/123" \
 
 ### AI-Assisted Mock Generation (Optional)
 
-If AI features are enabled during deployment:
+If AI features are enabled during deployment, MockNest provides intelligent mock generation capabilities:
+
+#### Generate from API Specification
 
 ```bash
-# Generate mocks from API specification
-curl -X POST "$MOCKNEST_URL/ai/generate-mappings" \
+# Generate mocks from OpenAPI specification
+curl -X POST "$MOCKNEST_URL/ai/generation/from-spec" \
   -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "description": "Create a REST API for user management",
-    "endpoints": [
-      "GET /api/users - list all users",
-      "GET /api/users/{id} - get user by ID",
-      "POST /api/users - create new user"
-    ]
+    "namespace": {
+      "apiName": "petstore",
+      "client": "demo"
+    },
+    "specification": "openapi: 3.0.0\ninfo:\n  title: Pet Store API\n  version: 1.0.0\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: Success",
+    "format": "OPENAPI_3",
+    "options": {
+      "includeExamples": true,
+      "generateErrorCases": true,
+      "realisticData": true,
+      "storeSpecification": true
+    }
   }'
 ```
+
+#### Generate from Natural Language
+
+```bash
+# Generate mocks from description
+curl -X POST "$MOCKNEST_URL/ai/generation/from-description" \
+  -H "x-api-key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": {
+      "apiName": "user-service",
+      "client": "demo"
+    },
+    "description": "Create a REST API for managing users with endpoints to get all users, get user by ID, create new user, update user, and delete user. Include proper error responses for not found (404) and validation errors (400).",
+    "useExistingSpec": false,
+    "options": {
+      "includeExamples": true,
+      "generateErrorCases": true,
+      "realisticData": true
+    }
+  }'
+```
+
+#### Retrieve Generated Mocks
+
+```bash
+# Get generated mocks (use jobId from generation response)
+curl "$MOCKNEST_URL/ai/generation/jobs/{jobId}/mocks" \
+  -H "x-api-key: $API_KEY"
+
+# Create selected mocks in WireMock (copy wireMockMapping from response)
+curl -X POST "$MOCKNEST_URL/__admin/mappings" \
+  -H "x-api-key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{...wireMockMapping from AI response...}'
+```
+
+#### Namespace Organization
+
+AI-generated mocks are organized using namespaces for better management:
+
+- **Simple API**: `mocknest/salesforce/` 
+- **Client-specific**: `mocknest/client-a/payments/`
+- **Multi-tenant**: `mocknest/tenant-b/users/`
+
+This allows multiple teams and APIs to coexist without conflicts.
 
 ## Development
 
@@ -215,23 +269,30 @@ For detailed architecture information, see [Architecture Documentation](.kiro/st
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `AWS_REGION` | AWS region for deployment | `eu-west-1` |
+| `MOCKNEST_APP_REGION` | AWS region for application routing | `eu-west-1` |
+| `BEDROCK_INFERENCE_PREFIX` | Bedrock inference profile prefix | `eu` |
+| `BEDROCK_MODEL_NAME` | Bedrock model name | `AmazonNovaPro` |
 | `MOCKNEST_S3_BUCKET_NAME` | S3 bucket for mock storage | Auto-generated |
 
 ### SAM Parameters
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `Region` | AWS region | `eu-west-1` |
+| `AppRegion` | AWS region for deployment | `eu-west-1` |
+| `BedrockInferencePrefix` | Bedrock inference profile prefix | `eu` |
+| `BedrockModelName` | Bedrock model name | `AmazonNovaPro` |
 | `BucketName` | S3 bucket name | Auto-generated |
-| `EnableAI` | Enable AI features | `false` |
 
 ### Application Properties
 
 ```properties
 # AWS Configuration
-aws.region=eu-west-1
-aws.s3.bucket-name=${MOCKNEST_S3_BUCKET_NAME:mocknest-serverless-storage}
+aws.region=${MOCKNEST_APP_REGION:${AWS_REGION:eu-west-1}}
+bedrock.inference.prefix=${BEDROCK_INFERENCE_PREFIX:eu}
+bedrock.model.name=${BEDROCK_MODEL_NAME:AmazonNovaPro}
+
+# S3 Configuration
+storage.bucket.name=${MOCKNEST_S3_BUCKET_NAME:mocknest-serverless-storage}
 
 # Application Configuration
 spring.application.name=mocknest-serverless

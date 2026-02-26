@@ -102,6 +102,49 @@ flowchart TB
     AIGENERATOR --> MOCKSTORE
 ```
 
+## Package Structure
+MockNest Serverless uses `nl.vintik.mocknest` as the base package namespace, reflecting organizational ownership and supporting open source publication with correct Maven coordinates.
+
+Code is organized by capability within each architectural layer to clearly separate the three major functional areas:
+- **runtime** - Serverless WireMock runtime (mock serving, object storage, Lambda handlers)
+  - `runtime.storage` - Runtime-specific S3 adapters for WireMock mappings and files
+- **generation** - AI-assisted mock generation (mock generation, AI model services, specification parsing)
+  - `generation.storage` - Generation-specific S3 adapters for API specifications
+  - `generation.ai` - Generation-specific AI implementations (mock generation agents)
+- **analysis** - AI-powered traffic analysis (traffic recording, analysis, pattern detection)
+  - `analysis.storage` - Analysis-specific S3 adapters for traffic logs
+  - `analysis.ai` - Analysis-specific AI implementations (traffic analysis agents)
+- **core** - Shared code used across multiple capabilities (generic storage interfaces, HTTP models, foundational components)
+  - `core.storage` - Shared S3 configuration and generic storage infrastructure
+  - `core.ai` - Shared Bedrock configuration and generic AI service infrastructure
+
+This capability-based organization makes it clear which code belongs to which functional area while maintaining clean architecture boundaries.
+
+Example package structure:
+```
+nl.vintik.mocknest.domain.runtime
+nl.vintik.mocknest.domain.generation
+nl.vintik.mocknest.domain.analysis
+nl.vintik.mocknest.domain.core
+
+nl.vintik.mocknest.application.runtime
+nl.vintik.mocknest.application.generation
+nl.vintik.mocknest.application.analysis
+nl.vintik.mocknest.application.core
+
+nl.vintik.mocknest.infra.aws.runtime
+nl.vintik.mocknest.infra.aws.runtime.storage
+nl.vintik.mocknest.infra.aws.generation
+nl.vintik.mocknest.infra.aws.generation.storage
+nl.vintik.mocknest.infra.aws.generation.ai
+nl.vintik.mocknest.infra.aws.analysis
+nl.vintik.mocknest.infra.aws.analysis.storage
+nl.vintik.mocknest.infra.aws.analysis.ai
+nl.vintik.mocknest.infra.aws.core
+nl.vintik.mocknest.infra.aws.core.storage
+nl.vintik.mocknest.infra.aws.core.ai
+```
+
 ## Clean Architecture for Serverless
 MockNest Serverless applies a simplified variant of clean architecture tailored for serverless workloads.
 Clean-architecture style described in ["Keeping Business Logic Portable in Serverless Functions with Clean Architecture"](https://medium.com/nntech/keeping-business-logic-portable-in-serverless-functions-with-clean-architecture-bd1976276562) article to keep core behavior decoupled from infrastructure. 
@@ -110,18 +153,20 @@ The architecture is organised into three layers with strict dependency rules:
 
 ### Domain
 - Contains domain models and business rules related to mocking behavior.
+- Organized by capability (runtime, generation, analysis, core) to clearly separate functional areas.
 
 ### Application
 - Contains use cases and orchestration logic.
 - Defines interfaces for external concerns such as persistence and AI model access.
 - Implements the AI-assisted mock generation logic using a Koog-based agent.
 - Coordinates mock generation and mock lifecycle without knowledge of cloud-specific implementations.
-
+- Organized by capability (runtime, generation, analysis, core) to clearly separate functional areas.
 
 ### Infrastructure
 - Provides concrete implementations of interfaces defined in the application layer.
 - Contains cloud- and platform-specific code, such as persistence implementations and function entry points.
 - Is the only layer allowed to depend on cloud SDKs or platform-specific libraries.
+- Organized by capability (runtime, generation, analysis, core) to clearly separate functional areas.
 
 Dependencies flow strictly inward: infrastructure depends on application, and application depends on domain, but never the other way around.
 

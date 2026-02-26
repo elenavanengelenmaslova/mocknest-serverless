@@ -9,7 +9,9 @@ This guide covers deploying MockNest Serverless using AWS Serverless Application
 2. **Navigate to** AWS Serverless Application Repository
 3. **Search for** "MockNest Serverless"
 4. **Click Deploy** and configure parameters:
-   - **EnableAI**: `false` (default) or `true` for AI features
+   - **AppRegion**: `eu-west-1` (default)
+   - **BedrockModelName**: `AmazonNovaPro` (default)
+   - **BedrockInferencePrefix**: `eu` (default)
    - **BucketName**: Leave empty for auto-generated name
 5. **Deploy** - takes 2-3 minutes
 
@@ -52,9 +54,9 @@ sam build && sam deploy
 ```
 
 **Default Configuration:**
-- **Region**: eu-west-1 (Ireland)
+- **AppRegion**: eu-west-1 (Ireland)
 - **S3 Bucket**: Auto-generated unique name (`mocknest-serverless-{stack-name}`)
-- **AI Features**: Disabled (Free Tier friendly)
+- **AI Features**: Enabled by default
 - **API Authentication**: API Key (auto-generated)
 
 ### Quick Region Override
@@ -117,7 +119,7 @@ MockNest Serverless can be deployed to any AWS region that supports:
 
 ### AI Features Region Support
 
-If you enable AI features (`EnableAI=true`), ensure your chosen region supports Amazon Bedrock:
+Ensure your chosen region supports Amazon Bedrock:
 
 **Bedrock-supported regions** (as of 2025):
 - us-east-1 (N. Virginia)
@@ -138,27 +140,27 @@ If you enable AI features (`EnableAI=true`), ensure your chosen region supports 
 
 #### US East (N. Virginia)
 ```bash
-sam deploy --parameter-overrides Region=us-east-1 EnableAI=true
+sam deploy --parameter-overrides AppRegion=us-east-1 BedrockInferencePrefix=us
 ```
 
 #### US West (Oregon)
 ```bash
-sam deploy --parameter-overrides Region=us-west-2 EnableAI=true
+sam deploy --parameter-overrides AppRegion=us-west-2 BedrockInferencePrefix=us
 ```
 
 #### Europe (Frankfurt)
 ```bash
-sam deploy --parameter-overrides Region=eu-central-1 EnableAI=true
+sam deploy --parameter-overrides AppRegion=eu-central-1 BedrockInferencePrefix=eu
 ```
 
 #### Canada (Central)
 ```bash
-sam deploy --parameter-overrides Region=ca-central-1 EnableAI=true
+sam deploy --parameter-overrides AppRegion=ca-central-1 BedrockInferencePrefix=ca
 ```
 
 #### Asia Pacific (Sydney)
 ```bash
-sam deploy --parameter-overrides Region=ap-southeast-2 EnableAI=false
+sam deploy --parameter-overrides AppRegion=ap-southeast-2 BedrockInferencePrefix=ap
 ```
 
 ## Custom Configuration
@@ -169,10 +171,10 @@ sam deploy --parameter-overrides Region=ap-southeast-2 EnableAI=false
 sam deploy --parameter-overrides BucketName=my-mocknest-storage-bucket
 ```
 
-### Enable AI Features
+### Bedrock Model Selection
 
 ```bash
-sam deploy --parameter-overrides EnableAI=true
+sam deploy --parameter-overrides BedrockModelName=AmazonNovaLite
 ```
 
 ### Combined Configuration
@@ -181,7 +183,7 @@ sam deploy --parameter-overrides EnableAI=true
 sam deploy \
   --region eu-west-1 \
   --parameter-overrides \
-    EnableAI=true \
+    BedrockInferencePrefix=eu \
     BucketName=my-custom-bucket-name
 ```
 

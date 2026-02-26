@@ -7,11 +7,6 @@ on:
         required: true
         type: string
         description: 'Deployment environment (default, staging, or production)'
-      enable-ai:
-        required: false
-        type: boolean
-        default: false
-        description: 'Enable AI features'
       aws-region:
         required: false
         type: string
@@ -87,9 +82,7 @@ jobs:
           cd deployment/aws/sam
           sam build
           sam deploy --config-env ${{ inputs.environment }} --no-confirm-changeset
-        env:
-          ENABLE_AI: ${{ inputs.enable-ai }}
-          
+
       - name: Get deployment outputs
         id: outputs
         run: |
@@ -117,7 +110,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "**Region:** ${{ inputs.aws-region }}" >> $GITHUB_STEP_SUMMARY
-          echo "**AI Enabled:** ${{ inputs.enable-ai }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📋 Deployment Details" >> $GITHUB_STEP_SUMMARY
           echo "- **Stack Name:** ${{ steps.outputs.outputs.stack-name }}" >> $GITHUB_STEP_SUMMARY

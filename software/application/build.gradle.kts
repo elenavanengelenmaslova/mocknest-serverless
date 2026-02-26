@@ -15,11 +15,20 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
-    // WireMock
-    implementation("org.wiremock:wiremock-standalone")
+    // WireMock - use shaded Guava, exclude external Guava
+    implementation("org.wiremock:wiremock-standalone") {
+        exclude(group = "com.google.guava", module = "guava")
+    }
 
     // JSON processing
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
+
+    // Koog Framework for AI Agent orchestration
+    implementation("ai.koog:koog-agents")
+
+    // OpenAPI specification parsing
+    implementation("io.swagger.parser.v3:swagger-parser:2.1.37")
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
