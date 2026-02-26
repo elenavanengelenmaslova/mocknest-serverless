@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/api/users/123"
+  },
+  "response": {
+    "status": 404,
+    "jsonBody": {
+      "error": "Not found"
+    }
+  }
+}

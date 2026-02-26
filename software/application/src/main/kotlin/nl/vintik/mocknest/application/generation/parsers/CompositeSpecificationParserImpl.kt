@@ -38,9 +38,9 @@ class CompositeSpecificationParserImpl(
         return parserMap.containsKey(format)
     }
     
-    override suspend fun validate(content: String, format: SpecificationFormat): ValidationResult {
+    override suspend fun validate(content: String, format: SpecificationFormat): nl.vintik.mocknest.domain.generation.ValidationResult {
         val parser = parserMap[format] 
-            ?: return ValidationResult.invalid(listOf(
+            ?: return nl.vintik.mocknest.domain.generation.ValidationResult.invalid(listOf(
                 ValidationError("No parser available for format: $format")
             ))
         

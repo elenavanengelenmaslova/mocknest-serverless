@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/api/orders"
+  },
+  "response": {
+    "status": 201,
+    "jsonBody": {
+      "orderId": "order-123",
+      "customer": {
+        "id": "cust-456",
+        "name": 12345
+      },
+      "items": [
+        {
+          "productId": "prod-789",
+          "quantity": "five"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/api/users/123",
+    "queryParameters": {
+      "undefinedParam": {
+        "equalTo": "value"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "id": "123",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "active": true
+    }
+  }
+}

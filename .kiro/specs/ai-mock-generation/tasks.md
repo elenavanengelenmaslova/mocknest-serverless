@@ -185,7 +185,7 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Return ValidationResult with detailed error messages
   - _Requirements: 3.6, 3.7_
 
-- [ ] 5.5.1 Mock validator implementation
+- [x] 5.5.1 Mock validator implementation
   - Implement validate method that checks mock against specification
   - Parse WireMock mapping JSON and extract request/response details
   - Find matching endpoint in specification by method and path
@@ -194,7 +194,7 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Validate query parameters are defined in specification
   - _Requirements: 3.6_
 
-- [ ] 5.5.2 Schema validation logic
+- [x] 5.5.2 Schema validation logic
   - Implement validateResponseBodyAgainstSchema for recursive schema validation
   - Check JSON types match schema types (object, array, string, number, boolean)
   - Validate required properties are present in objects
@@ -202,7 +202,7 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Return detailed error messages with context path
   - _Requirements: 3.6_
 
-- [ ]* 5.5.3 Test mock validator
+- [x] 5.5.3 Test mock validator
   - Test validation with valid mocks
   - Test validation with invalid request matchers
   - Test validation with invalid status codes
