@@ -84,6 +84,50 @@ class BedrockTestKoogAgentTest {
     }
     
     @Test
+    fun `Given valid instructions When executing agent twice Then both should return success response`() = runTest {
+        // Given
+        val request1 = TestAgentRequest(instructions = "Tell me a joke 1")
+        val request2 = TestAgentRequest(instructions = "Tell me a joke 2")
+
+        val mockBedrockResponseJson = mapOf(
+            "id" to "msg_mock_123",
+            "type" to "message",
+            "role" to "assistant",
+            "model" to "claude-3-5-sonnet-20241022",
+            "content" to listOf(
+                mapOf(
+                    "text" to "Response",
+                    "type" to "text"
+                )
+            ),
+            "usage" to mapOf(
+                "input_tokens" to 10,
+                "output_tokens" to 20
+            )
+        )
+        val mockBedrockResponseBytes = objectMapper.writeValueAsBytes(mockBedrockResponseJson)
+
+        coEvery {
+            bedrockClient.invokeModel(any<InvokeModelRequest>())
+        } returns InvokeModelResponse {
+            body = mockBedrockResponseBytes
+            contentType = "application/json"
+        }
+
+        // When
+        val response1 = agent.execute(request1)
+        val response2 = agent.execute(request2)
+
+        // Then
+        assertTrue(response1.success, "First response should be successful")
+        assertTrue(response2.success, "Second response should be successful")
+
+        coVerify(exactly = 2) {
+            bedrockClient.invokeModel(any<InvokeModelRequest>())
+        }
+    }
+
+    @Test
     fun `Given Bedrock failure When executing agent Then should return error response`() = runTest {
         // Given
         val request = TestAgentRequest(

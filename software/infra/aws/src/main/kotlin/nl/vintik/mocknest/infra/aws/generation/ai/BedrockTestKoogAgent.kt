@@ -42,10 +42,10 @@ class BedrockTestKoogAgent(
         )
     }
     
-    private val agent by lazy {
+    private fun createAgent(): AIAgent<String, String> {
         val model = modelConfiguration.getModel()
         logger.info { "Initializing AI agent: model=${model.id}, region=$region" }
-        AIAgent(
+        return AIAgent(
             promptExecutor = executor,
             llmModel = model,
             systemPrompt = """
@@ -62,7 +62,7 @@ class BedrockTestKoogAgent(
         
         return runCatching {
             val prompt = buildPrompt(request.instructions, request.context)
-            val response = agent.run(prompt)
+            val response = createAgent().run(prompt)
             
             logger.info { "Received response from Koog agent: responseLength=${response.length}" }
             

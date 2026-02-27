@@ -32,10 +32,10 @@ class BedrockServiceAdapter(
         SingleLLMPromptExecutor(BedrockLLMClient(bedrockClient))
     }
 
-    private val agent by lazy {
+    private fun createAgent(): AIAgent<String, String> {
         val model = modelConfiguration.getModel()
         logger.info { "Initializing AI agent: model=${model.id}" }
-        AIAgent(
+        return AIAgent(
             promptExecutor = executor,
             llmModel = model,
             systemPrompt = """
@@ -149,7 +149,7 @@ class BedrockServiceAdapter(
     }
     
     private suspend fun invokeModel(prompt: String): String {
-        val text = agent.run(prompt)
+        val text = createAgent().run(prompt)
         check(text.isNotBlank()) { "Invalid response format from model" }
         return text
     }
