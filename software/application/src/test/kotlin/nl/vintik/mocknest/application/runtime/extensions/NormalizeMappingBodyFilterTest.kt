@@ -156,6 +156,29 @@ class NormalizeMappingBodyFilterTest {
         }
 
         @Test
+        suspend fun `Given mapping with jsonBody When normalizing Then should externalize body to JSON file`() {
+            // Given
+            val mappingJson = loadTestData("mapping-with-json-body.json")
+            coEvery { mockStorage.save(any(), any()) } returns "saved"
+
+            // When
+            val result = filter.normalizeMappingToBodyFile(mappingJson)
+
+            // Then
+            val resultNode = mapper.readTree(result)
+            assertEquals("test-mapping-id-json.json", resultNode["response"]["bodyFileName"].asText())
+            assertEquals("application/json", resultNode["response"]["headers"]["Content-Type"].asText())
+            assertFalse(resultNode["response"].has("jsonBody"))
+
+            coVerify {
+                mockStorage.save(
+                    "${FILES_PREFIX}test-mapping-id-json.json",
+                    "{\"message\":\"Hello JSON\",\"count\":42}"
+                )
+            }
+        }
+
+        @Test
         suspend fun `Given mapping without ID When normalizing Then should generate UUID and externalize body`() {
             // Given
             val mappingJson = loadTestData("mapping-without-id.json")

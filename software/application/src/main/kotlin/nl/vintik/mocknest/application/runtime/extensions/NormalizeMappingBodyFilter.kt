@@ -79,8 +79,9 @@ class NormalizeMappingBodyFilter(
 
         val bodyNode = response.remove("body")
         val base64Node = response.remove("base64Body")
+        val jsonBodyNode = response.remove("jsonBody")
 
-        if (bodyNode == null && base64Node == null) return mappingJson
+        if (bodyNode == null && base64Node == null && jsonBodyNode == null) return mappingJson
 
         // Ensure mapping has an id to derive file name
         val mappingId = root["id"]?.asText() ?: UUID.randomUUID().toString().also { root.put("id", it) }
@@ -89,11 +90,10 @@ class NormalizeMappingBodyFilter(
         val fileName = "$mappingId${if (isBinary) ".bin" else ".json"}"
         val fullFileName = "$FILES_PREFIX$fileName"
         // Persist into FILES store under the relative file name
-        if (isBinary) {
-            storage.save(fullFileName, base64Node.asText())
-        } else {
-            val text = bodyNode.asText()
-            storage.save(fullFileName, text)
+        when {
+            base64Node != null -> storage.save(fullFileName, base64Node.asText())
+            jsonBodyNode != null -> storage.save(fullFileName, mapper.writeValueAsString(jsonBodyNode))
+            bodyNode != null -> storage.save(fullFileName, bodyNode.asText())
         }
 
         // Get or create headers without overwriting existing headers
