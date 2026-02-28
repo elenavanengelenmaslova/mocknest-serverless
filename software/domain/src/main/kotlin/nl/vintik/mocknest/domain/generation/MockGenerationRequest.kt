@@ -12,7 +12,7 @@ data class NaturalLanguageRequest(
     val useExistingSpec: Boolean = false,    // Use stored API spec as context
     val context: Map<String, String> = emptyMap(),
     val options: GenerationOptions = GenerationOptions.default()
-) {
+ ) {
     init {
         require(jobId.isNotBlank()) { "Job ID cannot be blank" }
         require(description.isNotBlank()) { "Description cannot be blank" }
@@ -30,7 +30,7 @@ data class SpecWithDescriptionRequest(
     val format: SpecificationFormat,
     val description: String,
     val options: GenerationOptions = GenerationOptions.default()
-) {
+ ) {
     init {
         require(jobId.isNotBlank()) { "Job ID cannot be blank" }
         require(specificationContent?.isNotBlank()?: false || specificationUrl?.isNotBlank()?: false) { "One of Specification content or URL must be present" }
@@ -48,9 +48,7 @@ enum class SpecificationFormat {
 /**
  * Options for controlling mock generation behavior.
  */
-data class GenerationOptions(
-    val brave: Boolean = true,
-) {
+class GenerationOptions {
     companion object {
         fun default() = GenerationOptions()
     }

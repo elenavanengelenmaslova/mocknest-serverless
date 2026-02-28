@@ -20,9 +20,9 @@ class AdminRequestUseCase(
         httpRequest: HttpRequest,
     ): HttpResponse {
         logger.info { "Handling admin request ${httpRequest.method} ${httpRequest.path} " }
-        return forwardToDirectCallHttpServer("admin", httpRequest) { httpRequest ->
+        return forwardToDirectCallHttpServer("admin", httpRequest) { wireMockRequest ->
             directCallHttpServer.adminRequest(
-                httpRequest
+                wireMockRequest
             )
         }
     }

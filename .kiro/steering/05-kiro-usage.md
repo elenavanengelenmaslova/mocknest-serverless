@@ -314,6 +314,14 @@ Follow clean architecture principles by developing in this sequence:
       assertEquals(expectedResult, result)
   }
   ```
+- Avoid using `suspend` in unit test functions where it is unnecessary.
+  ```kotlin
+  // Avoid this if nothing inside is suspending
+  @Test
+  suspend fun `Given constants When calculating Then should be correct`() {
+  assertEquals(4, 2 + 2)
+  }
+  ```
 - **Use kotlinx-coroutines-test library** for advanced coroutine testing scenarios:
   ```kotlin
   @Test

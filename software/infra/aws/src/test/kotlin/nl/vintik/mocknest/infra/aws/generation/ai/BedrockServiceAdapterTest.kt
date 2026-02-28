@@ -26,7 +26,7 @@ class BedrockServiceAdapterTest {
     inner class PromptBuilding {
 
         @Test
-        fun `Given description and namespace with client When building natural language prompt Then should include apiName and client in prompt`() {
+        fun `Given description and namespace with client When building natural language prompt Then should include displayName and client in prompt`() {
             // Given
             val description = "Generate a mock for users"
             val namespace = MockNamespace(apiName = "petstore", client = "test-client")
@@ -39,12 +39,12 @@ class BedrockServiceAdapterTest {
             assertTrue(prompt.contains("API Name: petstore"))
             assertTrue(prompt.contains("- Client: test-client"))
             assertTrue(prompt.contains("extra: info"))
-            assertTrue(prompt.contains("IMPORTANT: All mock URLs must be prefixed with /petstore"))
-            assertTrue(prompt.contains("\"url\": \"/petstore/api/users\""))
+            assertTrue(prompt.contains("IMPORTANT: All mock URLs must be prefixed with /test-client/petstore"))
+            assertTrue(prompt.contains("\"url\": \"/test-client/petstore/api/users\""))
         }
 
         @Test
-        fun `Given description and namespace without client When building natural language prompt Then should include apiName and no client`() {
+        fun `Given description and namespace without client When building natural language prompt Then should include displayName and no client`() {
             // Given
             val description = "Generate a mock for users"
             val namespace = MockNamespace(apiName = "petstore")
@@ -61,7 +61,7 @@ class BedrockServiceAdapterTest {
         }
 
         @Test
-        fun `Given specification and namespace When building spec with description prompt Then should include apiName and client in prompt`() {
+        fun `Given specification and namespace When building spec with description prompt Then should include displayName and client in prompt`() {
             // Given
             val specification = APISpecification(
                 format = SpecificationFormat.OPENAPI_3,
@@ -89,7 +89,7 @@ class BedrockServiceAdapterTest {
             // Then
             assertTrue(prompt.contains("API Name: petstore"))
             assertTrue(prompt.contains("- Client: test-client"))
-            assertTrue(prompt.contains("IMPORTANT: All mock URLs must be prefixed with /petstore"))
+            assertTrue(prompt.contains("IMPORTANT: All mock URLs must be prefixed with /test-client/petstore"))
             assertTrue(prompt.contains("Enhancement Description: Add more realism"))
         }
     }
@@ -98,44 +98,44 @@ class BedrockServiceAdapterTest {
     inner class MockCreation {
 
         @Test
-        fun `Given description and namespace When creating fallback mock Then should use apiName in fallback path`() {
+        fun `Given description and namespace When creating fallback mock Then should use displayName in fallback path`() {
             // Given
             val description = "Failed generation"
-            val namespace = MockNamespace(apiName = "petstore")
+            val namespace = MockNamespace(apiName = "petstore", client = "test-client")
 
             // When
             val fallback = adapter.createFallbackMock(description, namespace)
 
             // Then
-            assertTrue(fallback.metadata.endpoint.path == "/petstore/fallback")
-            assertTrue(fallback.wireMockMapping.contains("\"url\": \"/petstore/fallback\""))
-            assertTrue(fallback.id.startsWith("fallback-petstore-"))
+            assertTrue(fallback.metadata.endpoint.path == "/test-client/petstore/fallback")
+            assertTrue(fallback.wireMockMapping.contains("\"url\": \"/test-client/petstore/fallback\""))
+            assertTrue(fallback.id.startsWith("fallback-test-client-petstore-"))
         }
 
         @Test
-        fun `Given mapping and namespace When creating generated mock Then should include apiName in ID`() {
+        fun `Given mapping and namespace When creating generated mock Then should include displayName in ID`() {
             // Given
             val mapping = """
             {
               "request": {
                 "method": "POST",
-                "url": "/petstore/pet"
+                "url": "/test-client/petstore/pet"
               },
               "response": {
                 "status": 201
               }
             }
             """.trimIndent()
-            val namespace = MockNamespace(apiName = "petstore")
+            val namespace = MockNamespace(apiName = "petstore", client = "test-client")
 
             // When
             val mock = adapter.createGeneratedMock(mapping, namespace, SourceType.NATURAL_LANGUAGE, "ref", 1)
 
             // Then
-            assertTrue(mock.id.contains("petstore"))
-            assertTrue(mock.id.startsWith("ai-generated-petstore-post--petstore-pet-1"))
+            assertTrue(mock.id.contains("test-client-petstore"))
+            assertTrue(mock.id.startsWith("ai-generated-test-client-petstore-post--test-client-petstore-pet-1"))
             assertTrue(mock.metadata.endpoint.method == HttpMethod.POST)
-            assertTrue(mock.metadata.endpoint.path == "/petstore/pet")
+            assertTrue(mock.metadata.endpoint.path == "/test-client/petstore/pet")
         }
     }
 }

@@ -170,7 +170,7 @@ class BedrockServiceAdapter(
         
         Requirements:
         - Generate valid WireMock JSON mapping format
-        - IMPORTANT: All mock URLs must be prefixed with /${namespace.apiName} (e.g., if the description implies /users, the mock URL should be /${namespace.apiName}/users)
+        - IMPORTANT: All mock URLs must be prefixed with /${namespace.displayName()} (e.g., if the description implies /users, the mock URL should be /${namespace.displayName()}/users)
         - Include realistic response data that matches the description
         - Handle appropriate HTTP status codes (default to 200 unless specified)
         - Include relevant headers (Content-Type, CORS headers)
@@ -186,7 +186,7 @@ class BedrockServiceAdapter(
           {
             "request": {
               "method": "GET",
-              "url": "/${namespace.apiName}/api/users"
+              "url": "/${namespace.displayName()}/api/users"
             },
             "response": {
               "status": 200,
@@ -222,7 +222,7 @@ class BedrockServiceAdapter(
         
         Requirements:
         - Generate WireMock mappings that follow the API specification structure
-        - IMPORTANT: All mock URLs must be prefixed with /${namespace.apiName} (e.g., if the spec has /users, the mock URL should be /${namespace.apiName}/users)
+        - IMPORTANT: All mock URLs must be prefixed with /${namespace.displayName()} (e.g., if the spec has /users, the mock URL should be /${namespace.displayName()}/users)
         - Enhance the mappings based on the description (add error cases, specific data, behaviors, etc.)
         - Include realistic response data that matches both the spec and description
         - Handle appropriate HTTP status codes
@@ -363,7 +363,7 @@ class BedrockServiceAdapter(
         }
         
         return GeneratedMock(
-            id = "ai-generated-${namespace.apiName}-${method.lowercase()}-${path.replace("/", "-").replace("{", "").replace("}", "")}-$index",
+            id = "ai-generated-${namespace.displayName().replace("/", "-")}-${method.lowercase()}-${path.replace("/", "-").replace("{", "").replace("}", "")}-$index",
             name = "AI Generated: $method $path",
             namespace = namespace,
             wireMockMapping = wireMockMapping,
@@ -392,7 +392,7 @@ class BedrockServiceAdapter(
     
     internal fun createFallbackMock(description: String, namespace: MockNamespace): GeneratedMock {
         // Create a basic mock when AI generation fails
-        val fallbackPath = "/${namespace.apiName}/fallback"
+        val fallbackPath = "/${namespace.displayName()}/fallback"
         val fallbackMapping = """
         {
           "request": {
@@ -410,7 +410,7 @@ class BedrockServiceAdapter(
         """.trimIndent()
         
         return GeneratedMock(
-            id = "fallback-${namespace.apiName}-${System.currentTimeMillis()}",
+            id = "fallback-${namespace.displayName().replace("/", "-")}-${System.currentTimeMillis()}",
             name = "Fallback Mock",
             namespace = namespace,
             wireMockMapping = fallbackMapping,

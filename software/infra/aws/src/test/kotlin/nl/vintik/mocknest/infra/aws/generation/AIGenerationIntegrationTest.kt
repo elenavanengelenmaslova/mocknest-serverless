@@ -1,7 +1,6 @@
 package nl.vintik.mocknest.infra.aws.generation
 
 import nl.vintik.mocknest.domain.generation.*
-import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -10,6 +9,7 @@ import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
@@ -33,7 +33,7 @@ class AIGenerationIntegrationTest {
     }
     
     @Test
-    fun `Given OpenAPI specification When generating mocks Then should create valid WireMock mappings`() = runTest {
+    fun `Given OpenAPI specification When generating mocks Then should create valid WireMock mappings`() {
         // Given
         val openApiSpec = """
         openapi: 3.0.0
@@ -67,11 +67,7 @@ class AIGenerationIntegrationTest {
             specificationContent = openApiSpec,
             format = SpecificationFormat.OPENAPI_3,
             description = "test-description",
-            options = GenerationOptions(
-                brave = true
-            )
-        )
-        
+            options = GenerationOptions.default())
         // This test validates the domain models and basic structure
         // Full integration would require LocalStack setup and Spring context
         assertTrue(request.namespace.apiName == "test-api")
@@ -110,8 +106,8 @@ class AIGenerationIntegrationTest {
         )
         
         // Then
-        assertTrue(jobRequest.type == GenerationType.SPECIFICATION)
-        assertTrue(jobRequest.specifications.size == 1)
+        assertEquals(GenerationType.SPECIFICATION, jobRequest.type)
+        assertEquals(1, jobRequest.specifications.size)
         assertTrue(jobRequest.descriptions.isEmpty())
     }
 }

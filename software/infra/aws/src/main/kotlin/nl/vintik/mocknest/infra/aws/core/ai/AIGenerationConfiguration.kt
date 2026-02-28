@@ -2,15 +2,12 @@ package nl.vintik.mocknest.infra.aws.core.ai
 
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import nl.vintik.mocknest.application.generation.agent.MockGenerationFunctionalAgent
-import nl.vintik.mocknest.application.generation.agent.TestKoogAgent
 import nl.vintik.mocknest.application.generation.interfaces.*
 import nl.vintik.mocknest.application.generation.parsers.CompositeSpecificationParserImpl
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
 import nl.vintik.mocknest.application.generation.usecases.*
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
-import nl.vintik.mocknest.application.runtime.usecases.HandleTestAgentRequest
 import nl.vintik.mocknest.infra.aws.generation.ai.BedrockServiceAdapter
-import nl.vintik.mocknest.infra.aws.generation.ai.BedrockTestKoogAgent
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
@@ -52,16 +49,8 @@ class AIGenerationConfiguration {
     }
 
     @Bean
-    fun bedrockTestKoogAgent(
+    fun mockGenerationAgent(
         modelConfiguration: ModelConfiguration,
-        @org.springframework.beans.factory.annotation.Value("\${aws.region}")
-        region: String
-    ): TestKoogAgent {
-        return BedrockTestKoogAgent(modelConfiguration, region)
-    }
-
-    @Bean
-    fun mockGenerationFunctionalAgent(
         aiModelService: AIModelServiceInterface,
         specificationParser: SpecificationParserInterface,
         generationStorage: GenerationStorageInterface,
@@ -90,12 +79,5 @@ class AIGenerationConfiguration {
         return AIGenerationRequestUseCase(
             generateFromSpecWithDescriptionUseCase
         )
-    }
-
-    @Bean
-    fun testAgentRequestUseCase(
-        testKoogAgent: TestKoogAgent,
-    ): HandleTestAgentRequest {
-        return TestAgentRequestUseCase(testKoogAgent)
     }
 }

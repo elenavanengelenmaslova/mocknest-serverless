@@ -30,7 +30,7 @@ class ModelConfigurationTest {
         lateinit var inferenceProfilePrefix: String
 
         @Test
-        suspend fun `Given Claude 3-5 Sonnet v2 model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
+        fun `Given Claude 3-5 Sonnet v2 model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName, inferenceProfilePrefix)
             val model = config.getModel()
 
@@ -55,7 +55,7 @@ class ModelConfigurationTest {
         lateinit var inferenceProfilePrefix: String
 
         @Test
-        suspend fun `Given Claude 4-5 Sonnet model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
+        fun `Given Claude 4-5 Sonnet model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName, inferenceProfilePrefix)
             val model = config.getModel()
 
@@ -80,7 +80,7 @@ class ModelConfigurationTest {
         lateinit var inferenceProfilePrefix: String
 
         @Test
-        suspend fun `Given Amazon Nova Pro model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
+        fun `Given Amazon Nova Pro model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName, inferenceProfilePrefix)
             val model = config.getModel()
 
@@ -105,7 +105,7 @@ class ModelConfigurationTest {
         lateinit var inferenceProfilePrefix: String
 
         @Test
-        suspend fun `Given Meta Llama 3-1 70B model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
+        fun `Given Meta Llama 3-1 70B model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName, inferenceProfilePrefix)
             val model = config.getModel()
 
@@ -130,7 +130,7 @@ class ModelConfigurationTest {
         lateinit var inferenceProfilePrefix: String
 
         @Test
-        suspend fun `Given invalid model name When getting Bedrock model Then should fallback to AmazonNovaPro with GLOBAL prefix and log warning`() {
+        fun `Given invalid model name When getting Bedrock model Then should fallback to AmazonNovaPro with GLOBAL prefix and log warning`() {
             val config = ModelConfiguration(modelName, inferenceProfilePrefix)
             val model = config.getModel()
 
@@ -156,7 +156,7 @@ class ModelConfigurationTest {
         lateinit var inferenceProfilePrefix: String
 
         @Test
-        suspend fun `Given empty model name When getting Bedrock model Then should fallback to AmazonNovaPro with GLOBAL prefix`() {
+        fun `Given empty model name When getting Bedrock model Then should fallback to AmazonNovaPro with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName, inferenceProfilePrefix)
             val model = config.getModel()
 
@@ -178,7 +178,7 @@ class ModelConfigurationTest {
         lateinit var inferenceProfilePrefix: String
 
         @Test
-        suspend fun `Given no model name property When getting Bedrock model Then should use default AmazonNovaPro with GLOBAL prefix`() {
+        fun `Given no model name property When getting Bedrock model Then should use default AmazonNovaPro with GLOBAL prefix`() {
             val config = ModelConfiguration(modelName, inferenceProfilePrefix)
             val model = config.getModel()
 
@@ -203,7 +203,7 @@ class ModelConfigurationTest {
         lateinit var inferenceProfilePrefix: String
 
         @Test
-        suspend fun `Given non-existent model name When getting Bedrock model Then should fallback to default with GLOBAL prefix and log warning`() {
+        fun `Given non-existent model name When getting Bedrock model Then should fallback to default with GLOBAL prefix and log warning`() {
             val config = ModelConfiguration(modelName, inferenceProfilePrefix)
             val model = config.getModel()
 

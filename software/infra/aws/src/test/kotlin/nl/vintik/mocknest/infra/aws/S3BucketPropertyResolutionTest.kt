@@ -21,7 +21,7 @@ class S3BucketPropertyResolutionTest {
         lateinit var bucketName: String
 
         @Test
-        suspend fun `Given environment variable MOCKNEST_S3_BUCKET_NAME is set When loading context Then should resolve bucket name from environment`() {
+        fun `Given environment variable MOCKNEST_S3_BUCKET_NAME is set When loading context Then should resolve bucket name from environment`() {
             assertEquals("test-env-bucket", bucketName)
         }
     }
@@ -36,7 +36,7 @@ class S3BucketPropertyResolutionTest {
         lateinit var bucketName: String
 
         @Test
-        suspend fun `Given environment variable MOCKNEST_S3_BUCKET_NAME is not set When loading context Then should fallback to default in application properties`() {
+        fun `Given environment variable MOCKNEST_S3_BUCKET_NAME is not set When loading context Then should fallback to default in application properties`() {
             assertEquals("mocknest-serverless-storage", bucketName)
         }
     }

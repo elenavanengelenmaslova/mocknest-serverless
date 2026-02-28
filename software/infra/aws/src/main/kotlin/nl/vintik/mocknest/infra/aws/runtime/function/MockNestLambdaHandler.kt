@@ -2,18 +2,10 @@ package nl.vintik.mocknest.infra.aws.function
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
+import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.vintik.mocknest.application.runtime.usecases.*
 import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
-import nl.vintik.mocknest.application.runtime.usecases.ADMIN_PREFIX
-import nl.vintik.mocknest.application.runtime.usecases.HandleAdminRequest
-import nl.vintik.mocknest.application.runtime.usecases.HandleClientRequest
-import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
-import nl.vintik.mocknest.application.runtime.usecases.HandleTestAgentRequest
-import nl.vintik.mocknest.application.runtime.usecases.MOCKNEST_PREFIX
-import nl.vintik.mocknest.application.runtime.usecases.AI_PREFIX
-import nl.vintik.mocknest.application.runtime.usecases.TEST_AI_PREFIX
-import io.github.oshai.kotlinlogging.KotlinLogging
-import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
@@ -26,9 +18,7 @@ class MockNestLambdaHandler(
     private val handleClientRequest: HandleClientRequest,
     private val handleAdminRequest: HandleAdminRequest,
     private val handleAIGenerationRequest: HandleAIGenerationRequest,
-    private val handleTestAgentRequest: HandleTestAgentRequest,
 ) {
-    @Bean
     fun router(): Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
         return Function { event ->
             with(event) {
@@ -48,20 +38,13 @@ class MockNestLambdaHandler(
                         val aiPath = "/" + path.removePrefix(AI_PREFIX)
                         handleAIGenerationRequest(aiPath, createHttpRequest(aiPath))
                     }
-                    path.startsWith(TEST_AI_PREFIX) -> {
-                        logger.info { "Processing Test AI agent request $path" }
-                        val testPath = "/" + path.removePrefix(TEST_AI_PREFIX)
-                        handleTestAgentRequest(testPath, createHttpRequest(testPath))
-                    }
                     else -> {
-                        logger.debug { "Did not match admin or mocknest request prefix: $path" }
                         HttpResponse(
                             HttpStatus.NOT_FOUND,
                             body = "Path $path not found"
                         )
                     }
                 }
-
             }.let {
                 APIGatewayProxyResponseEvent()
                     .withStatusCode(it.statusCode.value())

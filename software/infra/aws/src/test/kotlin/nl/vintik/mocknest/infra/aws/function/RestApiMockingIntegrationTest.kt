@@ -38,7 +38,7 @@ class RestApiMockingIntegrationTest {
     private lateinit var storage: ObjectStorageInterface
 
     @BeforeEach
-    suspend fun setup() {
+    fun setup() {
     }
 
     @AfterEach
