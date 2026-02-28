@@ -123,7 +123,7 @@ class OpenAPIMockValidatorTest {
             namespace = MockNamespace("test"),
             wireMockMapping = wireMockMapping,
             metadata = MockMetadata(
-                sourceType = SourceType.SPECIFICATION,
+                sourceType = SourceType.SPEC_WITH_DESCRIPTION,
                 sourceReference = "test-spec.yaml",
                 endpoint = EndpointInfo(
                     method = HttpMethod.GET,

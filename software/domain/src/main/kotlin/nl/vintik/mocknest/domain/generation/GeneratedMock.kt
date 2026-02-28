@@ -55,9 +55,6 @@ data class EndpointInfo(
  * Source of the mock generation.
  */
 enum class SourceType {
-    SPECIFICATION,      // Generated from API specification only
-    NATURAL_LANGUAGE,   // Generated from natural language only
     SPEC_WITH_DESCRIPTION, // Generated from spec + natural language
-    EVOLUTION,          // Generated from spec evolution
-    REFINEMENT          // Generated from mock refinement
+    REFINEMENT          // Generated from mock refinement (e.g. correction)
 }

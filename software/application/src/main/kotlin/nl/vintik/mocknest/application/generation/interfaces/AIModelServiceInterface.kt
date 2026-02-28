@@ -1,5 +1,6 @@
 package nl.vintik.mocknest.application.generation.interfaces
 
+import ai.koog.agents.core.agent.AIAgent
 import nl.vintik.mocknest.domain.generation.*
 
 /**
@@ -8,66 +9,31 @@ import nl.vintik.mocknest.domain.generation.*
  * and cloud-specific AI service implementations.
  */
 interface AIModelServiceInterface {
-    
+
     /**
-     * Generate mocks from natural language description only.
-     * Uses AI to interpret the description and create appropriate WireMock mappings.
+     * Create an AI agent instance for the current generation job.
      */
-    suspend fun generateMockFromDescription(
-        description: String,
-        namespace: MockNamespace,
-        context: Map<String, String> = emptyMap()
-    ): List<GeneratedMock>
-    
+    fun createAgent(): AIAgent<String, String>
+
     /**
      * Generate mocks from API specification enhanced with natural language.
      * Combines structured specification parsing with AI-powered enhancement.
      */
     suspend fun generateMockFromSpecWithDescription(
+        agent: AIAgent<String, String>,
         specification: APISpecification,
         description: String,
         namespace: MockNamespace
     ): List<GeneratedMock>
-    
-    /**
-     * Refine an existing mock based on natural language instructions.
-     * Used for iterative improvement of generated mocks.
-     */
-    suspend fun refineMock(
-        existingMock: GeneratedMock,
-        refinementRequest: String
-    ): GeneratedMock
-    
-    /**
-     * Enhance response realism using AI.
-     * Improves the quality and realism of mock response data.
-     */
-    suspend fun enhanceResponseRealism(
-        mockResponse: String,
-        schema: JsonSchema,
-        context: Map<String, String> = emptyMap()
-    ): String
-    
-    /**
-     * Check if the AI model service is available and healthy.
-     */
-    suspend fun isHealthy(): Boolean
-    
-    /**
-     * Get information about the AI model service capabilities.
-     */
-    fun getCapabilities(): AIServiceCapabilities
-}
 
-/**
- * Capabilities of an AI model service.
- */
-data class AIServiceCapabilities(
-    val supportsNaturalLanguageGeneration: Boolean,
-    val supportsSpecEnhancement: Boolean,
-    val supportsMockRefinement: Boolean,
-    val supportsResponseEnhancement: Boolean,
-    val maxInputTokens: Int,
-    val maxOutputTokens: Int,
-    val supportedLanguages: Set<String>
-)
+    /**
+     * Attempt to correct invalid mocks based on validation errors.
+     * Uses AI to fix the mocks while maintaining the context of the original generation.
+     */
+    suspend fun correctMocks(
+        agent: AIAgent<String, String>,
+        invalidMocks: List<Pair<GeneratedMock, List<String>>>,
+        namespace: MockNamespace,
+        specification: APISpecification? = null
+    ): List<GeneratedMock>
+}

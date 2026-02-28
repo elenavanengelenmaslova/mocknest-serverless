@@ -1,6 +1,9 @@
 package nl.vintik.mocknest.infra.aws.generation
 
-import nl.vintik.mocknest.domain.generation.*
+import nl.vintik.mocknest.domain.generation.GenerationOptions
+import nl.vintik.mocknest.domain.generation.MockNamespace
+import nl.vintik.mocknest.domain.generation.SpecWithDescriptionRequest
+import nl.vintik.mocknest.domain.generation.SpecificationFormat
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -9,7 +12,6 @@ import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
@@ -84,30 +86,5 @@ class AIGenerationIntegrationTest {
         assertTrue(namespace.toPrefix() == "mocknest/client-a/payments")
         assertTrue(namespace.toStoragePath() == "mocknest/client-a/payments/")
         assertTrue(namespace.displayName() == "client-a/payments")
-    }
-    
-    @Test
-    fun `Given generation job When creating job request Then should validate constraints`() {
-        // Given
-        val namespace = MockNamespace(apiName = "test-api")
-        val specInput = SpecificationInput(
-            name = "test-spec",
-            content = "openapi: 3.0.0...",
-            format = SpecificationFormat.OPENAPI_3
-        )
-        
-        // When
-        val jobRequest = GenerationJobRequest(
-            type = GenerationType.SPECIFICATION,
-            namespace = namespace,
-            specifications = listOf(specInput),
-            descriptions = emptyList(),
-            options = GenerationOptions.default()
-        )
-        
-        // Then
-        assertEquals(GenerationType.SPECIFICATION, jobRequest.type)
-        assertEquals(1, jobRequest.specifications.size)
-        assertTrue(jobRequest.descriptions.isEmpty())
     }
 }

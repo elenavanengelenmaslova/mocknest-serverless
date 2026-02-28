@@ -26,43 +26,6 @@ class BedrockServiceAdapterTest {
     inner class PromptBuilding {
 
         @Test
-        fun `Given description and namespace with client When building natural language prompt Then should include displayName and client in prompt`() {
-            // Given
-            val description = "Generate a mock for users"
-            val namespace = MockNamespace(apiName = "petstore", client = "test-client")
-            val context = mapOf("extra" to "info")
-
-            // When
-            val prompt = adapter.buildNaturalLanguagePrompt(description, context, namespace)
-
-            // Then
-            assertTrue(prompt.contains("API Name: petstore"))
-            assertTrue(prompt.contains("- Client: test-client"))
-            assertTrue(prompt.contains("extra: info"))
-            assertTrue(prompt.contains("IMPORTANT: All mock URLs must be prefixed with /test-client/petstore"))
-            assertTrue(prompt.contains("\"url\": \"/test-client/petstore/api/users\""))
-            assertTrue(prompt.contains("\"jsonBody\": ["))
-        }
-
-        @Test
-        fun `Given description and namespace without client When building natural language prompt Then should include displayName and no client`() {
-            // Given
-            val description = "Generate a mock for users"
-            val namespace = MockNamespace(apiName = "petstore")
-            val context = emptyMap<String, String>()
-
-            // When
-            val prompt = adapter.buildNaturalLanguagePrompt(description, context, namespace)
-
-            // Then
-            assertTrue(prompt.contains("API Name: petstore"))
-            assertTrue(!prompt.contains("- Client:"))
-            assertTrue(prompt.contains("IMPORTANT: All mock URLs must be prefixed with /petstore"))
-            assertTrue(prompt.contains("\"url\": \"/petstore/api/users\""))
-            assertTrue(prompt.contains("\"jsonBody\": ["))
-        }
-
-        @Test
         fun `Given specification and namespace When building spec with description prompt Then should include displayName and client in prompt`() {
             // Given
             val specification = APISpecification(
@@ -101,22 +64,6 @@ class BedrockServiceAdapterTest {
     inner class MockCreation {
 
         @Test
-        fun `Given description and namespace When creating fallback mock Then should use displayName in fallback path`() {
-            // Given
-            val description = "Failed generation"
-            val namespace = MockNamespace(apiName = "petstore", client = "test-client")
-
-            // When
-            val fallback = adapter.createFallbackMock(description, namespace)
-
-            // Then
-            assertTrue(fallback.metadata.endpoint.path == "/test-client/petstore/fallback")
-            assertTrue(fallback.wireMockMapping.contains("\"url\": \"/test-client/petstore/fallback\""))
-            assertTrue(fallback.wireMockMapping.contains("\"jsonBody\": {"))
-            assertTrue(fallback.id.startsWith("fallback-test-client-petstore-"))
-        }
-
-        @Test
         fun `Given mapping and namespace When creating generated mock Then should include displayName in ID`() {
             // Given
             val mapping = """
@@ -133,13 +80,38 @@ class BedrockServiceAdapterTest {
             val namespace = MockNamespace(apiName = "petstore", client = "test-client")
 
             // When
-            val mock = adapter.createGeneratedMock(mapping, namespace, SourceType.NATURAL_LANGUAGE, "ref", 1)
+            val mock = adapter.createGeneratedMock(mapping, namespace, SourceType.SPEC_WITH_DESCRIPTION, "ref", 1)
 
             // Then
             assertTrue(mock.id.contains("test-client-petstore"))
             assertTrue(mock.id.startsWith("ai-generated-test-client-petstore-post--test-client-petstore-pet-1"))
             assertTrue(mock.metadata.endpoint.method == HttpMethod.POST)
             assertTrue(mock.metadata.endpoint.path == "/test-client/petstore/pet")
+        }
+
+        @Test
+        fun `Given invalid mocks When building correction prompt Then should include errors and mappings`() {
+            // Given
+            val namespace = MockNamespace(apiName = "petstore", client = "test-client")
+            val invalidMock = GeneratedMock(
+                id = "mock-1",
+                name = "Mock 1",
+                namespace = namespace,
+                wireMockMapping = "{\"request\":{\"url\":\"/old\"}}",
+                metadata = MockMetadata(SourceType.SPEC_WITH_DESCRIPTION, "ref", EndpointInfo(HttpMethod.GET, "/old", 200, "application/json"))
+            )
+            val errors = listOf("Url should be /new", "Body missing")
+            val invalidMocks = listOf(invalidMock to errors)
+
+            // When
+            val prompt = adapter.buildCorrectionPrompt(invalidMocks)
+
+            // Then
+            assertTrue(prompt.contains("Mock ID: mock-1"))
+            assertTrue(prompt.contains("{\"request\":{\"url\":\"/old\"}}"))
+            assertTrue(prompt.contains("Url should be /new"))
+            assertTrue(prompt.contains("Body missing"))
+            assertTrue(prompt.contains("corrected WireMock mappings"))
         }
     }
 }

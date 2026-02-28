@@ -8,7 +8,6 @@ import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
-import nl.vintik.mocknest.application.generation.interfaces.AIServiceCapabilities
 import nl.vintik.mocknest.domain.generation.*
 import nl.vintik.mocknest.infra.aws.core.ai.ModelConfiguration
 import org.springframework.http.HttpMethod
@@ -26,13 +25,13 @@ class BedrockServiceAdapter(
     private val bedrockClient: BedrockRuntimeClient,
     private val modelConfiguration: ModelConfiguration
 ) : AIModelServiceInterface {
-    
+
     // Lazy initialization of Koog components to avoid cold start penalty
     private val executor by lazy {
         SingleLLMPromptExecutor(BedrockLLMClient(bedrockClient))
     }
 
-    private fun createAgent(): AIAgent<String, String> {
+    override fun createAgent(): AIAgent<String, String> {
         val model = modelConfiguration.getModel()
         logger.info { "Initializing AI agent: model=${model.id}" }
         return AIAgent(
@@ -48,164 +47,77 @@ class BedrockServiceAdapter(
     }
 
     companion object {
-        private const val MAX_TOKENS = 4096
         private const val TEMPERATURE = 0.7
     }
-    
-    override suspend fun generateMockFromDescription(
-        description: String,
-        namespace: MockNamespace,
-        context: Map<String, String>
-    ): List<GeneratedMock> {
-        logger.info { "Generating mocks from description for namespace: ${namespace.displayName()}" }
-        
-        val prompt = buildNaturalLanguagePrompt(description, context, namespace)
-        
-        return runCatching {
-            val response = invokeModel(prompt)
-            parseModelResponse(response, namespace, SourceType.NATURAL_LANGUAGE, description)
-        }.onFailure { exception ->
-            logger.error(exception) { "Failed to generate mocks from description for namespace: ${namespace.displayName()}, description: $description" }
-        }.getOrElse { 
-            // Fallback to basic mock generation
-            listOf(createFallbackMock(description, namespace))
-        }
-    }
-    
+
     override suspend fun generateMockFromSpecWithDescription(
+        agent: AIAgent<String, String>,
         specification: APISpecification,
         description: String,
         namespace: MockNamespace
     ): List<GeneratedMock> {
         logger.info { "Generating enhanced mocks from spec + description for namespace: ${namespace.displayName()}" }
-        
+
         val prompt = buildSpecWithDescriptionPrompt(specification, description, namespace)
-        
+
         return runCatching {
-            val response = invokeModel(prompt)
+            val response = agent.run(prompt)
             parseModelResponse(response, namespace, SourceType.SPEC_WITH_DESCRIPTION, "${specification.title}: $description")
         }.onFailure { exception ->
-            logger.error(exception) { "Failed to generate enhanced mocks for spec: ${specification.title} in namespace: ${namespace.displayName()}" }
+            logger.error(exception) { "Failed to generate enhanced mocks for spec: ${specification.title}" }
         }.getOrElse {
-            // Fallback to basic spec-based generation would be handled by the calling use case
             emptyList()
         }
     }
-    
-    override suspend fun refineMock(
-        existingMock: GeneratedMock,
-        refinementRequest: String
-    ): GeneratedMock {
-        logger.info { "Refining mock: ${existingMock.name}" }
-        
-        val prompt = buildRefinementPrompt(existingMock, refinementRequest)
-        
+
+    override suspend fun correctMocks(
+        agent: AIAgent<String, String>,
+        invalidMocks: List<Pair<GeneratedMock, List<String>>>,
+        namespace: MockNamespace,
+        specification: APISpecification?
+    ): List<GeneratedMock> {
+        logger.info { "Correcting ${invalidMocks.size} invalid mocks" }
+
+        val correctionPrompt = buildCorrectionPrompt(invalidMocks)
+
         return runCatching {
-            val response = invokeModel(prompt)
-            val refinedMocks = parseModelResponse(response, existingMock.namespace, SourceType.REFINEMENT, refinementRequest)
-            refinedMocks.firstOrNull() ?: existingMock
+            val response = agent.run(correctionPrompt)
+            parseModelResponse(response, namespace, SourceType.REFINEMENT, "Correction for ${namespace.displayName()}")
         }.onFailure { exception ->
-            logger.error(exception) { "Failed to refine mock: id=${existingMock.id}, name=${existingMock.name}" }
-        }.getOrElse { existingMock }
+            logger.error(exception) { "Failed to correct mocks" }
+        }.getOrElse {
+            emptyList()
+        }
     }
-    
-    override suspend fun enhanceResponseRealism(
-        mockResponse: String,
-        schema: JsonSchema,
-        context: Map<String, String>
-    ): String {
-        logger.debug { "Enhancing response realism" }
-        
-        val prompt = buildResponseEnhancementPrompt(mockResponse, schema, context)
-        
-        return runCatching {
-            val response = invokeModel(prompt)
-            extractEnhancedResponse(response)
-        }.onFailure { exception ->
-            logger.warn(exception) { "Failed to enhance response realism, using original" }
-        }.getOrElse { mockResponse }
-    }
-    
-    override suspend fun isHealthy(): Boolean {
-        return runCatching {
-            val testPrompt = "Respond with 'OK' if you can process this request."
-            val response = invokeModel(testPrompt)
-            response.contains("OK", ignoreCase = true)
-        }.onFailure { exception ->
-            logger.warn(exception) { "Bedrock health check failed" }
-        }.getOrElse { false }
-    }
-    
-    override fun getCapabilities(): AIServiceCapabilities {
-        return AIServiceCapabilities(
-            supportsNaturalLanguageGeneration = true,
-            supportsSpecEnhancement = true,
-            supportsMockRefinement = true,
-            supportsResponseEnhancement = true,
-            maxInputTokens = 200000,
-            maxOutputTokens = MAX_TOKENS,
-            supportedLanguages = setOf("en", "es", "fr", "de", "it", "pt", "ja", "ko", "zh")
-        )
-    }
-    
-    private suspend fun invokeModel(prompt: String): String {
-        val text = createAgent().run(prompt)
-        check(text.isNotBlank()) { "Invalid response format from model" }
-        return text
-    }
-    
-    internal fun buildNaturalLanguagePrompt(description: String, context: Map<String, String>, namespace: MockNamespace): String {
-        val contextInfo = if (context.isNotEmpty()) {
-            "\n\nAdditional Context:\n${context.entries.joinToString("\n") { "${it.key}: ${it.value}" }}"
-        } else ""
-        
+
+    internal fun buildCorrectionPrompt(invalidMocks: List<Pair<GeneratedMock, List<String>>>): String {
+        val mocksWithErrors = invalidMocks.joinToString("\n\n---\n\n") { (mock, errors) ->
+            """
+            Mock ID: ${mock.id}
+            Current Mapping:
+            ${mock.wireMockMapping}
+            
+            Validation Errors:
+            ${errors.joinToString("\n") { " - $it" }}
+            """.trimIndent()
+        }
+
         return """
-        You are an expert API mock generator. Generate WireMock JSON mappings based on this description:
+        The following WireMock mappings failed validation. Please correct ALL of them to fix their respective errors.
         
-        Namespace:
-        - API Name: ${namespace.apiName}
-        ${namespace.client?.let { "- Client: $it" } ?: ""}
-        
-        Description: $description$contextInfo
+        $mocksWithErrors
         
         Requirements:
-        - Generate valid WireMock JSON mapping format
-        - IMPORTANT: All mock URLs must be prefixed with /${namespace.displayName()} (e.g., if the description implies /users, the mock URL should be /${namespace.displayName()}/users)
-        - Include realistic response data that matches the description
-        - Handle appropriate HTTP status codes (default to 200 unless specified)
-        - Include relevant headers (Content-Type, CORS headers)
-        - Ensure response matches described behavior exactly
-        - Generate multiple mappings if the description implies multiple endpoints
-        - Use proper URL patterns and request matching
-        - For REST API Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
+        - Return only a JSON array containing the corrected WireMock mappings.
+        - Each mapping should be a complete, valid WireMock JSON object.
+        - Fix all validation errors listed for each mock.
+        - Maintain the same structure and intent as the original mocks.
+        - For REST API Prefer `jsonBody` over `body` for JSON responses.
         
-        Return only a JSON array of WireMock mappings. Each mapping should be a complete, valid WireMock JSON object.
         Do not include any explanatory text, only the JSON array.
-        
-        Example format:
-        [
-          {
-            "request": {
-              "method": "GET",
-              "url": "/${namespace.displayName()}/api/users"
-            },
-            "response": {
-              "status": 200,
-              "headers": {
-                "Content-Type": "application/json"
-              },
-              "jsonBody": [
-                {
-                  "id": 1,
-                  "name": "John Doe"
-                }
-              ]
-            }
-          }
-        ]
         """.trimIndent()
     }
-    
+
     internal fun buildSpecWithDescriptionPrompt(specification: APISpecification, description: String, namespace: MockNamespace): String {
         val specSummary = """
         API Specification Summary:
@@ -214,7 +126,7 @@ class BedrockServiceAdapter(
         - Endpoints: ${specification.endpoints.size}
         - Key endpoints: ${specification.endpoints.take(5).joinToString(", ") { "${it.method} ${it.path}" }}
         """.trimIndent()
-        
+
         return """
         You are an expert API mock generator. Generate WireMock JSON mappings based on this API specification and enhancement description:
         
@@ -240,52 +152,7 @@ class BedrockServiceAdapter(
         Do not include any explanatory text, only the JSON array.
         """.trimIndent()
     }
-    
-    internal fun buildRefinementPrompt(existingMock: GeneratedMock, refinementRequest: String): String {
-        return """
-        You are an expert API mock generator. Refine this existing WireMock mapping based on the refinement request:
-        
-        Existing WireMock Mapping:
-        ${existingMock.wireMockMapping}
-        
-        Refinement Request: $refinementRequest
-        
-        Requirements:
-        - Modify the existing mapping according to the refinement request
-        - Maintain the core structure and functionality
-        - Ensure the result is still a valid WireMock JSON mapping
-        - Only change what's necessary to fulfill the refinement request
-        - Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
-        
-        Return only the refined WireMock mapping as a JSON object.
-        Do not include any explanatory text, only the JSON object.
-        """.trimIndent()
-    }
-    
-    internal fun buildResponseEnhancementPrompt(mockResponse: String, schema: JsonSchema, context: Map<String, String>): String {
-        val contextInfo = if (context.isNotEmpty()) {
-            "\n\nContext: ${context.entries.joinToString(", ") { "${it.key}: ${it.value}" }}"
-        } else ""
-        
-        return """
-        You are an expert at generating realistic API response data. Enhance this mock response to be more realistic while maintaining the same structure:
-        
-        Current Response: $mockResponse
-        
-        Schema Type: ${schema.type}$contextInfo
-        
-        Requirements:
-        - Keep the same JSON structure and field names
-        - Make the data more realistic and varied
-        - Ensure all data types match the original
-        - Add realistic relationships between fields if applicable
-        - Keep the response size similar to the original
-        
-        Return only the enhanced JSON response.
-        Do not include any explanatory text, only the JSON.
-        """.trimIndent()
-    }
-    
+
     private fun parseModelResponse(
         response: String,
         namespace: MockNamespace,
@@ -342,19 +209,19 @@ class BedrockServiceAdapter(
             }
         }
     }
-    
+
     internal fun createGeneratedMock(
-        wireMockMapping: String, 
-        namespace: MockNamespace, 
-        sourceType: SourceType, 
-        sourceReference: String, 
+        wireMockMapping: String,
+        namespace: MockNamespace,
+        sourceType: SourceType,
+        sourceReference: String,
         index: Int
     ): GeneratedMock {
         // Extract basic info from WireMock mapping for metadata
         val mappingJson = objectMapper.readTree(wireMockMapping)
         val request = mappingJson.path("request")
         val response = mappingJson.path("response")
-        
+
         val method = if (request.has("method")) request.path("method").asText() else "GET"
         val path = if (request.has("url")) {
             request.path("url").asText()
@@ -369,7 +236,7 @@ class BedrockServiceAdapter(
         } else {
             "application/json"
         }
-        
+
         return GeneratedMock(
             id = "ai-generated-${namespace.displayName().replace("/", "-")}-${method.lowercase()}-${path.replace("/", "-").replace("{", "").replace("}", "")}-$index",
             name = "AI Generated: $method $path",
@@ -387,55 +254,6 @@ class BedrockServiceAdapter(
                 tags = setOf("ai-generated", sourceType.name.lowercase(), method.lowercase())
             ),
             generatedAt = Instant.now()
-        )
-    }
-    
-    private fun extractEnhancedResponse(response: String): String {
-        // Try to extract JSON from the response
-        val jsonPattern = Regex("""(\{.*\}|\[.*\])""", RegexOption.DOT_MATCHES_ALL)
-        val match = jsonPattern.find(response)
-        
-        return match?.value ?: response.trim()
-    }
-    
-    internal fun createFallbackMock(description: String, namespace: MockNamespace): GeneratedMock {
-        // Create a basic mock when AI generation fails
-        val fallbackPath = "/${namespace.displayName()}/fallback"
-        val fallbackMapping = """
-        {
-          "request": {
-            "method": "GET",
-            "url": "$fallbackPath"
-          },
-          "response": {
-            "status": 200,
-            "headers": {
-              "Content-Type": "application/json"
-            },
-            "jsonBody": {
-              "message": "Fallback mock generated from: $description",
-              "status": "fallback"
-            }
-          }
-        }
-        """.trimIndent()
-        
-        return GeneratedMock(
-            id = "fallback-${namespace.displayName().replace("/", "-")}-${System.currentTimeMillis()}",
-            name = "Fallback Mock",
-            namespace = namespace,
-            wireMockMapping = fallbackMapping,
-            metadata = MockMetadata(
-                sourceType = SourceType.NATURAL_LANGUAGE,
-                sourceReference = "Fallback: $description",
-                endpoint = EndpointInfo(
-                    method = HttpMethod.GET,
-                    path = fallbackPath,
-                    statusCode = 200,
-                    contentType = "application/json"
-                ),
-                tags = setOf("fallback", "ai-generated")
-            )
         )
     }
 }

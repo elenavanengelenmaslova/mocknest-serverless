@@ -53,9 +53,9 @@ class AIGenerationConfiguration {
         modelConfiguration: ModelConfiguration,
         aiModelService: AIModelServiceInterface,
         specificationParser: SpecificationParserInterface,
-        generationStorage: GenerationStorageInterface,
+        mockValidator: MockValidatorInterface,
     ): MockGenerationFunctionalAgent {
-        return MockGenerationFunctionalAgent(aiModelService, specificationParser, generationStorage)
+        return MockGenerationFunctionalAgent(aiModelService, specificationParser, mockValidator)
     }
 
     @Bean
@@ -65,12 +65,6 @@ class AIGenerationConfiguration {
         return GenerateMocksFromSpecWithDescriptionUseCase(mockGenerationAgent)
     }
 
-    @Bean
-    fun generateMocksFromDescriptionUseCase(
-        mockGenerationAgent: MockGenerationFunctionalAgent,
-    ): GenerateMocksFromDescriptionUseCase {
-        return GenerateMocksFromDescriptionUseCase(mockGenerationAgent)
-    }
 
     @Bean
     fun aiGenerationRequestUseCase(

@@ -42,7 +42,7 @@ flowchart TB
     end
     
     subgraph AIGeneration["AI Mock Generation Engine - Phase 1"]
-        KOOG[Koog Functional Agent 0.6.0]
+        KOOG[Koog Functional Agent ]
         PARSER[OpenAPI Parser Only]
         GENERATOR[Mock Generator]
         
@@ -88,7 +88,7 @@ Following the established clean architecture pattern with strict dependency rule
 **Application Layer:**
 - `HelloWorldUseCase` - Validate Bedrock integration with simple text processing
 - `GenerateMocksFromSpecUseCase` - Generate mocks from OpenAPI specifications synchronously
-- `KoogMockGenerationAgent` - **Koog 0.6.0 Functional Agent implementation (cloud-independent)**
+- `KoogMockGenerationAgent` - **Koog  Functional Agent implementation (cloud-independent)**
 - `SpecificationParserInterface` - Abstraction for parsing OpenAPI formats
 - `MockGeneratorInterface` - Abstraction for mock generation logic
 - `MockValidatorInterface` - **Abstraction for validating generated mocks against OpenAPI specifications**
@@ -186,7 +186,7 @@ data class HelloWorldResponse(
 }
 ```
 
-#### 2. Koog Functional Agent Framework Integration (0.6.0) - Phase 1
+#### 2. Koog Functional Agent Framework Integration () - Phase 1
 
 **Agent Type: Functional Agent**
 - **Domain-Specific**: Mock generation is a well-defined functional domain
@@ -1196,10 +1196,10 @@ suspend fun `generation returns all mocks in response`() {
 ### Koog Framework Integration - Phase 1
 ```yaml
 Dependencies:
-  - koog-core: 0.6.0
-  - koog-functional-agents: 0.6.0
-  - koog-bedrock: 0.6.0
-  - koog-kotlin-dsl: 0.6.0
+  - koog-core: 
+  - koog-functional-agents: 
+  - koog-bedrock: 
+  - koog-kotlin-dsl: 
 
 Configuration:
   - Functional Agent registration with Koog runtime
