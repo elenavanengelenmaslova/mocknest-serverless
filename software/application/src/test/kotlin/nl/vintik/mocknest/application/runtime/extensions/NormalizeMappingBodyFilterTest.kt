@@ -101,7 +101,7 @@ class NormalizeMappingBodyFilterTest {
     inner class `Filter Processing` {
 
         @Test
-        suspend fun `Given non-save mapping request When filtering Then should not call storage`() {
+        fun `Given non-save mapping request When filtering Then should not call storage`() {
             // Given
             val request = ImmutableRequest.create()
                 .withAbsoluteUrl("http://localhost:8080/__admin/requests")
@@ -215,8 +215,7 @@ class NormalizeMappingBodyFilterTest {
         @ValueSource(strings = [
             "mapping-with-existing-bodyfilename.json",
             "mapping-transient.json",
-            "mapping-without-body.json",
-            "mapping-default-persistent.json"
+            "mapping-without-body.json"
         ])
         suspend fun `Given mapping that should not be modified When normalizing Then should return unchanged`(filename: String) {
             // Given
@@ -226,8 +225,26 @@ class NormalizeMappingBodyFilterTest {
             val result = filter.normalizeMappingToBodyFile(mappingJson)
 
             // Then
-            assertEquals(mappingJson, result)
+            assertEquals(mapper.readTree(mappingJson), mapper.readTree(result))
             coVerify(exactly = 0) { mockStorage.save(any(), any()) }
+        }
+
+        @Test
+        suspend fun `Given mapping without persistent flag When normalizing Then should treat as persistent by default and normalize`() {
+            // Given
+            val mappingJson = loadTestData("mapping-default-persistent.json")
+            coEvery { mockStorage.save(any(), any()) } returns "saved"
+
+            // When
+            val result = filter.normalizeMappingToBodyFile(mappingJson)
+
+            // Then
+            val resultNode = mapper.readTree(result)
+            assertEquals("test-id.json", resultNode["response"]["bodyFileName"].asText())
+            assertEquals("application/json", resultNode["response"]["headers"]["Content-Type"].asText())
+            assertFalse(resultNode["response"].has("body"))
+
+            coVerify { mockStorage.save("${FILES_PREFIX}test-id.json", "some content") }
         }
     }
 
