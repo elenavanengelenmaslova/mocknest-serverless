@@ -39,9 +39,19 @@ class OpenAPIMockValidator : MockValidatorInterface {
                 ?: request["url"]?.jsonPrimitive?.content
                 ?: return MockValidationResult.invalid(listOf("Missing URL path in request"))
             
+            // Normalize path by removing namespace prefix if present
+            val prefix = "/${mock.namespace.displayName()}"
+            val normalizedPath = if (urlPath.startsWith(prefix)) {
+                urlPath.removePrefix(prefix).let { if (it.isEmpty()) "/" else it }
+            } else {
+                urlPath
+            }
+            
             // Find matching endpoint in specification
             val endpoint = specification.endpoints.find { 
-                it.path == urlPath && it.method.toString() == method 
+                val specPath = it.path.let { p -> if (p.startsWith("/")) p else "/$p" }
+                val mockPath = normalizedPath.let { p -> if (p.startsWith("/")) p else "/$p" }
+                specPath == mockPath && it.method.toString() == method 
             }
             
             if (endpoint == null) {

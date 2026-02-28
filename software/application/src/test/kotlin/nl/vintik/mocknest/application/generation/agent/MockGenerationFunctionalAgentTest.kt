@@ -94,7 +94,7 @@ class MockGenerationFunctionalAgentTest {
             assertEquals(1, result.mocks.size)
             assertEquals("mock-1", result.mocks[0].id)
             
-            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(mockAgent, any(), any(), any()) }
+            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(any(), any(), any(), any()) }
             coVerify(exactly = 0) { aiModelService.correctMocks(any(), any(), any(), any()) }
         }
 
@@ -144,8 +144,8 @@ class MockGenerationFunctionalAgentTest {
             assertEquals(1, result.mocks.size)
             assertEquals("{ \"valid\": true }", result.mocks[0].wireMockMapping)
             
-            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(mockAgent, any(), any(), any()) }
-            coVerify(exactly = 1) { aiModelService.correctMocks(mockAgent, any(), any(), any()) }
+            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(any(), any(), any(), any()) }
+            coVerify(exactly = 1) { aiModelService.correctMocks(any(), any(), any(), any()) }
             coVerify { mockValidator.validate(invalidMock, specification) }
             coVerify { mockValidator.validate(correctedMock, specification) }
         }
@@ -185,8 +185,8 @@ class MockGenerationFunctionalAgentTest {
             assertTrue(result.success)
             assertTrue(result.mocks.isEmpty())
             
-            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(mockAgent, any(), any(), any()) }
-            coVerify(exactly = 2) { aiModelService.correctMocks(mockAgent, any(), any(), any()) }
+            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(any(), any(), any(), any()) }
+            coVerify(exactly = 2) { aiModelService.correctMocks(any(), any(), any(), any()) }
         }
     }
 }

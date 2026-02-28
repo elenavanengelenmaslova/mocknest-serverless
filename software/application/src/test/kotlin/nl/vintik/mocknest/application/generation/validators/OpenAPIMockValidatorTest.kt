@@ -714,6 +714,53 @@ class OpenAPIMockValidatorTest {
         }
 
         @Test
+        fun `Given mock with prefixed URL When validating Then should normalize and accept it`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val namespace = MockNamespace(apiName = "petstore", client = "test-client")
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "GET",
+                    "url": "/test-client/petstore/api/users/123"
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "id": "123",
+                      "name": "John Doe",
+                      "email": "john@example.com",
+                      "active": true
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = GeneratedMock(
+                id = "prefixed-mock",
+                name = "Prefixed Mock",
+                namespace = namespace,
+                wireMockMapping = mockJson,
+                metadata = MockMetadata(
+                    sourceType = SourceType.SPEC_WITH_DESCRIPTION,
+                    sourceReference = "test-spec.yaml",
+                    endpoint = EndpointInfo(
+                        method = HttpMethod.GET,
+                        path = "/test-client/petstore/api/users/123",
+                        statusCode = 200,
+                        contentType = "application/json"
+                    )
+                ),
+                generatedAt = Instant.now()
+            )
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertTrue(result.isValid, "Mock with prefixed URL should be valid after normalization: ${result.errors}")
+        }
+
+        @Test
         fun `Given mock with body instead of jsonBody When validating Then should validate it`() = runTest {
             // Given
             val specification = createTestSpecification()

@@ -78,7 +78,7 @@ class BedrockServiceAdapter(
     ): List<GeneratedMock> {
         logger.info { "Correcting ${invalidMocks.size} invalid mocks" }
 
-        val correctionPrompt = buildCorrectionPrompt(invalidMocks)
+        val correctionPrompt = buildCorrectionPrompt(invalidMocks, namespace, specification)
 
         return runCatching {
             val response = agent.run(correctionPrompt)
@@ -90,7 +90,21 @@ class BedrockServiceAdapter(
         }
     }
 
-    internal fun buildCorrectionPrompt(invalidMocks: List<Pair<GeneratedMock, List<String>>>): String {
+    internal fun buildCorrectionPrompt(
+        invalidMocks: List<Pair<GeneratedMock, List<String>>>,
+        namespace: MockNamespace,
+        specification: APISpecification?
+    ): String {
+        val specContext = specification?.let {
+            """
+            API Specification Context:
+            - Title: ${it.title}
+            - Version: ${it.version}
+            - Endpoints: ${it.endpoints.size}
+            
+            """.trimIndent()
+        } ?: ""
+
         val mocksWithErrors = invalidMocks.joinToString("\n\n---\n\n") { (mock, errors) ->
             """
             Mock ID: ${mock.id}
@@ -103,7 +117,14 @@ class BedrockServiceAdapter(
         }
 
         return """
-        The following WireMock mappings failed validation. Please correct ALL of them to fix their respective errors.
+        You are an expert API mock generator. The following WireMock mappings failed validation against the specification.
+        
+        $specContext
+        Namespace:
+        - API Name: ${namespace.apiName}
+        ${namespace.client?.let { "- Client: $it" } ?: ""}
+        
+        Please correct ALL of the following mocks to fix their respective errors:
         
         $mocksWithErrors
         
@@ -111,6 +132,7 @@ class BedrockServiceAdapter(
         - Return only a JSON array containing the corrected WireMock mappings.
         - Each mapping should be a complete, valid WireMock JSON object.
         - Fix all validation errors listed for each mock.
+        - Ensure all mock URLs are correctly prefixed with /${namespace.displayName()}
         - Maintain the same structure and intent as the original mocks.
         - For REST API Prefer `jsonBody` over `body` for JSON responses.
         

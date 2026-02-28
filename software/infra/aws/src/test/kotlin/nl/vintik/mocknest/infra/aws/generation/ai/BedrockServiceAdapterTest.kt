@@ -104,14 +104,14 @@ class BedrockServiceAdapterTest {
             val invalidMocks = listOf(invalidMock to errors)
 
             // When
-            val prompt = adapter.buildCorrectionPrompt(invalidMocks)
+            val prompt = adapter.buildCorrectionPrompt(invalidMocks, namespace, null)
 
             // Then
             assertTrue(prompt.contains("Mock ID: mock-1"))
             assertTrue(prompt.contains("{\"request\":{\"url\":\"/old\"}}"))
             assertTrue(prompt.contains("Url should be /new"))
             assertTrue(prompt.contains("Body missing"))
-            assertTrue(prompt.contains("corrected WireMock mappings"))
+            assertTrue(prompt.contains("JSON array"))
         }
     }
 }

@@ -1,9 +1,10 @@
 package nl.vintik.mocknest.application.generation.agent
 
-import ai.koog.agents.core.agent.AIAgent
-import nl.vintik.mocknest.application.generation.interfaces.*
-import nl.vintik.mocknest.domain.generation.*
 import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
+import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
+import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
+import nl.vintik.mocknest.domain.generation.*
 import java.net.URI
 
 private val logger = KotlinLogging.logger {}
@@ -37,12 +38,9 @@ class MockGenerationFunctionalAgent(
 
         val specification = specificationParser.parse(content, request.format)
 
-        // Create AI agent for this job
-        val agent = aiModelService.createAgent()
-
         // Use AI service to enhance generation with natural language context
         val enhancedMocks = aiModelService.generateMockFromSpecWithDescription(
-            agent = agent,
+            agent = aiModelService.createAgent(),
             specification = specification,
             description = request.description,
             namespace = request.namespace
@@ -50,7 +48,6 @@ class MockGenerationFunctionalAgent(
 
         // Validate and correct mocks
         val finalMocks = validateAndCorrectMocks(
-            agent,
             enhancedMocks,
             request.namespace,
             specification,
@@ -75,7 +72,6 @@ class MockGenerationFunctionalAgent(
     }
 
     private suspend fun validateAndCorrectMocks(
-        agent: AIAgent<String, String>,
         mocks: List<GeneratedMock>,
         namespace: MockNamespace,
         specification: APISpecification?,
@@ -102,7 +98,12 @@ class MockGenerationFunctionalAgent(
             logger.warn { "Job $jobId: ${invalidMocks.size} mocks failed validation. Attempting correction $retry/$maxRetries" }
 
             val correctionInput = invalidMocks.map { (mock, result) -> mock to result.errors }
-            val correctedMocks = aiModelService.correctMocks(agent, correctionInput, namespace, specification)
+            val correctedMocks = aiModelService.correctMocks(
+                agent = aiModelService.createAgent(),
+                invalidMocks = correctionInput,
+                namespace = namespace,
+                specification = specification
+            )
 
             if (correctedMocks.isEmpty()) {
                 logger.warn { "Job $jobId: Correction returned no mocks. Returning currently valid mocks." }
