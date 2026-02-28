@@ -6,6 +6,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.runtime.usecases.*
 import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
@@ -19,6 +20,7 @@ class MockNestLambdaHandler(
     private val handleAdminRequest: HandleAdminRequest,
     private val handleAIGenerationRequest: HandleAIGenerationRequest,
 ) {
+    @Bean
     fun router(): Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
         return Function { event ->
             with(event) {
