@@ -177,6 +177,7 @@ class BedrockServiceAdapter(
         - Ensure response matches described behavior exactly
         - Generate multiple mappings if the description implies multiple endpoints
         - Use proper URL patterns and request matching
+        - For REST API Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
         
         Return only a JSON array of WireMock mappings. Each mapping should be a complete, valid WireMock JSON object.
         Do not include any explanatory text, only the JSON array.
@@ -193,7 +194,12 @@ class BedrockServiceAdapter(
               "headers": {
                 "Content-Type": "application/json"
               },
-              "body": "[{\"id\":1,\"name\":\"John Doe\"}]"
+              "jsonBody": [
+                {
+                  "id": 1,
+                  "name": "John Doe"
+                }
+              ]
             }
           }
         ]
@@ -228,6 +234,7 @@ class BedrockServiceAdapter(
         - Handle appropriate HTTP status codes
         - Include relevant headers and proper content types
         - Generate comprehensive mappings that cover the described scenarios
+        - Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
         
         Return only a JSON array of WireMock mappings. Each mapping should be a complete, valid WireMock JSON object.
         Do not include any explanatory text, only the JSON array.
@@ -248,6 +255,7 @@ class BedrockServiceAdapter(
         - Maintain the core structure and functionality
         - Ensure the result is still a valid WireMock JSON mapping
         - Only change what's necessary to fulfill the refinement request
+        - Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
         
         Return only the refined WireMock mapping as a JSON object.
         Do not include any explanatory text, only the JSON object.
@@ -404,7 +412,10 @@ class BedrockServiceAdapter(
             "headers": {
               "Content-Type": "application/json"
             },
-            "body": "{\"message\": \"Fallback mock generated from: $description\"}"
+            "jsonBody": {
+              "message": "Fallback mock generated from: $description",
+              "status": "fallback"
+            }
           }
         }
         """.trimIndent()

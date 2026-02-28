@@ -41,6 +41,7 @@ class BedrockServiceAdapterTest {
             assertTrue(prompt.contains("extra: info"))
             assertTrue(prompt.contains("IMPORTANT: All mock URLs must be prefixed with /test-client/petstore"))
             assertTrue(prompt.contains("\"url\": \"/test-client/petstore/api/users\""))
+            assertTrue(prompt.contains("\"jsonBody\": ["))
         }
 
         @Test
@@ -58,6 +59,7 @@ class BedrockServiceAdapterTest {
             assertTrue(!prompt.contains("- Client:"))
             assertTrue(prompt.contains("IMPORTANT: All mock URLs must be prefixed with /petstore"))
             assertTrue(prompt.contains("\"url\": \"/petstore/api/users\""))
+            assertTrue(prompt.contains("\"jsonBody\": ["))
         }
 
         @Test
@@ -91,6 +93,7 @@ class BedrockServiceAdapterTest {
             assertTrue(prompt.contains("- Client: test-client"))
             assertTrue(prompt.contains("IMPORTANT: All mock URLs must be prefixed with /test-client/petstore"))
             assertTrue(prompt.contains("Enhancement Description: Add more realism"))
+            assertTrue(prompt.contains("Prefer `jsonBody` over `body`"))
         }
     }
 
@@ -109,6 +112,7 @@ class BedrockServiceAdapterTest {
             // Then
             assertTrue(fallback.metadata.endpoint.path == "/test-client/petstore/fallback")
             assertTrue(fallback.wireMockMapping.contains("\"url\": \"/test-client/petstore/fallback\""))
+            assertTrue(fallback.wireMockMapping.contains("\"jsonBody\": {"))
             assertTrue(fallback.id.startsWith("fallback-test-client-petstore-"))
         }
 
