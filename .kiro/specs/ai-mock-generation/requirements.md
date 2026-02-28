@@ -74,13 +74,13 @@ This document specifies requirements for implementing AI-powered mock generation
 2. WHEN generating response data, THE Mock_Generator SHALL create realistic JSON responses based on OpenAPI schemas
 3. WHEN specifications define multiple response status codes, THE Mock_Generator SHALL generate separate mocks for happy path (2xx), client errors (4xx), and server errors (5xx)
 4. WHEN specifications include example responses, THE Mock_Generator SHALL use those examples as mock response templates
-5. THE Mock_Generator SHALL return generated mocks in WireMock_Import_Format that can be imported via standard WireMock admin API
+5. THE Mock_Generator SHALL return generated mocks in WireMock_Import_Format (JSON array) ready for import via standard WireMock `POST /__admin/mappings/import` endpoint
 6. WHEN mocks are generated, THE Mock_Generator SHALL validate each mock against the source OpenAPI specification
 7. WHERE mocks fail validation, THE Mock_Generator SHALL collect all invalid mocks with their validation errors
 8. WHEN invalid mocks are collected, THE Mock_Generator SHALL send all invalid mocks and their respective validation errors to the AI in a single request for batch correction
 9. WHEN the AI returns corrected mocks, THE Mock_Generator SHALL validate each corrected mock
 10. WHERE corrected mocks pass validation, THE Mock_Generator SHALL add them to the collection of valid mocks
-11. THE Mock_Generator SHALL return all valid mocks (both originally valid and successfully corrected ones)
+11. THE Mock_Generator SHALL return all valid mocks (both originally valid and successfully corrected ones) in WireMock import JSON format
 12. THE Mock_Generator SHALL log all validation failures, correction attempts, and final results
 
 ### Requirement 4: Natural Language Instructions
@@ -94,31 +94,20 @@ This document specifies requirements for implementing AI-powered mock generation
 3. WHERE no instructions are provided, THE Mock_Generator SHALL generate standard mocks based solely on the OpenAPI specification
 4. THE Mock_Generator SHALL combine OpenAPI schema constraints with natural language instructions to create appropriate mocks
 
-### Requirement 5: Mock Application Endpoint
+### Requirement 5: Synchronous Generation Response
 
-**User Story:** As a developer, I want to apply generated mocks to MockNest through a dedicated endpoint, so that I can review generated mocks before applying them and have full control over the application process.
-
-#### Acceptance Criteria
-
-1. WHEN a user sends generated mocks to the apply endpoint, THE MockNest_System SHALL convert each mock to complete WireMock_Mapping format
-2. WHEN converting mocks, THE MockNest_System SHALL add a unique UUID identifier to each mapping
-3. WHEN converting mocks, THE MockNest_System SHALL set the priority field to 2 for all mappings
-4. WHEN converting mocks, THE MockNest_System SHALL set the persistent flag to true for all mappings
-5. WHEN applying mocks, THE MockNest_System SHALL call AdminRequestUseCase for each mapping to create it in WireMock
-6. WHEN application succeeds, THE MockNest_System SHALL return the list of created mapping IDs
-7. WHERE application fails for any mock, THE MockNest_System SHALL return error details with the list of successfully created mapping IDs
-
-### Requirement 6: Synchronous Generation Response
-
-**User Story:** As a developer, I want to receive generated mocks immediately in the API response, so that I can quickly iterate on mock generation without polling for results.
+**User Story:** As a developer, I want to receive generated mocks immediately in the API response in WireMock import JSON format, so that I can review them and apply selected mocks using the standard WireMock admin API.
 
 #### Acceptance Criteria
 
-1. WHEN generation completes successfully, THE MockNest_System SHALL return all generated mocks in the HTTP response
-2. WHEN generation fails, THE MockNest_System SHALL return error details with partial results if available
-3. THE MockNest_System SHALL complete generation requests within reasonable timeout limits (e.g., 30 seconds)
-4. WHERE generation would exceed timeout limits, THE MockNest_System SHALL return an error indicating the specification is too large
-5. THE MockNest_System SHALL return generated mocks in WireMock_Import_Format ready for immediate use
+1. WHEN generation completes successfully, THE MockNest_System SHALL return all valid generated mocks in WireMock_Import_Format (JSON array of mappings)
+2. WHEN converting mocks to import format, THE MockNest_System SHALL add a unique UUID identifier to each mapping
+3. WHEN converting mocks to import format, THE MockNest_System SHALL set the priority field to 2 for all mappings
+4. WHEN converting mocks to import format, THE MockNest_System SHALL set the persistent flag to true for all mappings
+5. WHEN generation fails, THE MockNest_System SHALL return error details with partial results if available
+6. THE MockNest_System SHALL complete generation requests within reasonable timeout limits (e.g., 30 seconds)
+7. WHERE generation would exceed timeout limits, THE MockNest_System SHALL return an error indicating the specification is too large
+8. THE generated mocks SHALL be ready for immediate import via standard WireMock `POST /__admin/mappings/import` endpoint
 
 ## Future Phase Requirements
 

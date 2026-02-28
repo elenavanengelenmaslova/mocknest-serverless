@@ -4,15 +4,17 @@
 Implement Phase 1 of AI-powered mock generation focusing on:
 1. **Hello World Endpoint**: Validate Bedrock + Koog integration
 2. **OpenAPI Mock Generation**: Generate WireMock-ready mocks from OpenAPI 3.0 and Swagger 2.0
-3. **Synchronous Response**: Return generated mocks immediately in HTTP response
-4. **Mock Application Endpoint**: Separate endpoint to apply generated mocks to MockNest via AdminRequestUseCase
+3. **Mock Validation**: Validate generated mocks against OpenAPI specifications with automatic retry for invalid mocks
+4. **Synchronous Response**: Return generated mocks in WireMock import JSON format (array of mappings)
+5. **Standard WireMock Integration**: Users apply mocks using standard `POST /__admin/mappings/import` endpoint
 
 **Phase 1 Scope:**
 - Hello world endpoint for Bedrock validation
 - OpenAPI specification parsing only (no GraphQL/WSDL)
 - Scenario-based mock generation (happy path, errors, edge cases)
-- Synchronous generation with immediate response
-- Dedicated apply endpoint for mock application with UUID, priority, and persistence
+- Mock validation with batch correction for invalid mocks
+- Synchronous generation with immediate response in WireMock import format
+- Users review and apply mocks via standard WireMock admin API
 
 **Deferred to Future Spec (Mock Evolution):**
 - Specification storage and versioning
@@ -177,7 +179,7 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Test schema-based data generation
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 7.1, 7.2, 7.3_
 
-- [ ] 5.5 Implement mock validation
+- [x] 5.5 Implement mock validation
   - Create OpenAPIMockValidator implementing MockValidatorInterface
   - Validate request matchers (method, URL path, query parameters) against specification
   - Validate response status codes are defined in specification
@@ -239,56 +241,25 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Test error handling in agent
   - _Requirements: 3.1, 3.5_
 
-- [ ] 7. Implement apply generated mocks use case
-  - Create ApplyGeneratedMocksUseCase for applying mocks via AdminRequestUseCase
-  - Convert generated mocks to complete WireMock format (UUID, priority=2, persistent=true)
-  - Handle partial failures and track success/error results
-  - Return applied mock IDs and error details
-  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7_
-
-- [ ] 7.1 Apply mocks use case implementation
-  - Implement invoke method that processes list of generated mocks
-  - Convert each mock to complete WireMock mapping format
-  - Add UUID using UUID.randomUUID()
-  - Set priority to 2 for all mappings
-  - Set persistent flag to true
-  - Call AdminRequestUseCase.createMapping for each mock
-  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
-
-- [ ] 7.2 Apply mocks error handling
-  - Handle AdminRequestUseCase failures gracefully
-  - Track successfully applied mocks with mapping IDs
-  - Track failed mocks with error messages
-  - Return comprehensive response with both successes and failures
-  - Add comprehensive logging for debugging
-  - _Requirements: 5.6, 5.7_
-
-- [ ]* 7.3 Test apply mocks use case
-  - Test successful application of multiple mocks
-  - Test partial failure scenarios
-  - Test UUID generation and priority setting
-  - Test AdminRequestUseCase integration
-  - _Requirements: 5.1, 5.2, 5.3, 5.6_
-
-- [ ] 8. Implement generation use case (updated for Phase 1)
+- [x] 7. Implement generation use case with validation and batch correction
   - Create GenerateMocksFromSpecUseCase
   - Orchestrate parsing and generation workflow
   - Validate generated mocks against OpenAPI specification
   - Collect all invalid mocks with their validation errors
   - Send invalid mocks to AI for batch correction in single request
   - Validate corrected mocks and add valid ones to response
-  - Return synchronous response with all valid mocks
-  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11, 3.12, 6.1, 6.2, 6.3_
+  - Return synchronous response with all valid mocks in WireMock import format
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11, 3.12, 5.1, 5.2, 5.3, 5.4, 5.8_
 
-- [ ] 8.1 Generation use case implementation
+- [x] 7.1 Generation use case implementation
   - Implement invoke method with parsing and generation workflow
   - Parse specification and generate mocks via Koog agent
   - Validate each generated mock against specification
   - Separate valid and invalid mocks
   - Log all validation failures with details
-  - _Requirements: 3.1, 3.6, 3.7, 6.1, 6.2, 6.3_
+  - _Requirements: 3.1, 3.6, 3.7, 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 8.2 Batch correction logic
+- [x] 7.2 Batch correction logic
   - Implement attemptBatchMockCorrection method
   - Build batch correction prompt with all invalid mocks and their errors
   - Send single AI request with all invalid mocks
@@ -298,104 +269,99 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Log batch correction attempt and results
   - _Requirements: 3.7, 3.8, 3.9, 3.10, 3.12_
 
-- [ ] 8.3 Batch correction prompt construction
+- [x] 7.3 Batch correction prompt construction
   - Implement buildBatchCorrectionPrompt method
   - Format all invalid mocks with their respective validation errors
   - Include clear instructions for AI to return JSON array
   - Provide guidance on schema compliance and required fields
   - _Requirements: 3.8, 3.12_
 
-- [ ] 8.4 Valid mock collection
+- [x] 7.4 Valid mock collection and WireMock import format
   - Collect originally valid mocks
   - Add successfully corrected mocks from batch correction
-  - Return combined list of all valid mocks
+  - Convert all valid mocks to WireMock import format (array with UUID, priority=2, persistent=true)
+  - Return combined list in WireMock import JSON format
   - Log final statistics (valid, corrected, discarded)
-  - _Requirements: 3.11, 3.12_
+  - _Requirements: 3.11, 3.12, 5.1, 5.2, 5.3, 5.4, 5.8_
 
-- [ ]* 8.5 Test generation use case
+- [ ]* 7.5 Test generation use case
   - Test complete generation workflow with all valid mocks
   - Test validation filtering with mixed valid/invalid mocks
   - Test batch correction with multiple invalid mocks
   - Test corrected mock validation and inclusion
-  - Test final response contains both original and corrected valid mocks
+  - Test final response contains both original and corrected valid mocks in WireMock import format
   - Test comprehensive logging of validation and correction
-  - _Requirements: 3.1, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11, 3.12, 6.1_
+  - _Requirements: 3.1, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11, 3.12, 5.1, 5.8_
 
-- [ ] 9. Implement AI Generation API endpoints
+- [x] 8. Implement AI Generation API endpoint
   - Add routing for /ai/generation/from-spec endpoint
-  - Add routing for /ai/generation/apply endpoint
-  - Integrate with GenerateMocksFromSpecUseCase and ApplyGeneratedMocksUseCase
+  - Integrate with GenerateMocksFromSpecUseCase
   - Add request validation and error handling
-  - Return synchronous responses with appropriate data
-  - _Requirements: API design, 5.1, 5.6, 6.1, 6.5_
+  - Return synchronous response with mocks in WireMock import format
+  - _Requirements: API design, 3.1, 5.1, 5.8_
   - _Note: Using MockNestLambdaHandler entry point, REST controllers not needed for Phase 1_
 
-- [ ] 9.1 Generation and apply endpoint implementation
+- [x] 8.1 Generation endpoint implementation
   - Add route handler for POST /ai/generation/from-spec
-  - Add route handler for POST /ai/generation/apply
-  - Parse MockGenerationRequest and ApplyMocksRequest from HTTP requests
-  - Invoke appropriate use cases
-  - Return responses as JSON
+  - Parse MockGenerationRequest from HTTP requests
+  - Invoke GenerateMocksFromSpecUseCase
+  - Return response as JSON in WireMock import format
   - Handle errors gracefully with appropriate HTTP status codes
-  - _Requirements: 3.1, 5.1, 5.6, 6.1, 6.5_
+  - _Requirements: 3.1, 5.1, 5.8_
 
-- [ ]* 9.2 Test API endpoints
+- [ ]* 8.2 Test API endpoint
   - Test generation endpoint with valid specs
-  - Test apply endpoint with generated mocks
   - Test error scenarios
-  - Test synchronous response formats
+  - Test synchronous response format (WireMock import JSON)
   - _Requirements: API endpoints_
 
-- [x] 10. Update SAM template for AI features
+- [x] 9. Update SAM template for AI features
   - Add Bedrock IAM permissions when AI is enabled
   - Configure Lambda environment variables
   - Update API Gateway routes for /ai/generation/* endpoints
   - Set appropriate Lambda memory and timeout
   - _Requirements: AWS deployment_
 
-- [x] 10.1 SAM template AI configuration
+- [x] 9.1 SAM template AI configuration
   - Add conditional Bedrock IAM policies
   - Set Lambda memory to 1024MB minimum
   - Set timeout to 30 seconds for synchronous generation
   - _Requirements: Bedrock integration_
 
-- [x] 10.2 API Gateway AI routes
+- [x] 9.2 API Gateway AI routes
   - Add /ai/generation/from-spec route
-  - Add /ai/generation/apply route
   - Configure CORS and authentication
   - _Requirements: API routing_
   - _Note: Using catch-all proxy routes, specific routes handled by Spring routing_
 
-- [ ] 11. Achieve 90% test coverage with comprehensive unit and integration tests
+- [x] 10. Achieve 90% test coverage with comprehensive unit and integration tests
   - Write unit tests for all use cases, domain logic, and components
   - Write integration tests with TestContainers (mock Bedrock, mock WireMock admin)
   - Use Kover to measure and verify 90% aggregated code coverage
   - Focus on integration tests over artificial per-module coverage
   - _Requirements: Testing strategy, 90% coverage target_
 
-- [ ] 11.1 Unit tests for core components
+- [x] 10.1 Unit tests for core components
   - Test TestAgentRequestUseCase (hello world functionality)
   - Test OpenAPISpecificationParser with valid/invalid specs
   - Test WireMockMappingGenerator for all scenarios
   - Test RealisticTestDataGenerator for schema-based data generation
   - Test OpenAPIMockValidator with valid/invalid mocks
   - Test MockGenerationFunctionalAgent request handling
-  - Test ApplyGeneratedMocksUseCase with mock AdminRequestUseCase
   - Test GenerateMocksFromSpecUseCase workflow with validation and retry
   - _Requirements: Unit testing, code coverage_
 
-- [ ] 11.2 Integration tests with TestContainers
+- [x] 10.2 Integration tests with TestContainers
   - Set up mock Bedrock service for testing with proper lifecycle management
-  - Test complete generation workflow: spec → parse → generate → validate → return
+  - Test complete generation workflow: spec → parse → generate → validate → return in WireMock import format
   - Test validation filtering: generate → validate → separate valid/invalid
   - Test batch correction: collect invalid → send to AI → validate corrected → add to valid
-  - Test apply workflow: generated mocks → convert → apply → return IDs
-  - Test AdminRequestUseCase integration for mock application
-  - Test error scenarios: invalid specs, Bedrock failures, validation failures, batch correction failures, application failures
+  - Test WireMock import format: verify UUID, priority=2, persistent=true in response
+  - Test error scenarios: invalid specs, Bedrock failures, validation failures, batch correction failures
   - Use @BeforeAll/@AfterAll for container setup, @BeforeEach/@AfterEach for data cleanup
   - _Requirements: Integration testing, TestContainers_
 
-- [ ] 11.3 Verify 90% coverage target
+- [x] 10.3 Verify 90% coverage target
   - Run `./gradlew koverHtmlReport` to generate coverage report
   - Run `./gradlew koverVerify` to enforce 90% threshold
   - Review coverage report and identify gaps
@@ -403,51 +369,51 @@ Implement Phase 1 of AI-powered mock generation focusing on:
   - Ensure aggregated project-level coverage meets 90% target
   - _Requirements: Code coverage verification_
 
-- [ ]* 11.4 Property-based tests (optional but recommended)
+- [x]* 10.4 Property-based tests (optional but recommended)
   - **Property 2**: OpenAPI parsing completeness
   - **Property 3**: Generated mock validity
   - **Property 4**: Schema compliance
-  - **Property 7**: Synchronous response completeness
-  - **Property 8**: Mock application completeness (UUID, priority, persistent)
-  - **Property 9**: Mock application success tracking
-  - **Property 10**: Mock validation completeness
-  - **Property 11**: Batch mock correction
-  - **Property 12**: Corrected mock validation
-  - **Property 13**: Valid mock collection
-  - **Property 14**: Comprehensive logging
+  - **Property 7**: Synchronous response in WireMock import format
+  - **Property 8**: Mock validation completeness
+  - **Property 9**: Batch mock correction
+  - **Property 10**: Corrected mock validation
+  - **Property 11**: Valid mock collection
+  - **Property 12**: Comprehensive logging
   - _Requirements: Property-based testing_
 
-- [ ] 12. Documentation and examples
+- [x] 11. Documentation and examples
   - Update README with Phase 1 AI generation examples
-  - Create Postman collection for AI generation and apply endpoints
-  - Document two-step workflow: generate → review → apply
+  - Create Postman collection for AI generation endpoint
+  - Document workflow: generate → review → apply via standard WireMock import
   - Document Phase 1 limitations and future phases
   - _Requirements: Documentation_
 
-- [ ] 13. Final integration and testing
+- [x] 12. Final integration and testing
   - Test hello world endpoint validates Bedrock integration
-  - Test complete workflow: generate → validate → batch correct → review → apply → use
+  - Test complete workflow: generate → validate → batch correct → review → apply via WireMock import → use
   - Test validation filtering with mixed valid/invalid mocks
   - Test batch correction workflow with multiple invalid mocks
   - Test that corrected mocks are added to valid mocks collection
-  - Test two-step workflow with separate endpoints
+  - Test WireMock import format with UUID, priority, and persistent flag
+  - Test applying mocks via standard `POST /__admin/mappings/import` endpoint
   - Validate SAM deployment with AI features enabled
   - Verify synchronous response times meet requirements
   - _Requirements: End-to-end validation_
 
 ## Notes
 
-- **Phase 1 Focus**: Hello world + OpenAPI synchronous generation + validation + batch correction + separate apply endpoint
+- **Phase 1 Focus**: Hello world + OpenAPI synchronous generation + validation + batch correction + WireMock import format
 - **Mock Validation**: All generated mocks validated against OpenAPI spec, invalid mocks collected
 - **Batch Correction**: All invalid mocks sent to AI in single request for efficient correction
 - **Valid Mock Collection**: Response includes both originally valid mocks and successfully corrected mocks
+- **WireMock Import Format**: Generated mocks returned as JSON array with UUID, priority=2, persistent=true
+- **Standard Integration**: Users apply mocks via standard `POST /__admin/mappings/import` endpoint
 - **Comprehensive Logging**: All validation failures, batch correction attempts, and results are logged
 - **Deferred to Future Spec (Mock Evolution)**: Specification storage, versioning, change detection, namespace organization
 - **Deferred to Future Phases**: Enhancement, refinement, GraphQL/WSDL, batch, natural language generation
 - **Clean Architecture**: Maintain strict layer boundaries throughout
 - **Bedrock Usage**: Hello world validation and batch mock correction in Phase 1
 - **Stateless Design**: No storage layer for specifications or generated mocks
-- **Two-Step Workflow**: Generate mocks first, then apply selected ones via dedicated endpoint
-- **Complete WireMock Format**: Apply endpoint adds UUID, priority=2, and persistent=true
+- **User Workflow**: Generate mocks → review JSON → apply via WireMock import endpoint
 - Tasks marked with `*` are optional but recommended for quality
 - Each task should be completed and tested before moving to the next
