@@ -15,6 +15,9 @@ import org.springframework.http.HttpMethod
 import kotlin.runCatching
 import java.time.Instant
 
+private val logger = KotlinLogging.logger {}
+private val objectMapper = ObjectMapper()
+
 /**
  * Amazon Bedrock implementation of AI model service.
  * Provides AI-powered mock generation.
@@ -23,9 +26,6 @@ class BedrockServiceAdapter(
     private val bedrockClient: BedrockRuntimeClient,
     private val modelConfiguration: ModelConfiguration
 ) : AIModelServiceInterface {
-    
-    private val logger = KotlinLogging.logger {}
-    private val objectMapper = ObjectMapper()
     
     // Lazy initialization of Koog components to avoid cold start penalty
     private val executor by lazy {
@@ -59,13 +59,13 @@ class BedrockServiceAdapter(
     ): List<GeneratedMock> {
         logger.info { "Generating mocks from description for namespace: ${namespace.displayName()}" }
         
-        val prompt = buildNaturalLanguagePrompt(description, context)
+        val prompt = buildNaturalLanguagePrompt(description, context, namespace)
         
         return runCatching {
             val response = invokeModel(prompt)
             parseModelResponse(response, namespace, SourceType.NATURAL_LANGUAGE, description)
         }.onFailure { exception ->
-            logger.error(exception) { "Failed to generate mocks from description: $description" }
+            logger.error(exception) { "Failed to generate mocks from description for namespace: ${namespace.displayName()}, description: $description" }
         }.getOrElse { 
             // Fallback to basic mock generation
             listOf(createFallbackMock(description, namespace))
@@ -79,13 +79,13 @@ class BedrockServiceAdapter(
     ): List<GeneratedMock> {
         logger.info { "Generating enhanced mocks from spec + description for namespace: ${namespace.displayName()}" }
         
-        val prompt = buildSpecWithDescriptionPrompt(specification, description)
+        val prompt = buildSpecWithDescriptionPrompt(specification, description, namespace)
         
         return runCatching {
             val response = invokeModel(prompt)
             parseModelResponse(response, namespace, SourceType.SPEC_WITH_DESCRIPTION, "${specification.title}: $description")
         }.onFailure { exception ->
-            logger.error(exception) { "Failed to generate enhanced mocks for spec: ${specification.title}" }
+            logger.error(exception) { "Failed to generate enhanced mocks for spec: ${specification.title} in namespace: ${namespace.displayName()}" }
         }.getOrElse {
             // Fallback to basic spec-based generation would be handled by the calling use case
             emptyList()
@@ -105,7 +105,7 @@ class BedrockServiceAdapter(
             val refinedMocks = parseModelResponse(response, existingMock.namespace, SourceType.REFINEMENT, refinementRequest)
             refinedMocks.firstOrNull() ?: existingMock
         }.onFailure { exception ->
-            logger.error(exception) { "Failed to refine mock: ${existingMock.name}" }
+            logger.error(exception) { "Failed to refine mock: id=${existingMock.id}, name=${existingMock.name}" }
         }.getOrElse { existingMock }
     }
     
@@ -154,7 +154,7 @@ class BedrockServiceAdapter(
         return text
     }
     
-    private fun buildNaturalLanguagePrompt(description: String, context: Map<String, String>): String {
+    internal fun buildNaturalLanguagePrompt(description: String, context: Map<String, String>, namespace: MockNamespace): String {
         val contextInfo = if (context.isNotEmpty()) {
             "\n\nAdditional Context:\n${context.entries.joinToString("\n") { "${it.key}: ${it.value}" }}"
         } else ""
@@ -162,10 +162,15 @@ class BedrockServiceAdapter(
         return """
         You are an expert API mock generator. Generate WireMock JSON mappings based on this description:
         
+        Namespace:
+        - API Name: ${namespace.apiName}
+        ${namespace.client?.let { "- Client: $it" } ?: ""}
+        
         Description: $description$contextInfo
         
         Requirements:
         - Generate valid WireMock JSON mapping format
+        - IMPORTANT: All mock URLs must be prefixed with /${namespace.apiName} (e.g., if the description implies /users, the mock URL should be /${namespace.apiName}/users)
         - Include realistic response data that matches the description
         - Handle appropriate HTTP status codes (default to 200 unless specified)
         - Include relevant headers (Content-Type, CORS headers)
@@ -181,7 +186,7 @@ class BedrockServiceAdapter(
           {
             "request": {
               "method": "GET",
-              "url": "/api/users"
+              "url": "/${namespace.apiName}/api/users"
             },
             "response": {
               "status": 200,
@@ -195,7 +200,7 @@ class BedrockServiceAdapter(
         """.trimIndent()
     }
     
-    private fun buildSpecWithDescriptionPrompt(specification: APISpecification, description: String): String {
+    internal fun buildSpecWithDescriptionPrompt(specification: APISpecification, description: String, namespace: MockNamespace): String {
         val specSummary = """
         API Specification Summary:
         - Title: ${specification.title}
@@ -209,10 +214,15 @@ class BedrockServiceAdapter(
         
         $specSummary
         
+        Namespace:
+        - API Name: ${namespace.apiName}
+        ${namespace.client?.let { "- Client: $it" } ?: ""}
+        
         Enhancement Description: $description
         
         Requirements:
         - Generate WireMock mappings that follow the API specification structure
+        - IMPORTANT: All mock URLs must be prefixed with /${namespace.apiName} (e.g., if the spec has /users, the mock URL should be /${namespace.apiName}/users)
         - Enhance the mappings based on the description (add error cases, specific data, behaviors, etc.)
         - Include realistic response data that matches both the spec and description
         - Handle appropriate HTTP status codes
@@ -224,7 +234,7 @@ class BedrockServiceAdapter(
         """.trimIndent()
     }
     
-    private fun buildRefinementPrompt(existingMock: GeneratedMock, refinementRequest: String): String {
+    internal fun buildRefinementPrompt(existingMock: GeneratedMock, refinementRequest: String): String {
         return """
         You are an expert API mock generator. Refine this existing WireMock mapping based on the refinement request:
         
@@ -244,7 +254,7 @@ class BedrockServiceAdapter(
         """.trimIndent()
     }
     
-    private fun buildResponseEnhancementPrompt(mockResponse: String, schema: JsonSchema, context: Map<String, String>): String {
+    internal fun buildResponseEnhancementPrompt(mockResponse: String, schema: JsonSchema, context: Map<String, String>): String {
         val contextInfo = if (context.isNotEmpty()) {
             "\n\nContext: ${context.entries.joinToString(", ") { "${it.key}: ${it.value}" }}"
         } else ""
@@ -325,7 +335,7 @@ class BedrockServiceAdapter(
         }
     }
     
-    private fun createGeneratedMock(
+    internal fun createGeneratedMock(
         wireMockMapping: String, 
         namespace: MockNamespace, 
         sourceType: SourceType, 
@@ -380,13 +390,14 @@ class BedrockServiceAdapter(
         return match?.value ?: response.trim()
     }
     
-    private fun createFallbackMock(description: String, namespace: MockNamespace): GeneratedMock {
+    internal fun createFallbackMock(description: String, namespace: MockNamespace): GeneratedMock {
         // Create a basic mock when AI generation fails
+        val fallbackPath = "/${namespace.apiName}/fallback"
         val fallbackMapping = """
         {
           "request": {
             "method": "GET",
-            "url": "/api/fallback"
+            "url": "$fallbackPath"
           },
           "response": {
             "status": 200,
@@ -399,7 +410,7 @@ class BedrockServiceAdapter(
         """.trimIndent()
         
         return GeneratedMock(
-            id = "fallback-${System.currentTimeMillis()}",
+            id = "fallback-${namespace.apiName}-${System.currentTimeMillis()}",
             name = "Fallback Mock",
             namespace = namespace,
             wireMockMapping = fallbackMapping,
@@ -408,7 +419,7 @@ class BedrockServiceAdapter(
                 sourceReference = "Fallback: $description",
                 endpoint = EndpointInfo(
                     method = HttpMethod.GET,
-                    path = "/api/fallback",
+                    path = fallbackPath,
                     statusCode = 200,
                     contentType = "application/json"
                 ),
