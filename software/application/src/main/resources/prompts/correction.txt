@@ -12,6 +12,9 @@ Requirements:
 - Each mapping should be a complete, valid WireMock JSON object.
 - Fix all validation errors listed for each mock.
 - Ensure all mock URLs are correctly prefixed with /{{NAMESPACE}}
+- Ensure data consistency (IMPORTANT):
+  - If an endpoint filters by query parameters (e.g. `status=available`), the response MUST only contain items with that status.
+  - If an endpoint uses path parameters (e.g. `/pet/1`), the response data MUST match that ID.
 - Maintain the same structure and intent as the original mocks.
 - For REST API Prefer `jsonBody` over `body` for JSON responses.
 - Do not include any explanatory text, only the JSON array.

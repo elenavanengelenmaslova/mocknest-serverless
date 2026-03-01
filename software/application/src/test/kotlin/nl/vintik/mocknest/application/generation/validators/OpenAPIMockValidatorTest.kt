@@ -167,7 +167,7 @@ class OpenAPIMockValidatorTest {
                   "response": {
                     "status": 200,
                     "jsonBody": {
-                      "id": "user-123",
+                      "id": "123",
                       "name": "Jane Smith",
                       "email": "jane@example.com",
                       "active": false
@@ -599,6 +599,234 @@ class OpenAPIMockValidatorTest {
                 result.errors.any { it.contains(".customer") && it.contains("Missing required property 'name'") },
                 "Should report missing required nested field 'customer.name'"
             )
+        }
+    }
+
+    @Nested
+    inner class ConsistencyValidation {
+
+        @Test
+        fun `Given query param status=available but response has sold pet When validating Then should return consistency error`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "GET",
+                    "urlPath": "/api/users/123",
+                    "queryParameters": {
+                      "active": { "equalTo": "true" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "id": "123",
+                      "name": "Jane Smith",
+                      "email": "jane@example.com",
+                      "active": false
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("consistency-error-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Consistency error") && it.contains("active") && it.contains("true") && it.contains("false") },
+                "Should report consistency error for active status mismatch"
+            )
+        }
+
+        @Test
+        fun `Given path ID 123 but response body has ID 456 When validating Then should return consistency error`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "GET",
+                    "urlPath": "/api/users/123"
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "id": "456",
+                      "name": "Jane Smith",
+                      "email": "jane@example.com",
+                      "active": true
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("path-consistency-error-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Consistency error") && it.contains("path ID is '123'") && it.contains("body has ID '456'") },
+                "Should report consistency error for ID mismatch"
+            )
+        }
+        
+        @Test
+        fun `Given array response with inconsistent items When validating Then should report all consistency errors`() = runTest {
+            // Given
+             val specification = APISpecification(
+                format = SpecificationFormat.OPENAPI_3,
+                version = "3.0.0",
+                title = "Test API",
+                endpoints = listOf(
+                    EndpointDefinition(
+                        path = "/api/users",
+                        method = HttpMethod.GET,
+                        operationId = "getUsers",
+                        summary = "Get users",
+                        parameters = emptyList(),
+                        requestBody = null,
+                        responses = mapOf(
+                            200 to ResponseDefinition(
+                                statusCode = 200,
+                                description = "Success",
+                                schema = JsonSchema(type = JsonSchemaType.ARRAY, items = JsonSchema(type = JsonSchemaType.OBJECT))
+                            )
+                        )
+                    )
+                ),
+                schemas = emptyMap()
+            )
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "GET",
+                    "urlPath": "/api/users",
+                    "queryParameters": {
+                      "status": { "equalTo": "available" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": [
+                      { "id": "1", "status": "available" },
+                      { "id": "2", "status": "sold" }
+                    ]
+                  }
+                }
+            """.trimIndent()
+            val mock = GeneratedMock(
+                id = "array-consistency-mock",
+                name = "Array Consistency Mock",
+                namespace = MockNamespace("test"),
+                wireMockMapping = mockJson,
+                metadata = MockMetadata(SourceType.SPEC_WITH_DESCRIPTION, "ref", EndpointInfo(HttpMethod.GET, "/api/users", 200, "application/json")),
+                generatedAt = Instant.now()
+            )
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Consistency error in item [1]") && it.contains("status") && it.contains("available") && it.contains("sold") },
+                "Should report consistency error for the second item in array"
+            )
+        }
+
+        @Test
+        fun `Given query parameter contains matcher When validating Then should check consistency`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "GET",
+                    "urlPath": "/api/users/123",
+                    "queryParameters": {
+                      "email": { "contains": "@example.com" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "id": "123",
+                      "name": "Jane Smith",
+                      "email": "jane@gmail.com",
+                      "active": true
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("contains-consistency-error-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Consistency error") && it.contains("@example.com") && it.contains("jane@gmail.com") },
+                "Should report consistency error for contains matcher mismatch"
+            )
+        }
+
+        @Test
+        fun `Given various path ID patterns When validating Then should extract ID and check consistency`() = runTest {
+            val specification = createTestSpecification()
+            val patterns = listOf(
+                "/pet/456" to "456",
+                "/pets/789" to "789",
+                "/user/abc" to "abc",
+                "/users/def" to "def",
+                "/order/123-456" to "123-456",
+                "/id/999" to "999"
+            )
+
+            patterns.forEach { (path, id) ->
+                val mockJson = """
+                    {
+                      "request": {
+                        "method": "GET",
+                        "urlPath": "$path"
+                      },
+                      "response": {
+                        "status": 200,
+                        "jsonBody": {
+                          "id": "wrong-id"
+                        }
+                      }
+                    }
+                """.trimIndent()
+                
+                // We need to add matching endpoints to specification for each path or just mock it
+                val specWithEndpoints = specification.copy(
+                    endpoints = specification.endpoints + EndpointDefinition(
+                        path = path,
+                        method = HttpMethod.GET,
+                        operationId = "op",
+                        summary = "op",
+                        parameters = emptyList(),
+                        requestBody = null,
+                        responses = mapOf(200 to ResponseDefinition(200, "OK", null))
+                    )
+                )
+
+                val mock = createGeneratedMock("path-pattern-$id", mockJson)
+                val result = validator.validate(mock, specWithEndpoints)
+
+                assertFalse(result.isValid, "Mock for path $path should be invalid")
+                assertTrue(
+                    result.errors.any { it.contains("Consistency error") && it.contains("path ID is '$id'") },
+                    "Should report consistency error for path $path"
+                )
+            }
         }
     }
 

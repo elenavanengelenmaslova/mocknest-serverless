@@ -1,7 +1,9 @@
 package nl.vintik.mocknest.application.generation.interfaces
 
-import ai.koog.agents.core.agent.AIAgent
-import nl.vintik.mocknest.domain.generation.*
+import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
+import nl.vintik.mocknest.domain.generation.GeneratedMock
+import nl.vintik.mocknest.domain.generation.MockNamespace
+import nl.vintik.mocknest.domain.generation.SourceType
 
 /**
  * Abstraction for AI model services (hides Bedrock implementation).
@@ -11,31 +13,20 @@ import nl.vintik.mocknest.domain.generation.*
 interface AIModelServiceInterface {
 
     /**
-     * Create an AI agent instance for the current generation job.
+     * Runs a Koog strategy with the provided input.
      */
-    fun createAgent(): AIAgent<String, String>
+    suspend fun <Input, Output> runStrategy(
+        strategy: AIAgentGraphStrategy<Input, Output>,
+        input: Input
+    ): Output
 
     /**
-     * Generate mocks from API specification enhanced with natural language.
-     * Combines structured specification parsing with AI-powered enhancement.
+     * Parse the raw model response into a list of GeneratedMock objects.
      */
-    suspend fun generateMockFromSpecWithDescription(
-        agent: AIAgent<String, String>,
-        specification: APISpecification,
-        description: String,
+    fun parseModelResponse(
+        response: String,
         namespace: MockNamespace,
-        prompt: String
-    ): List<GeneratedMock>
-
-    /**
-     * Attempt to correct invalid mocks based on validation errors.
-     * Uses AI to fix the mocks while maintaining the context of the original generation.
-     */
-    suspend fun correctMocks(
-        agent: AIAgent<String, String>,
-        invalidMocks: List<Pair<GeneratedMock, List<String>>>,
-        namespace: MockNamespace,
-        specification: APISpecification? = null,
-        prompt: String
+        sourceType: SourceType,
+        sourceReference: String
     ): List<GeneratedMock>
 }

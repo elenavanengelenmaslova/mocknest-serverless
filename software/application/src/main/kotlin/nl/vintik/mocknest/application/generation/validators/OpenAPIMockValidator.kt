@@ -92,6 +92,10 @@ class OpenAPIMockValidator : MockValidatorInterface {
                 errors.addAll(paramErrors)
             }
             
+            // Logical consistency checks (e.g., status=available returns available pets)
+            val consistencyErrors = validateConsistency(mock, mapping)
+            errors.addAll(consistencyErrors)
+            
         }.onFailure { exception ->
             logger.error(exception) { "Validation failed for mock ${mock.id}" }
             errors.add("Validation error: ${exception.message}")
@@ -206,6 +210,61 @@ class OpenAPIMockValidator : MockValidatorInterface {
             }
         }
         
+        return errors
+    }
+
+    /**
+     * Performs logical consistency checks on the generated mock data.
+     */
+    private fun validateConsistency(mock: GeneratedMock, mapping: JsonObject): List<String> {
+        val errors = mutableListOf<String>()
+        val request = mapping["request"]?.jsonObject ?: return emptyList()
+        val response = mapping["response"]?.jsonObject ?: return emptyList()
+        
+        // 1. Check Query Parameter Consistency (e.g., status=available)
+        val queryParams = request["queryParameters"]?.jsonObject
+        val jsonBody = response["jsonBody"] ?: response["body"]
+        
+        if (queryParams != null && jsonBody != null) {
+            queryParams.forEach { (key, value) ->
+                // Extract the expected value from WireMock matcher (equalTo, contains, etc.)
+                val expectedValue = when (value) {
+                    is JsonPrimitive -> value.content
+                    is JsonObject -> value["equalTo"]?.jsonPrimitive?.content ?: value["contains"]?.jsonPrimitive?.content
+                    else -> null
+                }
+                
+                if (expectedValue != null) {
+                    if (jsonBody is JsonArray) {
+                        jsonBody.forEachIndexed { i, item ->
+                            val actual = item.jsonObject[key]?.jsonPrimitive?.content
+                            if (actual != null && actual != expectedValue) {
+                                errors.add("Consistency error in item [$i]: query parameter '$key' is '$expectedValue' but response contains '$actual'")
+                            }
+                        }
+                    } else if (jsonBody is JsonObject) {
+                        val actual = jsonBody[key]?.jsonPrimitive?.content
+                        if (actual != null && actual != expectedValue) {
+                            errors.add("Consistency error: query parameter '$key' is '$expectedValue' but response contains '$actual'")
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 2. Check Path Parameter Consistency (e.g., /pet/1 matches id: 1)
+        val urlPath = request["urlPath"]?.jsonPrimitive?.content ?: request["url"]?.jsonPrimitive?.content ?: ""
+        // Simple regex to extract ID from common patterns like /pet/{id} or /user/{id}
+        // Looking for numbers or common UUID formats
+        val idInPath = Regex(".*/(?:pet|pets|user|users|order|orders|id)/([^/]+)").find(urlPath)?.groupValues?.get(1)
+        
+        if (idInPath != null && jsonBody is JsonObject) {
+            val bodyId = jsonBody["id"]?.jsonPrimitive?.content
+            if (bodyId != null && bodyId != idInPath) {
+                errors.add("Consistency error: path ID is '$idInPath' but response body has ID '$bodyId'")
+            }
+        }
+
         return errors
     }
 }

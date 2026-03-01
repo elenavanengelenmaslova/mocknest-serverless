@@ -18,6 +18,9 @@ Requirements:
 - Include realistic response data that matches both the spec and description
 - Handle appropriate HTTP status codes
 - Include relevant headers and proper content types
+- Ensure data consistency (IMPORTANT):
+  - If an endpoint filters by query parameters (e.g. `status=available`), the response MUST only contain items with that status.
+  - If an endpoint uses path parameters (e.g. `/pet/1`), the response data MUST match that ID.
 - Generate comprehensive mappings that cover the described scenarios
 - Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
 - WireMock URL matching rules (IMPORTANT):

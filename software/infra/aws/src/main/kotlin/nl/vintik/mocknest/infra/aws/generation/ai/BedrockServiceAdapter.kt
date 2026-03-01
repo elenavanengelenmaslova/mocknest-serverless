@@ -1,13 +1,15 @@
 package nl.vintik.mocknest.infra.aws.generation.ai
 
-import ai.koog.agents.core.agent.AIAgent
+import ai.koog.agents.core.agent.GraphAIAgent
+import ai.koog.agents.core.agent.config.AIAgentConfig
+import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
 import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import com.fasterxml.jackson.databind.JsonNode
-import nl.vintik.mocknest.application.core.mapper
 import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.domain.generation.*
@@ -32,61 +34,32 @@ class BedrockServiceAdapter(
         SingleLLMPromptExecutor(BedrockLLMClient(bedrockClient))
     }
 
-    override fun createAgent(): AIAgent<String, String> {
+    override suspend fun <Input, Output> runStrategy(
+        strategy: AIAgentGraphStrategy<Input, Output>,
+        input: Input
+    ): Output {
         val model = modelConfiguration.getModel()
-        logger.info { "Initializing AI agent: model=${model.id}" }
-        return AIAgent(
+        logger.info { "Running strategy: ${strategy.name} using model=${model.id}" }
+        
+        val agentConfig = AIAgentConfig.withSystemPrompt(
+            prompt = promptBuilder.loadSystemPrompt(),
+            llm = model,
+            maxAgentIterations = 50
+        )
+        
+        val agent = GraphAIAgent(
+            inputType = strategy.inputType,
+            outputType = strategy.outputType,
             promptExecutor = executor,
-            llmModel = model,
-            systemPrompt = promptBuilder.loadSystemPrompt(),
-            temperature = TEMPERATURE,
+            agentConfig = agentConfig,
+            strategy = strategy,
             toolRegistry = ToolRegistry.EMPTY
         )
+        
+        return agent.run(input)
     }
 
-    companion object {
-        private const val TEMPERATURE = 0.7
-    }
-
-    override suspend fun generateMockFromSpecWithDescription(
-        agent: AIAgent<String, String>,
-        specification: APISpecification,
-        description: String,
-        namespace: MockNamespace,
-        prompt: String
-    ): List<GeneratedMock> {
-        logger.info { "Generating enhanced mocks from spec + description for namespace: ${namespace.displayName()}" }
-
-        return runCatching {
-            val response = agent.run(prompt)
-            parseModelResponse(response, namespace, SourceType.SPEC_WITH_DESCRIPTION, "${specification.title}: $description")
-        }.onFailure { exception ->
-            logger.error(exception) { "Failed to generate enhanced mocks for spec: ${specification.title}" }
-        }.getOrElse {
-            emptyList()
-        }
-    }
-
-    override suspend fun correctMocks(
-        agent: AIAgent<String, String>,
-        invalidMocks: List<Pair<GeneratedMock, List<String>>>,
-        namespace: MockNamespace,
-        specification: APISpecification?,
-        prompt: String
-    ): List<GeneratedMock> {
-        logger.info { "Correcting ${invalidMocks.size} invalid mocks" }
-
-        return runCatching {
-            val response = agent.run(prompt)
-            parseModelResponse(response, namespace, SourceType.REFINEMENT, "Correction for ${namespace.displayName()}")
-        }.onFailure { exception ->
-            logger.error(exception) { "Failed to correct mocks" }
-        }.getOrElse {
-            emptyList()
-        }
-    }
-
-    internal fun parseModelResponse(
+    override fun parseModelResponse(
         response: String,
         namespace: MockNamespace,
         sourceType: SourceType,

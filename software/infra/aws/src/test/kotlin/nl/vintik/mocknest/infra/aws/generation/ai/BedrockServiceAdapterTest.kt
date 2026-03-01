@@ -1,11 +1,13 @@
 package nl.vintik.mocknest.infra.aws.generation.ai
 
+import ai.koog.agents.core.dsl.builder.forwardTo
+import ai.koog.agents.core.dsl.builder.strategy
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
-import nl.vintik.mocknest.application.core.mapper
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
+import kotlinx.coroutines.runBlocking
+import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.domain.generation.MockNamespace
 import nl.vintik.mocknest.domain.generation.SourceType
@@ -30,19 +32,25 @@ class BedrockServiceAdapterTest {
     }
 
     @Nested
-    inner class AgentCreation {
+    inner class StrategyExecution {
 
         @Test
-        fun `Given prompt builder When creating agent Then should load system prompt from prompt builder`() {
+        fun `Given strategy When running strategy Then should create GraphAIAgent and run it`() = runBlocking {
             // Given
-            val expectedSystemPrompt = "You are an expert API mock generator.\nYou generate WireMock JSON mappings based on user instructions and specifications."
-            every { promptBuilder.loadSystemPrompt() } returns expectedSystemPrompt
+            val strategy = strategy<String, String>("test-strategy") {
+                edge(nodeStart forwardTo nodeFinish)
+            }
+            
+            val input = "test input"
+            
+            // We need to mock the modelConfiguration as it's used inside runStrategy
+            every { modelConfiguration.getModel() } returns mockk(relaxed = true)
 
             // When
-            adapter.createAgent()
+            val output = adapter.runStrategy(strategy, input)
 
             // Then
-            verify { promptBuilder.loadSystemPrompt() }
+            assertEquals(input, output)
         }
     }
 
