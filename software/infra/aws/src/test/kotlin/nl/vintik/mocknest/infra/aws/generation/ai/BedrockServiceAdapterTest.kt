@@ -5,6 +5,7 @@ import nl.vintik.mocknest.application.core.mapper
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.domain.generation.MockNamespace
 import nl.vintik.mocknest.domain.generation.SourceType
@@ -38,12 +39,10 @@ class BedrockServiceAdapterTest {
             every { promptBuilder.loadSystemPrompt() } returns expectedSystemPrompt
 
             // When
-            val agent = adapter.createAgent()
+            adapter.createAgent()
 
             // Then
-            // Agent is created successfully (no exception thrown)
-            // We can't directly verify the system prompt as it's internal to the agent
-            // but we verified that promptBuilder.loadSystemPrompt() was called
+            verify { promptBuilder.loadSystemPrompt() }
         }
     }
 
@@ -75,6 +74,41 @@ class BedrockServiceAdapterTest {
             assertTrue(mock.id.startsWith("ai-generated-test-client-petstore-post--test-client-petstore-pet-1"))
             assertEquals(HttpMethod.POST, mock.metadata.endpoint.method)
             assertEquals("/test-client/petstore/pet", mock.metadata.endpoint.path)
+        }
+
+        @Test
+        fun `Given markdown response with explanation When parsing model response Then should extract correct JSON`() {
+            // Given - Model response with markdown blocks and some chatty text
+            val response = """
+            I have generated the mock for you.
+            [Note: I used the petstore namespace]
+            
+            ```json
+            [
+              {
+                "request": {
+                  "method": "GET",
+                  "url": "/pet/1"
+                },
+                "response": {
+                  "status": 200,
+                  "body": "{\"id\": 1, \"name\": \"dog\"}"
+                }
+              }
+            ]
+            ```
+            
+            Let me know if you need anything else!
+            """.trimIndent()
+            val namespace = MockNamespace(apiName = "petstore")
+
+            // When
+            val mocks = adapter.parseModelResponse(response, namespace, SourceType.SPEC_WITH_DESCRIPTION, "ref")
+
+            // Then
+            assertEquals(1, mocks.size, "Should extract exactly one mock despite chatty text")
+            assertEquals("GET", mocks[0].metadata.endpoint.method.name(), "Mock method should be GET")
+            assertEquals("/pet/1", mocks[0].metadata.endpoint.path, "Mock path should be /pet/1")
         }
     }
 }

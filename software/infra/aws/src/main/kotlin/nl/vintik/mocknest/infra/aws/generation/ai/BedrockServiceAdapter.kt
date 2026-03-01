@@ -86,37 +86,48 @@ class BedrockServiceAdapter(
         }
     }
 
-    private fun parseModelResponse(
+    internal fun parseModelResponse(
         response: String,
         namespace: MockNamespace,
         sourceType: SourceType,
         sourceReference: String
     ): List<GeneratedMock> {
-        return runCatching {
-            // Try to parse as JSON first
+        // Try to parse as raw JSON first
+        runCatching {
             val jsonNode = mapper.readTree(response)
-            processJsonNode(jsonNode, namespace, sourceType, sourceReference)
-        }.onFailure { e ->
-            logger.warn(e) { "Failed to parse model response as JSON, attempting text extraction" }
-        }.getOrElse {
-            // Try to extract JSON from text response
-            val jsonPattern = Regex("""(\[.*\]|\{.*\})""", RegexOption.DOT_MATCHES_ALL)
-            val match = jsonPattern.find(response)
+            return processJsonNode(jsonNode, namespace, sourceType, sourceReference)
+        }
 
-            if (match != null) {
-                runCatching {
-                    val jsonNode = mapper.readTree(match.value)
-                    processJsonNode(jsonNode, namespace, sourceType, sourceReference)
-                }.onFailure { e ->
-                    logger.error(e) { "Failed to parse extracted JSON from model response" }
-                }.getOrElse {
-                    emptyList()
-                }
-            } else {
-                logger.error { "No valid JSON found in model response: $response" }
-                emptyList()
+        // If raw parsing fails, it might be wrapped in Markdown or contain explanatory text.
+        // Try extracting from Markdown code blocks first (non-greedy)
+        val markdownPattern = Regex("```(?:json)?\\s*([\\s\\S]*?)\\s*```")
+        val markdownMatch = markdownPattern.find(response)
+        if (markdownMatch != null) {
+            val json = markdownMatch.groupValues[1]
+            runCatching {
+                val jsonNode = mapper.readTree(json)
+                return processJsonNode(jsonNode, namespace, sourceType, sourceReference)
+            }.onFailure { e ->
+                logger.warn(e) { "Failed to parse JSON extracted from Markdown block" }
             }
         }
+
+        // Fallback: try to extract the first/largest JSON-like block using regex.
+        // We use a greedy match for the content to handle nested structures.
+        val jsonPattern = Regex("""(\[[\s\S]*\]|\{[\s\S]*\})""")
+        val match = jsonPattern.find(response)
+
+        if (match != null) {
+            runCatching {
+                val jsonNode = mapper.readTree(match.value)
+                return processJsonNode(jsonNode, namespace, sourceType, sourceReference)
+            }.onFailure { e ->
+                logger.error(e) { "Failed to parse extracted JSON from model response" }
+            }
+        }
+
+        logger.error { "No valid JSON found in model response: $response" }
+        return emptyList()
     }
 
     private fun processJsonNode(

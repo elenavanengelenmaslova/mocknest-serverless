@@ -35,5 +35,5 @@ Requirements:
     - Use `priority` to ensure deterministic selection.
   - Never output multiple mappings that would all match the same request unless they differ by `priority` and are intended as fallback.
 
-Return only a JSON array of WireMock mappings. Each mapping should be a complete, valid WireMock JSON object.
-Do not include any explanatory text, only the JSON array.
+- Return only a JSON array of WireMock mappings. Each mapping should be a complete, valid WireMock JSON object.
+- Do not include any explanatory text, only the JSON array.
