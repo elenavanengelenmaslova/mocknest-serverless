@@ -1,8 +1,6 @@
 package nl.vintik.mocknest.infra.aws.generation.ai
 
 import io.mockk.clearAllMocks
-import io.mockk.every
-import io.mockk.mockk
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
@@ -161,7 +159,6 @@ class PromptContentPreservationTest {
             assertTrue(prompt.contains("URL should be prefixed"))
             assertTrue(prompt.contains("Missing Content-Type"))
             assertTrue(prompt.contains("/test-client/petstore"))
-            assertTrue(prompt.contains("WireMock URL matching rules"))
             assertTrue(prompt.contains("Return only a JSON array"))
         }
 

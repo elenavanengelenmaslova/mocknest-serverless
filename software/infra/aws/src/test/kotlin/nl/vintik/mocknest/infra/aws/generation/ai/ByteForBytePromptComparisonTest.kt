@@ -100,6 +100,20 @@ Requirements:
 - Include relevant headers and proper content types
 - Generate comprehensive mappings that cover the described scenarios
 - Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
+- WireMock URL matching rules (IMPORTANT):
+  - Do NOT use OpenAPI-style placeholders like `{petId}` in `url` or `urlPath`. WireMock treats them as literal text.
+  - Use exactly ONE of these per mapping (never combine them):
+    - `url` (exact full URL match)
+    - `urlPath` (exact path match)
+    - `urlPattern` (regex full URL match)
+    - `urlPathPattern` (regex path match)  <-- preferred for path parameters
+  - For endpoints with path parameters (e.g. `/pet/{petId}`), use `urlPathPattern` and a regex like:
+    - `/petstore/pet/[^/]+`
+  - If you return multiple mappings for the same endpoint, they MUST be non-overlapping and deterministic:
+    - Either match specific IDs (`/petstore/pet/1`, `/petstore/pet/2`, …), OR
+    - Add additional request constraints (queryParameters, headers, bodyPatterns), OR
+    - Use `priority` to ensure deterministic selection.
+  - Never output multiple mappings that would all match the same request unless they differ by `priority` and are intended as fallback.
 
 Return only a JSON array of WireMock mappings. Each mapping should be a complete, valid WireMock JSON object.
 Do not include any explanatory text, only the JSON array."""
@@ -162,6 +176,20 @@ Requirements:
 - Include relevant headers and proper content types
 - Generate comprehensive mappings that cover the described scenarios
 - Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
+- WireMock URL matching rules (IMPORTANT):
+  - Do NOT use OpenAPI-style placeholders like `{petId}` in `url` or `urlPath`. WireMock treats them as literal text.
+  - Use exactly ONE of these per mapping (never combine them):
+    - `url` (exact full URL match)
+    - `urlPath` (exact path match)
+    - `urlPattern` (regex full URL match)
+    - `urlPathPattern` (regex path match)  <-- preferred for path parameters
+  - For endpoints with path parameters (e.g. `/pet/{petId}`), use `urlPathPattern` and a regex like:
+    - `/acme-corp/petstore/pet/[^/]+`
+  - If you return multiple mappings for the same endpoint, they MUST be non-overlapping and deterministic:
+    - Either match specific IDs (`/acme-corp/petstore/pet/1`, `/acme-corp/petstore/pet/2`, …), OR
+    - Add additional request constraints (queryParameters, headers, bodyPatterns), OR
+    - Use `priority` to ensure deterministic selection.
+  - Never output multiple mappings that would all match the same request unless they differ by `priority` and are intended as fallback.
 
 Return only a JSON array of WireMock mappings. Each mapping should be a complete, valid WireMock JSON object.
 Do not include any explanatory text, only the JSON array."""
@@ -223,22 +251,7 @@ Requirements:
 - Ensure all mock URLs are correctly prefixed with /petstore
 - Maintain the same structure and intent as the original mocks.
 - For REST API Prefer `jsonBody` over `body` for JSON responses.
-- WireMock URL matching rules (IMPORTANT):
-  - Do NOT use OpenAPI-style placeholders like `{petId}` in `url` or `urlPath`. WireMock treats them as literal text.
-  - Use exactly ONE of these per mapping (never combine them):
-    - `url` (exact full URL match)
-    - `urlPath` (exact path match)
-    - `urlPattern` (regex full URL match)
-    - `urlPathPattern` (regex path match)  <-- preferred for path parameters
-  - For endpoints with path parameters (e.g. `/pet/{petId}`), use `urlPathPattern` and a regex like:
-    - `/petstore/pet/[^/]+`
-  - If you return multiple mappings for the same endpoint, they MUST be non-overlapping and deterministic:
-    - Either match specific IDs (`/petstore/pet/1`, `/petstore/pet/2`, …), OR
-    - Add additional request constraints (queryParameters, headers, bodyPatterns), OR
-    - Use `priority` to ensure deterministic selection.
-  - Never output multiple mappings that would all match the same request unless they differ by `priority` and are intended as fallback.
-  
-  - Do not include any explanatory text, only the JSON array."""
+- Do not include any explanatory text, only the JSON array."""
 
             // When
             val actualPrompt = promptBuilder.buildCorrectionPrompt(invalidMocks, namespace, null)

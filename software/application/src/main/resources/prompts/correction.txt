@@ -1,10 +1,9 @@
 You are an expert API mock generator. The following WireMock mappings failed validation against the specification.
 
-{{SPEC_CONTEXT}}
-Namespace:
+{{SPEC_CONTEXT}}Namespace:
 - API Name: {{API_NAME}}{{CLIENT_SECTION}}
 
-Please correct ALL of the following mocks to fix their respective errors. Focus specifically on the validation errors provided for each mock while maintaining the original intent.
+Please correct ALL of the following mocks to fix their respective errors:
 
 {{MOCKS_WITH_ERRORS}}
 
