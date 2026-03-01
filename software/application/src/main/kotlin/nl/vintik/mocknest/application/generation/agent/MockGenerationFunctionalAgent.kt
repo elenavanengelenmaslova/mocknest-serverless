@@ -1,5 +1,6 @@
 package nl.vintik.mocknest.application.generation.agent
 
+import ai.koog.agents.core.agent.AIAgent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
@@ -48,8 +49,9 @@ class MockGenerationFunctionalAgent(
         )
 
         // Use AI service to enhance generation with natural language context
+        val agent = aiModelService.createAgent()
         val enhancedMocks = aiModelService.generateMockFromSpecWithDescription(
-            agent = aiModelService.createAgent(),
+            agent = agent,
             specification = specification,
             description = request.description,
             namespace = request.namespace,
@@ -58,6 +60,7 @@ class MockGenerationFunctionalAgent(
 
         // Validate and correct mocks
         val finalMocks = validateAndCorrectMocks(
+            agent,
             enhancedMocks,
             request.namespace,
             specification,
@@ -82,6 +85,7 @@ class MockGenerationFunctionalAgent(
     }
 
     private suspend fun validateAndCorrectMocks(
+        agent: AIAgent<String, String>,
         mocks: List<GeneratedMock>,
         namespace: MockNamespace,
         specification: APISpecification?,
@@ -117,7 +121,7 @@ class MockGenerationFunctionalAgent(
             )
             
             val correctedMocks = aiModelService.correctMocks(
-                agent = aiModelService.createAgent(),
+                agent = agent,
                 invalidMocks = correctionInput,
                 namespace = namespace,
                 specification = specification,
