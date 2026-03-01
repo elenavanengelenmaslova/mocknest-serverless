@@ -2,7 +2,7 @@ package nl.vintik.mocknest.application.runtime.extensions
 
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.application.runtime.store.adapters.FILES_PREFIX
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import nl.vintik.mocknest.application.core.mapper
 import com.github.tomakehurst.wiremock.http.HttpHeaders
 import com.github.tomakehurst.wiremock.http.ImmutableRequest
 import com.github.tomakehurst.wiremock.http.RequestMethod
@@ -20,7 +20,6 @@ class NormalizeMappingBodyFilterTest {
 
     private val mockStorage: ObjectStorageInterface = mockk(relaxed = true)
     private val filter = NormalizeMappingBodyFilter(mockStorage)
-    private val mapper = jacksonObjectMapper()
 
     @AfterEach
     fun tearDown() {

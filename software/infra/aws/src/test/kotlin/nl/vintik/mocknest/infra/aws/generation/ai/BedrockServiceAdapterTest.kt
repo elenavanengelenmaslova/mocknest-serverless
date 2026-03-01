@@ -1,11 +1,13 @@
 package nl.vintik.mocknest.infra.aws.generation.ai
 
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
+import nl.vintik.mocknest.application.core.mapper
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
-import nl.vintik.mocknest.domain.generation.*
+import nl.vintik.mocknest.domain.generation.MockNamespace
+import nl.vintik.mocknest.domain.generation.SourceType
 import nl.vintik.mocknest.infra.aws.core.ai.ModelConfiguration
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -65,7 +67,8 @@ class BedrockServiceAdapterTest {
             val namespace = MockNamespace(apiName = "petstore", client = "test-client")
 
             // When
-            val mock = adapter.createGeneratedMock(mapping, namespace, SourceType.SPEC_WITH_DESCRIPTION, "ref", 1)
+            val mappingJson = mapper.readTree(mapping)
+            val mock = adapter.createGeneratedMock(mappingJson, namespace, SourceType.SPEC_WITH_DESCRIPTION, "ref", 1)
 
             // Then
             assertTrue(mock.id.contains("test-client-petstore"))

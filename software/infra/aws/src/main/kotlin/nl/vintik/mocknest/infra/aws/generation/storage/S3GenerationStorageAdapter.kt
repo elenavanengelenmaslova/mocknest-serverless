@@ -4,7 +4,7 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.*
 import aws.smithy.kotlin.runtime.content.ByteStream
 import aws.smithy.kotlin.runtime.content.toByteArray
-import com.fasterxml.jackson.databind.ObjectMapper
+import nl.vintik.mocknest.application.core.mapper
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.GenerationStorageInterface
 import nl.vintik.mocknest.domain.generation.*
@@ -24,7 +24,7 @@ class S3GenerationStorageAdapter(
 ) : GenerationStorageInterface {
     
     private val logger = KotlinLogging.logger {}
-    private val objectMapper = ObjectMapper()
+    private val objectMapper = mapper
     
     companion object {
         private const val GENERATED_MOCKS_PREFIX = "generated-mocks"

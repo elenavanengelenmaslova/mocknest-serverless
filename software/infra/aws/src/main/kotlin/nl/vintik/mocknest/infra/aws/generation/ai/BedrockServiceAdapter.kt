@@ -5,18 +5,17 @@ import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
 import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.JsonNode
+import nl.vintik.mocknest.application.core.mapper
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.domain.generation.*
 import nl.vintik.mocknest.infra.aws.core.ai.ModelConfiguration
 import org.springframework.http.HttpMethod
-import kotlin.runCatching
 import java.time.Instant
 
 private val logger = KotlinLogging.logger {}
-private val objectMapper = ObjectMapper()
 
 /**
  * Amazon Bedrock implementation of AI model service.
@@ -94,22 +93,9 @@ class BedrockServiceAdapter(
         sourceReference: String
     ): List<GeneratedMock> {
         return runCatching {
-            // Try to parse as JSON array first
-            val jsonArray = objectMapper.readTree(response)
-
-            if (jsonArray.isArray) {
-                val mocks = mutableListOf<GeneratedMock>()
-                for (i in 0 until jsonArray.size()) {
-                    val mappingNode = jsonArray.get(i)
-                    val wireMockMapping = objectMapper.writeValueAsString(mappingNode)
-                    mocks.add(createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, i))
-                }
-                mocks
-            } else {
-                // Single mapping
-                val wireMockMapping = objectMapper.writeValueAsString(jsonArray)
-                listOf(createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, 0))
-            }
+            // Try to parse as JSON first
+            val jsonNode = mapper.readTree(response)
+            processJsonNode(jsonNode, namespace, sourceType, sourceReference)
         }.onFailure { e ->
             logger.warn(e) { "Failed to parse model response as JSON, attempting text extraction" }
         }.getOrElse {
@@ -119,19 +105,8 @@ class BedrockServiceAdapter(
 
             if (match != null) {
                 runCatching {
-                    val jsonArray = objectMapper.readTree(match.value)
-                    if (jsonArray.isArray) {
-                        val mocks = mutableListOf<GeneratedMock>()
-                        for (i in 0 until jsonArray.size()) {
-                            val mappingNode = jsonArray.get(i)
-                            val wireMockMapping = objectMapper.writeValueAsString(mappingNode)
-                            mocks.add(createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, i))
-                        }
-                        mocks
-                    } else {
-                        val wireMockMapping = objectMapper.writeValueAsString(jsonArray)
-                        listOf(createGeneratedMock(wireMockMapping, namespace, sourceType, sourceReference, 0))
-                    }
+                    val jsonNode = mapper.readTree(match.value)
+                    processJsonNode(jsonNode, namespace, sourceType, sourceReference)
                 }.onFailure { e ->
                     logger.error(e) { "Failed to parse extracted JSON from model response" }
                 }.getOrElse {
@@ -144,15 +119,30 @@ class BedrockServiceAdapter(
         }
     }
 
+    private fun processJsonNode(
+        jsonNode: JsonNode,
+        namespace: MockNamespace,
+        sourceType: SourceType,
+        sourceReference: String
+    ): List<GeneratedMock> {
+        return if (jsonNode.isArray) {
+            (0 until jsonNode.size()).map { i ->
+                createGeneratedMock(jsonNode.get(i), namespace, sourceType, sourceReference, i)
+            }
+        } else {
+            listOf(createGeneratedMock(jsonNode, namespace, sourceType, sourceReference, 0))
+        }
+    }
+
     internal fun createGeneratedMock(
-        wireMockMapping: String,
+        mappingJson: JsonNode,
         namespace: MockNamespace,
         sourceType: SourceType,
         sourceReference: String,
         index: Int
     ): GeneratedMock {
         // Extract basic info from WireMock mapping for metadata
-        val mappingJson = objectMapper.readTree(wireMockMapping)
+        val wireMockMapping = mapper.writeValueAsString(mappingJson)
         val request = mappingJson.path("request")
         val response = mappingJson.path("response")
 

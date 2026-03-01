@@ -1,7 +1,7 @@
 package nl.vintik.mocknest.application.runtime.extensions
 
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.application.runtime.usecases.mapper
+import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.runtime.store.adapters.FILES_PREFIX
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
