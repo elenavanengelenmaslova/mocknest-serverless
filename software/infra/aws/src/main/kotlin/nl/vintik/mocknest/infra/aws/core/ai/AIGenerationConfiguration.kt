@@ -43,9 +43,10 @@ class AIGenerationConfiguration {
     @Bean
     fun bedrockServiceAdapter(
         bedrockClient: BedrockRuntimeClient,
-        modelConfiguration: ModelConfiguration
+        modelConfiguration: ModelConfiguration,
+        promptBuilder: nl.vintik.mocknest.application.generation.services.PromptBuilderService
     ): AIModelServiceInterface {
-        return BedrockServiceAdapter(bedrockClient, modelConfiguration)
+        return BedrockServiceAdapter(bedrockClient, modelConfiguration, promptBuilder)
     }
 
     @Bean
@@ -54,8 +55,9 @@ class AIGenerationConfiguration {
         aiModelService: AIModelServiceInterface,
         specificationParser: SpecificationParserInterface,
         mockValidator: MockValidatorInterface,
+        promptBuilder: nl.vintik.mocknest.application.generation.services.PromptBuilderService
     ): MockGenerationFunctionalAgent {
-        return MockGenerationFunctionalAgent(aiModelService, specificationParser, mockValidator)
+        return MockGenerationFunctionalAgent(aiModelService, specificationParser, mockValidator, promptBuilder)
     }
 
     @Bean

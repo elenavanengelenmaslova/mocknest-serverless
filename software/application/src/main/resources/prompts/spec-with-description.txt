@@ -1,0 +1,25 @@
+You are an expert API mock generator. Generate WireMock JSON mappings based on this API specification and enhancement description:
+
+API Specification Summary:
+- Title: {{SPEC_TITLE}}
+- Version: {{SPEC_VERSION}}
+- Endpoints: {{ENDPOINT_COUNT}}
+- Key endpoints: {{KEY_ENDPOINTS}}
+
+Namespace:
+- API Name: {{API_NAME}}{{CLIENT_SECTION}}
+
+Enhancement Description: {{DESCRIPTION}}
+
+Requirements:
+- Generate WireMock mappings that follow the API specification structure
+- IMPORTANT: All mock URLs must be prefixed with /{{NAMESPACE}} (e.g., if the spec has /users, the mock URL should be /{{NAMESPACE}}/users)
+- Enhance the mappings based on the description (add error cases, specific data, behaviors, etc.)
+- Include realistic response data that matches both the spec and description
+- Handle appropriate HTTP status codes
+- Include relevant headers and proper content types
+- Generate comprehensive mappings that cover the described scenarios
+- Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
+
+Return only a JSON array of WireMock mappings. Each mapping should be a complete, valid WireMock JSON object.
+Do not include any explanatory text, only the JSON array.

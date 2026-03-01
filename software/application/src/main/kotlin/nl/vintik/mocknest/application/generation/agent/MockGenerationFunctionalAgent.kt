@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
+import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.domain.generation.*
 import java.net.URI
 
@@ -21,7 +22,8 @@ private val logger = KotlinLogging.logger {}
 class MockGenerationFunctionalAgent(
     private val aiModelService: AIModelServiceInterface,
     private val specificationParser: SpecificationParserInterface,
-    private val mockValidator: MockValidatorInterface
+    private val mockValidator: MockValidatorInterface,
+    private val promptBuilder: PromptBuilderService
 ) {
     
     /**
@@ -38,12 +40,20 @@ class MockGenerationFunctionalAgent(
 
         val specification = specificationParser.parse(content, request.format)
 
+        // Build prompt for AI generation
+        val prompt = promptBuilder.buildSpecWithDescriptionPrompt(
+            specification = specification,
+            description = request.description,
+            namespace = request.namespace
+        )
+
         // Use AI service to enhance generation with natural language context
         val enhancedMocks = aiModelService.generateMockFromSpecWithDescription(
             agent = aiModelService.createAgent(),
             specification = specification,
             description = request.description,
-            namespace = request.namespace
+            namespace = request.namespace,
+            prompt = prompt
         )
 
         // Validate and correct mocks
@@ -98,11 +108,20 @@ class MockGenerationFunctionalAgent(
             logger.warn { "Job $jobId: ${invalidMocks.size} mocks failed validation. Attempting correction $retry/$maxRetries" }
 
             val correctionInput = invalidMocks.map { (mock, result) -> mock to result.errors }
+            
+            // Build correction prompt
+            val correctionPrompt = promptBuilder.buildCorrectionPrompt(
+                invalidMocks = correctionInput,
+                namespace = namespace,
+                specification = specification
+            )
+            
             val correctedMocks = aiModelService.correctMocks(
                 agent = aiModelService.createAgent(),
                 invalidMocks = correctionInput,
                 namespace = namespace,
-                specification = specification
+                specification = specification,
+                prompt = correctionPrompt
             )
 
             if (correctedMocks.isEmpty()) {

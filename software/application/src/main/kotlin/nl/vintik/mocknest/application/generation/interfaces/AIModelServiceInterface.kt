@@ -23,7 +23,8 @@ interface AIModelServiceInterface {
         agent: AIAgent<String, String>,
         specification: APISpecification,
         description: String,
-        namespace: MockNamespace
+        namespace: MockNamespace,
+        prompt: String
     ): List<GeneratedMock>
 
     /**
@@ -34,6 +35,7 @@ interface AIModelServiceInterface {
         agent: AIAgent<String, String>,
         invalidMocks: List<Pair<GeneratedMock, List<String>>>,
         namespace: MockNamespace,
-        specification: APISpecification? = null
+        specification: APISpecification? = null,
+        prompt: String
     ): List<GeneratedMock>
 }

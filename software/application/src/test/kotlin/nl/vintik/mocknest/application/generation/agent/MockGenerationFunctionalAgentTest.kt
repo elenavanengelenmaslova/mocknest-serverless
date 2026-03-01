@@ -4,12 +4,14 @@ import ai.koog.agents.core.agent.AIAgent
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.interfaces.MockValidationResult
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
+import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -24,16 +26,20 @@ class MockGenerationFunctionalAgentTest {
     private val aiModelService: AIModelServiceInterface = mockk()
     private val specificationParser: SpecificationParserInterface = mockk()
     private val mockValidator: MockValidatorInterface = mockk()
+    private val promptBuilder: PromptBuilderService = mockk()
     private val mockAgent: AIAgent<String, String> = mockk()
     private lateinit var agent: MockGenerationFunctionalAgent
 
     @BeforeEach
     fun setup() {
         coEvery { aiModelService.createAgent() } returns mockAgent
+        every { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any()) } returns "test prompt"
+        every { promptBuilder.buildCorrectionPrompt(any(), any(), any()) } returns "correction prompt"
         agent = MockGenerationFunctionalAgent(
             aiModelService,
             specificationParser,
-            mockValidator
+            mockValidator,
+            promptBuilder
         )
     }
 
@@ -83,7 +89,7 @@ class MockGenerationFunctionalAgentTest {
             )
 
             coEvery { specificationParser.parse(any(), any()) } returns specification
-            coEvery { aiModelService.generateMockFromSpecWithDescription(mockAgent, any(), any(), any()) } returns listOf(generatedMock)
+            coEvery { aiModelService.generateMockFromSpecWithDescription(mockAgent, any(), any(), any(), any()) } returns listOf(generatedMock)
             coEvery { mockValidator.validate(generatedMock, specification) } returns MockValidationResult.valid()
 
             // When
@@ -94,8 +100,8 @@ class MockGenerationFunctionalAgentTest {
             assertEquals(1, result.mocks.size)
             assertEquals("mock-1", result.mocks[0].id)
             
-            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(any(), any(), any(), any()) }
-            coVerify(exactly = 0) { aiModelService.correctMocks(any(), any(), any(), any()) }
+            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { aiModelService.correctMocks(any(), any(), any(), any(), any()) }
         }
 
         @Test
@@ -125,13 +131,13 @@ class MockGenerationFunctionalAgentTest {
             )
 
             coEvery { specificationParser.parse(any(), any()) } returns specification
-            coEvery { aiModelService.generateMockFromSpecWithDescription(mockAgent, any(), any(), any()) } returns listOf(invalidMock)
+            coEvery { aiModelService.generateMockFromSpecWithDescription(mockAgent, any(), any(), any(), any()) } returns listOf(invalidMock)
             
             // First validation fails
             coEvery { mockValidator.validate(invalidMock, specification) } returns MockValidationResult.invalid(listOf("Schema error"))
             
             // Correction call
-            coEvery { aiModelService.correctMocks(mockAgent, any(), namespace, specification) } returns listOf(correctedMock)
+            coEvery { aiModelService.correctMocks(mockAgent, any(), namespace, specification, any()) } returns listOf(correctedMock)
             
             // Second validation succeeds
             coEvery { mockValidator.validate(correctedMock, specification) } returns MockValidationResult.valid()
@@ -144,8 +150,8 @@ class MockGenerationFunctionalAgentTest {
             assertEquals(1, result.mocks.size)
             assertEquals("{ \"valid\": true }", result.mocks[0].wireMockMapping)
             
-            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(any(), any(), any(), any()) }
-            coVerify(exactly = 1) { aiModelService.correctMocks(any(), any(), any(), any()) }
+            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(any(), any(), any(), any(), any()) }
+            coVerify(exactly = 1) { aiModelService.correctMocks(any(), any(), any(), any(), any()) }
             coVerify { mockValidator.validate(invalidMock, specification) }
             coVerify { mockValidator.validate(correctedMock, specification) }
         }
@@ -170,13 +176,13 @@ class MockGenerationFunctionalAgentTest {
             )
 
             coEvery { specificationParser.parse(any(), any()) } returns specification
-            coEvery { aiModelService.generateMockFromSpecWithDescription(mockAgent, any(), any(), any()) } returns listOf(invalidMock)
+            coEvery { aiModelService.generateMockFromSpecWithDescription(mockAgent, any(), any(), any(), any()) } returns listOf(invalidMock)
             
             // All validations fail
             coEvery { mockValidator.validate(any(), specification) } returns MockValidationResult.invalid(listOf("Still invalid"))
             
             // Correction always returns the same invalid mock
-            coEvery { aiModelService.correctMocks(mockAgent, any(), namespace, specification) } returns listOf(invalidMock)
+            coEvery { aiModelService.correctMocks(mockAgent, any(), namespace, specification, any()) } returns listOf(invalidMock)
 
             // When
             val result = agent.generateFromSpecWithDescription(request)
@@ -185,8 +191,8 @@ class MockGenerationFunctionalAgentTest {
             assertTrue(result.success)
             assertTrue(result.mocks.isEmpty())
             
-            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(any(), any(), any(), any()) }
-            coVerify(exactly = 2) { aiModelService.correctMocks(any(), any(), any(), any()) }
+            coVerify(exactly = 1) { aiModelService.generateMockFromSpecWithDescription(any(), any(), any(), any(), any()) }
+            coVerify(exactly = 2) { aiModelService.correctMocks(any(), any(), any(), any(), any()) }
         }
     }
 }
