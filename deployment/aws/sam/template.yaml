@@ -238,7 +238,7 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless-aws.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
       Role: !GetAtt MockNestLambdaRole.Arn
-      ReservedConcurrentExecutions: 10
+      ReservedConcurrentExecutions: 1
       Environment:
         Variables:
           MOCKNEST_APP_REGION: !Ref AppRegion
