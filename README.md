@@ -143,10 +143,12 @@ curl "$MOCKNEST_URL/api/users/123" \
 
 If AI features are enabled during deployment, MockNest provides intelligent mock generation capabilities:
 
-#### Generate from API Specification
+#### Generate from API Specification with Description
+
+Generate WireMock mappings from an OpenAPI or Swagger specification enhanced with natural language instructions.
 
 ```bash
-# Generate mocks from OpenAPI specification
+# Generate mocks from OpenAPI specification + natural language description
 curl -X POST "$MOCKNEST_URL/ai/generation/from-spec" \
   -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
@@ -157,14 +159,39 @@ curl -X POST "$MOCKNEST_URL/ai/generation/from-spec" \
     },
     "specification": "openapi: 3.0.0\ninfo:\n  title: Pet Store API\n  version: 1.0.0\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: Success",
     "format": "OPENAPI_3",
+    "description": "Generate 5 realistic pets, include error cases for invalid IDs",
     "options": {
-      "includeExamples": true,
-      "generateErrorCases": true,
-      "realisticData": true,
-      "storeSpecification": true
+      "enableValidation": true
     }
   }'
 ```
+
+The response contains an array of generated WireMock mappings:
+
+```json
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "GET",
+        "urlPath": "/demo/petstore/pets"
+      },
+      "response": {
+        "status": 200,
+        "jsonBody": [
+          { "id": 1, "name": "Buddy", "status": "available" },
+          { "id": 2, "name": "Max", "status": "available" }
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    }
+  ]
+}
+```
+
+Mocks are automatically organized using namespaces (e.g., `/demo/petstore/`). You can then import these mocks using the standard WireMock `/__admin/mappings/import` endpoint.
 
 #### Generate from Natural Language
 

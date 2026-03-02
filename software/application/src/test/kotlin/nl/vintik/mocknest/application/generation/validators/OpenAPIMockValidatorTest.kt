@@ -187,6 +187,117 @@ class OpenAPIMockValidatorTest {
     }
 
     @Nested
+    inner class URLMatcherValidation {
+
+        @Test
+        fun `Given mock with urlPathPattern When validating Then should correctly match endpoint`() = runTest {
+            // Given
+            val specification = APISpecification(
+                format = SpecificationFormat.OPENAPI_3,
+                version = "1.0",
+                title = "Test API",
+                endpoints = listOf(
+                    EndpointDefinition(
+                        path = "/pet/{petId}",
+                        method = HttpMethod.GET,
+                        operationId = "getPet",
+                        summary = "Get pet",
+                        parameters = emptyList(),
+                        requestBody = null,
+                        responses = mapOf(200 to ResponseDefinition(200, "OK", null))
+                    )
+                ),
+                schemas = emptyMap()
+            )
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "GET",
+                    "urlPathPattern": "/test/pet/[0-9]+"
+                  },
+                  "response": {
+                    "status": 200
+                  }
+                }
+            """.trimIndent()
+            val mock = GeneratedMock(
+                id = "regex-mock",
+                name = "Regex Mock",
+                namespace = MockNamespace("test"),
+                wireMockMapping = mockJson,
+                metadata = MockMetadata(SourceType.SPEC_WITH_DESCRIPTION, "ref", EndpointInfo(HttpMethod.GET, "/pet/123", 200, "application/json")),
+                generatedAt = Instant.now()
+            )
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertTrue(result.isValid, "Should match /pet/[0-9]+ to /pet/{petId}. Errors: ${result.errors}")
+        }
+
+        @Test
+        fun `Given mock with urlPattern When validating Then should correctly match endpoint`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "GET",
+                    "urlPattern": "/test/api/users/.*"
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "id": "123",
+                      "name": "Jane",
+                      "email": "jane@example.com",
+                      "active": true
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("urlpattern-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertTrue(result.isValid, "Should match urlPattern: ${result.errors}")
+        }
+        
+        @Test
+        fun `Given mock with urlPath When validating Then should correctly match endpoint`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "GET",
+                    "urlPath": "/test/api/users/123"
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "id": "123",
+                      "name": "Jane",
+                      "email": "jane@example.com",
+                      "active": true
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("urlpath-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertTrue(result.isValid, "Should match urlPath: ${result.errors}")
+        }
+    }
+
+    @Nested
     inner class InvalidRequestMatchers {
 
         @Test
@@ -643,27 +754,56 @@ class OpenAPIMockValidatorTest {
         }
 
         @Test
-        fun `Given path ID 123 but response body has ID 456 When validating Then should return consistency error`() = runTest {
+        fun `Given path parameter in spec and matching mock path When validating Then should check consistency`() = runTest {
             // Given
-            val specification = createTestSpecification()
+            val specification = APISpecification(
+                format = SpecificationFormat.OPENAPI_3,
+                version = "3.0.0",
+                title = "Test API",
+                endpoints = listOf(
+                    EndpointDefinition(
+                        path = "/pet/{petId}",
+                        method = HttpMethod.GET,
+                        operationId = "getPet",
+                        summary = "Get pet",
+                        parameters = listOf(
+                            ParameterDefinition("petId", ParameterLocation.PATH, true, JsonSchema(JsonSchemaType.STRING))
+                        ),
+                        requestBody = null,
+                        responses = mapOf(
+                            200 to ResponseDefinition(
+                                statusCode = 200,
+                                description = "Success",
+                                schema = JsonSchema(type = JsonSchemaType.OBJECT)
+                            )
+                        )
+                    )
+                ),
+                schemas = emptyMap()
+            )
             val mockJson = """
                 {
                   "request": {
                     "method": "GET",
-                    "urlPath": "/api/users/123"
+                    "urlPath": "/pet/123"
                   },
                   "response": {
                     "status": 200,
                     "jsonBody": {
                       "id": "456",
-                      "name": "Jane Smith",
-                      "email": "jane@example.com",
-                      "active": true
+                      "name": "Doggie"
                     }
                   }
                 }
             """.trimIndent()
-            val mock = createGeneratedMock("path-consistency-error-mock", mockJson)
+            val mock = GeneratedMock(
+                id = "path-param-mock",
+                name = "Path Param Mock",
+                namespace = MockNamespace("test"),
+                wireMockMapping = mockJson,
+                metadata = MockMetadata(SourceType.SPEC_WITH_DESCRIPTION, "ref", EndpointInfo(HttpMethod.GET, "/pet/123", 200, "application/json")),
+                generatedAt = Instant.now()
+            )
 
             // When
             val result = validator.validate(mock, specification)
@@ -671,8 +811,8 @@ class OpenAPIMockValidatorTest {
             // Then
             assertFalse(result.isValid)
             assertTrue(
-                result.errors.any { it.contains("Consistency error") && it.contains("path ID is '123'") && it.contains("body has ID '456'") },
-                "Should report consistency error for ID mismatch"
+                result.errors.any { it.contains("Consistency error") && it.contains("petId") && it.contains("123") && it.contains("456") },
+                "Should report consistency error for path parameter mismatch"
             )
         }
         
@@ -741,92 +881,129 @@ class OpenAPIMockValidatorTest {
         }
 
         @Test
-        fun `Given query parameter contains matcher When validating Then should check consistency`() = runTest {
+        fun `Given query parameter matches an array in response When validating Then should not crash and verify containment`() = runTest {
             // Given
-            val specification = createTestSpecification()
+             val specification = APISpecification(
+                format = SpecificationFormat.OPENAPI_3,
+                version = "3.0.0",
+                title = "Test API",
+                endpoints = listOf(
+                    EndpointDefinition(
+                        path = "/pet/findByTags",
+                        method = HttpMethod.GET,
+                        operationId = "findByTags",
+                        summary = "Find by tags",
+                        parameters = listOf(
+                            ParameterDefinition("tags", ParameterLocation.QUERY, false, JsonSchema(JsonSchemaType.STRING))
+                        ),
+                        requestBody = null,
+                        responses = mapOf(
+                            200 to ResponseDefinition(
+                                statusCode = 200,
+                                description = "Success",
+                                schema = JsonSchema(type = JsonSchemaType.ARRAY, items = JsonSchema(type = JsonSchemaType.OBJECT))
+                            )
+                        )
+                    )
+                ),
+                schemas = emptyMap()
+            )
             val mockJson = """
                 {
                   "request": {
                     "method": "GET",
-                    "urlPath": "/api/users/123",
+                    "urlPath": "/pet/findByTags",
                     "queryParameters": {
-                      "email": { "contains": "@example.com" }
+                      "tags": { "equalTo": "tag1" }
                     }
                   },
                   "response": {
                     "status": 200,
-                    "jsonBody": {
-                      "id": "123",
-                      "name": "Jane Smith",
-                      "email": "jane@gmail.com",
-                      "active": true
-                    }
+                    "jsonBody": [
+                      { "id": "1", "tags": ["tag1", "tag2"] },
+                      { "id": "2", "tags": ["tag2", "tag3"] }
+                    ]
                   }
                 }
             """.trimIndent()
-            val mock = createGeneratedMock("contains-consistency-error-mock", mockJson)
+            val mock = GeneratedMock(
+                id = "tags-consistency-mock",
+                name = "Tags Consistency Mock",
+                namespace = MockNamespace("test"),
+                wireMockMapping = mockJson,
+                metadata = MockMetadata(SourceType.SPEC_WITH_DESCRIPTION, "ref", EndpointInfo(HttpMethod.GET, "/pet/findByTags", 200, "application/json")),
+                generatedAt = Instant.now()
+            )
 
             // When
             val result = validator.validate(mock, specification)
 
             // Then
             assertFalse(result.isValid)
+            // Item 0 is valid because "tag1" is in ["tag1", "tag2"]
+            // Item 1 is invalid because "tag1" is NOT in ["tag2", "tag3"]
             assertTrue(
-                result.errors.any { it.contains("Consistency error") && it.contains("@example.com") && it.contains("jane@gmail.com") },
-                "Should report consistency error for contains matcher mismatch"
+                result.errors.any { it.contains("Consistency error in item [1]") && it.contains("tags") && it.contains("tag1") },
+                "Should report consistency error for the second item (tag1 not found in array)"
+            )
+            assertFalse(
+                result.errors.any { it.contains("item [0]") },
+                "First item should be considered valid as it contains the tag"
             )
         }
 
         @Test
-        fun `Given various path ID patterns When validating Then should extract ID and check consistency`() = runTest {
-            val specification = createTestSpecification()
-            val patterns = listOf(
-                "/pet/456" to "456",
-                "/pets/789" to "789",
-                "/user/abc" to "abc",
-                "/users/def" to "def",
-                "/order/123-456" to "123-456",
-                "/id/999" to "999"
-            )
-
-            patterns.forEach { (path, id) ->
-                val mockJson = """
-                    {
-                      "request": {
-                        "method": "GET",
-                        "urlPath": "$path"
-                      },
-                      "response": {
-                        "status": 200,
-                        "jsonBody": {
-                          "id": "wrong-id"
-                        }
-                      }
-                    }
-                """.trimIndent()
-                
-                // We need to add matching endpoints to specification for each path or just mock it
-                val specWithEndpoints = specification.copy(
-                    endpoints = specification.endpoints + EndpointDefinition(
-                        path = path,
+        fun `Given action path like findByStatus When validating Then should NOT extract findByStatus as ID`() = runTest {
+            // Given
+             val specification = APISpecification(
+                format = SpecificationFormat.OPENAPI_3,
+                version = "3.0.0",
+                title = "Test API",
+                endpoints = listOf(
+                    EndpointDefinition(
+                        path = "/pet/findByStatus",
                         method = HttpMethod.GET,
-                        operationId = "op",
-                        summary = "op",
-                        parameters = emptyList(),
+                        operationId = "findByStatus",
+                        summary = "Find by status",
+                        parameters = listOf(
+                            ParameterDefinition("status", ParameterLocation.QUERY, false, JsonSchema(JsonSchemaType.STRING))
+                        ),
                         requestBody = null,
-                        responses = mapOf(200 to ResponseDefinition(200, "OK", null))
+                        responses = mapOf(
+                            200 to ResponseDefinition(
+                                statusCode = 200,
+                                description = "Success",
+                                schema = JsonSchema(type = JsonSchemaType.ARRAY, items = JsonSchema(type = JsonSchemaType.OBJECT))
+                            )
+                        )
                     )
-                )
+                ),
+                schemas = emptyMap()
+            )
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "GET",
+                    "urlPath": "/pet/findByStatus",
+                    "queryParameters": {
+                      "status": { "equalTo": "available" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": [
+                      { "id": "1", "status": "available" }
+                    ]
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("findByStatus-mock", mockJson)
 
-                val mock = createGeneratedMock("path-pattern-$id", mockJson)
-                val result = validator.validate(mock, specWithEndpoints)
+            // When
+            val result = validator.validate(mock, specification)
 
-                assertFalse(result.isValid, "Mock for path $path should be invalid")
-                assertTrue(
-                    result.errors.any { it.contains("Consistency error") && it.contains("path ID is '$id'") },
-                    "Should report consistency error for path $path"
-                )
-            }
+            // Then
+            assertTrue(result.isValid, "Should be valid and NOT report consistency error for 'findByStatus' as ID: ${result.errors}")
         }
     }
 

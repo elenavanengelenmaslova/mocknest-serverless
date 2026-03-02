@@ -105,7 +105,14 @@ class MockGenerationFunctionalAgent(
         // Transitions
         edge(nodeStart forwardTo setupNode)
         edge(setupNode forwardTo generateNode)
-        edge(generateNode forwardTo validateNode)
+        
+        // If validation is disabled, go straight to finish
+        edge(generateNode forwardTo nodeFinish onCondition { ctx -> !ctx.request.options.enableValidation }
+            transformed { ctx -> GenerationResult.success(ctx.request.jobId, ctx.mocks) }
+        )
+        
+        // Otherwise, go to validateNode
+        edge(generateNode forwardTo validateNode onCondition { ctx -> ctx.request.options.enableValidation })
         
         edge(validateNode forwardTo nodeFinish 
             onCondition { ctx -> ctx.errors.isEmpty() || ctx.attempt > 2 }

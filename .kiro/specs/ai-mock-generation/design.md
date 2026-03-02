@@ -42,12 +42,12 @@ flowchart TB
     end
     
     subgraph AIGeneration["AI Mock Generation Engine - Phase 1"]
-        KOOG[Koog Functional Agent ]
-        PARSER[OpenAPI Parser Only]
-        GENERATOR[Mock Generator]
+        KOOG[Koog Functional Agent<br/>(Strategy Graph)]
+        PARSER[OpenAPI Parser]
+        VALIDATOR[Mock Validator]
         
         KOOG --> PARSER
-        KOOG --> GENERATOR
+        KOOG --> VALIDATOR
     end
     
     subgraph CloudAI["Amazon Bedrock"]
@@ -186,57 +186,43 @@ data class HelloWorldResponse(
 }
 ```
 
-#### 2. Koog Functional Agent Framework Integration () - Phase 1
+#### 2. Koog Strategy Graph Orchestration - Phase 1
 
-**Agent Type: Functional Agent**
-- **Domain-Specific**: Mock generation is a well-defined functional domain
-- **Tool Coordination**: Orchestrates parsers and generators
-- **Structured I/O**: Takes OpenAPI specs, produces WireMock JSON
-- **Domain Expertise**: Encapsulates knowledge about OpenAPI and mock generation patterns
+The mock generation process is orchestrated using a **Koog Strategy Graph**. This provides a declarative way to define the generation, validation, and correction logic as a series of connected nodes.
 
-```kotlin
-@Component
-class MockGenerationFunctionalAgent(
-    private val specificationParser: SpecificationParserInterface,
-    private val mockGenerator: MockGeneratorInterface
-) : FunctionalAgent {
+**Key Benefits:**
+- **Single Execution**: Resolves `IllegalStateException` by managing the entire lifecycle within one agent run.
+- **Resilient Validation**: Automatically retries generation for mocks that fail programmatic validation.
+- **Deep Consistency**: Programmatically enforces logical consistency (e.g., query params matching response data).
+
+**Strategy Graph Diagram:**
+
+```mermaid
+stateDiagram-v2
+    [*] --> Setup
+    Setup --> Generate: Specification Parsed
+    Generate --> Validate: Mappings Produced
     
-    override val domain = "mock-generation"
-    override val capabilities = setOf(
-        "parse-openapi-specifications",
-        "generate-wiremock-mappings",
-        "scenario-based-generation"
-    )
+    state ValidationDecision <<choice>>
+    Validate --> ValidationDecision
     
-    override suspend fun execute(request: AgentRequest): AgentResponse {
-        return when (request.type) {
-            RequestType.SPECIFICATION_GENERATION -> generateFromSpec(request)
-            else -> AgentResponse.error("Unsupported request type in Phase 1: ${request.type}")
-        }
-    }
+    ValidationDecision --> Finish: All Valid OR Max Retries (2)
+    ValidationDecision --> Correct: Invalid Mappings Found
     
-    private suspend fun generateFromSpec(request: AgentRequest): AgentResponse {
-        val specification = specificationParser.parse(
-            request.specificationContent, 
-            request.format
-        )
-        
-        val generatedMocks = mockGenerator.generateFromSpecification(
-            specification = specification,
-            namespace = request.namespace,
-            options = request.options
-        )
-        
-        return AgentResponse.success(generatedMocks)
-    }
-}
+    Correct --> Validate: Correction Produced
+    
+    Finish --> [*]
 ```
 
-**Phase 1 Limitations:**
-- Only supports `SPECIFICATION_GENERATION` request type
-- No natural language generation (beyond hello world)
-- No mock evolution or enhancement
-- Single specification processing only
+**Nodes Description:**
+- **Setup**: Downloads (if URL) and parses the API specification (OpenAPI 3.0/Swagger 2.0).
+- **Generate**: Uses LLM (Amazon Bedrock) to generate initial WireMock mappings based on the spec and description.
+- **Validate**: Programmatically checks mocks against the spec and performs logical consistency checks.
+- **Correct**: Uses LLM to fix specific validation errors found in the previous step.
+
+**Phase 1 Implementation:**
+- **Max Retries**: 2 correction attempts (total 3 generation attempts).
+- **Consistency Checks**: Verifies query parameters (e.g., `status=available`) and path parameters (e.g., `/pet/1`) match response body data.
 
 #### 3. Use Case Layer - Phase 1
 

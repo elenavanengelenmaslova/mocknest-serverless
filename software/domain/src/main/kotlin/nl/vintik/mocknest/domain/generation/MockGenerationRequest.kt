@@ -31,7 +31,9 @@ enum class SpecificationFormat {
 /**
  * Options for controlling mock generation behavior.
  */
-class GenerationOptions {
+data class GenerationOptions(
+    val enableValidation: Boolean = true
+) {
     companion object {
         fun default() = GenerationOptions()
     }
