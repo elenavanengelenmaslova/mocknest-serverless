@@ -71,8 +71,14 @@ class MockGenerationFunctionalAgent(
 
         // Node 3: Validation
         val validateNode by node<MockGenerationContext, MockGenerationContext>("validate") { ctx ->
+            logger.info { "Validating ${ctx.mocks.size} mocks for jobId: ${ctx.request.jobId}" }
             val validationResults = ctx.mocks.map { it to mockValidator.validate(it, ctx.specification) }
             val errors = validationResults.flatMap { it.second.errors }
+            if (errors.isEmpty()) {
+                logger.info { "All mocks passed validation for jobId: ${ctx.request.jobId}" }
+            } else {
+                logger.info { "${errors.size} validation errors found for jobId: ${ctx.request.jobId}" }
+            }
             ctx.copy(errors = errors)
         }
 

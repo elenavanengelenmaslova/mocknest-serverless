@@ -1,18 +1,14 @@
 package nl.vintik.mocknest.application.generation.validators
 
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.*
-import kotlinx.serialization.json.Json as KotlinJson
-import com.github.tomakehurst.wiremock.common.Json as WireMockJson
-import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.application.generation.interfaces.MockValidationResult
-import nl.vintik.mocknest.domain.generation.APISpecification
-import nl.vintik.mocknest.domain.generation.EndpointDefinition
-import nl.vintik.mocknest.domain.generation.GeneratedMock
-import nl.vintik.mocknest.domain.generation.JsonSchema
-import nl.vintik.mocknest.domain.generation.JsonSchemaType
+import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
+import nl.vintik.mocknest.domain.generation.*
 import org.springframework.stereotype.Component
+import com.github.tomakehurst.wiremock.common.Json as WireMockJson
+import kotlinx.serialization.json.Json as KotlinJson
 
 /**
  * Validates generated mocks against OpenAPI specifications.
@@ -24,8 +20,7 @@ class OpenAPIMockValidator : MockValidatorInterface {
     private val logger = KotlinLogging.logger {}
     
     override suspend fun validate(mock: GeneratedMock, specification: APISpecification): MockValidationResult {
-        logger.debug { "Validating mock ${mock.id} against OpenAPI specification" }
-        
+        logger.info { "Validating mock ${mock.id}:\n${mock.wireMockMapping}" }        
         val errors = mutableListOf<String>()
         
         val mappingJson = runCatching { KotlinJson.parseToJsonElement(mock.wireMockMapping).jsonObject }.getOrElse {
@@ -157,11 +152,6 @@ class OpenAPIMockValidator : MockValidatorInterface {
             }
             wireMockMapping
         }.getOrDefault(wireMockMapping)
-    }
-
-    private fun isCatchAll(stub: StubMapping): Boolean {
-        val urlMatcher = stub.request.urlMatcher
-        return urlMatcher == null || urlMatcher.toString() == "any everything"
     }
 
     private fun reportResults(mock: GeneratedMock, errors: List<String>): MockValidationResult {
@@ -396,11 +386,11 @@ class OpenAPIMockValidator : MockValidatorInterface {
     }
 
     private fun matchesExpectedValue(element: JsonElement, expected: String): Boolean {
-        return when (element) {
+        val matched = when (element) {
             is JsonPrimitive -> element.content == expected
             is JsonArray -> element.any { matchesExpectedValue(it, expected) }
             is JsonObject -> element.values.any { matchesExpectedValue(it, expected) }
-            else -> false
         }
+        return matched
     }
 }
