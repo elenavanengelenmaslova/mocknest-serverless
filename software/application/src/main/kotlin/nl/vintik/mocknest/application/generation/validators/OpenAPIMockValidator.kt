@@ -65,7 +65,9 @@ class OpenAPIMockValidator : MockValidatorInterface {
             val requestPattern = stubMapping.request
             
             // 3. Find matching endpoint in specification using WireMock's matching engine
-            val endpoint = specification.endpoints.find { ep: EndpointDefinition ->
+            // Sort endpoints to favor more specific paths (those without parameters) first
+            val sortedEndpoints = specification.endpoints.sortedByDescending { it.path.length }
+            val endpoint = sortedEndpoints.find { ep: EndpointDefinition ->
                 matchesEndpoint(stubMapping, ep, mock.namespace.displayName())
             }
             
@@ -114,7 +116,12 @@ class OpenAPIMockValidator : MockValidatorInterface {
             
             // 7. Logical consistency checks (Best Effort)
             val consistencyErrors = validateConsistency(mock, mappingJson, endpoint)
-            errors.addAll(consistencyErrors)
+            if (consistencyErrors.isNotEmpty()) {
+                logger.warn { "Consistency issues found for mock ${mock.id}:\n${consistencyErrors.joinToString("\n")}" }
+                // We add them to errors only as warnings for now, or keep them separate
+                // Based on user feedback, we'll prefix them and NOT let them block the mock generation if they are the only errors
+                errors.addAll(consistencyErrors.map { "[CONSISTENCY] $it" })
+            }
             
         }.onFailure { exception ->
             val msg = exception.message ?: ""
@@ -161,7 +168,12 @@ class OpenAPIMockValidator : MockValidatorInterface {
         return if (errors.isEmpty()) {
             MockValidationResult.valid()
         } else {
-            logger.warn { "Validation failed for mock ${mock.id}. Errors:\n${errors.joinToString("\n")}" }
+            val fatalErrors = errors.filter { !it.startsWith("[CONSISTENCY]") }
+            if (fatalErrors.isEmpty()) {
+                logger.warn { "Mock ${mock.id} has consistency issues but is otherwise VALID. Warnings:\n${errors.joinToString("\n")}" }
+            } else {
+                logger.warn { "Validation FAILED for mock: ${mock.id}\nMock JSON: ${mock.wireMockMapping}\nErrors:\n${errors.joinToString("\n")}" }
+            }
             MockValidationResult.invalid(errors)
         }
     }
@@ -386,7 +398,8 @@ class OpenAPIMockValidator : MockValidatorInterface {
     private fun matchesExpectedValue(element: JsonElement, expected: String): Boolean {
         return when (element) {
             is JsonPrimitive -> element.content == expected
-            is JsonArray -> element.any { it is JsonPrimitive && it.content == expected }
+            is JsonArray -> element.any { matchesExpectedValue(it, expected) }
+            is JsonObject -> element.values.any { matchesExpectedValue(it, expected) }
             else -> false
         }
     }

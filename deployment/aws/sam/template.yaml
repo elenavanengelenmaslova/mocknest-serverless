@@ -94,6 +94,11 @@ Parameters:
       - me
       - sa
 
+  BedrockGenerationMaxRetries:
+    Type: Number
+    Default: 1
+    Description: Maximum number of retry attempts for AI mock generation if validation fails.
+
   AppRegion:
     Type: String
     Default: 'eu-west-1'
@@ -245,6 +250,7 @@ Resources:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           BEDROCK_MODEL_NAME: !Ref BedrockModelName
+          BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
           BEDROCK_INFERENCE_PREFIX: !Ref BedrockInferencePrefix
           SPRING_CLOUD_FUNCTION_DEFINITION: "router"
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.Application"

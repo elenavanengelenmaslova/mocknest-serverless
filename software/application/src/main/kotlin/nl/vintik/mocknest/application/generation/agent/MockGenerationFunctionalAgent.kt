@@ -32,7 +32,8 @@ class MockGenerationFunctionalAgent(
     private val aiModelService: AIModelServiceInterface,
     private val specificationParser: SpecificationParserInterface,
     private val mockValidator: MockValidatorInterface,
-    private val promptBuilder: PromptBuilderService
+    private val promptBuilder: PromptBuilderService,
+    private val maxRetries: Int = 1 // Default to 1 retry (2 attempts total)
 ) {
     
     private val mockGenerationStrategy = strategy<SpecWithDescriptionRequest, GenerationResult>("mock-generation") {
@@ -115,11 +116,11 @@ class MockGenerationFunctionalAgent(
         edge(generateNode forwardTo validateNode onCondition { ctx -> ctx.request.options.enableValidation })
         
         edge(validateNode forwardTo nodeFinish 
-            onCondition { ctx -> ctx.errors.isEmpty() || ctx.attempt > 2 }
-            transformed { ctx -> GenerationResult.success(ctx.request.jobId, ctx.mocks.filter { m -> mockValidator.validate(m, ctx.specification).isValid }) }
+            onCondition { ctx -> ctx.errors.isEmpty() || ctx.attempt > maxRetries }
+            transformed { ctx -> GenerationResult.success(ctx.request.jobId, ctx.mocks.filter { m -> !mockValidator.validate(m, ctx.specification).isFatal }) }
         )
         
-        edge(validateNode forwardTo correctNode onCondition { ctx -> ctx.errors.isNotEmpty() && ctx.attempt <= 2 })
+        edge(validateNode forwardTo correctNode onCondition { ctx -> ctx.errors.isNotEmpty() && ctx.attempt <= maxRetries })
         edge(correctNode forwardTo validateNode)
     }
 

@@ -22,7 +22,8 @@ interface MockValidatorInterface {
  */
 data class MockValidationResult(
     val isValid: Boolean,
-    val errors: List<String> = emptyList()
+    val errors: List<String> = emptyList(),
+    val isFatal: Boolean = errors.any { !it.startsWith("[CONSISTENCY]") }
 ) {
     companion object {
         fun valid() = MockValidationResult(true, emptyList())

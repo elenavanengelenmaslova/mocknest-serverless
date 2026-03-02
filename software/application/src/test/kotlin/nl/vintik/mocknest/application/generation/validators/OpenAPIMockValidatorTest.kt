@@ -295,6 +295,87 @@ class OpenAPIMockValidatorTest {
             // Then
             assertTrue(result.isValid, "Should match urlPath: ${result.errors}")
         }
+
+        @Test
+        fun `Given mock with urlPathPattern that matches multiple spec endpoints When validating Then should favor most specific match`() = runTest {
+            // Given
+            val specification = APISpecification(
+                format = SpecificationFormat.OPENAPI_3,
+                version = "3.0.0",
+                title = "Petstore",
+                endpoints = listOf(
+                    EndpointDefinition(
+                        path = "/pet/{petId}",
+                        method = HttpMethod.GET,
+                        operationId = "getPetById",
+                        summary = "Get pet by ID",
+                        parameters = listOf(
+                            ParameterDefinition("petId", ParameterLocation.PATH, true, JsonSchema(JsonSchemaType.STRING))
+                        ),
+                        requestBody = null,
+                        responses = mapOf(
+                            200 to ResponseDefinition(
+                                statusCode = 200,
+                                description = "Pet object",
+                                schema = JsonSchema(type = JsonSchemaType.OBJECT, properties = mapOf("id" to JsonSchema(JsonSchemaType.INTEGER)))
+                            )
+                        )
+                    ),
+                    EndpointDefinition(
+                        path = "/pet/findByStatus",
+                        method = HttpMethod.GET,
+                        operationId = "findPetsByStatus",
+                        summary = "Find pets by status",
+                        parameters = listOf(
+                            ParameterDefinition("status", ParameterLocation.QUERY, true, JsonSchema(JsonSchemaType.STRING))
+                        ),
+                        requestBody = null,
+                        responses = mapOf(
+                            200 to ResponseDefinition(
+                                statusCode = 200,
+                                description = "Array of pets",
+                                schema = JsonSchema(type = JsonSchemaType.ARRAY, items = JsonSchema(type = JsonSchemaType.OBJECT))
+                            )
+                        )
+                    )
+                ),
+                schemas = emptyMap()
+            )
+            
+            // Mock specifically for findByStatus (returns array)
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "GET",
+                    "urlPath": "/petstore/pet/findByStatus",
+                    "queryParameters": {
+                      "status": { "equalTo": "available" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": [
+                      { "id": 1, "name": "Buddy", "status": "available" }
+                    ]
+                  }
+                }
+            """.trimIndent()
+            
+            val mock = GeneratedMock(
+                id = "find-by-status-mock",
+                name = "Find By Status",
+                namespace = MockNamespace("petstore"),
+                wireMockMapping = mockJson,
+                metadata = MockMetadata(SourceType.SPEC_WITH_DESCRIPTION, "ref", EndpointInfo(HttpMethod.GET, "/pet/findByStatus", 200, "application/json")),
+                generatedAt = Instant.now()
+            )
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertTrue(result.isValid, "Should match findByStatus and be valid. Errors: ${result.errors}")
+        }
     }
 
     @Nested
@@ -719,7 +800,40 @@ class OpenAPIMockValidatorTest {
         @Test
         fun `Given query param status=available but response has sold pet When validating Then should return consistency error`() = runTest {
             // Given
-            val specification = createTestSpecification()
+            val specification = APISpecification(
+                format = SpecificationFormat.OPENAPI_3,
+                version = "3.0.0",
+                title = "Test API",
+                endpoints = listOf(
+                    EndpointDefinition(
+                        path = "/api/users/123",
+                        method = HttpMethod.GET,
+                        operationId = "getUser",
+                        summary = "Get user by ID",
+                        parameters = listOf(
+                            ParameterDefinition("active", ParameterLocation.QUERY, true, JsonSchema(JsonSchemaType.STRING))
+                        ),
+                        requestBody = null,
+                        responses = mapOf(
+                            200 to ResponseDefinition(
+                                statusCode = 200,
+                                description = "Successful response",
+                                schema = JsonSchema(
+                                    type = JsonSchemaType.OBJECT,
+                                    properties = mapOf(
+                                        "id" to JsonSchema(type = JsonSchemaType.STRING),
+                                        "name" to JsonSchema(type = JsonSchemaType.STRING),
+                                        "email" to JsonSchema(type = JsonSchemaType.STRING),
+                                        "active" to JsonSchema(type = JsonSchemaType.BOOLEAN)
+                                    ),
+                                    required = listOf("id", "name", "email", "active")
+                                )
+                            )
+                        )
+                    )
+                ),
+                schemas = emptyMap()
+            )
             val mockJson = """
                 {
                   "request": {
@@ -747,6 +861,7 @@ class OpenAPIMockValidatorTest {
 
             // Then
             assertFalse(result.isValid)
+            assertFalse(result.isFatal, "Consistency errors should not be fatal")
             assertTrue(
                 result.errors.any { it.contains("Consistency error") && it.contains("active") && it.contains("true") && it.contains("false") },
                 "Should report consistency error for active status mismatch"
@@ -810,6 +925,7 @@ class OpenAPIMockValidatorTest {
 
             // Then
             assertFalse(result.isValid)
+            assertFalse(result.isFatal, "Path consistency errors should not be fatal")
             assertTrue(
                 result.errors.any { it.contains("Consistency error") && it.contains("petId") && it.contains("123") && it.contains("456") },
                 "Should report consistency error for path parameter mismatch"
@@ -950,6 +1066,73 @@ class OpenAPIMockValidatorTest {
                 result.errors.any { it.contains("item [0]") },
                 "First item should be considered valid as it contains the tag"
             )
+        }
+
+        @Test
+        fun `Given query parameter matches an array of objects in response When validating Then should check recursively`() = runTest {
+            // Given
+             val specification = APISpecification(
+                format = SpecificationFormat.OPENAPI_3,
+                version = "3.0.0",
+                title = "Test API",
+                endpoints = listOf(
+                    EndpointDefinition(
+                        path = "/pet/findByTags",
+                        method = HttpMethod.GET,
+                        operationId = "findByTags",
+                        summary = "Find by tags",
+                        parameters = listOf(
+                            ParameterDefinition("tags", ParameterLocation.QUERY, false, JsonSchema(JsonSchemaType.STRING))
+                        ),
+                        requestBody = null,
+                        responses = mapOf(
+                            200 to ResponseDefinition(
+                                statusCode = 200,
+                                description = "Success",
+                                schema = JsonSchema(type = JsonSchemaType.ARRAY, items = JsonSchema(type = JsonSchemaType.OBJECT))
+                            )
+                        )
+                    )
+                ),
+                schemas = emptyMap()
+            )
+            // Complex tags: array of objects with 'name' field
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "GET",
+                    "urlPath": "/pet/findByTags",
+                    "queryParameters": {
+                      "tags": { "equalTo": "new" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": [
+                      { 
+                        "id": "1", 
+                        "tags": [
+                          { "id": 1, "name": "new" }
+                        ] 
+                      }
+                    ]
+                  }
+                }
+            """.trimIndent()
+            val mock = GeneratedMock(
+                id = "complex-tags-consistency-mock",
+                name = "Complex Tags Consistency Mock",
+                namespace = MockNamespace("test"),
+                wireMockMapping = mockJson,
+                metadata = MockMetadata(SourceType.SPEC_WITH_DESCRIPTION, "ref", EndpointInfo(HttpMethod.GET, "/pet/findByTags", 200, "application/json")),
+                generatedAt = Instant.now()
+            )
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertTrue(result.isValid, "Should match 'new' inside tags array objects. Errors: ${result.errors}")
         }
 
         @Test

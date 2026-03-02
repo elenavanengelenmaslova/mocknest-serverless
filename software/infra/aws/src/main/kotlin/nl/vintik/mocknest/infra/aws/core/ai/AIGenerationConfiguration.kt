@@ -8,6 +8,7 @@ import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationPar
 import nl.vintik.mocknest.application.generation.usecases.*
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.infra.aws.generation.ai.BedrockServiceAdapter
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
@@ -51,13 +52,14 @@ class AIGenerationConfiguration {
 
     @Bean
     fun mockGenerationAgent(
-        modelConfiguration: ModelConfiguration,
+        @Value($$"${bedrock.generation.maxRetries:1}")
+        maxRetries: Int,
         aiModelService: AIModelServiceInterface,
         specificationParser: SpecificationParserInterface,
         mockValidator: MockValidatorInterface,
         promptBuilder: nl.vintik.mocknest.application.generation.services.PromptBuilderService
     ): MockGenerationFunctionalAgent {
-        return MockGenerationFunctionalAgent(aiModelService, specificationParser, mockValidator, promptBuilder)
+        return MockGenerationFunctionalAgent(aiModelService, specificationParser, mockValidator, promptBuilder, maxRetries)
     }
 
     @Bean
