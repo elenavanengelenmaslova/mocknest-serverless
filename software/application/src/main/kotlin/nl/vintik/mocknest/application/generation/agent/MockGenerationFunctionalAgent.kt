@@ -1,142 +1,140 @@
 package nl.vintik.mocknest.application.generation.agent
 
-import nl.vintik.mocknest.application.generation.interfaces.*
-import nl.vintik.mocknest.domain.generation.*
+import ai.koog.prompt.message.Message
+import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.builder.forwardTo
 import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
+import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
+import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
+import nl.vintik.mocknest.application.generation.services.PromptBuilderService
+import nl.vintik.mocknest.domain.generation.*
 import java.net.URI
 
 private val logger = KotlinLogging.logger {}
 
 /**
- * Koog 0.6.0 Functional Agent for AI-powered mock generation.
- * 
- * This agent orchestrates the mock generation process using Koog's functional strategy:
- * - Parses API specifications
- * - Generates WireMock mappings
- * - Handles natural language interpretation
- * - Enhances specifications with AI
+ * Context for the mock generation process.
+ */
+data class MockGenerationContext(
+    val request: SpecWithDescriptionRequest,
+    val specification: APISpecification,
+    val mocks: List<GeneratedMock> = emptyList(),
+    val attempt: Int = 1,
+    val errors: List<String> = emptyList()
+)
+
+/**
+ * Koog Functional Agent for AI-powered mock generation.
+...
  */
 class MockGenerationFunctionalAgent(
     private val aiModelService: AIModelServiceInterface,
     private val specificationParser: SpecificationParserInterface,
-    private val mockGenerator: MockGeneratorInterface,
-    private val generationStorage: GenerationStorageInterface
+    private val mockValidator: MockValidatorInterface,
+    private val promptBuilder: PromptBuilderService,
+    private val maxRetries: Int = 1 // Default to 1 retry (2 attempts total)
 ) {
     
-    /**
-     * Generate mocks from API specification only.
-     */
-    suspend fun generateFromSpec(request: MockGenerationRequest): GenerationResult = runCatching {
-        val url = request.specificationUrl
-        val content = if (url != null) {
-            downloadSpecification(url)
-        } else {
-            requireNotNull(request.specificationContent) { "Missing specification source" }
+    private val mockGenerationStrategy = strategy<SpecWithDescriptionRequest, GenerationResult>("mock-generation") {
+        
+        // Node 1: Setup and Parse Specification
+        val setupNode by node<SpecWithDescriptionRequest, MockGenerationContext>("setup") { request ->
+            val url = request.specificationUrl
+            val content = if (url != null) {
+                runCatching { URI(url).toURL().readText() }.getOrThrow()
+            } else {
+                request.specificationContent!!
+            }
+            val specification = specificationParser.parse(content, request.format)
+            MockGenerationContext(request, specification)
         }
 
-        // Parse specification
-        val specification = specificationParser.parse(content, request.format)
+        // Node 2: Initial Mock Generation
+        val generateNode by node<MockGenerationContext, MockGenerationContext>("generate") { ctx ->
+            val prompt = promptBuilder.buildSpecWithDescriptionPrompt(
+                ctx.specification, ctx.request.description, ctx.request.namespace
+            )
+            val response = llm.writeSession {
+                appendPrompt { user(prompt) }
+                requestLLM() 
+            }
+            val textResponse = (response as? Message.Assistant)?.content ?: ""
+            val mocks = aiModelService.parseModelResponse(
+                textResponse, 
+                ctx.request.namespace, 
+                SourceType.SPEC_WITH_DESCRIPTION, 
+                "${ctx.specification.title}: ${ctx.request.description}"
+            )
+            ctx.copy(mocks = mocks)
+        }
 
-        // Generate mocks
-        val generatedMocks = mockGenerator.generateFromSpecification(
-            specification = specification,
-            namespace = request.namespace,
-            options = request.options
+        // Node 3: Validation
+        val validateNode by node<MockGenerationContext, MockGenerationContext>("validate") { ctx ->
+            logger.info { "Validating ${ctx.mocks.size} mocks for jobId: ${ctx.request.jobId}" }
+            val validationResults = ctx.mocks.map { it to mockValidator.validate(it, ctx.specification) }
+            val errors = validationResults.flatMap { it.second.errors }
+            if (errors.isEmpty()) {
+                logger.info { "All mocks passed validation for jobId: ${ctx.request.jobId}" }
+            } else {
+                logger.info { "${errors.size} validation errors found for jobId: ${ctx.request.jobId}" }
+            }
+            ctx.copy(errors = errors)
+        }
+
+        // Node 4: AI-Powered Correction
+        val correctNode by node<MockGenerationContext, MockGenerationContext>("correct") { ctx ->
+            val invalidInput = ctx.mocks.map { it to mockValidator.validate(it, ctx.specification) }
+                .filter { !it.second.isValid }
+                .map { it.first to it.second.errors }
+                
+            val correctionPrompt = promptBuilder.buildCorrectionPrompt(
+                invalidMocks = invalidInput,
+                namespace = ctx.request.namespace,
+                specification = ctx.specification
+            )
+            val response = llm.writeSession {
+                appendPrompt { user(correctionPrompt) }
+                requestLLM()
+            }
+            val textResponse = (response as? Message.Assistant)?.content ?: ""
+            val correctedMocks = aiModelService.parseModelResponse(
+                textResponse, 
+                ctx.request.namespace, 
+                SourceType.REFINEMENT, 
+                "Correction for ${ctx.request.namespace.displayName()}"
+            )
+            
+            val validMocks = ctx.mocks.filter { mockValidator.validate(it, ctx.specification).isValid }
+            ctx.copy(mocks = validMocks + correctedMocks, attempt = ctx.attempt + 1)
+        }
+
+        // Transitions
+        edge(nodeStart forwardTo setupNode)
+        edge(setupNode forwardTo generateNode)
+        
+        // If validation is disabled, go straight to finish
+        edge(generateNode forwardTo nodeFinish onCondition { ctx -> !ctx.request.options.enableValidation }
+            transformed { ctx -> GenerationResult.success(ctx.request.jobId, ctx.mocks) }
         )
-
-        // Store generated mocks
-        // generationStorage.storeGeneratedMocks(generatedMocks, request.jobId)
-
-        GenerationResult.success(request.jobId, generatedMocks)
-
-    }.onFailure { e ->
-        logger.error(e) { "Generation from spec failed for jobId: ${request.jobId}" }
-    }.getOrElse { e ->
-        GenerationResult.failure(request.jobId, e.message ?: "Unknown error occurred")
-    }
-
-    /**
-     * Generate mocks from natural language description.
-     */
-    suspend fun generateFromDescription(request: NaturalLanguageRequest): GenerationResult = runCatching {
-        // Get existing specification context if requested
-        val existingSpec = if (request.useExistingSpec) {
-            generationStorage.getSpecification(request.namespace)
-        } else null
-
-        val enhancedContext = if (existingSpec != null) {
-            request.context + ("existingSpecification" to existingSpec.toString())
-        } else request.context
-
-        // Generate mocks using AI
-        val generatedMocks = aiModelService.generateMockFromDescription(
-            description = request.description,
-            namespace = request.namespace,
-            context = enhancedContext
+        
+        // Otherwise, go to validateNode
+        edge(generateNode forwardTo validateNode onCondition { ctx -> ctx.request.options.enableValidation })
+        
+        edge(validateNode forwardTo nodeFinish 
+            onCondition { ctx -> ctx.errors.isEmpty() || ctx.attempt > maxRetries }
+            transformed { ctx -> GenerationResult.success(ctx.request.jobId, ctx.mocks.filter { m -> !mockValidator.validate(m, ctx.specification).isFatal }) }
         )
-
-        // Store generated mocks
-        // generationStorage.storeGeneratedMocks(generatedMocks, request.jobId)
-
-        GenerationResult.success(request.jobId, generatedMocks)
-
-    }.onFailure { e ->
-        logger.error(e) { "Generation from description failed for jobId: ${request.jobId}" }
-    }.getOrElse { e ->
-        GenerationResult.failure(request.jobId, e.message ?: "Unknown error occurred")
+        
+        edge(validateNode forwardTo correctNode onCondition { ctx -> ctx.errors.isNotEmpty() && ctx.attempt <= maxRetries })
+        edge(correctNode forwardTo validateNode)
     }
 
     /**
      * Generate mocks from API specification enhanced with natural language.
      */
-    suspend fun generateFromSpecWithDescription(request: SpecWithDescriptionRequest): GenerationResult = runCatching {
-        // Parse specification first
-        val url = request.specificationUrl
-        val content = if (url != null) {
-            downloadSpecification(url)
-        } else {
-            requireNotNull(request.specificationContent) { "Missing specification source" }
-        }
-
-        val specification = specificationParser.parse(content, request.format)
-
-        // Use AI service to enhance generation with natural language context
-        val enhancedMocks = aiModelService.generateMockFromSpecWithDescription(
-            specification = specification,
-            description = request.description,
-            namespace = request.namespace
-        )
-
-        // Store generated mocks
-        // generationStorage.storeGeneratedMocks(enhancedMocks, request.jobId)
-
-        GenerationResult.success(request.jobId, enhancedMocks)
-
-    }.onFailure { e ->
-        logger.error(e) { "Generation from spec with description failed for jobId: ${request.jobId}" }
-    }.getOrElse { e ->
-        GenerationResult.failure(request.jobId, e.message ?: "Unknown error occurred")
-    }
-
-    /**
-     * Refine an existing mock based on natural language instructions.
-     */
-    suspend fun refineMock(existingMock: GeneratedMock, refinementRequest: String): GeneratedMock = runCatching {
-        // Use AI service to refine the mock
-        aiModelService.refineMock(existingMock, refinementRequest)
-    }.onFailure { e ->
-        logger.warn(e) { "Refinement failed for mock: ${existingMock.id}" }
-    }.getOrElse {
-        // Return original mock if refinement fails
-        existingMock
-    }
-
-    private fun downloadSpecification(url: String): String = runCatching {
-        URI(url).toURL().readText()
-    }.onFailure { e ->
-        logger.error(e) { "Failed to download specification from URL: $url" }
-    }.getOrElse { e ->
-        require(false) { "Failed to download specification from URL: $url. Error: ${e.message}" }
-        ""
+    suspend fun generateFromSpecWithDescription(request: SpecWithDescriptionRequest): GenerationResult {
+        logger.info { "Starting mock generation strategy for jobId: ${request.jobId}" }
+        return aiModelService.runStrategy(mockGenerationStrategy, request)
     }
 }

@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/api/users/123"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "id": "123",
+      "name": "John Doe"
+    }
+  }
+}

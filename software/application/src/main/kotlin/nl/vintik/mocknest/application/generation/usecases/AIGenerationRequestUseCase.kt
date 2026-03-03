@@ -1,8 +1,8 @@
 package nl.vintik.mocknest.application.generation.usecases
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
+import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatusCode
 import org.springframework.util.LinkedMultiValueMap
 
 private val logger = KotlinLogging.logger {}
-private val mapper = jacksonObjectMapper()
 
 class AIGenerationRequestUseCase(
     private val generateFromSpecWithDescriptionUseCase: GenerateMocksFromSpecWithDescriptionUseCase

@@ -1,22 +1,6 @@
 package nl.vintik.mocknest.domain.generation
 
 // Request DTOs
-data class GenerateFromSpecRequest(
-    val namespace: MockNamespace,
-    val specification: String? = null,
-    val specificationUrl: String? = null,
-    val format: SpecificationFormat,
-    val options: GenerationOptions = GenerationOptions.default()
-)
-
-data class GenerateFromDescriptionRequest(
-    val namespace: MockNamespace,
-    val description: String,
-    val useExistingSpec: Boolean = false,
-    val context: Map<String, String> = emptyMap(),
-    val options: GenerationOptions = GenerationOptions.default()
-)
-
 data class GenerateFromSpecWithDescriptionRequest(
     val namespace: MockNamespace,
     val specification: String? = null,
@@ -38,22 +22,6 @@ data class GenerationResponse(
 
 data class MocksResponse(
     val mappings: List<Any>
-)
-
-data class JobStatusResponse(
-    val jobId: String,
-    val status: String,
-    val createdAt: String,
-    val completedAt: String? = null,
-    val error: String? = null,
-    val mocksGenerated: Int = 0
-)
-
-data class HealthResponse(
-    val status: String,
-    val services: Map<String, String> = emptyMap(),
-    val error: String? = null,
-    val timestamp: String
 )
 
 /**

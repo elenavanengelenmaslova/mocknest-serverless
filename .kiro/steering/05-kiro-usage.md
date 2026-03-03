@@ -250,6 +250,8 @@ Follow clean architecture principles by developing in this sequence:
   - Use `@Serializable` data classes for JSON handling
   - Use `Json.encodeToString()` and `Json.decodeFromString()` for serialization
   - Only fall back to Jackson when integrating with libraries that require it (like WireMock)
+  - When Jackson is required, reuse the shared `mapper` if available instead of creating new instances.
+  - If a shared mapper is not available, create one with `jacksonObjectMapper()` and not `ObjectMapper()`, unless a specific WireMock-provided mapper is required.
 - Reuse the ObjectStorage-backed abstractions for persistence so FILES and MAPPINGS stay in object storage (and never fall back to local disk); extend the WireMock filters instead of bypassing them when manipulating mappings.
 
 ### Unit Testing Standards
@@ -312,6 +314,14 @@ Follow clean architecture principles by developing in this sequence:
       // Test suspend functions directly without runBlocking
       val result = suspendingService.processRequest(request)
       assertEquals(expectedResult, result)
+  }
+  ```
+- Avoid using `suspend` in unit test functions where it is unnecessary.
+  ```kotlin
+  // Avoid this if nothing inside is suspending
+  @Test
+  suspend fun `Given constants When calculating Then should be correct`() {
+  assertEquals(4, 2 + 2)
   }
   ```
 - **Use kotlinx-coroutines-test library** for advanced coroutine testing scenarios:

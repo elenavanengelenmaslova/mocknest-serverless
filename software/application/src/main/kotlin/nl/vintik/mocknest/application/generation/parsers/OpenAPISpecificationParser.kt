@@ -31,27 +31,27 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
     override fun supports(format: SpecificationFormat): Boolean =
         format in listOf(SpecificationFormat.OPENAPI_3, SpecificationFormat.SWAGGER_2)
 
-    override suspend fun validate(content: String, format: SpecificationFormat): ValidationResult = runCatching {
+    override suspend fun validate(content: String, format: SpecificationFormat): nl.vintik.mocknest.domain.generation.ValidationResult = runCatching {
         val parseResult = OpenAPIV3Parser().readContents(content)
 
         if (parseResult.openAPI == null) {
-            ValidationResult.invalid(
+            nl.vintik.mocknest.domain.generation.ValidationResult.invalid(
                 listOf(
                     ValidationError("Failed to parse OpenAPI specification")
                 )
             )
         } else if (parseResult.messages.isNotEmpty()) {
-            ValidationResult(
+            nl.vintik.mocknest.domain.generation.ValidationResult(
                 isValid = true,
                 warnings = parseResult.messages.map { ValidationWarning(it) }
             )
         } else {
-            ValidationResult.valid()
+            nl.vintik.mocknest.domain.generation.ValidationResult.valid()
         }
     }.onFailure { e ->
         logger.warn(e) { "Validation failed" }
     }.getOrElse { e ->
-        ValidationResult.invalid(
+        nl.vintik.mocknest.domain.generation.ValidationResult.invalid(
             listOf(
                 ValidationError("Validation failed: ${e.message}")
             )

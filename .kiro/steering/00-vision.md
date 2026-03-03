@@ -69,6 +69,7 @@ Over time, MockNest Serverless should evolve into an intelligent mock management
 - **API Lifecycle Management**: Provide insights into API deprecation, versioning, and migration impacts on mock coverage
 
 **Expanding Protocol and Platform Support:**
+- **Streaming Response Support**: Add support for Server-Sent Events (SSE) and streaming HTTP responses to enable testing of real-time and AI-powered applications that generate responses incrementally
 - **MCP (Model Context Protocol) Mocking**: Support AI agent testing scenarios with specialized mock capabilities
 - **Multi-Cloud Deployment**: Extend beyond AWS to support other cloud platforms while maintaining the same intelligent capabilities
 - **Advanced Protocol Support**: Add support for emerging protocols and interaction patterns as they become prevalent

@@ -5,6 +5,16 @@ This task list implements the refactoring from a monolithic Lambda deployment to
 
 ## Task List
 
+### Phase 0: AI Specification Code Refactoring (Prerequisite)
+
+- [ ] 0.1 Complete AI specification code refactoring bugfix
+  - Execute all tasks from `.kiro/specs/ai-specification-code-refactoring/tasks.md`
+  - Move business logic from BedrockServiceAdapter to application/domain layers
+  - Ensure only Bedrock-specific AWS SDK code remains in infrastructure layer
+  - Verify all tests pass after refactoring
+  - Validates: Clean architecture principles, separation of concerns
+  - **MUST BE COMPLETED BEFORE Phase 1**
+
 ### Phase 1: Create Lambda Handler Classes
 
 - [ ] 1.1 Create RuntimeLambdaHandler class

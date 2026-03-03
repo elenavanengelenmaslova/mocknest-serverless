@@ -1,0 +1,15 @@
+{
+  "id": "test-mapping-id-json",
+  "persistent": true,
+  "request": {
+    "method": "GET",
+    "url": "/test-json"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "message": "Hello JSON",
+      "count": 42
+    }
+  }
+}

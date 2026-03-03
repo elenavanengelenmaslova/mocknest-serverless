@@ -3,40 +3,6 @@ package nl.vintik.mocknest.domain.generation
 import java.util.*
 
 /**
- * Request for generating mocks from API specifications.
- */
-data class MockGenerationRequest(
-    val jobId: String = UUID.randomUUID().toString(),
-    val namespace: MockNamespace,
-    val specificationContent: String? = null,
-    val specificationUrl: String? = null,
-    val format: SpecificationFormat,
-    val options: GenerationOptions = GenerationOptions.default()
-) {
-    init {
-        require(jobId.isNotBlank()) { "Job ID cannot be blank" }
-        require(specificationContent?.isNotBlank()?: false || specificationUrl?.isNotBlank()?: false) { "One of Specification content or URL must be present" }
-    }
-}
-
-/**
- * Request for generating mocks from natural language descriptions.
- */
-data class NaturalLanguageRequest(
-    val jobId: String = UUID.randomUUID().toString(),
-    val namespace: MockNamespace,
-    val description: String,
-    val useExistingSpec: Boolean = false,    // Use stored API spec as context
-    val context: Map<String, String> = emptyMap(),
-    val options: GenerationOptions = GenerationOptions.default()
-) {
-    init {
-        require(jobId.isNotBlank()) { "Job ID cannot be blank" }
-        require(description.isNotBlank()) { "Description cannot be blank" }
-    }
-}
-
-/**
  * Request for generating mocks from API specification + natural language enhancement.
  */
 data class SpecWithDescriptionRequest(
@@ -47,7 +13,7 @@ data class SpecWithDescriptionRequest(
     val format: SpecificationFormat,
     val description: String,
     val options: GenerationOptions = GenerationOptions.default()
-) {
+ ) {
     init {
         require(jobId.isNotBlank()) { "Job ID cannot be blank" }
         require(specificationContent?.isNotBlank()?: false || specificationUrl?.isNotBlank()?: false) { "One of Specification content or URL must be present" }
@@ -66,7 +32,7 @@ enum class SpecificationFormat {
  * Options for controlling mock generation behavior.
  */
 data class GenerationOptions(
-    val brave: Boolean = true,
+    val enableValidation: Boolean = true
 ) {
     companion object {
         fun default() = GenerationOptions()

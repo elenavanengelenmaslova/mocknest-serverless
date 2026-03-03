@@ -19,25 +19,26 @@ const val BASE_URL = "http://mocknest.internal"
 const val ADMIN_PREFIX = "/__admin/"
 const val MOCKNEST_PREFIX = "/mocknest/"
 const val AI_PREFIX = "/ai/generation/"
-const val TEST_AI_PREFIX = "/ai/test/"
 
 private val logger = KotlinLogging.logger {}
 
 fun interface HandleClientRequest {
     operator fun invoke(httpRequest: HttpRequest): HttpResponse
 }
+
 fun interface HandleAdminRequest {
     operator fun invoke(path: String, httpRequest: HttpRequest): HttpResponse
 }
+
 fun interface HandleAIGenerationRequest {
     operator fun invoke(path: String, httpRequest: HttpRequest): HttpResponse
 }
-fun interface HandleTestAgentRequest {
-    operator fun invoke(path: String, httpRequest: HttpRequest): HttpResponse
-}
 
-
-fun forwardToDirectCallHttpServer(typeCall: String, httpRequest: HttpRequest, directCall: (ImmutableRequest) -> Response): HttpResponse {
+fun forwardToDirectCallHttpServer(
+    typeCall: String,
+    httpRequest: HttpRequest,
+    directCall: (ImmutableRequest) -> Response
+): HttpResponse {
     logger.info { "Forwarding $typeCall request with path: ${httpRequest.path}" }
 
     val queryString = httpRequest.queryParameters.entries

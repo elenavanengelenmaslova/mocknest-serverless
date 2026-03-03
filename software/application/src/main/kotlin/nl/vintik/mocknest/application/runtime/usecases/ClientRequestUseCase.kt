@@ -12,7 +12,7 @@ class ClientRequestUseCase(private val directCallHttpServer: DirectCallHttpServe
         return forwardToDirectCallHttpServer(
             "client request",
             httpRequest
-        ) { httpRequest -> directCallHttpServer.stubRequest(httpRequest) }
+        ) { wireMockRequest -> directCallHttpServer.stubRequest(wireMockRequest) }
 
     }
 }

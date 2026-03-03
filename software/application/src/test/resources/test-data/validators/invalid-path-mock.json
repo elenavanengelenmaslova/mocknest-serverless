@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/api/nonexistent/endpoint"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "data": "test"
+    }
+  }
+}

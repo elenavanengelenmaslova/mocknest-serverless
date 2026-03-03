@@ -2,17 +2,13 @@ package nl.vintik.mocknest.infra.aws.core.ai
 
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import nl.vintik.mocknest.application.generation.agent.MockGenerationFunctionalAgent
-import nl.vintik.mocknest.application.generation.agent.TestKoogAgent
-import nl.vintik.mocknest.application.generation.generators.RealisticTestDataGenerator
-import nl.vintik.mocknest.application.generation.generators.WireMockMappingGenerator
 import nl.vintik.mocknest.application.generation.interfaces.*
 import nl.vintik.mocknest.application.generation.parsers.CompositeSpecificationParserImpl
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
 import nl.vintik.mocknest.application.generation.usecases.*
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
-import nl.vintik.mocknest.application.runtime.usecases.HandleTestAgentRequest
 import nl.vintik.mocknest.infra.aws.generation.ai.BedrockServiceAdapter
-import nl.vintik.mocknest.infra.aws.generation.ai.BedrockTestKoogAgent
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
@@ -46,47 +42,24 @@ class AIGenerationConfiguration {
     }
 
     @Bean
-    fun wireMockMappingGenerator(testDataGenerator: TestDataGeneratorInterface): MockGeneratorInterface {
-        return WireMockMappingGenerator(testDataGenerator)
-    }
-
-    @Bean
-    fun realisticTestDataGenerator(): TestDataGeneratorInterface {
-        return RealisticTestDataGenerator()
-    }
-
-    @Bean
     fun bedrockServiceAdapter(
         bedrockClient: BedrockRuntimeClient,
-        modelConfiguration: ModelConfiguration
-    ): AIModelServiceInterface {
-        return BedrockServiceAdapter(bedrockClient, modelConfiguration)
-    }
-
-    @Bean
-    fun bedrockTestKoogAgent(
         modelConfiguration: ModelConfiguration,
-        @org.springframework.beans.factory.annotation.Value("\${aws.region}")
-        region: String
-    ): TestKoogAgent {
-        return BedrockTestKoogAgent(modelConfiguration, region)
+        promptBuilder: nl.vintik.mocknest.application.generation.services.PromptBuilderService
+    ): AIModelServiceInterface {
+        return BedrockServiceAdapter(bedrockClient, modelConfiguration, promptBuilder)
     }
 
     @Bean
-    fun mockGenerationFunctionalAgent(
+    fun mockGenerationAgent(
+        @Value($$"${bedrock.generation.maxRetries:1}")
+        maxRetries: Int,
         aiModelService: AIModelServiceInterface,
         specificationParser: SpecificationParserInterface,
-        mockGenerator: MockGeneratorInterface,
-        generationStorage: GenerationStorageInterface,
+        mockValidator: MockValidatorInterface,
+        promptBuilder: nl.vintik.mocknest.application.generation.services.PromptBuilderService
     ): MockGenerationFunctionalAgent {
-        return MockGenerationFunctionalAgent(aiModelService, specificationParser, mockGenerator, generationStorage)
-    }
-
-    @Bean
-    fun generateMocksFromSpecUseCase(
-        mockGenerationAgent: MockGenerationFunctionalAgent,
-    ): GenerateMocksFromSpecUseCase {
-        return GenerateMocksFromSpecUseCase(mockGenerationAgent)
+        return MockGenerationFunctionalAgent(aiModelService, specificationParser, mockValidator, promptBuilder, maxRetries)
     }
 
     @Bean
@@ -96,12 +69,6 @@ class AIGenerationConfiguration {
         return GenerateMocksFromSpecWithDescriptionUseCase(mockGenerationAgent)
     }
 
-    @Bean
-    fun generateMocksFromDescriptionUseCase(
-        mockGenerationAgent: MockGenerationFunctionalAgent,
-    ): GenerateMocksFromDescriptionUseCase {
-        return GenerateMocksFromDescriptionUseCase(mockGenerationAgent)
-    }
 
     @Bean
     fun aiGenerationRequestUseCase(
@@ -110,12 +77,5 @@ class AIGenerationConfiguration {
         return AIGenerationRequestUseCase(
             generateFromSpecWithDescriptionUseCase
         )
-    }
-
-    @Bean
-    fun testAgentRequestUseCase(
-        testKoogAgent: TestKoogAgent,
-    ): HandleTestAgentRequest {
-        return TestAgentRequestUseCase(testKoogAgent)
     }
 }

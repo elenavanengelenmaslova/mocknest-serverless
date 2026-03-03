@@ -2,7 +2,7 @@ package nl.vintik.mocknest.application.runtime.extensions
 
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.application.runtime.store.adapters.FILES_PREFIX
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import nl.vintik.mocknest.application.core.mapper
 import com.github.tomakehurst.wiremock.http.HttpHeaders
 import com.github.tomakehurst.wiremock.http.ImmutableRequest
 import com.github.tomakehurst.wiremock.http.RequestMethod
@@ -20,7 +20,6 @@ class NormalizeMappingBodyFilterTest {
 
     private val mockStorage: ObjectStorageInterface = mockk(relaxed = true)
     private val filter = NormalizeMappingBodyFilter(mockStorage)
-    private val mapper = jacksonObjectMapper()
 
     @AfterEach
     fun tearDown() {
@@ -101,7 +100,7 @@ class NormalizeMappingBodyFilterTest {
     inner class `Filter Processing` {
 
         @Test
-        suspend fun `Given non-save mapping request When filtering Then should not call storage`() {
+        fun `Given non-save mapping request When filtering Then should not call storage`() {
             // Given
             val request = ImmutableRequest.create()
                 .withAbsoluteUrl("http://localhost:8080/__admin/requests")
@@ -156,6 +155,29 @@ class NormalizeMappingBodyFilterTest {
         }
 
         @Test
+        suspend fun `Given mapping with jsonBody When normalizing Then should externalize body to JSON file`() {
+            // Given
+            val mappingJson = loadTestData("mapping-with-json-body.json")
+            coEvery { mockStorage.save(any(), any()) } returns "saved"
+
+            // When
+            val result = filter.normalizeMappingToBodyFile(mappingJson)
+
+            // Then
+            val resultNode = mapper.readTree(result)
+            assertEquals("test-mapping-id-json.json", resultNode["response"]["bodyFileName"].asText())
+            assertEquals("application/json", resultNode["response"]["headers"]["Content-Type"].asText())
+            assertFalse(resultNode["response"].has("jsonBody"))
+
+            coVerify {
+                mockStorage.save(
+                    "${FILES_PREFIX}test-mapping-id-json.json",
+                    "{\"message\":\"Hello JSON\",\"count\":42}"
+                )
+            }
+        }
+
+        @Test
         suspend fun `Given mapping without ID When normalizing Then should generate UUID and externalize body`() {
             // Given
             val mappingJson = loadTestData("mapping-without-id.json")
@@ -192,8 +214,7 @@ class NormalizeMappingBodyFilterTest {
         @ValueSource(strings = [
             "mapping-with-existing-bodyfilename.json",
             "mapping-transient.json",
-            "mapping-without-body.json",
-            "mapping-default-persistent.json"
+            "mapping-without-body.json"
         ])
         suspend fun `Given mapping that should not be modified When normalizing Then should return unchanged`(filename: String) {
             // Given
@@ -203,8 +224,26 @@ class NormalizeMappingBodyFilterTest {
             val result = filter.normalizeMappingToBodyFile(mappingJson)
 
             // Then
-            assertEquals(mappingJson, result)
+            assertEquals(mapper.readTree(mappingJson), mapper.readTree(result))
             coVerify(exactly = 0) { mockStorage.save(any(), any()) }
+        }
+
+        @Test
+        suspend fun `Given mapping without persistent flag When normalizing Then should treat as persistent by default and normalize`() {
+            // Given
+            val mappingJson = loadTestData("mapping-default-persistent.json")
+            coEvery { mockStorage.save(any(), any()) } returns "saved"
+
+            // When
+            val result = filter.normalizeMappingToBodyFile(mappingJson)
+
+            // Then
+            val resultNode = mapper.readTree(result)
+            assertEquals("test-id.json", resultNode["response"]["bodyFileName"].asText())
+            assertEquals("application/json", resultNode["response"]["headers"]["Content-Type"].asText())
+            assertFalse(resultNode["response"].has("body"))
+
+            coVerify { mockStorage.save("${FILES_PREFIX}test-id.json", "some content") }
         }
     }
 

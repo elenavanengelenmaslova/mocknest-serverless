@@ -4,9 +4,15 @@ on:
   push:
     branches:
       - 'feature/*'
+    paths-ignore:
+      - '**.md'
+      - '.kiro/**'
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
+      - '.kiro/**'
 
 permissions:
   id-token: write
