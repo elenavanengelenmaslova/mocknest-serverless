@@ -65,6 +65,7 @@ Planned future enhancements include:
 - **Terraform CDK**: Infrastructure as Code deployment option using Terraform CDK for teams using Terraform workflows and multi-cloud scenarios
 
 ### Advanced Integration Patterns
+- Support for Server-Sent Events (SSE) and streaming HTTP responses to enable testing of real-time and AI-powered applications
 - Support for asynchronous interaction patterns, such as event-driven responses using services like Amazon EventBridge.
 - Supporting security-aware mocks, such as configurable OAuth2/JWT-style requirements per endpoint.
 - Supporting rate limiting simulation to test application resilience and retry logic.
