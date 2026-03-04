@@ -235,6 +235,15 @@ tasks {
         description = "Build both runtime and generation Lambda JARs"
         dependsOn("shadowJarRuntime", "shadowJarGeneration")
     }
+
+    assemble {
+        dependsOn("shadowJarRuntime", "shadowJarGeneration")
+    }
+
+    test {
+        // Ensure Lambda JARs are built before running verification tests
+        dependsOn("shadowJarRuntime", "shadowJarGeneration")
+    }
 }
 
 // Copy the shadowJar to deployment directory for SAM
