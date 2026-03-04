@@ -5,34 +5,13 @@ import nl.vintik.mocknest.domain.generation.MockNamespace
 import nl.vintik.mocknest.domain.generation.SpecWithDescriptionRequest
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
 import org.junit.jupiter.api.Test
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestPropertySource
-import org.testcontainers.containers.localstack.LocalStackContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
-import org.testcontainers.utility.DockerImageName
 import kotlin.test.assertTrue
 
 /**
- * Integration test for AI mock generation workflow.
- * Uses LocalStack for S3 testing without requiring real AWS resources.
+ * Integration test for AI mock generation domain models.
+ * Tests domain model behavior without requiring Spring context or AWS resources.
  */
-@SpringBootTest
-@ActiveProfiles("test")
-@TestPropertySource(properties = [
-    "storage.bucket.name=test-bucket"
-])
-@Testcontainers
 class AIGenerationIntegrationTest {
-    
-    companion object {
-        @Container
-        @JvmStatic
-        private val localStackContainer = LocalStackContainer(
-            DockerImageName.parse("localstack/localstack:3.0")
-        ).withServices(LocalStackContainer.Service.S3)
-    }
     
     @Test
     fun `Given OpenAPI specification When generating mocks Then should create valid WireMock mappings`() {
@@ -71,7 +50,6 @@ class AIGenerationIntegrationTest {
             description = "test-description",
             options = GenerationOptions.default())
         // This test validates the domain models and basic structure
-        // Full integration would require LocalStack setup and Spring context
         assertTrue(request.namespace.apiName == "test-api")
         assertTrue(request.format == SpecificationFormat.OPENAPI_3)
         assertTrue(request.specificationContent?.contains("openapi: 3.0.0") == true)

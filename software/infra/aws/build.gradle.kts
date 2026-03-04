@@ -137,6 +137,104 @@ tasks {
         exclude("io/lettuce/**")
         exclude("META-INF/services/io.lettuce.**")
     }
+    
+    register<ShadowJar>("shadowJarRuntime") {
+        group = "shadow"
+        description = "Create a minimized JAR for runtime Lambda function"
+        
+        archiveFileName.set("mocknest-runtime.jar")
+        destinationDirectory.set(file("${project.rootDir}/build/dist"))
+        
+        // Use main source set
+        from(sourceSets.main.get().output)
+        configurations = listOf(project.configurations.runtimeClasspath.get())
+        
+        // Manual dependency exclusions for runtime Lambda
+        dependencies {
+            // Exclude Bedrock SDK - not needed for runtime, only for AI generation
+            exclude(dependency("aws.sdk.kotlin:bedrockruntime"))
+        }
+        
+        // Enable automatic minimization with Shadow 9.3.2
+        minimize {
+            // Only exclude absolute essentials that minimize() might incorrectly remove
+            exclude(dependency("org.springframework.boot:spring-boot-autoconfigure"))
+            exclude(dependency("org.springframework.cloud:spring-cloud-function-context"))
+        }
+        
+        isZip64 = true
+        
+        manifest {
+            attributes["Main-Class"] = "nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication"
+            attributes["Start-Class"] = "nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication"
+        }
+        
+        // Merge service files
+        mergeServiceFiles()
+        append("META-INF/spring.handlers")
+        append("META-INF/spring.schemas")
+        append("META-INF/spring.tooling")
+        append("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
+        append("META-INF/spring.factories")
+        
+        // Exclude unnecessary files
+        exclude("META-INF/*.SF")
+        exclude("META-INF/*.DSA")
+        exclude("META-INF/*.RSA")
+        exclude("META-INF/LICENSE*")
+        exclude("META-INF/NOTICE*")
+        exclude("META-INF/maven/**")
+        exclude("module-info.class")
+    }
+    
+    register<ShadowJar>("shadowJarGeneration") {
+        group = "shadow"
+        description = "Create a minimized JAR for generation Lambda function"
+        
+        archiveFileName.set("mocknest-generation.jar")
+        destinationDirectory.set(file("${project.rootDir}/build/dist"))
+        
+        // Use main source set
+        from(sourceSets.main.get().output)
+        configurations = listOf(project.configurations.runtimeClasspath.get())
+        
+        // Enable automatic minimization with Shadow 9.3.2
+        minimize {
+            // Only exclude absolute essentials that minimize() might incorrectly remove
+            exclude(dependency("org.springframework.boot:spring-boot-autoconfigure"))
+            exclude(dependency("org.springframework.cloud:spring-cloud-function-context"))
+        }
+        
+        isZip64 = true
+        
+        manifest {
+            attributes["Main-Class"] = "nl.vintik.mocknest.infra.aws.generation.GenerationApplication"
+            attributes["Start-Class"] = "nl.vintik.mocknest.infra.aws.generation.GenerationApplication"
+        }
+        
+        // Merge service files
+        mergeServiceFiles()
+        append("META-INF/spring.handlers")
+        append("META-INF/spring.schemas")
+        append("META-INF/spring.tooling")
+        append("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
+        append("META-INF/spring.factories")
+        
+        // Exclude unnecessary files
+        exclude("META-INF/*.SF")
+        exclude("META-INF/*.DSA")
+        exclude("META-INF/*.RSA")
+        exclude("META-INF/LICENSE*")
+        exclude("META-INF/NOTICE*")
+        exclude("META-INF/maven/**")
+        exclude("module-info.class")
+    }
+    
+    register("buildAllLambdas") {
+        group = "build"
+        description = "Build both runtime and generation Lambda JARs"
+        dependsOn("shadowJarRuntime", "shadowJarGeneration")
+    }
 }
 
 // Copy the shadowJar to deployment directory for SAM

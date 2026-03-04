@@ -160,7 +160,10 @@ class S3StorageIntegrationTest {
 
     @Test
     suspend fun `Given S3 storage When clearing all objects Then should delete everything`() {
-        // Given
+        // Given - Ensure bucket is clean first
+        val existingKeys = storage.list().toList()
+        existingKeys.forEach { key -> storage.delete(key) }
+        
         val keys = listOf("mappings/m1.json", "mappings/m2.json", "__files/f1.txt", "__files/f2.txt")
 
         keys.forEach { key ->

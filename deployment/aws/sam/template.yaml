@@ -236,49 +236,92 @@ Resources:
         Application: MockNest-Serverless
 
   # Lambda function for MockNest Serverless runtime
-  MockNestFunction:
+  MockNestRuntimeFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime"
-      CodeUri: ../../../build/dist/mocknest-serverless-aws.jar
+      CodeUri: ../../../build/dist/mocknest-runtime.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
       Role: !GetAtt MockNestLambdaRole.Arn
-      ReservedConcurrentExecutions: 1
+      ReservedConcurrentExecutions: 10
       Environment:
         Variables:
           MOCKNEST_APP_REGION: !Ref AppRegion
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
-          BEDROCK_MODEL_NAME: !Ref BedrockModelName
-          BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
-          BEDROCK_INFERENCE_PREFIX: !Ref BedrockInferencePrefix
-          SPRING_CLOUD_FUNCTION_DEFINITION: "router"
-          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.Application"
+          SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
+          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
       DeadLetterQueue:
         Type: SQS
         TargetArn: !GetAtt MockNestDLQ.Arn
       Tags:
         Application: MockNest-Serverless
+        Component: Runtime
       Events:
-        AllRoutes:
+        AdminRoutes:
           Type: Api
           Properties:
             RestApiId: !Ref MockNestApi
-            Path: /{proxy+}
+            Path: /__admin/{proxy+}
             Method: ANY
-        RootRoute:
+        MockRoutes:
           Type: Api
           Properties:
             RestApiId: !Ref MockNestApi
-            Path: /
+            Path: /mocknest/{proxy+}
             Method: ANY
 
-  # CloudWatch Log Group for Lambda
-  LambdaLogGroup:
+  # Lambda function for MockNest Generation
+  MockNestGenerationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-generation"
+      CodeUri: ../../../build/dist/mocknest-generation.jar
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
+      Role: !GetAtt MockNestLambdaRole.Arn
+      ReservedConcurrentExecutions: 5
+      Timeout: 300
+      Environment:
+        Variables:
+          MOCKNEST_APP_REGION: !Ref AppRegion
+          MOCK_STORAGE_BUCKET: !Ref MockStorage
+          MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
+          SPRING_CLOUD_FUNCTION_DEFINITION: "generationRouter"
+          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.generation.GenerationApplication"
+          JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+          MOCKNEST_BEDROCK_MODEL_NAME: !Ref BedrockModelName
+          MOCKNEST_BEDROCK_INFERENCE_PREFIX: !Ref BedrockInferencePrefix
+          MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt MockNestDLQ.Arn
+      Tags:
+        Application: MockNest-Serverless
+        Component: Generation
+      Events:
+        AIRoutes:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MockNestApi
+            Path: /ai/{proxy+}
+            Method: ANY
+
+  # CloudWatch Log Group for Runtime Lambda
+  RuntimeLambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-runtime"
+      RetentionInDays: 30
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+
+  # CloudWatch Log Group for Generation Lambda
+  GenerationLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-generation"
       RetentionInDays: 30
       Tags:
         - Key: Application
@@ -303,11 +346,17 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-storage-bucket"
 
-  MockNestFunctionName:
+  MockNestRuntimeFunctionName:
     Description: "Lambda function name for MockNest runtime"
-    Value: !Ref MockNestFunction
+    Value: !Ref MockNestRuntimeFunction
     Export:
-      Name: !Sub "${AWS::StackName}-function-name"
+      Name: !Sub "${AWS::StackName}-runtime-function-name"
+
+  MockNestGenerationFunctionName:
+    Description: "Lambda function name for MockNest generation"
+    Value: !Ref MockNestGenerationFunction
+    Export:
+      Name: !Sub "${AWS::StackName}-generation-function-name"
 
   Region:
     Description: "AWS region where MockNest is deployed"
