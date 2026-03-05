@@ -8,6 +8,10 @@ plugins {
     id("com.gradleup.shadow")
 }
 
+springBoot {
+    mainClass.set("nl.vintik.mocknest.infra.aws.ApplicationKt")
+}
+
 val smithyKotlinVersion = "1.6.2"
 
 dependencies {
@@ -85,6 +89,14 @@ configurations {
 }
 
 tasks {
+    bootJar {
+        enabled = false
+    }
+
+    bootRun {
+        enabled = false
+    }
+
     val shadowJar by getting(ShadowJar::class) {
         archiveFileName.set("mocknest-serverless-aws.jar")
         destinationDirectory.set(file("${project.rootDir}/build/dist"))
