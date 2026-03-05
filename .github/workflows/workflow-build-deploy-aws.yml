@@ -74,8 +74,24 @@ jobs:
       - name: Setup SAM CLI
         uses: aws-actions/setup-sam@v2
         
-      - name: Build application
-        run: ./gradlew clean assemble
+      - name: Build Lambda JARs
+        run: |
+          ./gradlew clean buildAllLambdas --no-build-cache
+          echo "Build completed, verifying JAR files:"
+          ls -lh build/dist/
+          
+      - name: Verify JAR artifacts
+        run: |
+          if [ ! -f "build/dist/mocknest-runtime.jar" ]; then
+            echo "ERROR: mocknest-runtime.jar not found"
+            exit 1
+          fi
+          if [ ! -f "build/dist/mocknest-generation.jar" ]; then
+            echo "ERROR: mocknest-generation.jar not found"
+            exit 1
+          fi
+          echo "✓ Runtime JAR: $(du -h build/dist/mocknest-runtime.jar | cut -f1)"
+          echo "✓ Generation JAR: $(du -h build/dist/mocknest-generation.jar | cut -f1)"
         
       - name: Build and deploy with SAM
         run: |

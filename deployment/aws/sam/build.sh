@@ -4,11 +4,11 @@ set -e
 echo "Building MockNest Serverless..."
 
 # Navigate to project root
-cd "$(dirname "$0")/../.."
+cd "$(dirname "$0")/../../.."
 
-# Build both Lambda JARs
+# Build both Lambda JARs using the buildAllLambdas task
 echo "Building Lambda JARs..."
-./gradlew clean buildAllLambdas
+./gradlew clean buildAllLambdas --no-build-cache
 
 # Verify both JARs exist
 echo "Verifying JAR artifacts..."
