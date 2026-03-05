@@ -69,13 +69,19 @@ jobs:
           echo "✓ Runtime JAR: $(du -h build/dist/mocknest-runtime.jar | cut -f1)"
           echo "✓ Generation JAR: $(du -h build/dist/mocknest-generation.jar | cut -f1)"
   
-      - name: Build and deploy with SAM
+      - name: Build with SAM
+        run: |
+          cd deployment/aws/sam
+          echo "📦 Building SAM application..."
+          sam build
+          
+      - name: Deploy with SAM
         run: |
           cd deployment/aws/sam
           echo "🚀 Starting SAM deployment..."
           
-          # Run SAM deploy and capture both exit code and output
-          if sam deploy --config-env default --no-confirm-changeset; then
+          # Run SAM deploy with force-upload to ensure new JARs are used
+          if sam deploy --config-env default --no-confirm-changeset --force-upload; then
             echo "✅ Deployment completed successfully"
           else
             EXIT_CODE=$?
