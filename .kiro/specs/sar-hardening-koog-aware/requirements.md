@@ -2,9 +2,17 @@
 
 ## Introduction
 
-This document defines requirements for hardening MockNest Serverless for public AWS Serverless Application Repository (SAR) publication while maintaining full Koog AI framework integration. The feature addresses critical issues with region parameter handling, simplifies user-facing configuration, implements intelligent inference prefix selection, tightens security permissions, and adds necessary SAR metadata.
+This document defines requirements for hardening MockNest Serverless for public AWS Serverless Application Repository (SAR) publication while maintaining full Koog AI framework integration. The feature addresses critical issues with region parameter handling, simplifies user-facing configuration, implements intelligent inference prefix selection, tightens security permissions, adds necessary SAR metadata, and ensures comprehensive documentation and testing.
 
-The primary goal is to make MockNest Serverless production-ready for public SAR distribution by removing misleading configuration parameters, automating complex AWS Bedrock inference profile selection, and ensuring least-privilege security posture.
+The primary goal is to make MockNest Serverless production-ready for public SAR distribution by:
+- Removing misleading configuration parameters
+- Automating complex AWS Bedrock inference profile selection
+- Ensuring least-privilege security posture
+- Implementing AI features as optional with graceful degradation
+- Meeting all AWS SAR technical publication requirements
+- Providing comprehensive documentation for different user personas
+- Establishing tested configuration boundaries with soft restrictions
+- Validating deployment across multiple regions before public release
 
 ## Glossary
 
@@ -14,9 +22,20 @@ The primary goal is to make MockNest Serverless production-ready for public SAR 
 - **BedrockModels**: Koog enum containing supported Bedrock model definitions
 - **CloudFormation**: AWS infrastructure-as-code service that deploys SAR applications
 - **Deploy_Region**: The AWS region where the CloudFormation stack is deployed (selected by user in AWS Console)
+- **Publish_Region**: The AWS region from which the SAR application is published (must be us-east-1 or us-east-2 for public apps)
 - **Model_Capability**: Whether a specific Bedrock model supports global inference profiles or only geo-specific profiles
 - **Geo_Prefix**: Region-specific inference profile prefix (eu, us, ap, etc.) derived from deploy region
 - **InferencePrefixResolver**: Component that automatically determines the correct inference profile prefix based on deploy region and model capabilities
+- **Core_Runtime**: The base WireMock functionality (mock serving, S3 persistence, admin API) that works without AI features
+- **AI_Features**: Optional AI-powered mock generation capabilities that require Amazon Bedrock access
+- **Tested_Regions**: AWS regions where MockNest has been thoroughly tested (us-east-1, eu-west-1, ap-southeast-1)
+- **Officially_Supported**: Features and configurations that are tested, documented, and supported by the maintainers
+- **Experimental**: Features and configurations that may work but are not officially tested or supported
+- **Soft_Restriction**: Documentation-based guidance on supported configurations without technical enforcement
+- **Private_SAR**: SAR application shared only with specific AWS accounts for testing before public release
+- **Public_SAR**: SAR application available to all AWS users in the public SAR catalog
+- **SemanticVersion**: Version number following semantic versioning format (MAJOR.MINOR.PATCH) required for public SAR apps
+- **OSI_License**: Open Source Initiative approved license required for public SAR applications
 
 ## Requirements
 
@@ -156,3 +175,122 @@ The primary goal is to make MockNest Serverless production-ready for public SAR 
 2. THE application.properties SHALL NOT reference `MOCKNEST_APP_REGION` environment variable
 3. IF AWS SDK clients need region configuration, THEN THE Configuration SHALL use `AWS_REGION` environment variable directly
 4. THE BedrockConfiguration SHALL configure `BedrockRuntimeClient` to use the region from `AWS_REGION`
+
+### Requirement 11: Implement AI Features Toggle
+
+**User Story:** As a SAR user, I want to deploy MockNest without AI features enabled by default, so that I can use the core runtime in any region without Bedrock dependencies.
+
+#### Acceptance Criteria
+
+1. THE SAM_Template SHALL contain an `EnableAIFeatures` parameter with allowed values: `true`, `false`
+2. THE SAM_Template SHALL set the default value of `EnableAIFeatures` to `false`
+3. WHEN `EnableAIFeatures` is `false`, THE Lambda_Configuration SHALL NOT set Bedrock-related environment variables
+4. WHEN `EnableAIFeatures` is `false`, THE Runtime SHALL NOT attempt to initialize Bedrock clients
+5. WHEN `EnableAIFeatures` is `false`, THE AI generation endpoints SHALL return HTTP 501 (Not Implemented) with a message explaining AI features are disabled
+6. WHEN `EnableAIFeatures` is `true`, THE Runtime SHALL initialize Bedrock clients and enable AI generation endpoints
+7. THE Core_Runtime (WireMock mock serving, S3 persistence, admin API) SHALL function correctly regardless of `EnableAIFeatures` setting
+
+### Requirement 12: Implement Soft Model Restrictions
+
+**User Story:** As a SAR user, I want clear guidance on which Bedrock models are officially supported, while retaining flexibility to experiment with other models.
+
+#### Acceptance Criteria
+
+1. THE SAM_Template `BedrockModelName` parameter SHALL set `AmazonNovaPro` as the default value
+2. THE SAM_Template `BedrockModelName` parameter description SHALL indicate "Amazon Nova Pro is officially supported and tested"
+3. THE SAM_Template `BedrockModelName` parameter SHALL allow other Koog-supported model names as valid values
+4. THE Documentation SHALL clearly state that only Amazon Nova Pro is officially supported
+5. THE Documentation SHALL indicate that other models are experimental and may not work in all regions
+6. THE Health_Endpoint response SHALL include a field indicating whether the current model is officially supported
+
+### Requirement 13: Add SAR Publication Requirements
+
+**User Story:** As a publisher, I want to ensure all AWS SAR technical requirements are met, so that the application can be published successfully to the public SAR catalog.
+
+#### Acceptance Criteria
+
+1. THE SAM_Template SHALL include a `SemanticVersion` property in the `Metadata: AWS::ServerlessRepo::Application` section
+2. THE SemanticVersion SHALL follow semantic versioning format (e.g., "1.0.0")
+3. THE Repository SHALL contain a LICENSE file with an OSI-approved open source license
+4. THE Repository SHALL contain a README.md file describing application usage and configuration
+5. THE S3_Bucket used for SAM packaging SHALL have a bucket policy granting `serverlessrepo.amazonaws.com` read permissions
+6. THE SAR_Publication SHALL be performed from us-east-1 or us-east-2 region (AWS requirement for public apps)
+7. THE SAM_Template SHALL include all required metadata fields: Name, Description, Author, LicenseUrl, ReadmeUrl, HomePageUrl, SourceCodeUrl, Labels
+
+### Requirement 14: Implement Private SAR Testing Requirements
+
+**User Story:** As a publisher, I want to thoroughly test the SAR deployment in a fresh AWS account before making it public, so that users have a smooth deployment experience.
+
+#### Acceptance Criteria
+
+1. THE Application SHALL be published as a private SAR application before public release
+2. THE Private_SAR_Application SHALL be tested by deploying from a fresh AWS account (not the publisher account)
+3. THE Testing SHALL cover deployment to us-east-1, eu-west-1, and ap-southeast-1 regions
+4. THE Testing SHALL verify core runtime functionality (mock creation, serving, persistence) in all three regions
+5. THE Testing SHALL verify AI features (if enabled) work correctly in all three regions with Amazon Nova Pro
+6. THE Testing SHALL verify the health check endpoint returns correct configuration information
+7. THE Testing SHALL verify all CloudFormation outputs are correct and accessible
+8. THE Testing SHALL verify API Gateway endpoints are accessible with the generated API key
+9. WHEN all tests pass in all three regions, THEN THE Application MAY be switched to public sharing
+
+### Requirement 15: Document Tested Regions and Features
+
+**User Story:** As a SAR user, I want to know which regions and features have been tested, so that I can deploy with confidence or understand the risks of deploying to untested regions.
+
+#### Acceptance Criteria
+
+1. THE README SHALL contain a "Tested Configuration" section listing officially tested regions
+2. THE Tested_Regions SHALL include: us-east-1 (N. Virginia), eu-west-1 (Ireland), ap-southeast-1 (Singapore)
+3. THE README SHALL state that core runtime works in any AWS region with Lambda, API Gateway, and S3
+4. THE README SHALL state that AI features are tested only with Amazon Nova Pro in the three tested regions
+5. THE README SHALL indicate that deployment to other regions is possible but not officially supported
+6. THE README SHALL indicate that other Bedrock models may work but are not officially supported
+7. THE README SHALL list which WireMock features have been tested in the serverless environment
+8. THE README SHALL NOT claim support for WireMock features that have not been tested
+
+### Requirement 16: Create OpenAPI Specification
+
+**User Story:** As a developer integrating with MockNest, I want an OpenAPI specification documenting all API endpoints, so that I can understand the API contract and generate client code.
+
+#### Acceptance Criteria
+
+1. THE Repository SHALL contain an OpenAPI 3.0 specification file at `docs/api/mocknest-openapi.yaml`
+2. THE OpenAPI_Spec SHALL document all WireMock admin API endpoints exposed by MockNest
+3. THE OpenAPI_Spec SHALL document all AI generation endpoints (when AI features are enabled)
+4. THE OpenAPI_Spec SHALL document the health check endpoint
+5. THE OpenAPI_Spec SHALL include request/response schemas for all endpoints
+6. THE OpenAPI_Spec SHALL include authentication requirements (API key header)
+7. THE OpenAPI_Spec SHALL include example requests and responses
+8. THE README SHALL link to the OpenAPI specification file
+
+### Requirement 17: Create User Guide Documentation
+
+**User Story:** As a new MockNest user, I want a comprehensive user guide that shows me how to use the deployed application, so that I can quickly become productive.
+
+#### Acceptance Criteria
+
+1. THE Repository SHALL contain a user guide at `docs/USER_GUIDE.md`
+2. THE User_Guide SHALL include a "Getting Started" section with first mock creation
+3. THE User_Guide SHALL include a "Core Features" section documenting tested WireMock functionality
+4. THE User_Guide SHALL include an "AI-Assisted Mock Generation" section (when AI features are enabled)
+5. THE User_Guide SHALL include a "Common Workflows" section with practical examples
+6. THE User_Guide SHALL include a "Troubleshooting" section with common issues and solutions
+7. THE User_Guide SHALL include a "Limitations" section documenting known limitations in serverless environment
+8. THE User_Guide SHALL include a "API Reference" section linking to the OpenAPI specification
+9. THE README SHALL link to the user guide
+
+### Requirement 18: Restructure README for User Personas
+
+**User Story:** As a visitor to the repository, I want the README to be organized by my use case (SAR user, SAM developer, or contributor), so that I can quickly find relevant information.
+
+#### Acceptance Criteria
+
+1. THE README SHALL be restructured with clear sections for different user personas
+2. THE README SHALL contain a "Quick Start for SAR Users" section as the primary path
+3. THE README SHALL contain a "Deployment for Developers" section for SAM-based deployment
+4. THE README SHALL contain a "Contributing" section linking to CONTRIBUTING.md
+5. THE Quick_Start_Section SHALL focus on SAR deployment with minimal prerequisites
+6. THE Quick_Start_Section SHALL link to the user guide for post-deployment usage
+7. THE Developer_Section SHALL document building from source and local testing
+8. THE README SHALL clearly separate "what users need to know" from "what developers need to know"
+9. THE README SHALL include a "Tested Configuration" section documenting officially supported regions and models
