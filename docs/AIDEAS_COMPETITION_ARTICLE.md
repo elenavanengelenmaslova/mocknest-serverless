@@ -5,17 +5,30 @@
 
 ## My Vision
 
-MockNest Serverless is an open-source AWS Serverless Application Repository app that transforms how teams test cloud-native applications. It combines a serverless WireMock runtime with AI-powered mock intelligence to solve two critical challenges: creating mocks for complex API dependencies and maintaining them as APIs evolve.
+MockNest Serverless is an open-source AWS Serverless Application Repository app that transforms how teams test cloud-native applications. It combines a serverless WireMock runtime with AI-powered capabilities to solve the challenge of creating and maintaining mocks for complex API dependencies.
 
-At its core, MockNest provides a serverless mock runtime built on WireMock that runs entirely on AWS Lambda, with mock definitions and traffic data persisted in Amazon S3. This ensures mocks remain available across Lambda cold starts and deployments while operating within AWS Free Tier limits.
+**What's Built Today:**
 
-What makes MockNest unique is its AI-powered mock intelligence engine. Using Amazon Bedrock, it can:
-- **Generate mocks from API specifications** (OpenAPI, GraphQL schemas, WSDL) and natural language descriptions
-- **Analyze traffic patterns** to identify unmatched requests, near-miss patterns, and coverage gaps
-- **Detect API specification changes** and suggest mock updates to keep test suites synchronized with evolving APIs
-- **Provide proactive recommendations** for improving mock coverage based on real usage patterns
+At its core, MockNest provides a serverless mock runtime built on WireMock that runs entirely on AWS Lambda, with mock definitions persisted in Amazon S3. This ensures mocks remain available across Lambda cold starts and deployments while operating within AWS Free Tier limits.
 
-MockNest supports REST, GraphQL, and SOAP protocols, handling both synchronous request-response patterns and asynchronous interactions through webhooks and callbacks. It deploys through AWS SAM and will be available via the AWS Serverless Application Repository for one-click installation, running entirely within the customer's AWS account with no external dependencies.
+The current implementation includes:
+- **Serverless WireMock Runtime**: Full WireMock API running on AWS Lambda with persistent S3 storage
+- **AI-Powered Mock Generation**: Using Amazon Bedrock to generate comprehensive WireMock mappings from OpenAPI specifications and natural language descriptions
+- **Protocol Support**: REST, GraphQL, and SOAP with synchronous request-response patterns
+- **AWS-Native Deployment**: SAM templates for easy deployment within customer AWS accounts
+
+**The Vision - Intelligent Mock Maintenance:**
+
+The roadmap extends MockNest into an intelligent mock management platform with:
+- **Traffic Analysis**: Identify unmatched requests, near-miss patterns, and coverage gaps
+- **API Change Detection**: Compare specification versions and suggest mock updates
+- **Automated Mock Evolution**: Keep test suites synchronized with evolving APIs
+- **Proactive Recommendations**: Suggest improvements based on real usage patterns
+- **Webhook/Callback Support**: Asynchronous interaction patterns
+- **Streaming Response Support**: Server-Sent Events (SSE) and streaming HTTP for real-time and AI application testing
+- **MCP Protocol Support**: Model Context Protocol mocking for AI agent testing scenarios
+
+MockNest deploys through AWS SAM and will be available via the AWS Serverless Application Repository for one-click installation, running entirely within the customer's AWS account with no external dependencies.
 
 ## Why This Matters
 
@@ -29,8 +42,8 @@ External APIs are often unavailable in test environments. Maybe there's no outbo
 **The Control Problem:**
 Even when external APIs are accessible, controlling test data is a nightmare. You need to synchronize state across multiple systems, set up specific scenarios, and reproduce edge cases. Want to test how your application handles a payment gateway timeout? Good luck orchestrating that reliably across test runs.
 
-**The Evolution Problem:**
-APIs change. Third-party services update their contracts, add new fields, deprecate endpoints, and modify error responses. Your mocks become stale, your tests pass with outdated assumptions, and production breaks because your test suite didn't catch the drift.
+**The Maintenance Problem (Future Focus):**
+APIs change. Third-party services update their contracts, add new fields, deprecate endpoints, and modify error responses. Mocks become stale, tests pass with outdated assumptions, and production breaks because test suites don't catch the drift. This is the problem MockNest's roadmap addresses with traffic analysis and automated evolution.
 
 ### The Traditional Approach Falls Short
 
@@ -44,25 +57,32 @@ Teams typically handle this in one of three ways, all problematic:
 
 MockNest Serverless addresses these challenges with a fundamentally different approach:
 
-**Serverless-Native Architecture:**
+**Serverless-Native Architecture (Implemented):**
 - Runs entirely within your AWS account on Lambda—no containers to manage, no servers to maintain
-- Deploys in minutes via AWS SAM or SAR
+- Deploys in minutes via AWS SAM
 - Operates within AWS Free Tier limits for most use cases
 - No external network dependencies—perfect for restricted environments
 
-**AI-Powered Mock Intelligence:**
-MockNest doesn't just serve mocks; it actively maintains them:
+**AI-Powered Mock Generation (Implemented):**
+MockNest uses Amazon Bedrock to generate comprehensive mocks:
 
-- **Traffic Analysis**: Analyzes real request patterns to identify what's missing from your mock suite. Unmatched requests, near-misses, and coverage gaps become visible and actionable.
+- **From API Specifications**: Provide an OpenAPI spec, and MockNest generates complete WireMock mappings with realistic data, proper error cases, and correct HTTP semantics.
 
-- **Automated Evolution**: When API specifications change, MockNest detects the differences and suggests mock updates. Your test suite stays synchronized with evolving APIs without manual intervention.
+- **From Natural Language**: Describe what you need in plain English, and MockNest generates comprehensive WireMock mappings with realistic data and proper error cases.
 
-- **Proactive Recommendations**: Based on actual usage patterns, MockNest suggests new mocks for edge cases you haven't considered, improving test coverage organically.
+- **Namespace Organization**: Mocks are organized by API and client for multi-tenant scenarios, preventing conflicts.
 
-- **Natural Language Generation**: Describe what you need in plain English, and MockNest generates comprehensive WireMock mappings with realistic data and proper error cases.
+**Intelligent Mock Maintenance (Roadmap):**
+The vision extends to automated maintenance:
 
-**Comprehensive Protocol Support:**
-REST, GraphQL, and SOAP APIs are all supported, along with webhooks and callbacks for testing asynchronous flows. This covers the vast majority of integration scenarios teams encounter.
+- **Traffic Analysis**: Analyze real request patterns to identify what's missing from your mock suite. Unmatched requests, near-misses, and coverage gaps become visible and actionable.
+
+- **Automated Evolution**: When API specifications change, detect the differences and suggest mock updates. Test suites stay synchronized with evolving APIs without manual intervention.
+
+- **Proactive Recommendations**: Based on actual usage patterns, suggest new mocks for edge cases you haven't considered, improving test coverage organically.
+
+**Comprehensive Protocol Support (Implemented):**
+REST, GraphQL, and SOAP APIs are all supported. Webhook and callback support is on the roadmap for testing asynchronous flows.
 
 ### Who Benefits
 
@@ -76,11 +96,11 @@ REST, GraphQL, and SOAP APIs are all supported, along with webhooks and callback
 
 ### The Bigger Picture
 
-MockNest Serverless represents a shift from static mock servers to intelligent mock management platforms. Instead of treating mocks as configuration files that slowly rot, MockNest treats them as living artifacts that evolve with your APIs and improve based on real usage.
+MockNest Serverless represents a shift toward intelligent mock management platforms. The current implementation solves the mock creation problem with AI-powered generation. The roadmap addresses the maintenance problem by treating mocks as living artifacts that evolve with your APIs and improve based on real usage.
 
 This matters because integration testing is where most production issues hide. Unit tests pass, but production breaks because the payment gateway changed its error format, or the authentication service added a required field, or the notification API started rate-limiting differently.
 
-By making integration testing easier, more reliable, and self-maintaining, MockNest helps teams catch these issues before they reach production—without the overhead of managing complex test infrastructure or the cost of vendor-hosted platforms.
+By making mock creation easier with AI and planning for automated maintenance, MockNest helps teams catch these issues before they reach production—without the overhead of managing complex test infrastructure or the cost of vendor-hosted platforms.
 
 ## How I Built This
 
@@ -123,50 +143,53 @@ As I review and correct Kiro's work, I refine steering documents with better con
 ### Technology Stack
 
 **Core Technologies:**
-- **Kotlin 2.3.0** - Primary language for concise, null-safe code with excellent coroutine support
-- **Spring Boot 4.0** - Application framework for dependency injection and configuration
-- **WireMock** - Battle-tested mocking engine with comprehensive feature set
-- **Gradle 9.0.0 with Kotlin DSL** - Build system with type-safe configuration
+- **Kotlin** - Primary language for concise, null-safe code with excellent coroutine support
+- **Gradle with Kotlin DSL** - Build system with type-safe configuration
+- **WireMock-compatible API** - Maintains compatibility with the proven WireMock mocking engine while allowing future extensions for streaming and MCP support
 
 **AWS Services:**
-- **AWS Lambda** (Java runtime) - Serverless compute for the WireMock runtime
+- **AWS Lambda** - Serverless compute runtime
 - **Amazon API Gateway** - HTTP ingress with API key-based access control
 - **Amazon S3** - Persistent storage for mock definitions, response payloads, and traffic logs
-- **Amazon Bedrock** (optional) - AI model access for mock generation and analysis
+- **Amazon Bedrock** - AI model access for mock generation using Claude and Nova models
 
 **AI Framework:**
 - **Koog** - Kotlin-based AI agent framework for implementing mock generation logic
 - Provides agent orchestration and integrates with Amazon Bedrock
 - Keeps AI logic decoupled from infrastructure concerns
 
-**Testing:**
-- **JUnit 5** - Test framework with Kotlin coroutine support
-- **MockK** - Kotlin-first mocking library
+**Testing & Quality:**
+- **Comprehensive test coverage** - 90% code coverage enforced across the entire project
 - **TestContainers with LocalStack** - Integration testing against containerized AWS services
-- **Kover** - Kotlin-optimized code coverage reporting
+- **Kover** - Kotlin-optimized code coverage reporting and enforcement
+
+**CI/CD:**
+- **GitHub Actions** - Automated build, test, and deployment pipelines
+- Feature branches trigger validation workflows
+- Main branch changes trigger production-ready builds
+- Automated deployment to AWS using SAM
 
 ### Architecture: Clean Architecture for Serverless
 
-MockNest follows clean architecture principles adapted for serverless workloads:
+MockNest follows clean architecture principles adapted for serverless workloads, ensuring business logic remains portable and testable:
 
-**Domain Layer** (`nl.vintik.mocknest.domain.*`):
-- Contains business models and rules
-- Organized by capability: runtime, generation, analysis, core
-- No dependencies on infrastructure or frameworks
+![Clean Architecture Diagram](images/CleanArchitecture.png)
 
-**Application Layer** (`nl.vintik.mocknest.application.*`):
-- Implements use cases and orchestration logic
-- Defines interfaces for persistence and AI services
-- Contains Koog-based AI agent for mock generation
-- Organized by capability matching domain layer
+**Three-Layer Architecture:**
 
-**Infrastructure Layer** (`nl.vintik.mocknest.infra.aws.*`):
-- Provides AWS-specific implementations
-- Lambda handlers, S3 adapters, Bedrock integration
-- Only layer allowed to depend on AWS SDKs
-- Organized by capability with sub-packages for storage and AI
+**Domain Layer** - Contains business models and rules with no dependencies on frameworks or infrastructure. This is pure business logic that can be tested in isolation.
 
-Dependencies flow strictly inward: infrastructure → application → domain. This keeps business logic portable and testable without AWS dependencies.
+**Application Layer** - Implements use cases and orchestration logic. Defines interfaces for external concerns like persistence and AI services. Contains the Koog-based AI agent for mock generation.
+
+**Infrastructure Layer** - Provides AWS-specific implementations. Lambda handlers, S3 adapters, Bedrock integration. Only layer allowed to depend on AWS SDKs and cloud services.
+
+**Dependency Rule:** Dependencies flow strictly inward: infrastructure → application → domain. This keeps business logic portable and testable without AWS dependencies.
+
+**Why This Matters:**
+- Business logic can be tested without AWS services
+- Easy to swap implementations (LocalStack for testing, real AWS for production)
+- AI code generation works better with clear layer separation
+- Future platform support (other clouds) becomes feasible
 
 ### Development Infrastructure
 
@@ -189,14 +212,17 @@ Dependencies flow strictly inward: infrastructure → application → domain. Th
 ### Development Phases
 
 **Phase 1 - Core Runtime and AI Generation (Current):**
-- Serverless WireMock runtime in Kotlin supporting REST, GraphQL, SOAP, and webhooks
+- WireMock-compatible API runtime in Kotlin supporting REST, GraphQL, and SOAP
 - Mock persistence via S3 with efficient loading strategies
 - AI-powered mock generation from specifications and natural language using Amazon Bedrock
-- Comprehensive testing with 90%+ coverage
+- Comprehensive testing with 90%+ code coverage enforced via Kover
+- GitHub Actions CI/CD for automated build, test, and deployment
 - Deployment via AWS SAM
-- Publication to AWS Serverless Application Repository
+- Publication to AWS Serverless Application Repository (in progress)
 
 **Phase 2 - Mock Evolution and Advanced Protocols (Planned):**
+- Webhook and callback support for asynchronous patterns
+- Streaming response support (SSE, streaming HTTP) for real-time and AI applications
 - Automated API change detection comparing specification versions
 - Mock update suggestions based on specification changes
 - Model Context Protocol (MCP) support for AI agent testing
@@ -570,3 +596,26 @@ The next phase (traffic analysis) will likely provide more value than initial mo
 Supporting REST, GraphQL, and SOAP covers most integration scenarios. Adding MCP (Model Context Protocol) support positions MockNest for the emerging AI agent testing market. Staying ahead of protocol trends creates differentiation.
 
 
+
+**Community Feedback is Essential:**
+Publishing to AWS SAR and gathering community feedback will reveal which features matter most. User stories and real-world use cases will guide future development better than assumptions. Building in public and iterating based on feedback is the path to product-market fit.
+
+---
+
+**Building MockNest Serverless has been a journey of learning—about serverless architecture, AI collaboration, testing strategies, and product development. The combination of clean architecture, comprehensive testing, AI assistance, and incremental development has created a solid foundation.**
+
+**What's Live Today:**
+- WireMock-compatible API runtime on AWS Lambda with S3 persistence
+- AI-powered mock generation from OpenAPI specs and natural language using Amazon Bedrock
+- Clean architecture with 90%+ test coverage enforced via Kover
+- GitHub Actions CI/CD pipeline
+- AWS SAM deployment ready for AWS Serverless Application Repository
+
+**What's Next:**
+- Traffic analysis and coverage gap detection
+- Automated mock evolution with API change detection
+- Webhook/callback support for asynchronous patterns
+- Streaming response support (SSE, streaming HTTP) for real-time applications
+- MCP protocol support for AI agent testing
+
+The foundation is solid, the vision is clear, and the roadmap addresses real problems teams face every day.

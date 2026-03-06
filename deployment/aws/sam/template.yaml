@@ -3,10 +3,10 @@ Transform: AWS::Serverless-2016-10-31
 Description: MockNest Serverless - AWS-native serverless mock runtime
 
 Parameters:
-  StageName:
+  DeploymentName:
     Type: String
-    Default: 'v1'
-    Description: API Gateway stage name (e.g., v1, test, team-alpha)
+    Default: 'default'
+    Description: Deployment instance identifier for this MockNest installation (e.g., team-alpha, payment-apis, test)
     AllowedPattern: '^[a-zA-Z0-9\\-_]+$'
     ConstraintDescription: Stage name must contain only alphanumeric characters, hyphens, and underscores
 
@@ -219,8 +219,9 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       Name: !Sub "${AWS::StackName}-api"
-      StageName: !Ref StageName
+      StageName: !Ref DeploymentName
       TracingEnabled: true
+      OpenApiVersion: '3.0.1'
       MethodSettings:
         - ResourcePath: "/*"
           HttpMethod: "*"
@@ -234,6 +235,43 @@ Resources:
         Format: '{"requestId":"$context.requestId","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","path":"$context.path","resourcePath":"$context.resourcePath","status":$context.status,"responseLength":$context.responseLength,"responseTime":$context.responseTime,"userAgent":"$context.identity.userAgent","sourceIp":"$context.identity.sourceIp"}'
       Tags:
         Application: MockNest-Serverless
+
+  # API Key for authentication
+  MockNestApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    DependsOn: MockNestApiStage
+    Properties:
+      Name: !Sub "${AWS::StackName}-api-key"
+      Description: API key for MockNest Serverless access
+      Enabled: true
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+
+  # Usage Plan for API throttling and quotas
+  MockNestUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn: MockNestApiStage
+    Properties:
+      UsagePlanName: !Sub "${AWS::StackName}-usage-plan"
+      Description: Usage plan for MockNest Serverless API
+      ApiStages:
+        - ApiId: !Ref MockNestApi
+          Stage: !Ref DeploymentName
+      Throttle:
+        BurstLimit: 200
+        RateLimit: 100
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+
+  # Associate API Key with Usage Plan
+  MockNestUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref MockNestApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref MockNestUsagePlan
 
   # Lambda function for MockNest Serverless runtime
   MockNestRuntimeFunction:
@@ -330,7 +368,7 @@ Resources:
 Outputs:
   MockNestApiUrl:
     Description: "API Gateway endpoint URL for MockNest Serverless"
-    Value: !Sub "https://${MockNestApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
+    Value: !Sub "https://${MockNestApi}.execute-api.${AWS::Region}.amazonaws.com/${DeploymentName}/"
     Export:
       Name: !Sub "${AWS::StackName}-api-url"
 
@@ -364,14 +402,20 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-region"
 
-  StageName:
-    Description: "API Gateway stage name"
-    Value: !Ref StageName
+  DeploymentName:
+    Description: "Deployment instance identifier"
+    Value: !Ref DeploymentName
     Export:
-      Name: !Sub "${AWS::StackName}-stage-name"
+      Name: !Sub "${AWS::StackName}-deployment-name"
 
   StackName:
     Description: "CloudFormation stack name"
     Value: !Ref "AWS::StackName"
     Export:
       Name: !Sub "${AWS::StackName}-stack-name"
+
+  MockNestApiKey:
+    Description: "API key for accessing MockNest Serverless endpoints (use with x-api-key header)"
+    Value: !GetAtt MockNestApiKey.APIKeyId
+    Export:
+      Name: !Sub "${AWS::StackName}-api-key"

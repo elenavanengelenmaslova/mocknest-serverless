@@ -172,6 +172,7 @@ tasks {
             // Only exclude absolute essentials that minimize() might incorrectly remove
             exclude(dependency("org.springframework.boot:spring-boot-autoconfigure"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-context"))
+            exclude(dependency("org.springframework.cloud:spring-cloud-function-adapter-aws"))
         }
         
         isZip64 = true
@@ -215,6 +216,7 @@ tasks {
             // Only exclude absolute essentials that minimize() might incorrectly remove
             exclude(dependency("org.springframework.boot:spring-boot-autoconfigure"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-context"))
+            exclude(dependency("org.springframework.cloud:spring-cloud-function-adapter-aws"))
         }
         
         isZip64 = true
