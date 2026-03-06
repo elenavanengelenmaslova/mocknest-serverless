@@ -5,247 +5,223 @@
 
 ## My Vision
 
-MockNest Serverless is an open-source AWS Serverless Application Repository app that transforms how teams test cloud-native applications by combining a serverless mock runtime with AI-powered capabilities.
+Testing cloud-native applications becomes difficult when they depend on external APIs.
 
-**What's Built Today:**
+External APIs may not even be accessible from development or test environments. Even when reachable, their test environments are often unreliable, test data is difficult to control, and maintaining mocks becomes a burden as APIs evolve.
 
-A WireMock-compatible API runtime running on AWS Lambda with mock definitions persisted in Amazon S3. Mocks remain available across Lambda cold starts while operating within AWS Free Tier limits.
+MockNest Serverless is an open-source AWS Serverless Application Repository application that transforms how teams test cloud-native applications by combining a serverless mock runtime with AI-powered capabilities.
 
-Current capabilities:
-- **Serverless Mock Runtime**: WireMock-compatible API on AWS Lambda with S3 persistence
-- **AI-Powered Mock Generation**: Using Amazon Bedrock to generate comprehensive mocks from OpenAPI specifications and natural language descriptions
-- **Protocol Support**: REST, GraphQL, and SOAP with synchronous request-response patterns
-- **AWS-Native Deployment**: SAM templates for deployment within customer AWS accounts
+### What is Built Today
 
-**The Vision - Intelligent Mock Maintenance:**
+MockNest provides a WireMock-compatible mock runtime running on AWS Lambda, with mock definitions persisted in Amazon S3. This allows mocks to remain available across Lambda cold starts while keeping the solution simple and cost-efficient within the AWS Free Tier.
 
-The roadmap extends MockNest into an intelligent mock management platform:
-- **Traffic Analysis**: Identify unmatched requests, near-miss patterns, and coverage gaps
-- **API Change Detection**: Compare specification versions and suggest mock updates
-- **Automated Mock Evolution**: Keep test suites synchronized with evolving APIs
-- **Webhook/Callback Support**: Asynchronous interaction patterns
-- **Streaming Response Support**: SSE and streaming HTTP for real-time and AI application testing
-- **MCP Protocol Support**: Model Context Protocol mocking for AI agent testing
+Current capabilities include:
+
+- **Serverless Mock Runtime** – A WireMock-compatible API running on AWS Lambda with S3-backed persistence for mock definitions
+- **AI-Powered Mock Generation** – Uses Amazon Bedrock to generate WireMock mappings from OpenAPI specifications or natural-language descriptions
+- **Protocol Support** – REST, GraphQL over HTTP, and SOAP APIs with synchronous request-response patterns
+- **AWS-Native Deployment** – AWS SAM templates for deploying the runtime directly into a customer’s AWS account
+
+### The Vision – Intelligent Mock Maintenance
+
+The next phase of MockNest turns mock generation into **intelligent mock maintenance**. As APIs evolve and real traffic patterns emerge, MockNest aims to help teams keep their mocks accurate and comprehensive with minimal manual effort.
+
+Planned capabilities include:
+
+**AI-Assisted Mock Maintenance**
+- **Traffic Analysis** – Analyze recorded requests to identify unmatched calls, near-miss patterns, and coverage gaps
+- **API Change Detection** – Compare API specification versions and suggest updates to existing mocks
+- **Automated Mock Evolution** – Recommend or generate updated mocks when APIs change
+
+**Advanced Interaction Support**
+- **Webhook and Callback Simulation** – Support asynchronous interaction patterns commonly used in event-driven systems
+- **Streaming Response Support** – Simulate streaming APIs using Server-Sent Events (SSE) and streaming HTTP responses
+
+**AI Agent Testing**
+- **MCP Protocol Mocking** – Simulate Model Context Protocol (MCP) servers to enable reliable testing of AI agents and tool-calling workflows
 
 ## Why This Matters
 
-Modern serverless applications integrate with payment gateways, authentication services, CRM systems, and countless external APIs. Testing these integrations is where teams struggle.
+Modern cloud-native and serverless applications depend on external services—payment gateways, authentication providers, CRM systems, and many other APIs. Testing these integrations is where teams often struggle.
 
-**The Availability Problem:**
-External APIs are often unavailable in test environments—no outbound internet access, unreliable sandboxes, or rate-limited test environments. You can't test integrations when dependencies aren't accessible.
+### The Availability Problem
+External APIs are not always accessible from development or test environments. Corporate networks may block outbound internet access, sandboxes may be unstable, and rate limits often make automated testing unreliable. When dependencies are unreachable, integration testing slows down or stops entirely.
 
-**The Control Problem:**
-Even when APIs are accessible, controlling test data is difficult. Synchronizing state across systems, setting up specific scenarios, and reproducing edge cases reliably is a nightmare.
+### The Control Problem
+Even when external APIs are accessible, controlling test data is difficult. Setting up specific scenarios, synchronizing state across multiple systems, and reliably reproducing edge cases quickly becomes complex and time-consuming.
 
-**The Maintenance Problem (Future Focus):**
-APIs evolve. Third-party services update contracts, add fields, deprecate endpoints. Mocks become stale, tests pass with outdated assumptions, and production breaks. MockNest's roadmap addresses this with traffic analysis and automated evolution.
+### The Maintenance Problem
+APIs evolve constantly. Third-party services add fields, change response formats, or deprecate endpoints. Over time mocks become outdated, tests pass with incorrect assumptions, and integration failures appear only in production.
 
-### How MockNest Solves This
+MockNest addresses these challenges with a serverless mock runtime and AI-assisted mock generation today, and a roadmap toward intelligent mock maintenance.
 
-**Serverless-Native Architecture (Implemented):**
-- Runs entirely within your AWS account on Lambda
-- Deploys in minutes via AWS SAM
+### How MockNest Helps
+
+**Serverless-Native Runtime (Available Today)**
+- Runs entirely within your AWS account on AWS Lambda
+- Deploys quickly using AWS SAM
+- Persists mocks in Amazon S3
 - Operates within AWS Free Tier limits
-- No external network dependencies
 
-**AI-Powered Mock Generation (Implemented):**
-- **From API Specifications**: Provide an OpenAPI spec, get complete WireMock mappings with realistic data and error cases
-- **From Natural Language**: Describe what you need in plain English, get comprehensive mocks
-- **Namespace Organization**: Mocks organized by API and client for multi-tenant scenarios
+**AI-Powered Mock Generation (Available Today)**
+- **Generate from API specifications** – Provide an OpenAPI specification and receive complete WireMock mappings
+- **Generate from natural language** – Describe the API behavior and generate realistic mock responses
+- **Organized namespaces** – Structure mocks by API and client for multi-team usage
 
-**Intelligent Mock Maintenance (Roadmap):**
-- **Traffic Analysis**: Identify coverage gaps from real request patterns
-- **Automated Evolution**: Detect API changes and suggest mock updates
-- **Proactive Recommendations**: Suggest new mocks based on usage patterns
+**Intelligent Mock Maintenance (Roadmap)**
+- **Traffic analysis** to identify missing scenarios
+- **Automated mock evolution** when APIs change
+- **Proactive recommendations** based on observed request patterns
 
-MockNest makes mock creation easier with AI today, with plans for automated maintenance tomorrow—helping teams catch integration issues before production without complex infrastructure or vendor costs.
+MockNest reduces integration testing friction today while laying the foundation for automated mock maintenance as systems evolve.
+
+## Demo time!
+PLACEHOLDER YOUTUBE DEMO LINK HERE
 
 ## How I Built This
 
-### Development with Kiro AI
+### Building with Kiro AI
 
-I built MockNest using Kiro AI as a development partner through an iterative, steering document-driven approach.
+I built MockNest using Kiro AI as a development partner, but the process did not start with code generation. Instead, I started by defining a set of steering documents that describe the product vision, scope, architecture, AWS usage, and development guidelines.
 
-**Steering Documents as Foundation:**
-I started by creating comprehensive steering documents that serve as context for Kiro:
-- **00-vision.md**: Product vision and value proposition
-- **01-scope-and-non-goals.md**: What's in scope and explicit non-goals
-- **02-architecture.md**: System architecture and design decisions
-- **03-aws-services.md**: AWS service usage and configuration
-- **04-market-impact.md**: Market analysis and competitive positioning
-- **05-kiro-usage.md**: Development workflow and coding standards
+These documents provided persistent context so Kiro could generate code and design proposals aligned with the system architecture.
 
-**Iterative Refinement:**
-Every time I corrected Kiro's output, I updated the relevant steering document. For example, when Kiro generated code that didn't follow my preferred patterns, I updated `05-kiro-usage.md` with specific examples. This created a feedback loop where Kiro's output improved continuously.
+The development process followed an iterative workflow:
 
-**Spec-Driven Workflow:**
-For each feature, I followed a structured process:
-1. **Requirements**: Define what needs to be built
-2. **Design**: Create technical design with architecture decisions
-3. **Tasks**: Break down into specific implementation steps
-4. **Implementation**: Kiro generates code following steering documents
+1. **Vision and scope** – defining the problem, target users, and initial feature set
+2. **Architecture design** – defining runtime behavior, storage, and clean architecture boundaries
+3. **Feature specifications** – translating ideas into requirements, design, and implementation tasks
+4. **Implementation and refinement** – generating code, reviewing results, and improving steering documents when needed
 
-**Small Deliverables:**
-I focused on incremental development with small, complete features. Smaller features are easier to change—if requirements shift during task definition, it's manageable. Large features become unwieldy when you need to revise requirements after defining detailed tasks.
+Every time Kiro produced code that did not fully match the intended design, I refined the steering documents. This created a feedback loop where better documentation led to better AI-generated results.
 
-### Technology Choices
-
-**Kotlin**: Chosen for its concise syntax, null safety, and multiplatform capabilities. Kotlin can target JVM, Node.js, and native platforms, providing flexibility for future optimizations.
-
-**Koog**: Kotlin-based AI agent framework for implementing mock generation logic. Integrates cleanly with Amazon Bedrock while keeping AI logic decoupled from infrastructure.
-
-**Gradle with Kotlin DSL**: Type-safe build configuration in the same language as application code.
-
-**WireMock-compatible API**: Maintains compatibility with the proven WireMock engine while allowing future extensions for streaming and MCP support.
+This approach helped maintain architectural consistency while building the system incrementally.
 
 ### Architecture
 
-**Clean Architecture for Serverless:**
+MockNest uses a simplified clean architecture adapted for serverless systems.
 
-![Clean Architecture Diagram](images/CleanArchitecture.png)
+[IMAGE PLACEHOLDER – Clean Architecture Diagram]
 
-Three-layer architecture with strict dependency flow:
+The system is organized into three layers:
 
-**Domain Layer**: Business models and rules with no framework dependencies. Pure business logic testable in isolation.
+**Domain layer**
 
-**Application Layer**: Use cases and orchestration. Defines interfaces for persistence and AI services. Contains the Koog-based AI agent for mock generation.
+Contains business models and rules related to mock behavior.  
+This layer has no framework or cloud dependencies and can be tested in isolation.
 
-**Infrastructure Layer**: AWS-specific implementations. Lambda handlers, S3 adapters, Bedrock integration. Only layer depending on AWS SDKs.
+**Application layer**
 
-Dependencies flow inward: infrastructure → application → domain. This keeps business logic portable and testable without AWS dependencies.
+Contains use cases and orchestration logic.  
+It defines interfaces for persistence and AI services and coordinates mock generation workflows.
 
-**AWS Solution Design:**
+**Infrastructure layer**
 
-![AWS Architecture](images/aws-architecture-diagram.png)
+Provides cloud-specific implementations such as AWS Lambda handlers, S3 storage adapters, API Gateway integration, and Bedrock access.
 
-- **AWS Lambda**: Serverless compute for mock runtime
-- **Amazon API Gateway**: HTTP ingress with API key authentication
-- **Amazon S3**: Persistent storage for mocks and payloads
-- **Amazon Bedrock**: AI model access for mock generation
+Dependencies flow inward from infrastructure to application to domain, keeping the core logic portable and testable.
 
-### Quality & CI/CD
+### AWS Solution Design
 
-- **90% Code Coverage**: Enforced via Kover across the entire project
-- **TestContainers with LocalStack**: Integration testing against containerized AWS services
-- **GitHub Actions**: Automated build, test, and deployment pipelines
-- **Incremental Delivery**: Each feature fully tested and validated before moving to the next
+[IMAGE PLACEHOLDER – AWS Architecture Diagram]
 
-### Current Limitations
+The current implementation uses a small set of AWS services:
 
-**Cold Start Performance**: All mock mappings are loaded into memory at startup, impacting cold start time with large mock sets. Future optimizations include on-demand loading and caching strategies.
+- **AWS Lambda** – serverless runtime hosting the WireMock engine
+- **Amazon API Gateway** – HTTP ingress and API key protection
+- **Amazon S3** – persistent storage for mock definitions and payloads
+- **Amazon Bedrock** – AI model access used for mock generation
 
-**JVM Runtime**: Currently runs on JVM, which adds to cold start time. Plans include AWS Lambda SnapStart support and exploring Kotlin Native compilation for faster cold starts.
+This architecture keeps the runtime lightweight while allowing mocks to persist across Lambda cold starts and deployments.
 
-These limitations are acceptable for typical integration testing scenarios (dozens to hundreds of mocks) and will be addressed as usage scales.
 
-## Demo
+### Key Development Milestones
 
-### Deployment
+MockNest was built in two main milestones.
 
-```bash
-# Build and deploy
-./gradlew build
-cd deployment/aws/sam
-sam build && sam deploy --guided
-```
+**1. Serverless Mock Runtime**
 
-### Basic Mock Creation
+The first milestone was creating a WireMock-compatible runtime running on AWS Lambda behind API Gateway.
 
-```bash
-export MOCKNEST_URL="https://your-api.execute-api.eu-west-1.amazonaws.com/prod"
-export API_KEY="your-api-key"
+Mock definitions are persisted in Amazon S3 so they remain available across cold starts and deployments.
 
-# Create a mock
-curl -X POST "$MOCKNEST_URL/__admin/mappings" \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "request": {"method": "GET", "url": "/api/users/123"},
-    "response": {
-      "status": 200,
-      "headers": {"Content-Type": "application/json"},
-      "body": "{\"id\": 123, \"name\": \"John Doe\"}"
-    }
-  }'
+This provides a fully serverless mock environment that can run directly inside a developer’s AWS account.
 
-# Test the mock
-curl "$MOCKNEST_URL/api/users/123" -H "x-api-key: $API_KEY"
-```
+**2. AI-Powered Mock Generation**
 
-### AI-Powered Mock Generation
+The second milestone added an AI interface capable of generating mocks from OpenAPI specifications or natural-language descriptions.
 
-```bash
-# Generate from OpenAPI spec
-curl -X POST "$MOCKNEST_URL/ai/generation/from-spec" \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "namespace": {"apiName": "petstore", "client": "demo"},
-    "specification": "openapi: 3.0.0...",
-    "format": "OPENAPI_3",
-    "description": "Generate 5 realistic pets with error cases"
-  }'
-```
+Generated mappings are automatically validated.  
+If validation fails, the errors are sent back into the generation workflow so the AI can correct the mappings before returning the final result.
 
-Response includes generated WireMock mappings with realistic data, proper error cases, and organized namespaces.
+### Quality and Delivery
 
-### Natural Language Generation
+To maintain reliability and code quality:
 
-```bash
-# Generate from description
-curl -X POST "$MOCKNEST_URL/ai/generation/from-description" \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "namespace": {"apiName": "payment-gateway", "client": "demo"},
-    "description": "Create payment API with create, status, refund endpoints. Include success cases for credit card, PayPal, bank transfer. Include error cases for insufficient funds, invalid card, expired card."
-  }'
-```
+- **90% code coverage** is enforced using Kover
+- **Integration tests** run with TestContainers and LocalStack
+- **GitHub Actions** provide automated build and validation pipelines
 
-MockNest generates comprehensive mappings with multiple payment methods, realistic data, proper error responses, and correct HTTP status codes.
+Each milestone was implemented incrementally and validated before moving to the next.
+
+### Runtime Design Considerations
+
+The runtime prioritizes predictable behavior for integration testing workloads.
+
+Mock definitions are stored in Amazon S3 and loaded during startup so the runtime can behave deterministically when mocks are created or updated.
+
+Future versions will introduce configurable scaling options and additional runtime optimizations as the project evolves.
 
 ## What I Learned
 
-### AI-Assisted Development
+Building MockNest with AI assistance changed how I approach software development.
 
-**Steering Documents are Critical**: Clear, comprehensive steering documents make all the difference. When Kiro has good context about architecture, coding standards, and project goals, generated code quality improves dramatically.
+### Context matters more than prompts
 
-**Continuous Training**: Every correction is an opportunity to improve Kiro's context. Updating steering documents after corrections creates a feedback loop where subsequent generations get better.
+The most important lesson was that AI works best with strong context. Instead of relying on individual prompts, I started the project by writing steering documents that describe the product vision, architecture, AWS usage, and development guidelines.
 
-**Small Features Win**: Smaller features are easier to manage with AI assistance. When requirements change during task definition, small features remain flexible. Large features become difficult to oversee and adjust.
+These documents provided persistent context for Kiro so it could generate code and design proposals aligned with the intended system architecture. When generated output did not fully match my expectations, improving the steering documents consistently improved the next results.
 
-**Spec-Driven Development Works**: The structured workflow (requirements → design → tasks → implementation) provides clear checkpoints. It's easier to correct course at the requirements stage than after code is written.
+### Smaller features work better with AI
 
-### Technical Insights
+Breaking work into smaller, clearly defined features made the development process much smoother. Smaller deliverables are easier to review, adjust, and regenerate when requirements change.
 
-**Clean Architecture in Serverless Pays Off**: Initially felt like overhead, but as the codebase grew, the benefits became clear. Testing business logic without AWS dependencies is faster and more reliable. AI code generation works better with clear layer separation.
+Trying to generate large features at once makes it harder to maintain oversight and often leads to more corrections later.
 
-**Integration Tests > Unit Tests**: Integration tests with TestContainers and LocalStack catch real issues. Testing actual S3 operations and Lambda invocations reveals problems unit tests miss.
+### Clear architecture improves AI output
 
-**90% Coverage Drives Quality**: Targeting 90% coverage forces thinking about edge cases and error handling. Integration tests provide more value than artificial per-module coverage targets.
+Using a clean architecture structure turned out to be very helpful when working with AI-assisted development. Clear boundaries between domain logic, application orchestration, and infrastructure implementations made it easier for Kiro to understand where new code should live.
 
-### Product Insights
+This helped keep business logic independent from AWS-specific code and made the system easier to test.
 
-**Start with Core, Add AI Later**: Building the core runtime first, then adding AI features, was the right approach. Having a solid foundation makes AI features more valuable.
+### Integration tests reveal real problems
 
-**Traffic Analysis Will Drive Value**: The next phase (traffic analysis) will likely provide more value than initial generation. Identifying coverage gaps and suggesting improvements based on real usage addresses the maintenance problem teams struggle with most.
+Integration tests using TestContainers and LocalStack proved extremely valuable. They validate real interactions with AWS services such as S3 and Lambda and often expose issues that unit tests alone would not detect.
 
-**Free Tier Compatibility Matters**: Designing for AWS Free Tier removes adoption barriers. Teams can experiment without budget approval.
+Testing the system against real service behavior increased confidence that the runtime would behave correctly once deployed.
 
----
+### Build the foundation before adding AI
 
-**What's Live Today:**
-- WireMock-compatible API runtime on AWS Lambda with S3 persistence
-- AI-powered mock generation from OpenAPI specs and natural language
-- Clean architecture with 90%+ test coverage
-- GitHub Actions CI/CD pipeline
-- AWS SAM deployment ready for AWS Serverless Application Repository
+One important product lesson was to build the core runtime first. Once the serverless mock runtime was stable and deployed, adding AI-powered mock generation became much easier and more meaningful.
 
-**What's Next:**
-- Traffic analysis and coverage gap detection
-- Automated mock evolution with API change detection
-- Webhook/callback support for asynchronous patterns
-- Streaming response support for real-time applications
-- MCP protocol support for AI agent testing
+This approach ensured that AI features were built on top of a working system instead of theoretical workflows.
 
-The foundation is solid, the vision is clear, and the roadmap addresses real problems teams face every day.
+## What’s Next
+
+The current version of MockNest focuses on the core serverless runtime and AI-assisted mock generation. The next phase will extend the platform toward intelligent mock management.
+
+Planned improvements include:
+
+**Traffic Analysis and Coverage Insights**  
+Analyze recorded request traffic to identify missing mocks, near-miss patterns, and gaps in API coverage.
+
+**Automated Mock Evolution**  
+Detect changes in API specifications and suggest updates to existing mocks so test environments stay synchronized with evolving APIs.
+
+**Support for Additional Interaction Patterns**  
+Expand support for asynchronous and streaming interactions such as webhooks, callbacks, and Server-Sent Events (SSE).
+
+**MCP (Model Context Protocol) Mocking**  
+Add support for mocking MCP servers and tools to help teams test AI agents and LLM-based systems.
+
+The long-term goal is to evolve MockNest from a serverless mock runtime into an intelligent platform that helps teams keep their integration tests accurate as APIs and systems continue to evolve.
