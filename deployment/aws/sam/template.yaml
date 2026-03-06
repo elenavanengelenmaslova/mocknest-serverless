@@ -5,8 +5,8 @@ Description: MockNest Serverless - AWS-native serverless mock runtime
 Parameters:
   DeploymentName:
     Type: String
-    Default: 'default'
-    Description: Deployment instance identifier for this MockNest installation (e.g., team-alpha, payment-apis, test)
+    Default: 'mocks'
+    Description: Deployment instance identifier for this MockNest installation (e.g., team-alpha, payment-apis, test, mocks)
     AllowedPattern: '^[a-zA-Z0-9\\-_]+$'
     ConstraintDescription: Stage name must contain only alphanumeric characters, hyphens, and underscores
 
