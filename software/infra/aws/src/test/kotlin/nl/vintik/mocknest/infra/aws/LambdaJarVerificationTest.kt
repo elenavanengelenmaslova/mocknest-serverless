@@ -81,6 +81,9 @@ class LambdaJarVerificationTest {
 
             val hasLambdaRuntime = jar.entries().asSequence().any { it.name.startsWith("com/amazonaws/services/lambda/runtime/") }
             assertTrue(hasLambdaRuntime, "Runtime JAR should contain AWS Lambda runtime classes")
+
+            val hasKotlinReflect = jar.entries().asSequence().any { it.name.startsWith("kotlin/reflect/jvm/internal/") }
+            assertTrue(hasKotlinReflect, "Runtime JAR should contain Kotlin reflection classes")
         }
     }
 
@@ -114,6 +117,9 @@ class LambdaJarVerificationTest {
             
             val hasS3Classes = jar.entries().asSequence().any { it.name.startsWith("aws/sdk/kotlin/services/s3/") }
             assertTrue(hasS3Classes, "Generation JAR should contain S3 SDK classes")
+
+            val hasKotlinReflect = jar.entries().asSequence().any { it.name.startsWith("kotlin/reflect/jvm/internal/") }
+            assertTrue(hasKotlinReflect, "Generation JAR should contain Kotlin reflection classes")
         }
     }
 

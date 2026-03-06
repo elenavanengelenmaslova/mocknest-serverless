@@ -27,7 +27,7 @@ private val logger = KotlinLogging.logger {}
  * 1. Missing API Key Configuration - No API key resources in SAM template
  * 2. Multiple Unwanted Stages - API Gateway creates multiple stages
  * 3. Misleading Parameter Naming - "StageName" with default "v1" suggests versioning
- * 4. Shadow Plugin Removing Spring Cloud Adapter - minimize() excludes FunctionInvoker
+ * 4. Shadow Plugin Removing Dependencies - minimize() excludes required framework classes (FunctionInvoker, kotlin-reflect)
  */
 class SamApiGatewayConfigurationBugTest {
 
@@ -194,6 +194,15 @@ class SamApiGatewayConfigurationBugTest {
             "Shadow plugin minimize MUST exclude spring-cloud-function-adapter-aws. " +
             "COUNTEREXAMPLE: No exclude for adapter found, will cause ClassNotFoundException."
         )
+
+        // Expected behavior: Should exclude kotlin-reflect
+        val hasKotlinReflectExclude = buildGradleContent.contains("kotlin-reflect")
+
+        assertTrue(
+            hasKotlinReflectExclude,
+            "Shadow plugin minimize MUST exclude kotlin-reflect. " +
+            "COUNTEREXAMPLE: No exclude for kotlin-reflect found, will cause KotlinReflectionNotSupportedError."
+        )
         
         // Verify both shadowJarRuntime and shadowJarGeneration have the exclude
         val runtimeTaskStart = buildGradleContent.indexOf("shadowJarRuntime")
@@ -322,9 +331,10 @@ class SamApiGatewayConfigurationBugTest {
             bugs.add("Bug 3: Parameter not named 'DeploymentName'")
         }
         
-        // Bug 4: Shadow Plugin Removing Spring Cloud Adapter
-        if (!buildGradleContent.contains("spring-cloud-function-adapter-aws")) {
-            bugs.add("Bug 4: Shadow plugin minimize() does not exclude spring-cloud-function-adapter-aws")
+        // Bug 4: Shadow Plugin Removing Dependencies
+        if (!buildGradleContent.contains("spring-cloud-function-adapter-aws") ||
+            !buildGradleContent.contains("kotlin-reflect")) {
+            bugs.add("Bug 4: Shadow plugin minimize() does not exclude spring-cloud-function-adapter-aws and kotlin-reflect")
         }
         
         // Report all bugs found

@@ -173,6 +173,8 @@ tasks {
             exclude(dependency("org.springframework.boot:spring-boot-autoconfigure"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-context"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-adapter-aws"))
+            // Preserve Kotlin reflection for Spring and AI components
+            exclude(dependency("org.jetbrains.kotlin:kotlin-reflect"))
         }
         
         isZip64 = true
@@ -217,6 +219,8 @@ tasks {
             exclude(dependency("org.springframework.boot:spring-boot-autoconfigure"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-context"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-adapter-aws"))
+            // Preserve Kotlin reflection for Spring and AI components
+            exclude(dependency("org.jetbrains.kotlin:kotlin-reflect"))
         }
         
         isZip64 = true
