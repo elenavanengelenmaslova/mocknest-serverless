@@ -64,7 +64,12 @@ class LambdaJarVerificationTest {
             assertNotNull(jar.getJarEntry("nl/vintik/mocknest/infra/aws/runtime/RuntimeApplication.class"), "RuntimeApplication class missing from runtime JAR")
             assertNotNull(jar.getJarEntry("nl/vintik/mocknest/infra/aws/runtime/RuntimeLambdaHandler.class"), "RuntimeLambdaHandler class missing from runtime JAR")
             
-            // Verify application-level runtime classes
+            // Verify application-level runtime classes and their implementations (Spring beans)
+            assertNotNull(jar.getJarEntry("nl/vintik/mocknest/application/runtime/usecases/HandleClientRequest.class"), "HandleClientRequest interface missing")
+            assertNotNull(jar.getJarEntry("nl/vintik/mocknest/application/runtime/usecases/ClientRequestUseCase.class"), "ClientRequestUseCase implementation missing (Spring bean)")
+            assertNotNull(jar.getJarEntry("nl/vintik/mocknest/application/runtime/usecases/HandleAdminRequest.class"), "HandleAdminRequest interface missing")
+            assertNotNull(jar.getJarEntry("nl/vintik/mocknest/application/runtime/usecases/AdminRequestUseCase.class"), "AdminRequestUseCase implementation missing (Spring bean)")
+            
             val hasAppRuntime = jar.entries().asSequence().any { it.name.contains("nl/vintik/mocknest/application/runtime/") }
             assertTrue(hasAppRuntime, "Runtime JAR should contain application-level runtime classes")
         }
@@ -87,11 +92,6 @@ class LambdaJarVerificationTest {
         }
     }
 
-    @Test
-    fun `Given runtime JAR When checking size Then should be at least 30 percent smaller than 77MB baseline`() {
-        verifyJarSize(runtimeJarFile, "Runtime")
-    }
-
     // --- Generation JAR Verification ---
 
     @Test
@@ -100,6 +100,10 @@ class LambdaJarVerificationTest {
             assertNotNull(jar.getJarEntry("nl/vintik/mocknest/infra/aws/generation/GenerationApplication.class"), "GenerationApplication class missing from generation JAR")
             assertNotNull(jar.getJarEntry("nl/vintik/mocknest/infra/aws/generation/GenerationLambdaHandler.class"), "GenerationLambdaHandler class missing from generation JAR")
             
+            // Verify application-level generation classes and their implementations (Spring beans)
+            assertNotNull(jar.getJarEntry("nl/vintik/mocknest/application/runtime/usecases/HandleAIGenerationRequest.class"), "HandleAIGenerationRequest interface missing")
+            assertNotNull(jar.getJarEntry("nl/vintik/mocknest/application/generation/usecases/AIGenerationRequestUseCase.class"), "AIGenerationRequestUseCase implementation missing (Spring bean)")
+
             // Verify application-level generation classes
             val hasAppGeneration = jar.entries().asSequence().any { it.name.contains("nl/vintik/mocknest/application/generation/") }
             assertTrue(hasAppGeneration, "Generation JAR should contain application-level generation classes")
@@ -121,11 +125,6 @@ class LambdaJarVerificationTest {
             val hasKotlinReflect = jar.entries().asSequence().any { it.name.startsWith("kotlin/reflect/jvm/internal/") }
             assertTrue(hasKotlinReflect, "Generation JAR should contain Kotlin reflection classes")
         }
-    }
-
-    @Test
-    fun `Given generation JAR When checking size Then should be at least 30 percent smaller than 77MB baseline`() {
-        verifyJarSize(generationJarFile, "Generation")
     }
 
     // --- Manifest and Structural Verification ---

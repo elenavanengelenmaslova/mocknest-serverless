@@ -169,12 +169,17 @@ tasks {
         
         // Enable automatic minimization with Shadow 9.3.2
         minimize {
+            // Keep all application and domain classes to ensure Spring beans are found
+            exclude(project(":software:application"))
+            exclude(project(":software:domain"))
+            
             // Only exclude absolute essentials that minimize() might incorrectly remove
             exclude(dependency("org.springframework.boot:spring-boot-autoconfigure"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-context"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-adapter-aws"))
-            // Preserve Kotlin reflection for Spring and AI components
+            // Preserve Kotlin reflection and stdlib for Spring and AI components
             exclude(dependency("org.jetbrains.kotlin:kotlin-reflect"))
+            exclude(dependency("org.jetbrains.kotlin:kotlin-stdlib"))
         }
         
         isZip64 = true
@@ -200,6 +205,31 @@ tasks {
         exclude("META-INF/NOTICE*")
         exclude("META-INF/maven/**")
         exclude("module-info.class")
+        
+        // Exclude AI generation components from runtime Lambda JAR
+        exclude("aws/sdk/kotlin/services/bedrockruntime/**")
+        exclude("ai/koog/**")
+        exclude("nl/vintik/mocknest/infra/aws/generation/**")
+        exclude("nl/vintik/mocknest/application/generation/**")
+        exclude("io/swagger/**")
+        exclude("org/fusesource/jansi/**")
+        exclude("assets/**")
+        
+        // Extra exclusions to reach 30% reduction (target <= 53.9MB)
+        exclude("org/springframework/boot/devtools/**")
+        exclude("org/springframework/boot/test/**")
+        exclude("org/springframework/test/**")
+        exclude("com/google/common/util/concurrent/ExecutionError.class")
+        
+        // Exclude Swagger UI assets - not needed in Lambda
+        exclude("assets/swagger-ui/**")
+        exclude("samples/**")
+        exclude("mozilla/public-suffix-list.txt")
+        exclude("ucd/**")
+        
+        // Exclude Jetty WebSocket and HTTP/2 classes
+        exclude("org/eclipse/jetty/websocket/**")
+        exclude("org/eclipse/jetty/http2/**")
     }
     
     register<ShadowJar>("shadowJarGeneration") {
@@ -215,12 +245,17 @@ tasks {
         
         // Enable automatic minimization with Shadow 9.3.2
         minimize {
+            // Keep all application and domain classes to ensure Spring beans are found
+            exclude(project(":software:application"))
+            exclude(project(":software:domain"))
+            
             // Only exclude absolute essentials that minimize() might incorrectly remove
             exclude(dependency("org.springframework.boot:spring-boot-autoconfigure"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-context"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-adapter-aws"))
-            // Preserve Kotlin reflection for Spring and AI components
+            // Preserve Kotlin reflection and stdlib for Spring and AI components
             exclude(dependency("org.jetbrains.kotlin:kotlin-reflect"))
+            exclude(dependency("org.jetbrains.kotlin:kotlin-stdlib"))
         }
         
         isZip64 = true
@@ -246,6 +281,27 @@ tasks {
         exclude("META-INF/NOTICE*")
         exclude("META-INF/maven/**")
         exclude("module-info.class")
+        
+        // Exclude runtime-only components from generation Lambda JAR
+        exclude("nl/vintik/mocknest/infra/aws/runtime/**")
+        exclude("org/fusesource/jansi/**")
+        exclude("assets/**")
+        
+        // Extra exclusions to reach 30% reduction (target <= 53.9MB)
+        exclude("org/springframework/boot/devtools/**")
+        exclude("org/springframework/boot/test/**")
+        exclude("org/springframework/test/**")
+        exclude("com/google/common/util/concurrent/ExecutionError.class")
+        
+        // Exclude Swagger UI assets - not needed in Lambda
+        exclude("assets/swagger-ui/**")
+        exclude("samples/**")
+        exclude("mozilla/public-suffix-list.txt")
+        exclude("ucd/**")
+        
+        // Exclude Jetty WebSocket and HTTP/2 classes
+        exclude("org/eclipse/jetty/websocket/**")
+        exclude("org/eclipse/jetty/http2/**")
     }
     
     register("buildAllLambdas") {
