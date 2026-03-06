@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.config
+package nl.vintik.mocknest.infra.aws.core.ai.config
 
 import aws.sdk.kotlin.runtime.auth.credentials.DefaultChainCredentialsProvider
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient

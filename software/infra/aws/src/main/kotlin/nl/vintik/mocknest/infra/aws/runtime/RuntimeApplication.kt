@@ -8,7 +8,7 @@ import org.springframework.boot.runApplication
         "nl.vintik.mocknest.application.runtime",
         "nl.vintik.mocknest.application.core",
         "nl.vintik.mocknest.infra.aws.runtime",
-        "nl.vintik.mocknest.infra.aws.core"
+        "nl.vintik.mocknest.infra.aws.core.storage"
     ]
 )
 class RuntimeApplication

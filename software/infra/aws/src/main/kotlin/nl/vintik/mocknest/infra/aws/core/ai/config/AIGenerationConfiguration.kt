@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.core.ai
+package nl.vintik.mocknest.infra.aws.core.ai.config
 
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import nl.vintik.mocknest.application.generation.agent.MockGenerationFunctionalAgent

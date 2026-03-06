@@ -11,7 +11,7 @@ import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.domain.generation.MockNamespace
 import nl.vintik.mocknest.domain.generation.SourceType
-import nl.vintik.mocknest.infra.aws.core.ai.ModelConfiguration
+import nl.vintik.mocknest.infra.aws.core.ai.config.ModelConfiguration
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

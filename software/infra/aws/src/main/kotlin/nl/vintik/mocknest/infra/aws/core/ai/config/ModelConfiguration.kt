@@ -1,6 +1,5 @@
-package nl.vintik.mocknest.infra.aws.core.ai
+package nl.vintik.mocknest.infra.aws.core.ai.config
 
-import ai.koog.prompt.executor.clients.bedrock.BedrockInferencePrefixes
 import ai.koog.prompt.executor.clients.bedrock.BedrockModel
 import ai.koog.prompt.executor.clients.bedrock.BedrockModels
 import ai.koog.prompt.executor.clients.bedrock.withInferenceProfile

@@ -13,7 +13,7 @@ import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.domain.generation.*
-import nl.vintik.mocknest.infra.aws.core.ai.ModelConfiguration
+import nl.vintik.mocknest.infra.aws.core.ai.config.ModelConfiguration
 import org.springframework.http.HttpMethod
 import java.time.Instant
 

@@ -211,6 +211,7 @@ tasks {
         exclude("ai/koog/**")
         exclude("nl/vintik/mocknest/infra/aws/generation/**")
         exclude("nl/vintik/mocknest/application/generation/**")
+        exclude("nl/vintik/mocknest/infra/aws/core/ai/**")
         exclude("io/swagger/**")
         exclude("org/fusesource/jansi/**")
         exclude("assets/**")
