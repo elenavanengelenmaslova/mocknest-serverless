@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.function
+package nl.vintik.mocknest.infra.aws.runtime.function
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent

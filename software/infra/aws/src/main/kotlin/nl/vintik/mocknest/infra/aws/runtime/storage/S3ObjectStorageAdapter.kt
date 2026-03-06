@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.storage
+package nl.vintik.mocknest.infra.aws.runtime.storage
 
 import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.*

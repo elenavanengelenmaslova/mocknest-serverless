@@ -18,7 +18,7 @@ MockNest provides a WireMock-compatible mock runtime running on AWS Lambda, with
 Current capabilities include:
 
 - **Serverless Mock Runtime** – A WireMock-compatible API running on AWS Lambda with S3-backed persistence for mock definitions
-- **AI-Powered Mock Generation** – Uses Amazon Bedrock to generate WireMock mappings from OpenAPI specifications or natural-language descriptions
+- **AI-Powered Mock Generation** – Uses Amazon Bedrock (with Amazon Nova Pro as the default model) to generate WireMock mappings from OpenAPI specifications or natural-language descriptions
 - **Protocol Support** – REST, GraphQL over HTTP, and SOAP APIs with synchronous request-response patterns
 - **AWS-Native Deployment** – AWS SAM templates for deploying the runtime directly into a customer’s AWS account
 
@@ -64,6 +64,7 @@ MockNest addresses these challenges with a serverless mock runtime and AI-assist
 - Operates within AWS Free Tier limits
 
 **AI-Powered Mock Generation (Available Today)**
+- **Amazon Nova Pro as Default** – Uses Amazon Nova Pro as the primary supported model for high-quality mock generation
 - **Generate from API specifications** – Provide an OpenAPI specification and receive complete WireMock mappings
 - **Generate from natural language** – Describe the API behavior and generate realistic mock responses
 - **Organized namespaces** – Structure mocks by API and client for multi-team usage
@@ -130,7 +131,7 @@ The current implementation uses a small set of AWS services:
 - **AWS Lambda** – serverless runtime hosting the WireMock engine
 - **Amazon API Gateway** – HTTP ingress and API key protection
 - **Amazon S3** – persistent storage for mock definitions and payloads
-- **Amazon Bedrock** – AI model access used for mock generation
+- **Amazon Bedrock** – Provides access to Amazon Nova Pro, used for intelligent mock generation and validation
 
 This architecture keeps the runtime lightweight while allowing mocks to persist across Lambda cold starts and deployments.
 
@@ -149,7 +150,7 @@ This provides a fully serverless mock environment that can run directly inside a
 
 **2. AI-Powered Mock Generation**
 
-The second milestone added an AI interface capable of generating mocks from OpenAPI specifications or natural-language descriptions.
+The second milestone added an AI interface powered by Amazon Nova Pro on Amazon Bedrock, capable of generating mocks from OpenAPI specifications or natural-language descriptions.
 
 Generated mappings are automatically validated.  
 If validation fails, the errors are sent back into the generation workflow so the AI can correct the mappings before returning the final result.

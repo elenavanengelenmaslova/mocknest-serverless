@@ -3,6 +3,7 @@ package nl.vintik.mocknest.infra.aws.function
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.infra.aws.config.AwsLocalStackTestConfiguration
+import nl.vintik.mocknest.infra.aws.runtime.function.MockNestLambdaHandler
 import kotlinx.coroutines.flow.toList
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach

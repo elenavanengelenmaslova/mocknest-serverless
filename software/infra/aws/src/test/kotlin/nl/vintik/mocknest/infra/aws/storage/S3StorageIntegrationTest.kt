@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.infra.aws.config.SharedLocalStackContainer
 import nl.vintik.mocknest.infra.aws.config.TEST_REGION
+import nl.vintik.mocknest.infra.aws.runtime.storage.S3ObjectStorageAdapter
 import org.junit.jupiter.api.*
 import org.testcontainers.containers.localstack.LocalStackContainer
 import kotlin.test.assertEquals

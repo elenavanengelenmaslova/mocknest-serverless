@@ -12,7 +12,7 @@ MockNest Serverless provides a serverless mock runtime built on WireMock, mainta
 
 MockNest supports REST, GraphQL, SOAP, and AI agent protocols - MCP and A2A. It handles synchronous and asynchronous interactions through webhooks and callbacks to AWS messaging services such as EventBridge.
 
-AI capabilities powered by Amazon Bedrock : 
+AI capabilities powered by Amazon Bedrock (using Amazon Nova Pro as the default model): 
 - Generate mocks from API specifications, e.g. OpenAPI, GraphQL schemas, WSDL, and natural language, - Analyze traffic to identify unmatched requests, near-miss patterns, and coverage gaps
 - Detect API specification changes to suggest mock updates.
 
@@ -48,7 +48,7 @@ Each phase will be fully deployed and validated before proceeding, keeping the s
 
 # Which AWS AI services will power your solution? (optional)
 
-Amazon Bedrock (optional, for AI-assisted mock generation and analysis)
+Amazon Bedrock (using Amazon Nova Pro as the officially supported model for mock generation and analysis)
 
 # What other AWS Free Tier Services will you employ? (optional)
 
