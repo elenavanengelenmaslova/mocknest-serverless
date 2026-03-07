@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.storage.config
+package nl.vintik.mocknest.infra.aws.core.storage.config
 
 import aws.sdk.kotlin.services.s3.S3Client
 import org.springframework.beans.factory.annotation.Value

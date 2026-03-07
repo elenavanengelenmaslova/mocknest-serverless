@@ -1,23 +1,27 @@
 package nl.vintik.mocknest.infra.aws.function
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
+import kotlinx.coroutines.flow.toList
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.infra.aws.config.AwsLocalStackTestConfiguration
-import kotlinx.coroutines.flow.toList
+import nl.vintik.mocknest.infra.aws.config.TestContextDebugListener
+import nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestExecutionListeners
+import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener
-import nl.vintik.mocknest.infra.aws.config.TestContextDebugListener
-import kotlin.test.assertEquals
+import java.util.function.Function
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 
-@SpringBootTest(classes = [nl.vintik.mocknest.infra.aws.Application::class])
+@SpringBootTest(classes = [RuntimeApplication::class])
 @TestPropertySource(locations = ["classpath:application-test.properties"])
 @ContextConfiguration(classes = [AwsLocalStackTestConfiguration::class])
 @TestExecutionListeners(
@@ -29,9 +33,10 @@ import kotlin.test.assertContains
 )
 class RestApiMockingIntegrationTest {
 
-    // Spring Boot will inject the lambda handler
+    // Spring Boot will inject the lambda handler router
     @Autowired
-    private lateinit var lambdaHandler: MockNestLambdaHandler
+    @Qualifier("runtimeRouter")
+    private lateinit var lambdaHandler: Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent>
 
     // Spring Boot will inject the test storage
     @Autowired
@@ -94,7 +99,7 @@ class RestApiMockingIntegrationTest {
         )
 
         // When - Set up mock via admin API
-        val adminResponse = lambdaHandler.router().apply(adminRequest)
+        val adminResponse = lambdaHandler.apply(adminRequest)
 
         // Then - Admin API should succeed
         assertEquals(201, adminResponse.statusCode)
@@ -105,7 +110,7 @@ class RestApiMockingIntegrationTest {
             path = "/mocknest/api/users/123"
         )
 
-        val clientResponse = lambdaHandler.router().apply(clientRequest)
+        val clientResponse = lambdaHandler.apply(clientRequest)
 
         // Then - Should get mocked response
         assertEquals(200, clientResponse.statusCode)
@@ -144,7 +149,7 @@ class RestApiMockingIntegrationTest {
         )
 
         // When - Set up mock via admin API
-        val adminResponse = lambdaHandler.router().apply(adminRequest)
+        val adminResponse = lambdaHandler.apply(adminRequest)
 
         // Then - Admin API should succeed
         assertEquals(201, adminResponse.statusCode)
@@ -158,7 +163,7 @@ class RestApiMockingIntegrationTest {
             headers = mapOf("Content-Type" to "application/json")
         )
 
-        val clientResponse = lambdaHandler.router().apply(clientRequest)
+        val clientResponse = lambdaHandler.apply(clientRequest)
 
         // Then - Should get created response
         assertEquals(201, clientResponse.statusCode)

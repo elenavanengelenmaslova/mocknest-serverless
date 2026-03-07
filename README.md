@@ -7,7 +7,7 @@ MockNest Serverless is a serverless WireMock runtime for AWS that enables realis
 - **Serverless WireMock Runtime**: Full WireMock API running on AWS Lambda
 - **Persistent Mock Storage**: Mock definitions stored in Amazon S3
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
-- **AI-Assisted Mock Generation**: Optional AI-powered mock creation from API specifications
+- **AI-Assisted Mock Generation**: Intelligent mock creation from API specifications using Amazon Nova Pro
 - **AWS Free Tier Compatible**: Designed to operate within AWS Free Tier limits
 - **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR)
 
@@ -298,7 +298,7 @@ For detailed architecture information, see [Architecture Documentation](.kiro/st
 |----------|-------------|---------|
 | `MOCKNEST_APP_REGION` | AWS region for application routing | `eu-west-1` |
 | `BEDROCK_INFERENCE_PREFIX` | Bedrock inference profile prefix | `eu` |
-| `BEDROCK_MODEL_NAME` | Bedrock model name | `AmazonNovaPro` |
+| `BEDROCK_MODEL_NAME` | Bedrock model name (Amazon Nova Pro is officially supported) | `AmazonNovaPro` |
 | `MOCKNEST_S3_BUCKET_NAME` | S3 bucket for mock storage | Auto-generated |
 
 ### SAM Parameters
@@ -307,7 +307,7 @@ For detailed architecture information, see [Architecture Documentation](.kiro/st
 |-----------|-------------|---------|
 | `AppRegion` | AWS region for deployment | `eu-west-1` |
 | `BedrockInferencePrefix` | Bedrock inference profile prefix | `eu` |
-| `BedrockModelName` | Bedrock model name | `AmazonNovaPro` |
+| `BedrockModelName` | Bedrock model name (Amazon Nova Pro is officially supported) | `AmazonNovaPro` |
 | `BucketName` | S3 bucket name | Auto-generated |
 
 ### Application Properties

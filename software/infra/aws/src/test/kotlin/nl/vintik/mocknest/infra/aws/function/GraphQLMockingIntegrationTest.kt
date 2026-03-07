@@ -1,9 +1,13 @@
 package nl.vintik.mocknest.infra.aws.function
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
+import nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
+import java.util.function.Function
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.infra.aws.config.AwsLocalStackTestConfiguration
 import kotlinx.coroutines.flow.toList
+import org.springframework.beans.factory.annotation.Qualifier
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -14,14 +18,15 @@ import org.springframework.test.context.ContextConfiguration
 import kotlin.test.assertEquals
 import kotlin.test.assertContains
 
-@SpringBootTest(classes = [nl.vintik.mocknest.infra.aws.Application::class])
+@SpringBootTest(classes = [RuntimeApplication::class])
 @TestPropertySource(locations = ["classpath:application-test.properties"])
 @ContextConfiguration(classes = [AwsLocalStackTestConfiguration::class])
 class GraphQLMockingIntegrationTest {
 
-    // Spring Boot will inject the lambda handler
+    // Spring Boot will inject the lambda handler router
     @Autowired
-    private lateinit var lambdaHandler: MockNestLambdaHandler
+    @Qualifier("runtimeRouter")
+    private lateinit var lambdaHandler: Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent>
 
     // Spring Boot will inject the test storage
     @Autowired
@@ -88,7 +93,7 @@ class GraphQLMockingIntegrationTest {
         )
 
         // When - Set up mock via admin API
-        val adminResponse = lambdaHandler.router().apply(adminRequest)
+        val adminResponse = lambdaHandler.apply(adminRequest)
 
         // Then - Admin API should succeed
         assertEquals(201, adminResponse.statusCode)
@@ -110,7 +115,7 @@ class GraphQLMockingIntegrationTest {
             headers = mapOf("Content-Type" to "application/json")
         )
 
-        val clientResponse = lambdaHandler.router().apply(clientRequest)
+        val clientResponse = lambdaHandler.apply(clientRequest)
 
         // Then - Should get GraphQL response
         assertEquals(200, clientResponse.statusCode)
@@ -156,7 +161,7 @@ class GraphQLMockingIntegrationTest {
         )
 
         // When - Set up mock via admin API
-        val adminResponse = lambdaHandler.router().apply(adminRequest)
+        val adminResponse = lambdaHandler.apply(adminRequest)
 
         // Then - Admin API should succeed
         assertEquals(201, adminResponse.statusCode)
@@ -178,7 +183,7 @@ class GraphQLMockingIntegrationTest {
             headers = mapOf("Content-Type" to "application/json")
         )
 
-        val clientResponse = lambdaHandler.router().apply(clientRequest)
+        val clientResponse = lambdaHandler.apply(clientRequest)
 
         // Then - Should get GraphQL error response
         assertEquals(200, clientResponse.statusCode)

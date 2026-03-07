@@ -74,11 +74,11 @@ MockNest Serverless uses `nl.vintik.mocknest` as the base package namespace. Cod
 - `infra.aws.runtime.storage` - Runtime-specific S3 adapters (mappings, files)
 - `infra.aws.generation` - Generation AWS adapters
 - `infra.aws.generation.storage` - Generation-specific S3 adapters (specs)
-- `infra.aws.generation.ai` - Generation AI implementations (Bedrock agents)
+- `infra.aws.generation.ai` - Generation AI implementations (Amazon Nova Pro agents)
 - `infra.aws.analysis` - Analysis AWS adapters (future)
 - `infra.aws.core` - Shared AWS infrastructure
 - `infra.aws.core.storage` - Shared S3 configuration
-- `infra.aws.core.ai` - Shared Bedrock configuration
+- `infra.aws.core.ai` - Shared Bedrock/Nova Pro configuration
 
 ### Package Organization Guidelines
 

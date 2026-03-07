@@ -7,7 +7,7 @@ import aws.smithy.kotlin.runtime.auth.awscredentials.Credentials
 import aws.smithy.kotlin.runtime.net.url.Url
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.infra.aws.storage.S3ObjectStorageAdapter
+import nl.vintik.mocknest.infra.aws.runtime.storage.S3ObjectStorageAdapter
 import nl.vintik.mocknest.infra.aws.storage.TEST_BUCKET_NAME
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking

@@ -17,7 +17,7 @@ private val logger = KotlinLogging.logger {}
  * 
  * The model name is read from the BEDROCK_MODEL_NAME environment variable,
  * which is set by the SAM template's BedrockModelName parameter.
- * If the environment variable is not set, defaults to "AmazonNovaPro".
+ * Defaults to "AmazonNovaPro", which is the officially supported model.
  * 
  * Uses GLOBAL inference profile prefix to allow AWS to route requests
  * to the best available region, which is appropriate for mock data generation.

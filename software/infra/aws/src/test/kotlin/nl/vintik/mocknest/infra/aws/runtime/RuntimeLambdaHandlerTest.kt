@@ -7,8 +7,8 @@ import io.mockk.mockk
 import io.mockk.verify
 import nl.vintik.mocknest.application.runtime.usecases.HandleAdminRequest
 import nl.vintik.mocknest.application.runtime.usecases.HandleClientRequest
-import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
+import nl.vintik.mocknest.infra.aws.runtime.function.RuntimeLambdaHandler
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
