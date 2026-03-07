@@ -8,16 +8,10 @@ import aws.sdk.kotlin.services.s3.model.ListObjectsV2Request
 import aws.smithy.kotlin.runtime.auth.awscredentials.Credentials
 import aws.smithy.kotlin.runtime.net.url.Url
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.flow.collect
 import nl.vintik.mocknest.infra.aws.config.SharedLocalStackContainer
 import nl.vintik.mocknest.infra.aws.config.TEST_REGION
 import nl.vintik.mocknest.infra.aws.runtime.storage.S3ObjectStorageAdapter
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -59,7 +53,6 @@ private val logger = KotlinLogging.logger {}
  * 
  * **Validates Requirements**: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7 from bugfix.md
  */
-@Disabled("LocalStack integration tests disabled - Docker/Colima connectivity issue")
 class LambdaSpringContextIsolationPreservationTest {
 
     companion object {

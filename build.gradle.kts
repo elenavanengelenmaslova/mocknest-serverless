@@ -45,12 +45,20 @@ subprojects {
             dependency("ai.koog:koog-agents:$koogVersion")
             
             // Kotlin AWS SDK
-            val awsSdkKotlinVersion = "1.6.16"
+            val awsSdkKotlinVersion = "1.3.62"
+            val smithyKotlinVersion = "1.3.31"
             dependency("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:bedrock:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:bedrockruntime:$awsSdkKotlinVersion")
+            dependency("aws.smithy.kotlin:http-client-engine-okhttp:$smithyKotlinVersion")
+            dependency("aws.smithy.kotlin:http-client-engine-crt:$smithyKotlinVersion")
+            
+            val okhttpVersion = "5.0.0-alpha.14"
+            ext["okhttp.version"] = okhttpVersion
+            dependency("com.squareup.okhttp3:okhttp:$okhttpVersion")
+            dependency("com.squareup.okhttp3:okhttp-coroutines:$okhttpVersion")
             
             // AWS Lambda Java
             dependency("com.amazonaws:aws-lambda-java-core:1.2.3")

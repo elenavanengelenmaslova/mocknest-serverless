@@ -4,7 +4,7 @@ plugins {
     id("io.spring.dependency-management")
 }
 
-val smithyKotlinVersion = "1.6.2"
+val smithyKotlinVersion = "1.3.31"
 
 dependencies {
     // Clean architecture dependencies

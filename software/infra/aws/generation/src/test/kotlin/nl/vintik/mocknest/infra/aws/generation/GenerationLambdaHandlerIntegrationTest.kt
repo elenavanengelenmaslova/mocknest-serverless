@@ -6,7 +6,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.infra.aws.config.AwsLocalStackTestConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -29,7 +28,6 @@ private val logger = KotlinLogging.logger {}
  * - AI generation paths are handled correctly
  * - Runtime paths are properly isolated (return 404)
  */
-@Disabled("LocalStack integration tests disabled - Docker/Colima connectivity issue")
 @SpringBootTest(
     classes = [GenerationApplication::class],
     webEnvironment = SpringBootTest.WebEnvironment.NONE,

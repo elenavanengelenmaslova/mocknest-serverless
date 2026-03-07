@@ -9,7 +9,6 @@ import nl.vintik.mocknest.infra.aws.config.TestContextDebugListener
 import nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
@@ -22,7 +21,6 @@ import java.util.function.Function
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
-@Disabled("LocalStack integration tests disabled - Docker/Colima connectivity issue")
 @SpringBootTest(classes = [RuntimeApplication::class])
 @TestPropertySource(locations = ["classpath:application-test.properties"])
 @ContextConfiguration(classes = [AwsLocalStackTestConfiguration::class])

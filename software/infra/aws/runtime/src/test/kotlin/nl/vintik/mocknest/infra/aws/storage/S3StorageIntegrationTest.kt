@@ -18,7 +18,6 @@ import org.testcontainers.containers.localstack.LocalStackContainer
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-@Disabled("LocalStack integration tests disabled - Docker/Colima connectivity issue")
 class S3StorageIntegrationTest {
 
     companion object {

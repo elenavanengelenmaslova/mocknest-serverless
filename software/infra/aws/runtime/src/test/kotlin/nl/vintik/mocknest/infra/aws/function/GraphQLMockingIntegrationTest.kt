@@ -1,25 +1,23 @@
 package nl.vintik.mocknest.infra.aws.function
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
-import nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
-import java.util.function.Function
+import kotlinx.coroutines.flow.toList
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.infra.aws.config.AwsLocalStackTestConfiguration
-import kotlinx.coroutines.flow.toList
-import org.springframework.beans.factory.annotation.Qualifier
+import nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.context.ContextConfiguration
-import kotlin.test.assertEquals
+import org.springframework.test.context.TestPropertySource
+import java.util.function.Function
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 
-@Disabled("LocalStack integration tests disabled - Docker/Colima connectivity issue")
 @SpringBootTest(classes = [RuntimeApplication::class])
 @TestPropertySource(locations = ["classpath:application-test.properties"])
 @ContextConfiguration(classes = [AwsLocalStackTestConfiguration::class])
