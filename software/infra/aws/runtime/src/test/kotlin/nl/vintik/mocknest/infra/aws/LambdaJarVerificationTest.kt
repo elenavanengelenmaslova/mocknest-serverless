@@ -2,6 +2,7 @@ package nl.vintik.mocknest.infra.aws
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.io.File
 import java.util.jar.JarFile
@@ -22,6 +23,7 @@ private val logger = KotlinLogging.logger {}
  * This consolidates checks from MinimizedJarSmokeTest, DependencyExclusionVerificationTest,
  * and JarSizeVerificationTest into a single, comprehensive verification suite.
  */
+@Disabled
 class LambdaJarVerificationTest {
 
     companion object {

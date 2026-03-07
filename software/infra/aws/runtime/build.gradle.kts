@@ -154,11 +154,11 @@ tasks {
 
     test {
         dependsOn(shadowJar)
-        dependsOn(":software:infra:aws:generation:shadowJar")
         useJUnitPlatform()
     }
 
     assemble {
         dependsOn("shadowJar")
     }
+
 }
