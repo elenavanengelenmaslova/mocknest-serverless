@@ -28,6 +28,26 @@ dependencies {
 
     // Coroutines
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core")
+    
+    // Test dependencies - these will be available to modules that depend on core
+    testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:localstack")
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+}
+
+// Create a test JAR so other modules can use test utilities
+val testJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("tests")
+    from(sourceSets.test.get().output)
+}
+
+configurations {
+    create("testArtifacts")
+}
+
+artifacts {
+    add("testArtifacts", testJar)
 }
 
 configurations {
@@ -60,4 +80,9 @@ configurations {
         exclude(group = "com.sun.xml.bind")
         exclude(group = "javax.xml.bind")
     }
+}
+
+tasks.test {
+    // Core module only has test utilities, not actual tests
+    failOnNoDiscoveredTests = false
 }

@@ -29,6 +29,9 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:localstack")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    
+    // Test utilities from core module
+    testImplementation(project(":software:infra:aws:core", "testArtifacts"))
 }
 
 configurations {
@@ -74,7 +77,7 @@ tasks {
 
     val shadowJar by getting(ShadowJar::class) {
         archiveFileName.set("mocknest-runtime.jar")
-        destinationDirectory.set(file("${project.buildDir}/libs"))
+        destinationDirectory.set(layout.buildDirectory.dir("libs"))
         
         from(sourceSets.main.get().output)
         configurations = listOf(project.configurations.runtimeClasspath.get())
