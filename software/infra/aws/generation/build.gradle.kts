@@ -88,26 +88,10 @@ tasks {
         from(sourceSets.main.get().output)
         configurations = listOf(project.configurations.runtimeClasspath.get())
         
-        minimize {
-            // Keep all application and domain classes to ensure Spring beans are found
-            exclude(project(":software:application"))
-            exclude(project(":software:domain"))
-            exclude(project(":software:infra:aws:core"))
-            
-            // Only exclude absolute essentials that minimize() might incorrectly remove
-            exclude(dependency("org.springframework.boot:spring-boot-autoconfigure"))
-            exclude(dependency("org.springframework.cloud:spring-cloud-function-context"))
-            exclude(dependency("org.springframework.cloud:spring-cloud-function-adapter-aws"))
-            // Preserve Kotlin reflection and stdlib for Spring and AI components
-            exclude(dependency("org.jetbrains.kotlin:kotlin-reflect"))
-            exclude(dependency("org.jetbrains.kotlin:kotlin-stdlib"))
-        }
-        
         isZip64 = true
         
         manifest {
-            attributes["Main-Class"] = "nl.vintik.mocknest.infra.aws.generation.GenerationApplication"
-            attributes["Start-Class"] = "nl.vintik.mocknest.infra.aws.generation.GenerationApplication"
+            attributes["Main-Class"] = "org.springframework.cloud.function.adapter.aws.FunctionInvoker"
         }
         
         // CRITICAL: These make Spring Boot work in fat JAR

@@ -87,22 +87,7 @@ tasks {
             // Exclude Bedrock SDK - not needed for runtime, only for AI generation
             exclude(dependency("aws.sdk.kotlin:bedrockruntime"))
         }
-        
-//        minimize {
-//            // Keep all application and domain classes to ensure Spring beans are found
-//            exclude(project(":software:application"))
-//            exclude(project(":software:domain"))
-//            exclude(project(":software:infra:aws:core"))
-//
-//            // Only exclude absolute essentials that minimize() might incorrectly remove
-//            exclude(dependency("org.springframework.boot:spring-boot-autoconfigure"))
-//            exclude(dependency("org.springframework.cloud:spring-cloud-function-context"))
-//            exclude(dependency("org.springframework.cloud:spring-cloud-function-adapter-aws"))
-//            // Preserve Kotlin reflection and stdlib for Spring
-//            exclude(dependency("org.jetbrains.kotlin:kotlin-reflect"))
-//            exclude(dependency("org.jetbrains.kotlin:kotlin-stdlib"))
-//        }
-        
+
         isZip64 = true
         
         manifest {
