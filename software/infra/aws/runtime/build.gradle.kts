@@ -106,8 +106,7 @@ tasks {
         isZip64 = true
         
         manifest {
-            attributes["Main-Class"] = "nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication"
-            attributes["Start-Class"] = "nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication"
+            attributes["Main-Class"] = "org.springframework.cloud.function.adapter.aws.FunctionInvoker"
         }
         
         // CRITICAL: These make Spring Boot work in fat JAR
@@ -138,6 +137,19 @@ tasks {
         exclude("ucd/**")
         exclude("org/eclipse/jetty/websocket/**")
         exclude("org/eclipse/jetty/http2/**")
+
+        // Exclude unnecessary Jetty components
+        exclude("org/eclipse/jetty/alpn/**")
+        exclude("org/eclipse/jetty/jmx/**")
+        exclude("org/eclipse/jetty/annotations/**")
+        exclude("org/eclipse/jetty/jaas/**")
+        exclude("org/eclipse/jetty/jndi/**")
+        exclude("org/eclipse/jetty/plus/**")
+        exclude("org/eclipse/jetty/proxy/**")
+        exclude("org/eclipse/jetty/rewrite/**")
+        exclude("org/eclipse/jetty/servlets/**")
+        exclude("org/eclipse/jetty/webapp/**")
+        exclude("org/eclipse/jetty/xml/**")
     }
 
     test {
