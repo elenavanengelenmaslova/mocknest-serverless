@@ -62,7 +62,7 @@ class LambdaJarVerificationTest {
     fun `Given runtime JAR When checking Then should contain essential runtime classes`() {
         JarFile(runtimeJarFile).use { jar ->
             assertNotNull(jar.getJarEntry("nl/vintik/mocknest/infra/aws/runtime/RuntimeApplication.class"), "RuntimeApplication class missing from runtime JAR")
-            assertNotNull(jar.getJarEntry("nl/vintik/mocknest/infra/aws/runtime/RuntimeLambdaHandler.class"), "RuntimeLambdaHandler class missing from runtime JAR")
+            assertNotNull(jar.getJarEntry("nl/vintik/mocknest/infra/aws/runtime/function/RuntimeLambdaHandler.class"), "RuntimeLambdaHandler class missing from runtime JAR")
             
             // Verify application-level runtime classes and their implementations (Spring beans)
             assertNotNull(jar.getJarEntry("nl/vintik/mocknest/application/runtime/usecases/HandleClientRequest.class"), "HandleClientRequest interface missing")
@@ -98,7 +98,7 @@ class LambdaJarVerificationTest {
     fun `Given generation JAR When checking Then should contain essential generation classes`() {
         JarFile(generationJarFile).use { jar ->
             assertNotNull(jar.getJarEntry("nl/vintik/mocknest/infra/aws/generation/GenerationApplication.class"), "GenerationApplication class missing from generation JAR")
-            assertNotNull(jar.getJarEntry("nl/vintik/mocknest/infra/aws/generation/GenerationLambdaHandler.class"), "GenerationLambdaHandler class missing from generation JAR")
+            assertNotNull(jar.getJarEntry("nl/vintik/mocknest/infra/aws/generation/function/GenerationLambdaHandler.class"), "GenerationLambdaHandler class missing from generation JAR")
             
             // Verify application-level generation classes and their implementations (Spring beans)
             assertNotNull(jar.getJarEntry("nl/vintik/mocknest/application/runtime/usecases/HandleAIGenerationRequest.class"), "HandleAIGenerationRequest interface missing")

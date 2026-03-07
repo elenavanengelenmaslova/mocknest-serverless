@@ -9,7 +9,7 @@ plugins {
 }
 
 springBoot {
-    mainClass.set("nl.vintik.mocknest.infra.aws.ApplicationKt")
+    mainClass.set("nl.vintik.mocknest.infra.aws.runtime.RuntimeApplicationKt")
 }
 
 val smithyKotlinVersion = "1.6.2"
@@ -98,56 +98,7 @@ tasks {
     }
 
     val shadowJar by getting(ShadowJar::class) {
-        archiveFileName.set("mocknest-serverless-aws.jar")
-        destinationDirectory.set(file("${project.rootDir}/build/dist"))
-        isZip64 = true
-        manifest {
-            attributes["Main-Class"] = "org.springframework.cloud.function.adapter.aws.FunctionInvoker"
-        }
-        
-        // Merge service files
-        mergeServiceFiles()
-        append("META-INF/spring.handlers")
-        append("META-INF/spring.schemas")
-        append("META-INF/spring.tooling")
-        append("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
-        append("META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports")
-        append("META-INF/spring.factories")
-        
-        // Exclude unnecessary files to reduce size
-        exclude("META-INF/*.SF")
-        exclude("META-INF/*.DSA")
-        exclude("META-INF/*.RSA")
-        exclude("META-INF/LICENSE*")
-        exclude("META-INF/NOTICE*")
-        exclude("META-INF/maven/**")
-        exclude("module-info.class")
-        
-        // Exclude Swagger UI assets - not needed in Lambda
-        exclude("assets/swagger-ui/**")
-        exclude("samples/**")
-        exclude("mozilla/public-suffix-list.txt")
-        
-        // Exclude Jetty WebSocket and HTTP/2 classes
-        exclude("org/eclipse/jetty/websocket/**")
-        exclude("org/eclipse/jetty/http2/**")
-        
-        // Exclude unnecessary Jetty components
-        exclude("org/eclipse/jetty/alpn/**")
-        exclude("org/eclipse/jetty/jmx/**")
-        exclude("org/eclipse/jetty/annotations/**")
-        exclude("org/eclipse/jetty/jaas/**")
-        exclude("org/eclipse/jetty/jndi/**")
-        exclude("org/eclipse/jetty/plus/**")
-        exclude("org/eclipse/jetty/proxy/**")
-        exclude("org/eclipse/jetty/rewrite/**")
-        exclude("org/eclipse/jetty/servlets/**")
-        exclude("org/eclipse/jetty/webapp/**")
-        exclude("org/eclipse/jetty/xml/**")
-        
-        // Exclude Redis client - not used
-        exclude("io/lettuce/**")
-        exclude("META-INF/services/io.lettuce.**")
+        enabled = false
     }
     
     register<ShadowJar>("shadowJarRuntime") {
@@ -321,9 +272,9 @@ tasks {
     }
 }
 
-// Copy the shadowJar to deployment directory for SAM
+// Copy specialized shadowJars to deployment directory for SAM
 tasks.register<Copy>("copyShadowJarForDeployment") {
-    dependsOn("shadowJar")
-    from(tasks.named("shadowJar"))
+    dependsOn("shadowJarRuntime", "shadowJarGeneration")
+    from(tasks.named("shadowJarRuntime"), tasks.named("shadowJarGeneration"))
     into("${project.rootDir}/deployment/aws/sam/build")
 }

@@ -5,6 +5,7 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import nl.vintik.mocknest.infra.aws.generation.function.GenerationLambdaHandler
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
 import org.junit.jupiter.api.AfterEach

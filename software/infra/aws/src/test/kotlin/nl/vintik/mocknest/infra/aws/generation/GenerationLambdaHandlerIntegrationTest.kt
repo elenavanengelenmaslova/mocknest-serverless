@@ -3,13 +3,13 @@ package nl.vintik.mocknest.infra.aws.generation
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import io.github.oshai.kotlinlogging.KotlinLogging
-import nl.vintik.mocknest.infra.aws.Application
 import nl.vintik.mocknest.infra.aws.config.AwsLocalStackTestConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
@@ -29,7 +29,7 @@ private val logger = KotlinLogging.logger {}
  * - Runtime paths are properly isolated (return 404)
  */
 @SpringBootTest(
-    classes = [Application::class],
+    classes = [GenerationApplication::class],
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
     properties = [
         "spring.main.allow-bean-definition-overriding=true",
@@ -43,6 +43,7 @@ private val logger = KotlinLogging.logger {}
 class GenerationLambdaHandlerIntegrationTest {
 
     @Autowired
+    @Qualifier("generationRouter")
     private lateinit var generationRouter: Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent>
 
     @Nested

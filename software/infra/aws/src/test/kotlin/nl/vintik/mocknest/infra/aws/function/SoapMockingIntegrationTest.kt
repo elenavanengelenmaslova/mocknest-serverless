@@ -1,10 +1,13 @@
 package nl.vintik.mocknest.infra.aws.function
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
+import nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
+import java.util.function.Function
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.infra.aws.config.AwsLocalStackTestConfiguration
-import nl.vintik.mocknest.infra.aws.runtime.function.MockNestLambdaHandler
 import kotlinx.coroutines.flow.toList
+import org.springframework.beans.factory.annotation.Qualifier
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -14,16 +17,16 @@ import org.springframework.test.context.ContextConfiguration
 import kotlin.test.assertEquals
 import kotlin.test.assertContains
 import org.springframework.beans.factory.annotation.*
-import nl.vintik.mocknest.infra.aws.Application
 
-@SpringBootTest(classes = [Application::class])
+@SpringBootTest(classes = [RuntimeApplication::class])
 @TestPropertySource(locations = ["classpath:application-test.properties"])
 @ContextConfiguration(classes = [AwsLocalStackTestConfiguration::class])
 class SoapMockingIntegrationTest {
 
-    // Spring Boot will inject the lambda handler
+    // Spring Boot will inject the lambda handler router
     @Autowired
-    private lateinit var lambdaHandler: MockNestLambdaHandler
+    @Qualifier("runtimeRouter")
+    private lateinit var lambdaHandler: Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent>
 
     // Spring Boot will inject the test storage
     @Autowired
@@ -92,7 +95,7 @@ class SoapMockingIntegrationTest {
         )
 
         // When - Set up mock via admin API
-        val adminResponse = lambdaHandler.router().apply(adminRequest)
+        val adminResponse = lambdaHandler.apply(adminRequest)
 
         // Then - Admin API should succeed
         assertEquals(201, adminResponse.statusCode)
@@ -121,7 +124,7 @@ class SoapMockingIntegrationTest {
             )
         )
 
-        val clientResponse = lambdaHandler.router().apply(clientRequest)
+        val clientResponse = lambdaHandler.apply(clientRequest)
 
         // Then - Should get SOAP response
         assertEquals(200, clientResponse.statusCode)
@@ -165,7 +168,7 @@ class SoapMockingIntegrationTest {
         )
 
         // When - Set up mock via admin API
-        val adminResponse = lambdaHandler.router().apply(adminRequest)
+        val adminResponse = lambdaHandler.apply(adminRequest)
 
         // Then - Admin API should succeed
         assertEquals(201, adminResponse.statusCode)
@@ -192,7 +195,7 @@ class SoapMockingIntegrationTest {
             )
         )
 
-        val clientResponse = lambdaHandler.router().apply(clientRequest)
+        val clientResponse = lambdaHandler.apply(clientRequest)
 
         // Then - Should get SOAP fault response
         assertEquals(500, clientResponse.statusCode)
