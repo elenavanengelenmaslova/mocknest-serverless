@@ -102,8 +102,9 @@ The primary goal is to make MockNest Serverless production-ready for public SAR 
 1. THE IAM_Policy SHALL NOT include `bedrock:ListFoundationModels` action
 2. THE IAM_Policy SHALL include `bedrock:InvokeModel` action
 3. IF streaming responses are used, THEN THE IAM_Policy SHALL include `bedrock:InvokeModelWithResponseStream` action
-4. THE IAM_Policy Bedrock actions SHALL apply to resource `*` (scoping to specific model ARNs is not feasible with dynamic model selection)
-5. THE IAM_Policy SHALL include a comment documenting why Bedrock resource is `*` rather than scoped
+4. THE IAM_Policy Bedrock actions SHALL be scoped to the deployment region using: `arn:aws:bedrock:${AWS::Region}:*:*`
+5. THE IAM_Policy SHALL include a comment documenting the resource scope and why it includes both foundation models and inference profiles
+6. THE IAM_Policy SHALL NOT use `Resource: *` for any Bedrock permissions
 
 ### Requirement 6: Add SAR Metadata
 
@@ -137,20 +138,22 @@ The primary goal is to make MockNest Serverless production-ready for public SAR 
 8. THE Deployment_Section SHALL include a link to AWS Bedrock model availability documentation
 9. THE Deployment_Section SHALL include a "Support" subsection directing users to GitHub Issues for questions and bug reports
 
-### Requirement 8: Implement Health Check Endpoint
+### Requirement 8: Implement Separate Health Check Endpoints
 
-**User Story:** As an operator, I want a health check endpoint that shows the resolved Bedrock configuration, so that I can verify the deployment is configured correctly.
+**User Story:** As an operator, I want separate health check endpoints for runtime and AI features, so that I can monitor each component independently.
 
 #### Acceptance Criteria
 
-1. THE Runtime SHALL expose a `GET /health/ready` endpoint
-2. THE Health_Endpoint SHALL return HTTP 200 when the application is ready
-3. THE Health_Response SHALL include the deployment region from `AWS_REGION`
-4. THE Health_Response SHALL include the selected Bedrock model name
-5. THE Health_Response SHALL include the resolved inference profile prefix (or "none" if no prefix is used)
-6. THE Health_Response SHALL include the inference mode (`AUTO`, `GLOBAL_ONLY`, or `GEO_ONLY`)
-7. IF Bedrock invocation has been attempted, THEN THE Health_Response SHALL include whether the last invocation succeeded
-8. THE Health_Response SHALL be formatted as JSON
+1. THE Runtime SHALL expose a `GET /__admin/health` endpoint for WireMock runtime status
+2. THE Runtime_Health_Endpoint SHALL return HTTP 200 when the WireMock runtime is ready
+3. THE Runtime_Health_Response SHALL include: deployment region, S3 bucket name, storage connectivity status
+4. THE Runtime_Health_Response SHALL include a timestamp
+5. THE Runtime SHALL expose a `GET /ai/health` endpoint for AI features status
+6. THE AI_Health_Endpoint SHALL return HTTP 200 when AI features are operational
+7. THE AI_Health_Response SHALL include: deployment region, model name, inference prefix, inference mode
+8. IF Bedrock invocation has been attempted, THEN THE AI_Health_Response SHALL include whether the last invocation succeeded
+9. THE AI_Health_Response SHALL include a timestamp
+10. BOTH health endpoints SHALL return responses formatted as JSON
 
 ### Requirement 9: Preserve Koog Integration
 
@@ -176,21 +179,7 @@ The primary goal is to make MockNest Serverless production-ready for public SAR 
 3. IF AWS SDK clients need region configuration, THEN THE Configuration SHALL use `AWS_REGION` environment variable directly
 4. THE BedrockConfiguration SHALL configure `BedrockRuntimeClient` to use the region from `AWS_REGION`
 
-### Requirement 11: Implement AI Features Toggle
-
-**User Story:** As a SAR user, I want to deploy MockNest without AI features enabled by default, so that I can use the core runtime in any region without Bedrock dependencies.
-
-#### Acceptance Criteria
-
-1. THE SAM_Template SHALL contain an `EnableAIFeatures` parameter with allowed values: `true`, `false`
-2. THE SAM_Template SHALL set the default value of `EnableAIFeatures` to `false`
-3. WHEN `EnableAIFeatures` is `false`, THE Lambda_Configuration SHALL NOT set Bedrock-related environment variables
-4. WHEN `EnableAIFeatures` is `false`, THE Runtime SHALL NOT attempt to initialize Bedrock clients
-5. WHEN `EnableAIFeatures` is `false`, THE AI generation endpoints SHALL return HTTP 501 (Not Implemented) with a message explaining AI features are disabled
-6. WHEN `EnableAIFeatures` is `true`, THE Runtime SHALL initialize Bedrock clients and enable AI generation endpoints
-7. THE Core_Runtime (WireMock mock serving, S3 persistence, admin API) SHALL function correctly regardless of `EnableAIFeatures` setting
-
-### Requirement 12: Implement Soft Model Restrictions
+### Requirement 11: Implement Soft Model Restrictions
 
 **User Story:** As a SAR user, I want clear guidance on which Bedrock models are officially supported, while retaining flexibility to experiment with other models.
 
@@ -294,3 +283,92 @@ The primary goal is to make MockNest Serverless production-ready for public SAR 
 7. THE Developer_Section SHALL document building from source and local testing
 8. THE README SHALL clearly separate "what users need to know" from "what developers need to know"
 9. THE README SHALL include a "Tested Configuration" section documenting officially supported regions and models
+
+### Requirement 19: Create SAR-Specific README
+
+**User Story:** As a SAR user viewing the application in the AWS Console, I want a focused README that shows me how to use the deployed application, without developer setup instructions.
+
+#### Acceptance Criteria
+
+1. THE Repository SHALL contain a separate `README-SAR.md` file for SAR users
+2. THE README-SAR SHALL be referenced in the SAM template `ReadmeUrl` metadata field
+3. THE README-SAR SHALL NOT include developer setup instructions (building, testing, contributing)
+4. THE README-SAR SHALL include a "How to Use" section with post-deployment instructions
+5. THE README-SAR SHALL include clear input parameter documentation with examples
+6. THE README-SAR SHALL include output format documentation with examples
+7. THE README-SAR SHALL include a "Common Use Cases" section with practical examples
+8. THE README-SAR SHALL include an "Error Handling" section explaining common errors
+9. THE README-SAR SHALL include a "Cost" section explaining what users will pay
+10. THE README-SAR SHALL include a "Security" section explaining IAM permissions and how to restrict them
+
+### Requirement 20: Document Cost Transparency
+
+**User Story:** As a SAR user, I want to understand what AWS costs I will incur by using MockNest, so that I can make informed deployment decisions.
+
+#### Acceptance Criteria
+
+1. THE README-SAR SHALL contain a "Cost" section explaining all AWS service costs
+2. THE Cost_Section SHALL break down costs by service: Lambda, API Gateway, S3, Step Functions (if used), Bedrock (if AI enabled)
+3. THE Cost_Section SHALL explain Free Tier eligibility for each service
+4. THE Cost_Section SHALL provide example cost calculations for typical usage scenarios
+5. THE Cost_Section SHALL explain that AI features (Bedrock) incur additional costs
+6. THE Cost_Section SHALL link to AWS pricing calculators for detailed estimates
+7. THE Health_Endpoint response SHALL include estimated monthly cost based on current usage (optional enhancement)
+
+### Requirement 21: Document Security and IAM Permissions
+
+**User Story:** As a security-conscious user, I want to understand what IAM permissions MockNest requires and why, so that I can assess security risks before deployment.
+
+#### Acceptance Criteria
+
+1. THE README-SAR SHALL contain a "Security" section explaining IAM permissions
+2. THE Security_Section SHALL list all IAM actions granted to Lambda functions
+3. THE Security_Section SHALL explain that Bedrock permissions are scoped to the deployment region only
+4. THE Security_Section SHALL document the resource ARN pattern used: `arn:aws:bedrock:${AWS::Region}:*:*`
+5. THE Security_Section SHALL explain API Gateway authentication (API key by default)
+6. THE Security_Section SHALL document S3 bucket encryption settings
+7. THE Security_Section SHALL link to AWS security best practices documentation
+8. THE Security_Section SHALL explain that permissions follow least-privilege principles
+
+### Requirement 22: Add Semantic Versioning
+
+**User Story:** As a SAR user, I want to see version numbers for MockNest releases, so that I can track updates and understand what changed between versions.
+
+#### Acceptance Criteria
+
+1. THE SAM_Template SHALL include a `SemanticVersion` property starting at "1.0.0"
+2. THE Repository SHALL maintain a CHANGELOG.md file documenting all releases
+3. THE CHANGELOG SHALL follow the format: version number, release date, and list of changes
+4. THE CHANGELOG SHALL categorize changes as: Added, Changed, Fixed, Removed, Security
+5. THE README-SAR SHALL include a "Version History" section linking to CHANGELOG.md
+6. WHEN publishing to SAR, THE SemanticVersion SHALL be incremented following semver rules
+7. THE Git repository SHALL use tags matching the semantic version (e.g., v1.0.0)
+
+### Requirement 24: Remove Local Filesystem Support
+
+**User Story:** As a developer, I want to simplify the codebase by removing local filesystem support for mock storage, so that the system has a single, consistent storage mechanism.
+
+#### Acceptance Criteria
+
+1. THE Runtime SHALL use S3 as the exclusive storage mechanism for WireMock mappings and files
+2. THE Runtime SHALL NOT support loading mappings from local filesystem or classpath
+3. THE CompositeMappingsSource SHALL be removed or simplified to only use S3-backed storage
+4. THE Configuration SHALL NOT include any local filesystem paths for mock storage
+5. THE Documentation SHALL clearly state that all mocks must be stored in S3
+6. THE Built-in health check endpoint (if any) SHALL be implemented as a standard WireMock mapping stored in S3, not as a classpath resource
+7. THE Codebase SHALL remove any code related to local filesystem mock loading to reduce complexity
+
+### Requirement 23: Document Error Handling and Troubleshooting
+
+**User Story:** As a SAR user encountering errors, I want clear troubleshooting guidance, so that I can resolve issues without contacting support.
+
+#### Acceptance Criteria
+
+1. THE README-SAR SHALL contain an "Error Handling" section
+2. THE Error_Handling_Section SHALL document common error scenarios with solutions
+3. THE Error_Handling_Section SHALL explain Bedrock access errors (model not available, access not enabled)
+4. THE Error_Handling_Section SHALL explain API Gateway authentication errors (invalid API key)
+5. THE Error_Handling_Section SHALL explain S3 permission errors
+6. THE Error_Handling_Section SHALL explain Lambda timeout errors
+7. THE Error_Handling_Section SHALL include instructions for viewing CloudWatch logs
+8. THE Error_Handling_Section SHALL link to GitHub Issues for reporting bugs
