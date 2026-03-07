@@ -116,6 +116,7 @@ tasks {
         append("META-INF/spring.schemas")
         append("META-INF/spring.tooling")
         append("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
+        append("META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports")
         append("META-INF/spring.factories")
         
         // Exclude unnecessary files
