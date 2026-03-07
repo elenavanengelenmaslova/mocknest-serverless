@@ -78,21 +78,20 @@ jobs:
         run: |
           ./gradlew clean :software:infra:aws:runtime:shadowJar :software:infra:aws:generation:shadowJar --no-build-cache
           echo "Build completed, verifying JAR files:"
-          ls -lh software/infra/aws/runtime/build/libs/
-          ls -lh software/infra/aws/generation/build/libs/
+          ls -lh build/dist/
           
       - name: Verify JAR artifacts
         run: |
-          if [ ! -f "software/infra/aws/runtime/build/libs/mocknest-runtime.jar" ]; then
+          if [ ! -f "build/dist/mocknest-runtime.jar" ]; then
             echo "ERROR: mocknest-runtime.jar not found"
             exit 1
           fi
-          if [ ! -f "software/infra/aws/generation/build/libs/mocknest-generation.jar" ]; then
+          if [ ! -f "build/dist/mocknest-generation.jar" ]; then
             echo "ERROR: mocknest-generation.jar not found"
             exit 1
           fi
-          echo "✓ Runtime JAR: $(du -h software/infra/aws/runtime/build/libs/mocknest-runtime.jar | cut -f1)"
-          echo "✓ Generation JAR: $(du -h software/infra/aws/generation/build/libs/mocknest-generation.jar | cut -f1)"
+          echo "✓ Runtime JAR: $(du -h build/dist/mocknest-runtime.jar | cut -f1)"
+          echo "✓ Generation JAR: $(du -h build/dist/mocknest-generation.jar | cut -f1)"
         
       - name: Deploy with SAM
         run: |

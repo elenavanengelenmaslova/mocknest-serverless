@@ -12,18 +12,18 @@ echo "Building Lambda JARs..."
 
 # Verify both JARs exist
 echo "Verifying JAR artifacts..."
-if [ ! -f "software/infra/aws/runtime/build/libs/mocknest-runtime.jar" ]; then
-    echo "ERROR: mocknest-runtime.jar not found in software/infra/aws/runtime/build/libs/"
+if [ ! -f "build/dist/mocknest-runtime.jar" ]; then
+    echo "ERROR: mocknest-runtime.jar not found in build/dist/"
     exit 1
 fi
 
-if [ ! -f "software/infra/aws/generation/build/libs/mocknest-generation.jar" ]; then
-    echo "ERROR: mocknest-generation.jar not found in software/infra/aws/generation/build/libs/"
+if [ ! -f "build/dist/mocknest-generation.jar" ]; then
+    echo "ERROR: mocknest-generation.jar not found in build/dist/"
     exit 1
 fi
 
-echo "✓ Runtime JAR: $(du -h software/infra/aws/runtime/build/libs/mocknest-runtime.jar | cut -f1)"
-echo "✓ Generation JAR: $(du -h software/infra/aws/generation/build/libs/mocknest-generation.jar | cut -f1)"
+echo "✓ Runtime JAR: $(du -h build/dist/mocknest-runtime.jar | cut -f1)"
+echo "✓ Generation JAR: $(du -h build/dist/mocknest-generation.jar | cut -f1)"
 
 # Navigate to SAM deployment directory
 cd deployment/aws/sam

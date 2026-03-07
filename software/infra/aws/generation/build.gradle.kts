@@ -83,7 +83,7 @@ tasks {
 
     val shadowJar by getting(ShadowJar::class) {
         archiveFileName.set("mocknest-generation.jar")
-        destinationDirectory.set(layout.buildDirectory.dir("libs"))
+        destinationDirectory.set(file("${project.rootDir}/build/dist"))
         
         from(sourceSets.main.get().output)
         configurations = listOf(project.configurations.runtimeClasspath.get())

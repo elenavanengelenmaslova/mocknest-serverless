@@ -77,7 +77,7 @@ tasks {
 
     val shadowJar by getting(ShadowJar::class) {
         archiveFileName.set("mocknest-runtime.jar")
-        destinationDirectory.set(layout.buildDirectory.dir("libs"))
+        destinationDirectory.set(file("${project.rootDir}/build/dist"))
         
         from(sourceSets.main.get().output)
         configurations = listOf(project.configurations.runtimeClasspath.get())
@@ -137,6 +137,12 @@ tasks {
         exclude("ucd/**")
         exclude("org/eclipse/jetty/websocket/**")
         exclude("org/eclipse/jetty/http2/**")
+    }
+
+    test {
+        dependsOn(shadowJar)
+        dependsOn(":software:infra:aws:generation:shadowJar")
+        useJUnitPlatform()
     }
 
     assemble {

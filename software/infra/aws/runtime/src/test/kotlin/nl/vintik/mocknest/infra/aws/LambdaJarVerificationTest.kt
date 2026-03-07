@@ -39,8 +39,8 @@ class LambdaJarVerificationTest {
             runtimeJarFile = buildDistDir.resolve("mocknest-runtime.jar")
             generationJarFile = buildDistDir.resolve("mocknest-generation.jar")
             
-            assertTrue(runtimeJarFile.exists(), "Runtime JAR not found at ${runtimeJarFile.absolutePath}. Ensure shadowJarRuntime task has run.")
-            assertTrue(generationJarFile.exists(), "Generation JAR not found at ${generationJarFile.absolutePath}. Ensure shadowJarGeneration task has run.")
+            assertTrue(runtimeJarFile.exists(), "Runtime JAR not found at ${runtimeJarFile.absolutePath}. Ensure runtime:shadowJar task has run.")
+            assertTrue(generationJarFile.exists(), "Generation JAR not found at ${generationJarFile.absolutePath}. Ensure generation:shadowJar task has run.")
         }
 
         private fun findBuildDistDir(): File {
