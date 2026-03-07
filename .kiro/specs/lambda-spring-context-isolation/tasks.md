@@ -37,9 +37,9 @@
   - Mark task complete when tests are written, run, and passing on unfixed code
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-- [ ] 3. Split monolithic module into three separate modules
+- [x] 3. Split monolithic module into three separate modules
 
-  - [ ] 3.1 Create core module structure
+  - [x] 3.1 Create core module structure
     - Create directory `software/infra/aws/core/`
     - Create `software/infra/aws/core/build.gradle.kts` with shared infrastructure dependencies
     - Create `software/infra/aws/core/src/main/kotlin/nl/vintik/mocknest/infra/aws/core/` package structure
@@ -51,7 +51,7 @@
     - _Preservation: All runtime behavior unchanged (mock serving, admin API, AI generation, S3 storage, WireMock behavior)_
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 3.2 Create runtime module structure
+  - [x] 3.2 Create runtime module structure
     - Create directory `software/infra/aws/runtime/`
     - Create `software/infra/aws/runtime/build.gradle.kts` with Shadow JAR configuration
     - Copy EXACT working Shadow JAR config: mergeServiceFiles(), append META-INF files, minimize blocks
@@ -66,7 +66,7 @@
     - _Preservation: Runtime Lambda serves mocks identically to unfixed code_
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 3.3 Create generation module structure
+  - [x] 3.3 Create generation module structure
     - Create directory `software/infra/aws/generation/`
     - Create `software/infra/aws/generation/build.gradle.kts` with Shadow JAR configuration
     - Copy EXACT working Shadow JAR config: mergeServiceFiles(), append META-INF files, minimize blocks
@@ -80,7 +80,7 @@
     - _Preservation: Generation Lambda processes AI requests identically to unfixed code_
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 3.4 Update settings.gradle.kts
+  - [x] 3.4 Update settings.gradle.kts
     - Replace `include(":software:infra:aws")` with three new modules:
       - `include(":software:infra:aws:core")`
       - `include(":software:infra:aws:runtime")`
@@ -92,7 +92,7 @@
     - _Preservation: Gradle build continues to work with new module structure_
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 3.5 Move shared code to core module
+  - [x] 3.5 Move shared code to core module
     - Move `software/infra/aws/src/main/kotlin/nl/vintik/mocknest/infra/aws/core/storage/` to `software/infra/aws/core/src/main/kotlin/nl/vintik/mocknest/infra/aws/core/storage/`
     - Move `software/infra/aws/src/main/kotlin/nl/vintik/mocknest/infra/aws/core/wiremock/` to `software/infra/aws/core/src/main/kotlin/nl/vintik/mocknest/infra/aws/core/wiremock/` (if exists)
     - Move any other shared infrastructure code from `infra/aws/core/` package to core module
@@ -103,7 +103,7 @@
     - _Preservation: S3 storage operations work identically after code move_
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3_
 
-  - [ ] 3.6 Move runtime code to runtime module
+  - [x] 3.6 Move runtime code to runtime module
     - Move `software/infra/aws/src/main/kotlin/nl/vintik/mocknest/infra/aws/runtime/RuntimeApplication.kt` to `software/infra/aws/runtime/src/main/kotlin/nl/vintik/mocknest/infra/aws/runtime/RuntimeApplication.kt`
     - Move `software/infra/aws/src/main/kotlin/nl/vintik/mocknest/infra/aws/runtime/function/` to `software/infra/aws/runtime/src/main/kotlin/nl/vintik/mocknest/infra/aws/runtime/function/`
     - Move `software/infra/aws/src/main/kotlin/nl/vintik/mocknest/infra/aws/runtime/storage/` to `software/infra/aws/runtime/src/main/kotlin/nl/vintik/mocknest/infra/aws/runtime/storage/`
@@ -116,7 +116,7 @@
     - _Preservation: Runtime Lambda serves mocks identically after code move_
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.4_
 
-  - [ ] 3.7 Move generation code to generation module
+  - [x] 3.7 Move generation code to generation module
     - Move `software/infra/aws/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/GenerationApplication.kt` to `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/GenerationApplication.kt`
     - Move `software/infra/aws/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/function/` to `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/function/`
     - Move `software/infra/aws/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/storage/` to `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/storage/`
@@ -130,7 +130,7 @@
     - _Preservation: Generation Lambda processes AI requests identically after code move_
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.5_
 
-  - [ ] 3.8 Delete old monolithic module
+  - [x] 3.8 Delete old monolithic module
     - Verify all code has been moved to new modules (core, runtime, generation)
     - Delete directory `software/infra/aws/` (old monolithic module)
     - Verify Gradle build works: `./gradlew build`
@@ -140,7 +140,7 @@
     - _Preservation: All functionality preserved in new module structure_
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 3.9 Update SAM template with new JAR paths
+  - [x] 3.9 Update SAM template with new JAR paths
     - Edit `deployment/aws/sam/template.yaml`
     - Update Runtime Lambda `CodeUri` to point to `../../../software/infra/aws/runtime/build/libs/mocknest-runtime.jar`
     - Update Generation Lambda `CodeUri` to point to `../../../software/infra/aws/generation/build/libs/mocknest-generation.jar`
@@ -152,7 +152,7 @@
     - _Preservation: SAM deployment continues to work with new JAR paths_
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 3.10 Update build scripts with new Gradle tasks
+  - [x] 3.10 Update build scripts with new Gradle tasks
     - Edit `deployment/aws/sam/build.sh`
     - Replace `./gradlew :software:infra:aws:buildAllLambdas` with `./gradlew :software:infra:aws:runtime:shadowJar :software:infra:aws:generation:shadowJar`
     - Update JAR copy logic to copy from new module locations: `software/infra/aws/runtime/build/libs/` and `software/infra/aws/generation/build/libs/`
@@ -163,7 +163,7 @@
     - _Preservation: Build script continues to produce deployable Lambda JARs_
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 3.11 Update GitHub Actions workflows
+  - [x] 3.11 Update GitHub Actions workflows
     - Edit `.github/workflows/workflow-build.yml`
     - Update build step to run `./gradlew :software:infra:aws:runtime:shadowJar :software:infra:aws:generation:shadowJar`
     - Verify workflow references correct JAR paths for artifact upload
@@ -173,7 +173,7 @@
     - _Preservation: CI/CD pipeline continues to work with new module structure_
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 3.12 Verify bug condition exploration test now passes
+  - [x] 3.12 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - Lambda Initialization Success with Separate Modules
     - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
     - The test from task 1 encodes the expected behavior
@@ -187,7 +187,7 @@
     - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 3.13 Verify preservation tests still pass
+  - [x] 3.13 Verify preservation tests still pass
     - **Property 2: Preservation** - Runtime Behavior Unchanged After Module Split
     - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
     - Run preservation property tests from step 2

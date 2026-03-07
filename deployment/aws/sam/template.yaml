@@ -278,8 +278,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime"
-      CodeUri: ../../../build/dist/mocknest-runtime.jar
-      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
+      CodeUri: ../../../software/infra/aws/runtime/build/libs/mocknest-runtime.jar
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
       ReservedConcurrentExecutions: 10
       Environment:
@@ -315,8 +315,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${AWS::StackName}-generation"
-      CodeUri: ../../../build/dist/mocknest-generation.jar
-      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
+      CodeUri: ../../../software/infra/aws/generation/build/libs/mocknest-generation.jar
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
       ReservedConcurrentExecutions: 5
       Timeout: 300
