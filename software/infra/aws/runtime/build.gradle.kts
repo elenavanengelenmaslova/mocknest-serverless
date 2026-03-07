@@ -98,7 +98,7 @@ tasks {
             exclude(dependency("org.springframework.boot:spring-boot-autoconfigure"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-context"))
             exclude(dependency("org.springframework.cloud:spring-cloud-function-adapter-aws"))
-            // Preserve Kotlin reflection and stdlib for Spring and AI components
+            // Preserve Kotlin reflection and stdlib for Spring
             exclude(dependency("org.jetbrains.kotlin:kotlin-reflect"))
             exclude(dependency("org.jetbrains.kotlin:kotlin-stdlib"))
         }

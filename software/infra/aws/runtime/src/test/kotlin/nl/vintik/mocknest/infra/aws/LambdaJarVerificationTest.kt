@@ -131,7 +131,7 @@ class LambdaJarVerificationTest {
 
     @Test
     fun `Given both JARs When checking manifests Then should have correct Main-Class attributes`() {
-        verifyManifestMainClass(runtimeJarFile, "RuntimeApplication")
+        verifyManifestMainClass(runtimeJarFile, "FunctionInvoker")
         verifyManifestMainClass(generationJarFile, "GenerationApplication")
     }
 
