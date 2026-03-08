@@ -83,27 +83,34 @@ PLACEHOLDER YOUTUBE DEMO LINK HERE
 
 ### Building with Kiro AI
 
-I built MockNest using Kiro AI as a development partner, but the process did not start with code generation. Instead, I started by defining a set of steering documents that describe the product vision, scope, architecture, AWS usage, and development guidelines.
+I built MockNest with Kiro AI as a development partner. When I started exploring Kiro, I learned that it works best when the project context is clearly defined, so the first step was creating a set of **steering documents**.
 
-These documents provided persistent context so Kiro could generate code and design proposals aligned with the system architecture.
+These documents provide long-lived context for the project and guide how the AI generates requirements, design and code. In MockNest they include:
 
-The development process followed an iterative workflow:
+- **Product vision** – the problem the project solves and the long-term direction
+- **Scope and non-goals** – what the project intentionally does and does not try to solve
+- **Architecture** – system structure, clean architecture boundaries, and package layout
+- **AWS services** – how cloud components such as Lambda, API Gateway, and S3 are used
+- **Development guidelines** – coding standards and workflows for working with Kiro
 
-1. **Vision and scope** – defining the problem, target users, and initial feature set
-2. **Architecture design** – defining runtime behavior, storage, and clean architecture boundaries
-3. **Feature specifications** – translating ideas into requirements, design, and implementation tasks
-4. **Implementation and refinement** – generating code, reviewing results, and improving steering documents when needed
+Writing these documents turned out to be very valuable because it forced me to think carefully about the product direction and system design before writing code.
 
-Every time Kiro produced code that did not fully match the intended design, I refined the steering documents. This created a feedback loop where better documentation led to better AI-generated results.
+Kiro also provides a structured workflow where changes are planned using **requirements, design, and tasks** before code generation begins. Each feature, bugfix or refactoring includes checkpoints to verify that acceptance criteria are met.
 
-This approach helped maintain architectural consistency while building the system incrementally.
+In practice, I discovered that this workflow works best with **small, focused scope**. When scope became too large and requirements changed during implementation, keeping requirements, design, and tasks aligned became difficult. Breaking work down into smaller, story-sized changes made the process much easier to manage.
+
+Another important part of the workflow was continuously improving the steering documents. Whenever generated code did not match the intended design, I updated the relevant document—refining architecture rules, coding guidelines, or scope decisions. Over time this created a feedback loop where better documentation produced better AI-generated output.
+
+Bug fixing and refactoring also worked well in this workflow because Kiro encourages a **test-first approach**. When fixing issues Kiro would first reproduce the bug with a test or add tests before refactoring to ensure behavior stayed correct.
+
+One practical lesson was to keep the documentation structure manageable. The number of requirements, design, and task documents can grow quickly, so after completing bugfixes or refactorings I often archived those files and kept only documentation that helped explain the product functionality and architecture.
+
+Overall the experience was close to **pair programming**, whereby I preferred working on and reviewing one task at a time.
 
 ### Architecture
 
-MockNest uses a simplified clean architecture adapted for serverless systems.
-
-[IMAGE PLACEHOLDER – Clean Architecture Diagram]
-
+MockNest uses a simplified clean architecture [3] adapted for serverless systems.
+![CleanArchitecture.png](images/CleanArchitecture.png)
 The system is organized into three layers:
 
 **Domain layer**
@@ -226,3 +233,8 @@ Expand support for asynchronous and streaming interactions such as webhooks, cal
 Add support for mocking MCP servers and tools to help teams test AI agents and LLM-based systems.
 
 The long-term goal is to evolve MockNest from a serverless mock runtime into an intelligent platform that helps teams keep their integration tests accurate as APIs and systems continue to evolve.
+
+References
+[1] WireMock
+[2] Kiro
+[3] Clean Architecture for Serverless
