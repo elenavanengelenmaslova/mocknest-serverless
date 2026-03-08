@@ -3,6 +3,7 @@ package nl.vintik.mocknest.infra.aws.core.ai.config
 import ai.koog.prompt.executor.clients.bedrock.BedrockInferencePrefixes
 import ai.koog.prompt.executor.clients.bedrock.BedrockModels
 import ai.koog.prompt.executor.clients.bedrock.withInferenceProfile
+import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Value

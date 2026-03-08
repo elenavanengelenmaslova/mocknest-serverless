@@ -1,10 +1,11 @@
-package nl.vintik.mocknest.infra.aws.core.ai.config
+package nl.vintik.mocknest.infra.aws.generation.ai.config
 
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import nl.vintik.mocknest.application.generation.agent.MockGenerationFunctionalAgent
 import nl.vintik.mocknest.application.generation.interfaces.*
 import nl.vintik.mocknest.application.generation.parsers.CompositeSpecificationParserImpl
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
+import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.application.generation.usecases.*
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.infra.aws.generation.ai.BedrockServiceAdapter
@@ -45,7 +46,7 @@ class AIGenerationConfiguration {
     fun bedrockServiceAdapter(
         bedrockClient: BedrockRuntimeClient,
         modelConfiguration: ModelConfiguration,
-        promptBuilder: nl.vintik.mocknest.application.generation.services.PromptBuilderService
+        promptBuilder: PromptBuilderService
     ): AIModelServiceInterface {
         return BedrockServiceAdapter(bedrockClient, modelConfiguration, promptBuilder)
     }
@@ -57,7 +58,7 @@ class AIGenerationConfiguration {
         aiModelService: AIModelServiceInterface,
         specificationParser: SpecificationParserInterface,
         mockValidator: MockValidatorInterface,
-        promptBuilder: nl.vintik.mocknest.application.generation.services.PromptBuilderService
+        promptBuilder: PromptBuilderService
     ): MockGenerationFunctionalAgent {
         return MockGenerationFunctionalAgent(aiModelService, specificationParser, mockValidator, promptBuilder, maxRetries)
     }

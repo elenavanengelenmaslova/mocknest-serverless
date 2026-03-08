@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.core.ai.config
+package nl.vintik.mocknest.infra.aws.generation.ai.config
 
 import ai.koog.prompt.executor.clients.bedrock.BedrockModel
 import ai.koog.prompt.executor.clients.bedrock.BedrockModels
