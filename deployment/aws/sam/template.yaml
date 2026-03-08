@@ -303,12 +303,16 @@ Resources:
             RestApiId: !Ref MockNestApi
             Path: /__admin/{proxy+}
             Method: ANY
+            Auth:
+              ApiKeyRequired: true
         MockRoutes:
           Type: Api
           Properties:
             RestApiId: !Ref MockNestApi
             Path: /mocknest/{proxy+}
             Method: ANY
+            Auth:
+              ApiKeyRequired: true
 
   # Lambda function for MockNest Generation
   MockNestGenerationFunction:
@@ -344,6 +348,8 @@ Resources:
             RestApiId: !Ref MockNestApi
             Path: /ai/{proxy+}
             Method: ANY
+            Auth:
+              ApiKeyRequired: true
 
   # CloudWatch Log Group for Runtime Lambda
   RuntimeLambdaLogGroup:
