@@ -144,11 +144,11 @@ kover {
             }
         }
 
-//         verify {
-//             rule {
-//                 minBound(90)
-//             }
-//         }
+        verify {
+            rule {
+                minBound(90)
+            }
+        }
     }
 }
 // Configure verification rules

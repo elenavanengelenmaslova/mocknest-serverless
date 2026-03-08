@@ -118,5 +118,41 @@ class BedrockServiceAdapterTest {
             assertEquals("GET", mocks[0].metadata.endpoint.method.name(), "Mock method should be GET")
             assertEquals("/pet/1", mocks[0].metadata.endpoint.path, "Mock path should be /pet/1")
         }
+
+        @Test
+        fun `Given mapping without optional fields When creating mock Then should use defaults`() {
+            val mapping = "{}"
+            val mappingJson = mapper.readTree(mapping)
+            val mock = adapter.createGeneratedMock(mappingJson, MockNamespace("api"), SourceType.SPEC_WITH_DESCRIPTION, "ref", 0)
+            
+            assertEquals(HttpMethod.GET, mock.metadata.endpoint.method)
+            assertEquals("/unknown", mock.metadata.endpoint.path)
+            assertEquals(200, mock.metadata.endpoint.statusCode)
+            assertEquals("application/json", mock.metadata.endpoint.contentType)
+        }
+
+        @Test
+        fun `Given mapping with urlPattern When creating mock Then should use urlPattern`() {
+            val mapping = """{"request":{"method":"DELETE","urlPattern":"/p/.*"}}"""
+            val mappingJson = mapper.readTree(mapping)
+            val mock = adapter.createGeneratedMock(mappingJson, MockNamespace("api"), SourceType.SPEC_WITH_DESCRIPTION, "ref", 0)
+            
+            assertEquals(HttpMethod.DELETE, mock.metadata.endpoint.method)
+            assertEquals("/p/.*", mock.metadata.endpoint.path)
+        }
+
+        @Test
+        fun `Given invalid JSON When parsing model response Then should extract using fallback regex`() {
+            val response = "Here is the JSON: {\"request\":{\"method\":\"GET\"}} and some text."
+            val mocks = adapter.parseModelResponse(response, MockNamespace("api"), SourceType.SPEC_WITH_DESCRIPTION, "ref")
+            assertEquals(1, mocks.size)
+        }
+
+        @Test
+        fun `Given total garbage When parsing model response Then should return empty list`() {
+            val response = "No JSON here at all"
+            val mocks = adapter.parseModelResponse(response, MockNamespace("api"), SourceType.SPEC_WITH_DESCRIPTION, "ref")
+            assertTrue(mocks.isEmpty())
+        }
     }
 }

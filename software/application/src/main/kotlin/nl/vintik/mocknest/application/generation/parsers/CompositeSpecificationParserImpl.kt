@@ -20,7 +20,7 @@ class CompositeSpecificationParserImpl(
     init {
         // Register all available parsers
         parsers.forEach { parser ->
-            SpecificationFormat.entries.forEach { format ->
+            SpecificationFormat.values().forEach { format ->
                 if (parser.supports(format)) {
                     parserMap[format] = parser
                 }
@@ -38,9 +38,9 @@ class CompositeSpecificationParserImpl(
         return parserMap.containsKey(format)
     }
     
-    override suspend fun validate(content: String, format: SpecificationFormat): nl.vintik.mocknest.domain.generation.ValidationResult {
+    override suspend fun validate(content: String, format: SpecificationFormat): ValidationResult {
         val parser = parserMap[format] 
-            ?: return nl.vintik.mocknest.domain.generation.ValidationResult.invalid(listOf(
+            ?: return ValidationResult.invalid(listOf(
                 ValidationError("No parser available for format: $format")
             ))
         

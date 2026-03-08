@@ -3,6 +3,7 @@ package nl.vintik.mocknest.application.generation.parsers
 import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
@@ -120,5 +121,105 @@ class OpenAPISpecificationParserTest {
         // Then
         assertTrue(!result.isValid)
         assertTrue(result.errors.isNotEmpty())
+    }
+
+    @Test
+    fun `Should extract metadata correctly`() = runTest {
+        val content = """
+            openapi: 3.0.0
+            info:
+              title: My API
+              version: 2.1
+            paths:
+              /p1:
+                get: {}
+                post: {}
+              /p2:
+                put: {}
+        """.trimIndent()
+        
+        val metadata = parser.extractMetadata(content, SpecificationFormat.OPENAPI_3)
+        
+        assertEquals("My API", metadata.title)
+        assertEquals("2.1", metadata.version)
+        assertEquals(3, metadata.endpointCount)
+    }
+
+    @Test
+    fun `Should support only OpenAPI and Swagger formats`() {
+        assertTrue(parser.supports(SpecificationFormat.OPENAPI_3))
+        assertTrue(parser.supports(SpecificationFormat.SWAGGER_2))
+        assertFalse(parser.supports(SpecificationFormat.GRAPHQL))
+        assertFalse(parser.supports(SpecificationFormat.WSDL))
+    }
+
+    @Test
+    fun `Should parse complex schema with nested objects and arrays`() = runTest {
+        val content = """
+            openapi: 3.0.0
+            info:
+              title: Complex API
+              version: 1.0
+            paths:
+              /test:
+                post:
+                  responses:
+                    '200':
+                      description: OK
+                      content:
+                        application/json:
+                          schema:
+                            type: object
+                            properties:
+                              tags:
+                                type: array
+                                items:
+                                  type: string
+                              metadata:
+                                type: object
+                                additionalProperties: true
+        """.trimIndent()
+        
+        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+        val endpoint = spec.endpoints.first()
+        val schema = endpoint.responses[200]?.schema
+        
+        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.OBJECT, schema?.type)
+        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.ARRAY, schema?.properties?.get("tags")?.type)
+        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.STRING, schema?.properties?.get("tags")?.items?.type)
+        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.OBJECT, schema?.properties?.get("metadata")?.type)
+    }
+
+    @Test
+    fun `Should parse headers and query parameters`() = runTest {
+        val content = """
+            openapi: 3.0.0
+            info:
+              title: Params API
+              version: 1.0
+            paths:
+              /test:
+                get:
+                  parameters:
+                    - name: X-Request-ID
+                      in: header
+                      required: true
+                      schema:
+                        type: string
+                    - name: limit
+                      in: query
+                      schema:
+                        type: integer
+                  responses:
+                    '200':
+                      description: OK
+        """.trimIndent()
+        
+        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+        val params = spec.endpoints.first().parameters
+        
+        assertEquals(2, params.size)
+        assertTrue(params.any { it.name == "X-Request-ID" && it.location == nl.vintik.mocknest.domain.generation.ParameterLocation.HEADER })
+        assertTrue(params.any { it.name == "limit" && it.location == nl.vintik.mocknest.domain.generation.ParameterLocation.QUERY })
     }
 }

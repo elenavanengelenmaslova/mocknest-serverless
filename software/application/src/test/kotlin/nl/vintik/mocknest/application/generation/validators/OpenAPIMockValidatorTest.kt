@@ -1381,5 +1381,56 @@ class OpenAPIMockValidatorTest {
                 "Should validate 'body' field same as 'jsonBody'"
             )
         }
+
+        @Test
+        fun `Should handle malformed JSON in preProcessMapping`() = runTest {
+            val specification = createTestSpecification()
+            val mock = createGeneratedMock("malformed", "{not-json}")
+            val result = validator.validate(mock, specification)
+            assertTrue(!result.isValid)
+            assertTrue(result.errors.any { it.contains("Malformed JSON") })
+        }
+
+        @Test
+        fun `Should handle empty request or response`() = runTest {
+            val specification = createTestSpecification()
+            val mock = createGeneratedMock("empty", "{}")
+            val result = validator.validate(mock, specification)
+            assertTrue(!result.isValid)
+            assertTrue(result.errors.any { it.contains("Missing request section") })
+        }
+
+        @Test
+        fun `Should handle missing method or url`() = runTest {
+            val specification = createTestSpecification()
+            val mock = createGeneratedMock("no-method", "{\"request\":{},\"response\":{\"status\":200}}")
+            val result = validator.validate(mock, specification)
+            assertTrue(!result.isValid)
+            assertTrue(result.errors.any { it.contains("Missing method") })
+            assertTrue(result.errors.any { it.contains("Missing URL path") })
+        }
+
+        @Test
+        fun `Should handle missing status code`() = runTest {
+            val specification = createTestSpecification()
+            val mock = createGeneratedMock("no-status", "{\"request\":{\"method\":\"GET\",\"url\":\"/pet/1\"},\"response\":{}}")
+            val result = validator.validate(mock, specification)
+            assertTrue(!result.isValid)
+            assertTrue(result.errors.any { it.contains("Missing status code") })
+        }
+
+        @Test
+        fun `Should validate BOOLEAN and NUMBER types`() = runTest {
+            val specification = createTestSpecification()
+            
+            // Invalid types for existing pet endpoint
+            val mockJson = """
+                {"request":{"method":"GET","url":"/api/users/123"},
+                 "response":{"status":200,"jsonBody":{"active":"not-boolean","id":"123","name":"John","email":"a@b.com"}}}
+            """.trimIndent()
+            val result = validator.validate(createGeneratedMock("types", mockJson), specification)
+            assertFalse(result.isValid)
+            assertTrue(result.errors.any { it.contains("Expected boolean") })
+        }
     }
 }
