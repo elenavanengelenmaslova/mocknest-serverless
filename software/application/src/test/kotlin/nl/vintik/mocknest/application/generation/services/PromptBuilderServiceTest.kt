@@ -52,7 +52,7 @@ class PromptBuilderServiceTest {
             assertTrue(prompt.contains("Petstore API"))
             assertTrue(prompt.contains("1.0.0"))
             assertTrue(prompt.contains("3"))
-            assertTrue(prompt.contains("GET /pets"))
+            assertTrue(prompt.contains("GET /pets (Returns: STRING)"))
             assertTrue(prompt.contains("petstore"))
             assertTrue(prompt.contains("Add error cases for invalid pet IDs"))
         }
@@ -80,7 +80,7 @@ class PromptBuilderServiceTest {
         }
 
         @Test
-        fun `Given specification with many endpoints When building prompt Then should include only first 5 key endpoints`() {
+        fun `Given specification with many endpoints When building prompt Then should include all endpoints`() {
             val stringSchema = JsonSchema(type = JsonSchemaType.STRING)
             val successResponse = ResponseDefinition(
                 statusCode = 200,
@@ -111,9 +111,9 @@ class PromptBuilderServiceTest {
 
             val prompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, description, namespace)
 
-            assertTrue(prompt.contains("GET /endpoint1"))
-            assertTrue(prompt.contains("GET /endpoint5"))
-            assertFalse(prompt.contains("GET /endpoint6"))
+            assertTrue(prompt.contains("GET /endpoint1 (Returns: STRING)"))
+            assertTrue(prompt.contains("GET /endpoint5 (Returns: STRING)"))
+            assertTrue(prompt.contains("GET /endpoint10 (Returns: STRING)"))
         }
 
         @Test

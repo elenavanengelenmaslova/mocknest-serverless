@@ -50,39 +50,38 @@ jobs:
       - name: Setup SAM CLI
         uses: aws-actions/setup-sam@v2
         
-      - name: Build application
+      - name: Build Lambda JARs
         run: |
-          ./gradlew clean software:infra:aws:build software:infra:aws:shadowJar --no-build-cache
+          ./gradlew clean :software:infra:aws:runtime:shadowJar :software:infra:aws:generation:shadowJar --no-build-cache
           echo "Build completed, checking JAR files:"
-          ls -la software/infra/aws/build/libs/ || echo "No libs directory found"
-          find software/infra/aws/build -name "*.jar" -type f | sed 's|^|JAR FOUND: |'
-
-      - name: Show distributions
+          ls -lh build/dist/ || echo "No build/dist directory found"
+          
+      - name: Verify JAR artifacts
         run: |
-          ls -la software/infra/aws/build || true
-          ls -la software/infra/aws/build/distributions || true
-          find software/infra/aws/build -maxdepth 3 -type f | sed 's|^|FOUND: |'
+          if [ ! -f "build/dist/mocknest-runtime.jar" ]; then
+            echo "ERROR: mocknest-runtime.jar not found"
+            exit 1
+          fi
+          if [ ! -f "build/dist/mocknest-generation.jar" ]; then
+            echo "ERROR: mocknest-generation.jar not found"
+            exit 1
+          fi
+          echo "✓ Runtime JAR: $(du -h build/dist/mocknest-runtime.jar | cut -f1)"
+          echo "✓ Generation JAR: $(du -h build/dist/mocknest-generation.jar | cut -f1)"
   
-      - name: Build and deploy with SAM
+      - name: Deploy with SAM
         run: |
           cd deployment/aws/sam
           echo "🚀 Starting SAM deployment..."
           
-          # Run SAM deploy and capture both exit code and output
-          if sam deploy --config-env default --no-confirm-changeset; then
+          # Deploy directly without sam build since JARs are pre-built
+          if sam deploy --config-env default --no-confirm-changeset --force-upload; then
             echo "✅ Deployment completed successfully"
           else
             EXIT_CODE=$?
             echo "❌ SAM deployment failed with exit code: $EXIT_CODE"
-            
-            # Check if it's a "no changes" scenario vs actual failure
-            if sam deploy --config-env default --no-confirm-changeset --dry-run 2>&1 | grep -q "No changes to deploy"; then
-              echo "ℹ️ No changes to deploy - stack is up to date"
-              exit 0
-            else
-              echo "💥 Deployment failed with errors - check logs above"
-              exit $EXIT_CODE
-            fi
+            echo "💥 Deployment failed with errors - check logs above"
+            exit $EXIT_CODE
           fi
 
       - name: Get deployment outputs

@@ -205,7 +205,7 @@ flowchart TB
   - **Null safety** - Eliminates null pointer exceptions at compile time, improving reliability
   - **Multiplatform capabilities** - Can target JVM, Node JS, and Native 
   - **Coroutines** - Built-in support for asynchronous programming
-- **Koog** (Kotlin-based AI agent framework) for implementing AI-assisted mock generation; Koog provides agent orchestration and integrates with external AI model providers (e.g., Amazon Bedrock)
+- **Koog** (Kotlin-based AI agent framework) for implementing AI-assisted mock generation; Koog provides agent orchestration and integrates with external AI model providers (e.g., Amazon Bedrock with Amazon Nova Pro as the default model)
 - **Gradle with Kotlin DSL** - Build system chosen for:
   - **Kotlin consistency** - Build scripts in same language as application code
   - **Type safety** - IDE support and compile-time validation for build configuration

@@ -6,7 +6,7 @@ plugins {
     kotlin("plugin.serialization") version "2.3.0" apply false
     id("org.springframework.boot") version "4.0.2" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
-    id("com.gradleup.shadow") version "8.3.6" apply false
+    id("com.gradleup.shadow") version "8.3.10" apply false
     id("org.jetbrains.kotlinx.kover") version "0.9.4"
 }
 
@@ -46,11 +46,19 @@ subprojects {
             
             // Kotlin AWS SDK
             val awsSdkKotlinVersion = "1.6.16"
+            val smithyKotlinVersion = "1.6.2"
             dependency("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:bedrock:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:bedrockruntime:$awsSdkKotlinVersion")
+            dependency("aws.smithy.kotlin:http-client-engine-okhttp:$smithyKotlinVersion")
+            dependency("aws.smithy.kotlin:http-client-engine-crt:$smithyKotlinVersion")
+            
+            val okhttpVersion = "5.0.0-alpha.14"
+            ext["okhttp.version"] = okhttpVersion
+            dependency("com.squareup.okhttp3:okhttp:$okhttpVersion")
+            dependency("com.squareup.okhttp3:okhttp-coroutines:$okhttpVersion")
             
             // AWS Lambda Java
             dependency("com.amazonaws:aws-lambda-java-core:1.2.3")
@@ -136,11 +144,11 @@ kover {
             }
         }
 
-//         verify {
-//             rule {
-//                 minBound(90)
-//             }
-//         }
+        verify {
+            rule {
+                minBound(80)
+            }
+        }
     }
 }
 // Configure verification rules

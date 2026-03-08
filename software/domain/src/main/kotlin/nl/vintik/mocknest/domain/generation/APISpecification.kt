@@ -11,7 +11,8 @@ data class APISpecification(
     val title: String,
     val endpoints: List<EndpointDefinition>,
     val schemas: Map<String, JsonSchema>,
-    val metadata: Map<String, String> = emptyMap()
+    val metadata: Map<String, String> = emptyMap(),
+    val rawContent: String? = null
 ) {
     init {
         require(version.isNotBlank()) { "Specification version cannot be blank" }

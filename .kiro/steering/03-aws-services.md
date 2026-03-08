@@ -41,7 +41,7 @@ MockNest Serverless core runtime is built around these essential AWS services:
 - **Amazon S3** - Persistent storage for WireMock mappings and response payloads (always deployed)
 
 When AI features are enabled, additional services are used:
-- **Amazon Bedrock** - AI model access for the Koog-based mock generation agent
+- **Amazon Bedrock** - AI model access for the Koog-based mock generation agent (using Amazon Nova Pro as the officially supported model)
 
 ## Compute Services
 - **AWS Lambda** (Java runtime) - Hosts the WireMock runtime and handles all HTTP requests
@@ -56,7 +56,7 @@ When AI features are enabled, additional services are used:
   - Bucket organization supports efficient loading and caching strategies
 
 ## AI/ML Services
-- **Amazon Bedrock** - Provides access to foundation models for AI-assisted mock generation
+- **Amazon Bedrock** - Provides access to foundation models such as Amazon Nova Pro for AI-assisted mock generation
   - Integrated through the Koog framework
   - Used for generating WireMock mappings from API specifications and natural language input
   - Operates outside the request/response path to avoid runtime latency

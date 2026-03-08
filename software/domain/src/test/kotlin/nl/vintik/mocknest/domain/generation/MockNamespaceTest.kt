@@ -62,4 +62,10 @@ class MockNamespaceTest {
         
         assertEquals("mocknest/client-a_test/api-name_v2", namespace.toPrefix())
     }
+
+    @Test
+    fun `Should have correct mapping storage path`() {
+        val namespace = MockNamespace("api", "client")
+        assertEquals("mocknest/client/api/", namespace.toStoragePath())
+    }
 }

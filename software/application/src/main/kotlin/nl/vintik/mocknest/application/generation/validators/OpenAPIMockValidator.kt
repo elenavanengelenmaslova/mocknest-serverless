@@ -1,18 +1,14 @@
 package nl.vintik.mocknest.application.generation.validators
 
-import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.*
 import nl.vintik.mocknest.application.generation.interfaces.MockValidationResult
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.domain.generation.*
 import org.springframework.stereotype.Component
-import com.github.tomakehurst.wiremock.common.Json as WireMockJson
-import kotlinx.serialization.json.Json as KotlinJson
 
 /**
  * Validates generated mocks against OpenAPI specifications.
- * Uses WireMock's native matching logic for robust URL validation.
  */
 @Component
 class OpenAPIMockValidator : MockValidatorInterface {
@@ -20,29 +16,24 @@ class OpenAPIMockValidator : MockValidatorInterface {
     private val logger = KotlinLogging.logger {}
     
     override suspend fun validate(mock: GeneratedMock, specification: APISpecification): MockValidationResult {
-        logger.info { "Validating mock ${mock.id}:\n${mock.wireMockMapping}" }        
-        val errors = mutableListOf<String>()
-        
-        val mappingJson = runCatching { KotlinJson.parseToJsonElement(mock.wireMockMapping).jsonObject }.getOrElse {
-            errors.add("Validation error: Malformed JSON")
-            return reportResults(mock, errors)
-        }
+        return try {
+            val errors = mutableListOf<String>()
+            
+            val processedMapping = preProcessMapping(mock.wireMockMapping)
+            val mappingJson = try {
+                Json.parseToJsonElement(processedMapping).jsonObject
+            } catch (e: Exception) {
+                return MockValidationResult.invalid(listOf("Validation error: Malformed JSON"))
+            }
 
-        runCatching {
-            // 1. Basic structural checks
-            val request = mappingJson["request"]?.jsonObject
-            if (request == null) {
-                errors.add("Missing request section in WireMock mapping")
-                return reportResults(mock, errors)
-            }
+            // 1. Structural checks
+            val requestNode = mappingJson["request"]?.jsonObject
+            if (requestNode == null) return MockValidationResult.invalid(listOf("Missing request section in WireMock mapping"))
             
-            if (!request.containsKey("url") && !request.containsKey("urlPath") && 
-                !request.containsKey("urlPattern") && !request.containsKey("urlPathPattern")) {
+            if (!requestNode.containsKey("method")) errors.add("Missing method in request")
+            if (!requestNode.containsKey("url") && !requestNode.containsKey("urlPath") && 
+                !requestNode.containsKey("urlPattern") && !requestNode.containsKey("urlPathPattern")) {
                 errors.add("Missing URL path in request")
-            }
-            
-            if (!request.containsKey("method")) {
-                errors.add("Missing method in request")
             }
             
             val responseNode = mappingJson["response"]?.jsonObject
@@ -52,345 +43,166 @@ class OpenAPIMockValidator : MockValidatorInterface {
                 errors.add("Missing status code in response")
             }
             
-            if (errors.isNotEmpty()) return reportResults(mock, errors)
+            if (errors.isNotEmpty()) return MockValidationResult.invalid(errors)
 
-            // 2. Pre-process and Parse the WireMock mapping into StubMapping for advanced matching
-            val processedMapping = preProcessMapping(mock.wireMockMapping)
-            val stubMapping = WireMockJson.read(processedMapping, StubMapping::class.java)
-            val requestPattern = stubMapping.request
+            // 2. Find matching endpoint
+            val method = requestNode["method"]?.jsonPrimitive?.content ?: ""
+            val url = requestNode["url"]?.jsonPrimitive?.content 
+                ?: requestNode["urlPath"]?.jsonPrimitive?.content 
+                ?: requestNode["urlPathPattern"]?.jsonPrimitive?.content 
+                ?: requestNode["urlPattern"]?.jsonPrimitive?.content ?: ""
             
-            // 3. Find matching endpoint in specification using WireMock's matching engine
-            // Sort endpoints to favor more specific paths (those without parameters) first
-            val sortedEndpoints = specification.endpoints.sortedByDescending { it.path.length }
-            val endpoint = sortedEndpoints.find { ep: EndpointDefinition ->
-                matchesEndpoint(stubMapping, ep, mock.namespace.displayName())
-            }
-            
+            val endpoint = findEndpoint(method, url, specification, mock.namespace.displayName())
             if (endpoint == null) {
-                val method = requestPattern.method.toString()
-                val urlInfo = requestPattern.urlMatcher.toString()
-                errors.add("No matching endpoint found in specification for $method $urlInfo")
-                return reportResults(mock, errors)
+                return MockValidationResult.invalid(listOf("No matching endpoint found in specification for $method $url"))
             }
-            
-            // 4. Extract and validate response details
-            val response = stubMapping.response
-            if (response == null) {
-                errors.add("Missing response section in WireMock mapping")
-                return reportResults(mock, errors)
+
+            // 3. Validate status code
+            val status = responseNode!!["status"]?.jsonPrimitive?.intOrNull ?: 200
+            val responseDef = endpoint.responses[status]
+            if (responseDef == null) {
+                return MockValidationResult.invalid(listOf("Status code $status not defined in specification for ${endpoint.method} ${endpoint.path}"))
             }
-            val statusCode = response.status
-            
-            // Check if status code is defined in specification
-            val responseDefinition = endpoint.responses[statusCode]
-            if (responseDefinition == null) {
-                errors.add("Status code $statusCode not defined in specification for ${endpoint.method} ${endpoint.path}")
-                return reportResults(mock, errors)
+
+            // 4. Validate query parameters
+            requestNode["queryParameters"]?.jsonObject?.forEach { (name, _) ->
+                if (endpoint.parameters.none { it.name == name && it.location == ParameterLocation.QUERY }) {
+                    errors.add("${endpoint.method} ${endpoint.path}: Query parameter '$name' not defined in specification")
+                }
             }
-            
-            // 5. Validate response body against schema if present
-            val responseBodyJson = response.jsonBody?.let { KotlinJson.parseToJsonElement(WireMockJson.write(it)) }
-                ?: response.body?.let { KotlinJson.parseToJsonElement(it) }
-            
-            val responseSchema = responseDefinition.schema
-            if (responseBodyJson != null && responseSchema != null) {
-                val schemaErrors = validateResponseBodyAgainstSchema(
-                    responseBodyJson, 
-                    responseSchema,
-                    "${endpoint.method} ${endpoint.path} - $statusCode"
-                )
-                errors.addAll(schemaErrors)
+
+            // 5. Validate response body schema
+            val body = responseNode["jsonBody"] ?: responseNode["body"]
+            val schema = responseDef.schema
+            if (body != null && schema != null) {
+                errors.addAll(validateResponseBodyAgainstSchema(body, schema, "${endpoint.method} ${endpoint.path} - $status"))
             }
-            
-            // 6. Validate query parameters if present
-            val queryParams = request["queryParameters"]?.jsonObject
-            if (queryParams != null) {
-                val paramErrors = validateQueryParameters(queryParams, endpoint, "${endpoint.method} ${endpoint.path}")
-                errors.addAll(paramErrors)
-            }
-            
-            // 7. Logical consistency checks (Best Effort)
-            val consistencyErrors = validateConsistency(mock, mappingJson, endpoint)
-            if (consistencyErrors.isNotEmpty()) {
-                logger.warn { "Consistency issues found for mock ${mock.id}:\n${consistencyErrors.joinToString("\n")}" }
-                // We add them to errors only as warnings for now, or keep them separate
-                // Based on user feedback, we'll prefix them and NOT let them block the mock generation if they are the only errors
-                errors.addAll(consistencyErrors.map { "[CONSISTENCY] $it" })
-            }
-            
-        }.onFailure { exception ->
-            val msg = exception.message ?: ""
-            if (exception is com.github.tomakehurst.wiremock.common.JsonException) {
-                if (msg.contains("response")) errors.add("Missing response section in WireMock mapping")
-                else if (msg.contains("status")) errors.add("Missing status code in response")
-                else errors.add("Validation error: $msg")
-            } else {
-                logger.error(exception) { "Validation failed for mock ${mock.id}" }
-                errors.add("Validation error: $msg")
-            }
+
+            // 6. Consistency checks
+            errors.addAll(validateConsistency(mock, mappingJson, endpoint))
+
+            if (errors.isEmpty()) MockValidationResult.valid() else MockValidationResult.invalid(errors)
+        } catch (e: Exception) {
+            logger.error(e) { "Validation failed for mock ${mock.id}" }
+            MockValidationResult.invalid(listOf("Validation error: ${e.message}"))
         }
-        
-        return reportResults(mock, errors)
     }
 
-    /**
-     * Pre-processes the mapping string to handle common AI mistakes like using 'body' for objects.
-     */
     private fun preProcessMapping(wireMockMapping: String): String {
         return runCatching {
-            val json = KotlinJson.parseToJsonElement(wireMockMapping).jsonObject
+            val json = Json.parseToJsonElement(wireMockMapping).jsonObject
             val response = json["response"]?.jsonObject ?: return wireMockMapping
-            
             if (response.containsKey("body") && response["body"] is JsonObject) {
-                // Swap body to jsonBody
                 val mutableResponse = response.toMutableMap()
                 mutableResponse["jsonBody"] = mutableResponse.remove("body")!!
-                
                 val mutableJson = json.toMutableMap()
                 mutableJson["response"] = JsonObject(mutableResponse)
-                return KotlinJson.encodeToString(mutableJson)
+                return Json.encodeToString(JsonObject(mutableJson))
             }
             wireMockMapping
         }.getOrDefault(wireMockMapping)
     }
 
-    private fun reportResults(mock: GeneratedMock, errors: List<String>): MockValidationResult {
-        return if (errors.isEmpty()) {
-            MockValidationResult.valid()
-        } else {
-            val fatalErrors = errors.filter { !it.startsWith("[CONSISTENCY]") }
-            if (fatalErrors.isEmpty()) {
-                logger.warn { "Mock ${mock.id} has consistency issues but is otherwise VALID. Warnings:\n${errors.joinToString("\n")}" }
-            } else {
-                logger.warn { "Validation FAILED for mock: ${mock.id}\nMock JSON: ${mock.wireMockMapping}\nErrors:\n${errors.joinToString("\n")}" }
+    private fun findEndpoint(method: String, url: String, spec: APISpecification, namespace: String): EndpointDefinition? {
+        val prefix = if (namespace.startsWith("/")) namespace else "/$namespace"
+        val normalizedUrl = if (url.startsWith(prefix)) url.substring(prefix.length).let { if (it.isEmpty()) "/" else it } else url
+        val normalizedUrlPath = if (normalizedUrl.startsWith("/")) normalizedUrl else "/$normalizedUrl"
+        val cleanUrlPath = normalizedUrlPath.split("?")[0]
+        
+        return spec.endpoints
+            .filter { it.method.toString().equals(method, ignoreCase = true) }
+            .sortedByDescending { it.path.length }
+            .find { ep ->
+                val specPath = ep.path.let { if (it.startsWith("/")) it else "/$it" }
+                
+                // 1. Match normalized URL (as literal) against spec path (as regex)
+                // This handles specific IDs in mock URLs (e.g., /pet/1 matches /pet/{petId})
+                val specRegex = ("^" + specPath.replace(Regex("\\{[^}]+\\}"), "[^/]+") + "$").toRegex()
+                if (specRegex.matches(cleanUrlPath)) return@find true
+                
+                // 2. Match spec path (as sample) against mock URL (as regex)
+                // This handles regex matchers in mocks (e.g., /pet/.* matches /pet/{petId})
+                val sample = specPath.replace(Regex("\\{[^}]+\\}"), "123")
+                runCatching { cleanUrlPath.toRegex().matches(sample) }.getOrDefault(false)
             }
-            MockValidationResult.invalid(errors)
-        }
     }
 
-    /**
-     * Uses WireMock's matching logic to see if a stub matches an OpenAPI endpoint definition.
-     */
-    private fun matchesEndpoint(stub: StubMapping, endpoint: EndpointDefinition, namespace: String): Boolean {
-        // Check Method
-        if (stub.request.method.toString() != endpoint.method.toString()) return false
-        
-        // 1. Try matching without prefix
-        val specPath = endpoint.path.let { if (it.startsWith("/")) it else "/$it" }
-        val samplePathWithoutPrefix = specPath.replace(Regex("\\{[^}]+\\}"), "123")
-        if (stub.request.urlMatcher.match(samplePathWithoutPrefix).isExactMatch) return true
-        
-        // 2. Try matching with namespace prefix
-        val prefix = if (namespace.startsWith("/")) namespace else "/$namespace"
-        val samplePathWithPrefix = if (samplePathWithoutPrefix.startsWith(prefix)) {
-            samplePathWithoutPrefix 
-        } else {
-            "$prefix$samplePathWithoutPrefix".replace("//", "/")
-        }
-        
-        return stub.request.urlMatcher.match(samplePathWithPrefix).isExactMatch
-    }
-    
-    /**
-     * Validates response body structure against JSON schema.
-     */
-    private fun validateResponseBodyAgainstSchema(
-        responseBody: JsonElement,
-        schema: JsonSchema,
-        context: String
-    ): List<String> {
+    private fun validateResponseBodyAgainstSchema(responseBody: JsonElement, schema: JsonSchema, context: String): List<String> {
         val errors = mutableListOf<String>()
-        
-        // Basic type validation
         when (schema.type) {
             JsonSchemaType.OBJECT -> {
-                if (responseBody !is JsonObject) {
-                    errors.add("$context: Expected object but got ${responseBody::class.simpleName}")
-                    return errors
-                }
-                
-                // Validate required properties
-                schema.required.forEach { requiredProp ->
-                    if (!responseBody.containsKey(requiredProp)) {
-                        errors.add("$context: Missing required property '$requiredProp'")
-                    }
-                }
-                
-                // Validate property types
-                schema.properties.forEach { (propName, propSchema) ->
-                    val propValue = responseBody[propName]
-                    if (propValue != null) {
-                        val propErrors = validateResponseBodyAgainstSchema(
-                            propValue, 
-                            propSchema, 
-                            "$context.$propName"
-                        )
-                        errors.addAll(propErrors)
-                    }
+                if (responseBody !is JsonObject) return listOf("$context: Expected object but got ${responseBody::class.simpleName}")
+                schema.required.forEach { if (!responseBody.containsKey(it)) errors.add("$context: Missing required property '$it'") }
+                schema.properties.forEach { (name, propSchema) ->
+                    responseBody[name]?.let { errors.addAll(validateResponseBodyAgainstSchema(it, propSchema, "$context.$name")) }
                 }
             }
             JsonSchemaType.ARRAY -> {
-                if (responseBody !is JsonArray) {
-                    errors.add("$context: Expected array but got ${responseBody::class.simpleName}")
-                    return errors
-                }
-                
-                // Validate array items if schema is defined
-                val itemSchema = schema.items
-                if (itemSchema != null) {
-                    responseBody.forEachIndexed { index, item ->
-                        val itemErrors = validateResponseBodyAgainstSchema(
-                            item,
-                            itemSchema,
-                            "$context[$index]"
-                        )
-                        errors.addAll(itemErrors)
-                    }
+                if (responseBody !is JsonArray) return listOf("$context: Expected array but got ${responseBody::class.simpleName}")
+                schema.items?.let { itemSchema ->
+                    responseBody.forEachIndexed { i, item -> errors.addAll(validateResponseBodyAgainstSchema(item, itemSchema, "$context[$i]")) }
                 }
             }
-            JsonSchemaType.STRING -> {
-                if (responseBody !is JsonPrimitive || !responseBody.isString) {
-                    errors.add("$context: Expected string but got ${responseBody::class.simpleName}")
-                }
-            }
-            JsonSchemaType.NUMBER, JsonSchemaType.INTEGER -> {
-                if (responseBody !is JsonPrimitive || responseBody.isString) {
-                    errors.add("$context: Expected number but got ${responseBody::class.simpleName}")
-                }
-            }
-            JsonSchemaType.BOOLEAN -> {
-                if (responseBody !is JsonPrimitive || responseBody.content !in listOf("true", "false")) {
-                    errors.add("$context: Expected boolean but got ${responseBody::class.simpleName}")
-                }
-            }
-            JsonSchemaType.NULL -> {
-                if (responseBody !is JsonNull) {
-                    errors.add("$context: Expected null but got ${responseBody::class.simpleName}")
-                }
-            }
+            JsonSchemaType.STRING -> if (responseBody !is JsonPrimitive || !responseBody.isString) errors.add("$context: Expected string but got ${responseBody::class.simpleName}")
+            JsonSchemaType.NUMBER, JsonSchemaType.INTEGER -> if (responseBody !is JsonPrimitive || responseBody.isString) errors.add("$context: Expected number but got ${responseBody::class.simpleName}")
+            JsonSchemaType.BOOLEAN -> if (responseBody !is JsonPrimitive || (responseBody.content != "true" && responseBody.content != "false")) errors.add("$context: Expected boolean but got ${responseBody::class.simpleName}")
+            JsonSchemaType.NULL -> {}
         }
-        
-        return errors
-    }
-    
-    /**
-     * Validates query parameters against endpoint definition.
-     */
-    private fun validateQueryParameters(
-        queryParams: JsonObject,
-        endpoint: EndpointDefinition,
-        context: String
-    ): List<String> {
-        val errors = mutableListOf<String>()
-        
-        // Check if query parameters are defined in specification
-        queryParams.keys.forEach { paramName ->
-            val paramDef = endpoint.parameters.find { 
-                it.name == paramName && it.location.name == "QUERY" 
-            }
-            if (paramDef == null) {
-                errors.add("$context: Query parameter '$paramName' not defined in specification")
-            }
-        }
-        
         return errors
     }
 
-    /**
-     * Performs logical consistency checks on the generated mock data.
-     */
-    private fun validateConsistency(
-        mock: GeneratedMock, 
-        mapping: JsonObject, 
-        endpoint: EndpointDefinition
-    ): List<String> {
+    private fun validateConsistency(mock: GeneratedMock, mapping: JsonObject, endpoint: EndpointDefinition): List<String> {
         val errors = mutableListOf<String>()
         val request = mapping["request"]?.jsonObject ?: return emptyList()
         val response = mapping["response"]?.jsonObject ?: return emptyList()
         
-        // 1. Check Query Parameter Consistency (e.g., status=available)
-        val queryParams = request["queryParameters"]?.jsonObject
-        val jsonBody = response["jsonBody"] ?: response["body"]
-        
-        if (queryParams != null && jsonBody != null) {
-            queryParams.forEach { (key, value) ->
-                // Extract the expected value from WireMock matcher (equalTo, contains, etc.)
-                val expectedValue = when (value) {
-                    is JsonPrimitive -> value.content
-                    is JsonObject -> value["equalTo"]?.jsonPrimitive?.content ?: value["contains"]?.jsonPrimitive?.content
-                    else -> null
-                }
-                
-                if (expectedValue != null) {
-                    if (jsonBody is JsonArray) {
-                        jsonBody.forEachIndexed { i, item ->
-                            val actualElement = (item as? JsonObject)?.get(key)
-                            if (actualElement != null && !matchesExpectedValue(actualElement, expectedValue)) {
-                                val actualStr = if (actualElement is JsonPrimitive) actualElement.content else actualElement.toString()
-                                errors.add("Consistency error in item [$i]: query parameter '$key' is '$expectedValue' but response contains '$actualStr'")
-                            }
-                        }
-                    } else if (jsonBody is JsonObject) {
-                        val actualElement = jsonBody[key]
-                        if (actualElement != null && !matchesExpectedValue(actualElement, expectedValue)) {
-                            val actualStr = if (actualElement is JsonPrimitive) actualElement.content else actualElement.toString()
-                            errors.add("Consistency error: query parameter '$key' is '$expectedValue' but response contains '$actualStr'")
-                        }
+        request["queryParameters"]?.jsonObject?.forEach { (key, value) ->
+            val expectedValue = when (value) {
+                is JsonPrimitive -> value.content
+                is JsonObject -> value["equalTo"]?.jsonPrimitive?.content ?: value["contains"]?.jsonPrimitive?.content
+                else -> null
+            }
+            if (expectedValue != null) {
+                val jsonBody = response["jsonBody"] ?: response["body"]
+                if (jsonBody is JsonArray) {
+                    jsonBody.forEachIndexed { i, item ->
+                        val actual = (item as? JsonObject)?.get(key)
+                        if (actual != null && !matchesExpectedValue(actual, expectedValue)) errors.add("[CONSISTENCY] Consistency error in item [$i]: query parameter '$key' is '$expectedValue' but response contains '$actual'")
                     }
+                } else if (jsonBody is JsonObject) {
+                    val actual = jsonBody[key]
+                    if (actual != null && !matchesExpectedValue(actual, expectedValue)) errors.add("[CONSISTENCY] Consistency error: query parameter '$key' is '$expectedValue' but response contains '$actual'")
                 }
             }
         }
         
-        // 2. Check Path Parameter Consistency (e.g., /pet/1 matches id: 1)
         val urlPath = request["urlPath"]?.jsonPrimitive?.content ?: request["url"]?.jsonPrimitive?.content ?: ""
-        
-        // Find path parameters in endpoint definition
-        endpoint.parameters.filter { it.location.name == "PATH" }.forEach { param ->
-            val paramName = param.name
-            val specPath = endpoint.path
-            
-            // Find where this param is in the spec path
-            val specSegments = specPath.split("/").filter { it.isNotEmpty() }
-            val paramIdx = specSegments.indexOfFirst { it == "{$paramName}" }
-            
+        endpoint.parameters.filter { it.location == ParameterLocation.PATH }.forEach { param ->
+            val specSegments = endpoint.path.split("/").filter { it.isNotEmpty() }
+            val paramIdx = specSegments.indexOfFirst { it == "{${param.name}}" }
             if (paramIdx != -1) {
-                // Try to find the value in the actual mock URL path
-                // This is tricky if it's a pattern, but if it's literal we can try.
-                // If it's a pattern, we might not be able to easily extract it.
-                // Best effort: if urlPath matches the same number of segments as specPath (ignoring namespace)
                 val prefix = "/${mock.namespace.displayName()}"
-                val normalizedPath = if (urlPath.startsWith(prefix)) {
-                    urlPath.removePrefix(prefix).let { if (it.isEmpty()) "/" else it }
-                } else {
-                    urlPath
-                }
+                val normalizedPath = if (urlPath.startsWith(prefix)) urlPath.removePrefix(prefix).let { if (it.isEmpty()) "/" else it } else urlPath
                 val mockSegments = normalizedPath.split("/").filter { it.isNotEmpty() }
-                
                 if (mockSegments.size == specSegments.size) {
                     val expectedValue = mockSegments[paramIdx]
-                    
+                    val jsonBody = response["jsonBody"] ?: response["body"]
                     if (jsonBody is JsonObject) {
-                        // Check common ID fields
-                        val bodyValue = jsonBody["id"]?.jsonPrimitive?.content 
-                            ?: jsonBody[paramName]?.jsonPrimitive?.content
-                        
-                        if (bodyValue != null && bodyValue != expectedValue) {
-                            errors.add("Consistency error: path parameter '$paramName' is '$expectedValue' but response body has value '$bodyValue'")
-                        }
+                        val bodyValue = jsonBody["id"]?.jsonPrimitive?.content ?: jsonBody[param.name]?.jsonPrimitive?.content
+                        if (bodyValue != null && bodyValue != expectedValue) errors.add("[CONSISTENCY] Consistency error: path parameter '${param.name}' is '$expectedValue' but response body has value '$bodyValue'")
                     }
                 }
             }
         }
-
         return errors
     }
 
     private fun matchesExpectedValue(element: JsonElement, expected: String): Boolean {
-        val matched = when (element) {
+        return when (element) {
             is JsonPrimitive -> element.content == expected
             is JsonArray -> element.any { matchesExpectedValue(it, expected) }
             is JsonObject -> element.values.any { matchesExpectedValue(it, expected) }
+            else -> false
         }
-        return matched
     }
 }
