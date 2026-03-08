@@ -22,7 +22,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 @ActiveProfiles("test")
 @Import(AwsLocalStackTestConfiguration::class)
 @Testcontainers
-class ApplicationTests {
+class GenerationApplicationTests {
 
     @Autowired
     private lateinit var functionCatalog: FunctionCatalog
