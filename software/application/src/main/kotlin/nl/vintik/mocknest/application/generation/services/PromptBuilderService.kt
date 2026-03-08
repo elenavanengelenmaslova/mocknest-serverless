@@ -33,8 +33,11 @@ class PromptBuilderService {
         val template = loadTemplate("/prompts/spec-with-description.txt")
         
         val keyEndpoints = specification.endpoints
-            .take(5)
-            .joinToString(", ") { "${it.method} ${it.path}" }
+            .joinToString("\n") { endpoint ->
+                val response200 = endpoint.responses[200] ?: endpoint.responses[201]
+                val responseType = response200?.schema?.type?.name ?: "OBJECT"
+                "- ${endpoint.method} ${endpoint.path} (Returns: $responseType)"
+            }
         
         val clientSection = namespace.client?.let { "\n- Client: $it" } ?: ""
         

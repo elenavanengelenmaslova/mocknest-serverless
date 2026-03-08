@@ -25,33 +25,33 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
 
         val openAPI = requireNotNull(parseResult.openAPI) { "Failed to parse OpenAPI specification" }
 
-        return convertToAPISpecification(openAPI, format)
+        return convertToAPISpecification(openAPI, format, content)
     }
 
     override fun supports(format: SpecificationFormat): Boolean =
         format in listOf(SpecificationFormat.OPENAPI_3, SpecificationFormat.SWAGGER_2)
 
-    override suspend fun validate(content: String, format: SpecificationFormat): nl.vintik.mocknest.domain.generation.ValidationResult = runCatching {
+    override suspend fun validate(content: String, format: SpecificationFormat): ValidationResult = runCatching {
         val parseResult = OpenAPIV3Parser().readContents(content)
 
         if (parseResult.openAPI == null) {
-            nl.vintik.mocknest.domain.generation.ValidationResult.invalid(
+            ValidationResult.invalid(
                 listOf(
                     ValidationError("Failed to parse OpenAPI specification")
                 )
             )
         } else if (parseResult.messages.isNotEmpty()) {
-            nl.vintik.mocknest.domain.generation.ValidationResult(
+            ValidationResult(
                 isValid = true,
                 warnings = parseResult.messages.map { ValidationWarning(it) }
             )
         } else {
-            nl.vintik.mocknest.domain.generation.ValidationResult.valid()
+            ValidationResult.valid()
         }
     }.onFailure { e ->
         logger.warn(e) { "Validation failed" }
     }.getOrElse { e ->
-        nl.vintik.mocknest.domain.generation.ValidationResult.invalid(
+        ValidationResult.invalid(
             listOf(
                 ValidationError("Validation failed: ${e.message}")
             )
@@ -80,7 +80,7 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
         )
     }
     
-    private fun convertToAPISpecification(openAPI: OpenAPI, format: SpecificationFormat): APISpecification {
+    private fun convertToAPISpecification(openAPI: OpenAPI, format: SpecificationFormat, content: String?): APISpecification {
         val endpoints = mutableListOf<EndpointDefinition>()
         
         openAPI.paths?.forEach { (path, pathItem) ->
@@ -100,7 +100,8 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
             metadata = mapOf(
                 "description" to (openAPI.info?.description ?: ""),
                 "host" to (openAPI.servers?.firstOrNull()?.url ?: "")
-            )
+            ),
+            rawContent = content
         )
     }
     

@@ -73,7 +73,8 @@ class PromptContentPreservationTest {
             assertTrue(prompt.contains("- Title: Pet Store API"))
             assertTrue(prompt.contains("- Version: 1.0.0"))
             assertTrue(prompt.contains("- Endpoints: 2"))
-            assertTrue(prompt.contains("- Key endpoints: GET /pets, POST /pets"))
+            assertTrue(prompt.contains("GET /pets (Returns: OBJECT)"))
+            assertTrue(prompt.contains("POST /pets (Returns: OBJECT)"))
             assertTrue(prompt.contains("Namespace:"))
             assertTrue(prompt.contains("- API Name: petstore"))
             assertTrue(!prompt.contains("- Client:"), "Should not contain client line when client is null")
@@ -100,7 +101,7 @@ class PromptContentPreservationTest {
         }
 
         @Test
-        fun `Given spec with many endpoints When building prompt Then should show first 5 endpoints only`() {
+        fun `Given spec with many endpoints When building prompt Then should show all endpoints`() {
             // Given
             val specification = createSpecificationWithManyEndpoints()
             val description = "Test"
@@ -109,14 +110,15 @@ class PromptContentPreservationTest {
             // When
             val prompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, description, namespace)
 
-            // Then - Verify only first 5 endpoints shown
+            // Then - Verify all endpoints shown
             assertTrue(prompt.contains("- Endpoints: 10"))
             assertTrue(prompt.contains("GET /endpoint1"))
             assertTrue(prompt.contains("POST /endpoint2"))
             assertTrue(prompt.contains("PUT /endpoint3"))
             assertTrue(prompt.contains("DELETE /endpoint4"))
             assertTrue(prompt.contains("PATCH /endpoint5"))
-            assertTrue(!prompt.contains("/endpoint6"), "Should not show 6th endpoint")
+            assertTrue(prompt.contains("GET /endpoint6"))
+            assertTrue(prompt.contains("PATCH /endpoint10"))
         }
     }
 
