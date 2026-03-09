@@ -12,21 +12,24 @@ The implementation follows a phased approach: core configuration changes first, 
   - [ ] 1.1 Remove AppRegion parameter from SAM template
     - Remove `AppRegion` parameter definition from `deployment/aws/sam/template.yaml`
     - Remove all references to `AppRegion` in parameter overrides and mappings
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 1.1_
   
   - [ ] 1.2 Remove MOCKNEST_APP_REGION environment variable
     - Remove `MOCKNEST_APP_REGION` from Lambda function environment variables in SAM template
     - Remove `aws.region` property from `application.properties`
     - Remove any references to `MOCKNEST_APP_REGION` in configuration classes
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 1.2, 10.1, 10.2_
   
   - [ ] 1.3 Update runtime to use AWS_REGION environment variable
     - Update `BedrockConfiguration` to read region from `AWS_REGION` environment variable
     - Update any S3 client configuration to use `AWS_REGION`
     - Ensure all AWS SDK clients use the deployment region from `AWS_REGION`
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 1.3, 1.4, 10.3, 10.4_
   
-  - [ ]* 1.4 Write unit tests for region configuration
+  - [ ] 1.4 Write unit tests for region configuration
     - Test that Bedrock client uses region from `AWS_REGION`
     - Test that S3 client uses region from `AWS_REGION`
     - Test fallback behavior when `AWS_REGION` is not set
@@ -37,12 +40,14 @@ The implementation follows a phased approach: core configuration changes first, 
     - Create `InferenceMode` enum in `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/config/`
     - Define three modes: `AUTO`, `GLOBAL_ONLY`, `GEO_ONLY`
     - Add documentation comments explaining each mode
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.1_
   
   - [ ] 2.2 Create InferencePrefixResolver interface
     - Define interface with `getCandidatePrefixes(): List<String>` method
     - Add `deployRegion: String` property
     - Include comprehensive KDoc documentation
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.4_
   
   - [ ] 2.3 Implement DefaultInferencePrefixResolver
@@ -51,6 +56,7 @@ The implementation follows a phased approach: core configuration changes first, 
     - Implement candidate prefix generation for GLOBAL_ONLY mode: [global]
     - Implement candidate prefix generation for GEO_ONLY mode: [geo_prefix]
     - Add warning logging for unknown region prefixes with fallback to "us"
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.4, 3.5, 3.6, 3.7_
   
   - [ ]* 2.4 Write unit tests for InferencePrefixResolver
@@ -72,6 +78,7 @@ The implementation follows a phased approach: core configuration changes first, 
   - [ ] 3.1 Add InferencePrefixResolver dependency to ModelConfiguration
     - Update `ModelConfiguration` constructor to accept `InferencePrefixResolver`
     - Update Spring configuration to wire `InferencePrefixResolver` bean
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.8_
   
   - [ ] 3.2 Implement prefix retry logic
@@ -79,22 +86,26 @@ The implementation follows a phased approach: core configuration changes first, 
     - Add `isRetryableError()` method to detect model-not-found, access-denied, not-enabled errors
     - Implement retry on retryable errors, immediate throw on non-retryable errors
     - Add DEBUG logging for each prefix attempt
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.8, 3.9, 4.1, 4.2, 4.4_
   
   - [ ] 3.3 Implement prefix caching
     - Add `cachedPrefix: String?` property to `ModelConfiguration`
     - Cache successful prefix after first successful invocation
     - Use cached prefix for subsequent invocations without retry
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 4.5_
   
   - [ ] 3.4 Implement final fallback and error handling
     - Attempt model without prefix if all candidates fail
     - Throw `ModelConfigurationException` with detailed error message including region, model name, and attempted prefixes
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.10, 3.11, 4.3_
   
   - [ ] 3.5 Implement model name fallback
     - Add try-catch around model name mapping using reflection
     - Log warning and fall back to `AmazonNovaPro` for invalid model names
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 2.4, 2.5_
   
   - [ ]* 3.6 Write unit tests for ModelConfiguration
@@ -128,18 +139,21 @@ The implementation follows a phased approach: core configuration changes first, 
     - Add parameter with allowed values: AUTO, GLOBAL_ONLY, GEO_ONLY
     - Set default value to AUTO
     - Add comprehensive description explaining each mode
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.1, 3.2_
   
   - [ ] 4.2 Update BedrockModelName parameter
     - Set default value to `AmazonNovaPro`
     - Update description to indicate "Amazon Nova Pro is officially supported and tested"
     - Keep allowed values matching Koog BedrockModels enum names
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 2.1, 2.2, 11.1, 11.2, 11.3_
   
   - [ ] 4.3 Update Lambda environment variables
     - Add `BEDROCK_INFERENCE_MODE` environment variable mapped to `BedrockInferenceMode` parameter
     - Ensure `BEDROCK_MODEL_NAME` is mapped to `BedrockModelName` parameter
     - Remove `MOCKNEST_APP_REGION` environment variable
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 2.3, 3.3_
   
   - [ ]* 4.4 Write SAM template validation tests
@@ -151,12 +165,14 @@ The implementation follows a phased approach: core configuration changes first, 
 - [ ] 5. Tighten IAM permissions in SAM template
   - [ ] 5.1 Remove bedrock:ListFoundationModels action
     - Remove `bedrock:ListFoundationModels` from IAM policy
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 5.1_
   
   - [ ] 5.2 Scope Bedrock permissions to deployment region
     - Update Resource ARN to use `!Sub "arn:aws:bedrock:${AWS::Region}:*:*"`
     - Add comment documenting resource scope and why it includes both foundation models and inference profiles
     - Ensure policy includes `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream`
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 5.2, 5.3, 5.4, 5.5, 5.6_
   
   - [ ]* 5.3 Write IAM policy validation tests
@@ -173,6 +189,7 @@ The implementation follows a phased approach: core configuration changes first, 
     - Include comprehensive Description summarizing application purpose
     - Include Author field
     - Include SemanticVersion: "1.0.0"
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 13.1, 13.2_
   
   - [ ] 6.2 Add SAR metadata URLs and labels
@@ -181,6 +198,7 @@ The implementation follows a phased approach: core configuration changes first, 
     - Add HomePageUrl pointing to GitHub repository
     - Add SourceCodeUrl pointing to GitHub repository
     - Add Labels: ["mock", "testing", "wiremock", "serverless", "ai", "bedrock"]
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 6.5, 6.6, 6.7, 6.8, 6.9, 13.7_
   
   - [ ]* 6.3 Write SAR metadata validation tests
@@ -196,6 +214,7 @@ The implementation follows a phased approach: core configuration changes first, 
     - Implement `GET /__admin/health` endpoint
     - Return JSON response with status, timestamp, region, storage bucket name, and connectivity status
     - Implement storage connectivity check using `storage.exists()` probe
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
   
   - [ ] 7.2 Create AIHealthController
@@ -204,12 +223,14 @@ The implementation follows a phased approach: core configuration changes first, 
     - Return JSON response with status, timestamp, region, model name, inference prefix, inference mode
     - Include `lastInvocationSuccess` field (null if not yet invoked)
     - Include `officiallySupported` field based on model name
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 8.5, 8.6, 8.7, 8.8, 11.6_
   
   - [ ] 7.3 Create health response data models
     - Create `RuntimeHealthResponse` and `StorageHealth` data classes
     - Create `AIHealthResponse` and `AIHealth` data classes
     - Ensure all fields are properly serialized to JSON
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 8.3, 8.7, 8.10_
   
   - [ ]* 7.4 Write unit tests for health controllers
@@ -233,17 +254,20 @@ The implementation follows a phased approach: core configuration changes first, 
     - Remove or simplify `CompositeMappingsSource` to only use S3-backed storage
     - Update configuration to use `ObjectStorageMappingsSource` directly
     - Remove any classpath or filesystem fallback logic
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 24.1, 24.2, 24.3_
   
   - [ ] 8.2 Remove classpath health check mapping
     - Ensure built-in health check endpoint is not loaded from classpath
     - Implement health check as standard controller endpoint (already done in task 7)
     - Remove any classpath resource loading for mappings
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 24.6_
   
   - [ ] 8.3 Update configuration to enforce S3-only storage
     - Remove any filesystem paths from configuration
     - Update documentation to clearly state all mocks must be in S3
+    - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 24.4, 24.5_
   
   - [ ]* 8.4 Write integration tests for S3-only storage
