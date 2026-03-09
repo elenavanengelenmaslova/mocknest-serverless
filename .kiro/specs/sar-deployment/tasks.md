@@ -22,14 +22,14 @@ The implementation follows a phased approach: core configuration changes first, 
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 1.2, 10.1, 10.2_
   
-  - [ ] 1.3 Update runtime to use AWS_REGION environment variable
+  - [x] 1.3 Update runtime to use AWS_REGION environment variable
     - Update `BedrockConfiguration` to read region from `AWS_REGION` environment variable
     - Update any S3 client configuration to use `AWS_REGION`
     - Ensure all AWS SDK clients use the deployment region from `AWS_REGION`
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 1.3, 1.4, 10.3, 10.4_
   
-  - [ ] 1.4 Write unit tests for region configuration
+  - [x] 1.4 Write unit tests for region configuration
     - Test that Bedrock client uses region from `AWS_REGION`
     - Test that S3 client uses region from `AWS_REGION`
     - Test fallback behavior when `AWS_REGION` is not set
