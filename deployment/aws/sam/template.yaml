@@ -13,7 +13,7 @@ Metadata:
     Author: Vintik
     SemanticVersion: 1.0.0
     LicenseUrl: ../../../LICENSE
-    ReadmeUrl: ../../../README-SAR.md
+    ReadmeUrl: ../../../README.md
     HomePageUrl: https://github.com/vintikzzz/mocknest-serverless
     SourceCodeUrl: https://github.com/vintikzzz/mocknest-serverless
     Labels:
