@@ -35,22 +35,22 @@ The implementation follows a phased approach: core configuration changes first, 
     - Test fallback behavior when `AWS_REGION` is not set
     - _Requirements: 1.5_
 
-- [ ] 2. Implement InferencePrefixResolver component
-  - [ ] 2.1 Create InferenceMode enum
+- [x] 2. Implement InferencePrefixResolver component
+  - [x] 2.1 Create InferenceMode enum
     - Create `InferenceMode` enum in `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/config/`
     - Define three modes: `AUTO`, `GLOBAL_ONLY`, `GEO_ONLY`
     - Add documentation comments explaining each mode
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.1_
   
-  - [ ] 2.2 Create InferencePrefixResolver interface
+  - [x] 2.2 Create InferencePrefixResolver interface
     - Define interface with `getCandidatePrefixes(): List<String>` method
     - Add `deployRegion: String` property
     - Include comprehensive KDoc documentation
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.4_
   
-  - [ ] 2.3 Implement DefaultInferencePrefixResolver
+  - [x] 2.3 Implement DefaultInferencePrefixResolver
     - Implement geo prefix derivation logic (eu-* → eu, us-* → us, ap-* → ap, ca-* → ca, me-* → me, sa-* → sa, af-* → af)
     - Implement candidate prefix generation for AUTO mode: [global, geo_prefix]
     - Implement candidate prefix generation for GLOBAL_ONLY mode: [global]
@@ -59,14 +59,14 @@ The implementation follows a phased approach: core configuration changes first, 
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.4, 3.5, 3.6, 3.7_
   
-  - [ ] 2.4 Write unit tests for InferencePrefixResolver
+  - [x] 2.4 Write unit tests for InferencePrefixResolver
     - Test geo prefix derivation for all AWS region patterns
     - Test candidate prefix generation for each InferenceMode
     - Test unknown region handling with default fallback
     - Use parameterized tests for comprehensive region coverage
     - _Requirements: 3.4, 3.5, 3.6, 3.7_
   
-  - [ ] 2.5 Write property test for geo prefix derivation
+  - [x] 2.5 Write property test for geo prefix derivation
     - **Property 3: Geo Prefix Derivation**
     - **Validates: Requirements 3.4**
     - Generate random AWS region strings with various prefixes
@@ -108,7 +108,7 @@ The implementation follows a phased approach: core configuration changes first, 
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 2.4, 2.5_
   
-  - [ ]* 3.6 Write unit tests for ModelConfiguration
+  - [ ] 3.6 Write unit tests for ModelConfiguration
     - Test valid model name mapping using reflection
     - Test invalid model name fallback to AmazonNovaPro
     - Test prefix retry logic with mock Bedrock errors
