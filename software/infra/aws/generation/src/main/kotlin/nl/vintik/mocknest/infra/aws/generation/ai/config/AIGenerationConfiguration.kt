@@ -24,6 +24,18 @@ import org.springframework.context.annotation.Primary
 class AIGenerationConfiguration {
 
     /**
+     * Inference prefix resolver for automatic Bedrock inference profile selection.
+     */
+    @Bean
+    fun inferencePrefixResolver(
+        @Value("\${AWS_REGION:eu-west-1}") deployRegion: String,
+        @Value($$"${bedrock.inference.mode:AUTO}") inferenceMode: String
+    ): InferencePrefixResolver {
+        val mode = InferenceMode.valueOf(inferenceMode.uppercase())
+        return DefaultInferencePrefixResolver(deployRegion, mode)
+    }
+
+    /**
      * Primary specification parser that delegates to format-specific parsers.
      */
     @Bean

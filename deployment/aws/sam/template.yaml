@@ -34,7 +34,8 @@ Parameters:
     Default: 'AmazonNovaPro'
     Description: |
       Bedrock model name for AI-powered mock generation.
-      Choose from available Claude, Nova, Jamba, or Llama models.
+      Amazon Nova Pro is officially supported and tested.
+      Other models are experimental and may not work in all regions.
       See https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html for details.
     AllowedValues:
       # Claude 4.5 models
@@ -74,6 +75,20 @@ Parameters:
       - MetaLlama3_2_90BInstruct
       - MetaLlama3_3_70BInstruct
     ConstraintDescription: Must be a valid BedrockModels constant name
+
+  BedrockInferenceMode:
+    Type: String
+    Default: 'AUTO'
+    Description: |
+      Inference profile selection mode for Bedrock model access:
+      - AUTO: Try global inference profile first, then region-specific (recommended for most use cases)
+      - GLOBAL_ONLY: Force global inference profile only (use when model is only available globally)
+      - GEO_ONLY: Force region-specific inference profile only (use for data residency requirements)
+    AllowedValues:
+      - AUTO
+      - GLOBAL_ONLY
+      - GEO_ONLY
+    ConstraintDescription: Must be AUTO, GLOBAL_ONLY, or GEO_ONLY
 
   BedrockInferencePrefix:
     Type: String
@@ -325,8 +340,8 @@ Resources:
           SPRING_CLOUD_FUNCTION_DEFINITION: "generationRouter"
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.generation.GenerationApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
-          MOCKNEST_BEDROCK_MODEL_NAME: !Ref BedrockModelName
-          MOCKNEST_BEDROCK_INFERENCE_PREFIX: !Ref BedrockInferencePrefix
+          BEDROCK_MODEL_NAME: !Ref BedrockModelName
+          BEDROCK_INFERENCE_MODE: !Ref BedrockInferenceMode
           MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
       DeadLetterQueue:
         Type: SQS

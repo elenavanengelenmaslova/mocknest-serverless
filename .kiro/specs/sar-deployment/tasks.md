@@ -74,14 +74,14 @@ The implementation follows a phased approach: core configuration changes first, 
     - Test edge cases (unknown prefixes, malformed regions)
     - Minimum 100 iterations
 
-- [ ] 3. Enhance ModelConfiguration with fallback strategy
-  - [ ] 3.1 Add InferencePrefixResolver dependency to ModelConfiguration
+- [x] 3. Enhance ModelConfiguration with fallback strategy
+  - [x] 3.1 Add InferencePrefixResolver dependency to ModelConfiguration
     - Update `ModelConfiguration` constructor to accept `InferencePrefixResolver`
     - Update Spring configuration to wire `InferencePrefixResolver` bean
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.8_
   
-  - [ ] 3.2 Implement prefix retry logic
+  - [x] 3.2 Implement prefix retry logic
     - Implement loop through candidate prefixes from resolver
     - Add `isRetryableError()` method to detect model-not-found, access-denied, not-enabled errors
     - Implement retry on retryable errors, immediate throw on non-retryable errors
@@ -89,26 +89,26 @@ The implementation follows a phased approach: core configuration changes first, 
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.8, 3.9, 4.1, 4.2, 4.4_
   
-  - [ ] 3.3 Implement prefix caching
+  - [x] 3.3 Implement prefix caching
     - Add `cachedPrefix: String?` property to `ModelConfiguration`
     - Cache successful prefix after first successful invocation
     - Use cached prefix for subsequent invocations without retry
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 4.5_
   
-  - [ ] 3.4 Implement final fallback and error handling
+  - [x] 3.4 Implement final fallback and error handling
     - Attempt model without prefix if all candidates fail
     - Throw `ModelConfigurationException` with detailed error message including region, model name, and attempted prefixes
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.10, 3.11, 4.3_
   
-  - [ ] 3.5 Implement model name fallback
+  - [x] 3.5 Implement model name fallback
     - Add try-catch around model name mapping using reflection
     - Log warning and fall back to `AmazonNovaPro` for invalid model names
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 2.4, 2.5_
   
-  - [ ] 3.6 Write unit tests for ModelConfiguration
+  - [x] 3.6 Write unit tests for ModelConfiguration
     - Test valid model name mapping using reflection
     - Test invalid model name fallback to AmazonNovaPro
     - Test prefix retry logic with mock Bedrock errors
@@ -134,22 +134,22 @@ The implementation follows a phased approach: core configuration changes first, 
     - Verify correct retry sequence and eventual success or failure
     - Minimum 100 iterations
 
-- [ ] 4. Update SAM template parameters
-  - [ ] 4.1 Add BedrockInferenceMode parameter
+- [x] 4. Update SAM template parameters
+  - [x] 4.1 Add BedrockInferenceMode parameter
     - Add parameter with allowed values: AUTO, GLOBAL_ONLY, GEO_ONLY
     - Set default value to AUTO
     - Add comprehensive description explaining each mode
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.1, 3.2_
   
-  - [ ] 4.2 Update BedrockModelName parameter
+  - [x] 4.2 Update BedrockModelName parameter
     - Set default value to `AmazonNovaPro`
     - Update description to indicate "Amazon Nova Pro is officially supported and tested"
     - Keep allowed values matching Koog BedrockModels enum names
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 2.1, 2.2, 11.1, 11.2, 11.3_
   
-  - [ ] 4.3 Update Lambda environment variables
+  - [x] 4.3 Update Lambda environment variables
     - Add `BEDROCK_INFERENCE_MODE` environment variable mapped to `BedrockInferenceMode` parameter
     - Ensure `BEDROCK_MODEL_NAME` is mapped to `BedrockModelName` parameter
     - Remove `MOCKNEST_APP_REGION` environment variable
@@ -233,7 +233,7 @@ The implementation follows a phased approach: core configuration changes first, 
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 8.3, 8.7, 8.10_
   
-  - [ ]* 7.4 Write unit tests for health controllers
+  - [ ] 7.4 Write unit tests for health controllers
     - Test runtime health endpoint response structure
     - Test AI health endpoint response structure
     - Test storage connectivity checking
