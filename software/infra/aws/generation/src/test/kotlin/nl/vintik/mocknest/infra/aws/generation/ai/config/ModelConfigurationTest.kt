@@ -35,12 +35,12 @@ class ModelConfigurationTest {
         lateinit var deployRegion: String
 
         @Test
-        fun `Given Claude 3-5 Sonnet v2 model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
+        fun `Given Claude 3-5 Sonnet v2 model name When getting Bedrock model Then should return model with EU prefix`() {
             val resolver = DefaultInferencePrefixResolver(deployRegion, InferenceMode.AUTO)
             val config = ModelConfiguration(modelName, resolver)
             val model = config.getModel()
 
-            assertEquals(BedrockModels.AnthropicClaude35SonnetV2.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            assertEquals(BedrockModels.AnthropicClaude35SonnetV2.withInferenceProfile("eu").id, model.id)
             assertEquals("AnthropicClaude35SonnetV2", config.getModelName())
         }
     }
@@ -62,12 +62,12 @@ class ModelConfigurationTest {
         lateinit var deployRegion: String
 
         @Test
-        fun `Given Claude 4-5 Sonnet model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
+        fun `Given Claude 4-5 Sonnet model name When getting Bedrock model Then should return model with EU prefix`() {
             val resolver = DefaultInferencePrefixResolver(deployRegion, InferenceMode.AUTO)
             val config = ModelConfiguration(modelName, resolver)
             val model = config.getModel()
 
-            assertEquals(BedrockModels.AnthropicClaude4_5Sonnet.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            assertEquals(BedrockModels.AnthropicClaude4_5Sonnet.withInferenceProfile("eu").id, model.id)
             assertEquals("AnthropicClaude4_5Sonnet", config.getModelName())
         }
     }
@@ -89,12 +89,12 @@ class ModelConfigurationTest {
         lateinit var deployRegion: String
 
         @Test
-        fun `Given Amazon Nova Pro model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
+        fun `Given Amazon Nova Pro model name When getting Bedrock model Then should return model with EU prefix`() {
             val resolver = DefaultInferencePrefixResolver(deployRegion, InferenceMode.AUTO)
             val config = ModelConfiguration(modelName, resolver)
             val model = config.getModel()
 
-            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("eu").id, model.id)
             assertEquals("AmazonNovaPro", config.getModelName())
         }
     }
@@ -116,12 +116,12 @@ class ModelConfigurationTest {
         lateinit var deployRegion: String
 
         @Test
-        fun `Given Meta Llama 3-1 70B model name When getting Bedrock model Then should return model with GLOBAL prefix`() {
+        fun `Given Meta Llama 3-1 70B model name When getting Bedrock model Then should return model with EU prefix`() {
             val resolver = DefaultInferencePrefixResolver(deployRegion, InferenceMode.AUTO)
             val config = ModelConfiguration(modelName, resolver)
             val model = config.getModel()
 
-            assertEquals(BedrockModels.MetaLlama3_1_70BInstruct.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            assertEquals(BedrockModels.MetaLlama3_1_70BInstruct.withInferenceProfile("eu").id, model.id)
             assertEquals("MetaLlama3_1_70BInstruct", config.getModelName())
         }
     }
@@ -143,13 +143,13 @@ class ModelConfigurationTest {
         lateinit var deployRegion: String
 
         @Test
-        fun `Given invalid model name When getting Bedrock model Then should fallback to AmazonNovaPro with GLOBAL prefix and log warning`() {
+        fun `Given invalid model name When getting Bedrock model Then should fallback to AmazonNovaPro with EU prefix and log warning`() {
             val resolver = DefaultInferencePrefixResolver(deployRegion, InferenceMode.AUTO)
             val config = ModelConfiguration(modelName, resolver)
             val model = config.getModel()
 
-            // Should fallback to default with GLOBAL prefix
-            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            // Should fallback to default with EU prefix
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("eu").id, model.id)
             assertEquals("InvalidModelName", config.getModelName())
         }
     }
@@ -171,13 +171,13 @@ class ModelConfigurationTest {
         lateinit var deployRegion: String
 
         @Test
-        fun `Given empty model name When getting Bedrock model Then should fallback to AmazonNovaPro with GLOBAL prefix`() {
+        fun `Given empty model name When getting Bedrock model Then should fallback to AmazonNovaPro with EU prefix`() {
             val resolver = DefaultInferencePrefixResolver(deployRegion, InferenceMode.AUTO)
             val config = ModelConfiguration(modelName, resolver)
             val model = config.getModel()
 
-            // Should fallback to default with GLOBAL prefix
-            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            // Should fallback to default with EU prefix
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("eu").id, model.id)
         }
     }
 
@@ -197,12 +197,12 @@ class ModelConfigurationTest {
         lateinit var deployRegion: String
 
         @Test
-        fun `Given no model name property When getting Bedrock model Then should use default AmazonNovaPro with GLOBAL prefix`() {
+        fun `Given no model name property When getting Bedrock model Then should use default AmazonNovaPro with EU prefix`() {
             val resolver = DefaultInferencePrefixResolver(deployRegion, InferenceMode.AUTO)
             val config = ModelConfiguration(modelName, resolver)
             val model = config.getModel()
 
-            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("eu").id, model.id)
             assertEquals("AmazonNovaPro", config.getModelName())
         }
     }
@@ -224,14 +224,14 @@ class ModelConfigurationTest {
         lateinit var deployRegion: String
 
         @Test
-        fun `Given non-existent model name When getting Bedrock model Then should fallback to default with GLOBAL prefix and log warning`() {
+        fun `Given non-existent model name When getting Bedrock model Then should fallback to default with EU prefix and log warning`() {
             val resolver = DefaultInferencePrefixResolver(deployRegion, InferenceMode.AUTO)
             val config = ModelConfiguration(modelName, resolver)
             val model = config.getModel()
 
-            // Should fallback to default with GLOBAL prefix
+            // Should fallback to default with EU prefix
             assertNotNull(model)
-            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile(BedrockInferencePrefixes.GLOBAL.prefix).id, model.id)
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("eu").id, model.id)
             assertEquals("NonExistentModel123", config.getModelName())
         }
     }
@@ -260,15 +260,14 @@ class ModelConfigurationTest {
     inner class PrefixRetryLogic {
         
         @Test
-        fun `Given AUTO mode When first prefix succeeds Then should use global prefix`() {
+        fun `Given AUTO mode When getting model Then should use geo prefix first`() {
             val resolver = DefaultInferencePrefixResolver("eu-west-1", InferenceMode.AUTO)
             val config = ModelConfiguration("AmazonNovaPro", resolver)
             
             val model = config.getModel()
             
-            // AUTO mode tries global first, which should succeed
-            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("global").id, model.id)
-            assertEquals("global", config.getCachedPrefix())
+            // AUTO mode tries geo prefix first (eu for eu-west-1)
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("eu").id, model.id)
         }
         
         @Test
@@ -279,7 +278,6 @@ class ModelConfigurationTest {
             val model = config.getModel()
             
             assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("global").id, model.id)
-            assertEquals("global", config.getCachedPrefix())
         }
         
         @Test
@@ -290,7 +288,6 @@ class ModelConfigurationTest {
             val model = config.getModel()
             
             assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("eu").id, model.id)
-            assertEquals("eu", config.getCachedPrefix())
         }
         
         @Test
@@ -301,7 +298,6 @@ class ModelConfigurationTest {
             val model = config.getModel()
             
             assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("us").id, model.id)
-            assertEquals("us", config.getCachedPrefix())
         }
         
         @Test
@@ -312,43 +308,32 @@ class ModelConfigurationTest {
             val model = config.getModel()
             
             assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("ap").id, model.id)
-            assertEquals("ap", config.getCachedPrefix())
         }
     }
     
     @Nested
-    inner class PrefixCaching {
+    inner class PrefixConfiguration {
         
         @Test
-        fun `Given successful model configuration When calling getModel multiple times Then should use cached prefix`() {
+        fun `Given model configuration When calling getModel multiple times Then should return same model`() {
             val resolver = DefaultInferencePrefixResolver("eu-west-1", InferenceMode.AUTO)
             val config = ModelConfiguration("AmazonNovaPro", resolver)
             
-            // First call
+            // Multiple calls should return the same model configuration
             val model1 = config.getModel()
-            val cachedPrefix1 = config.getCachedPrefix()
-            
-            // Second call should use cached prefix
             val model2 = config.getModel()
-            val cachedPrefix2 = config.getCachedPrefix()
             
             assertEquals(model1.id, model2.id)
-            assertEquals(cachedPrefix1, cachedPrefix2)
-            assertEquals("global", cachedPrefix2)
         }
         
         @Test
-        fun `Given cached prefix When getting model Then should not retry other prefixes`() {
+        fun `Given configured prefix When getting model Then should use first candidate prefix`() {
             val resolver = DefaultInferencePrefixResolver("eu-west-1", InferenceMode.AUTO)
             val config = ModelConfiguration("AmazonNovaPro", resolver)
             
-            // First call caches the prefix
-            config.getModel()
-            assertEquals("global", config.getCachedPrefix())
-            
-            // Subsequent calls should use cached prefix immediately
+            // Should use first candidate prefix (eu for AUTO mode)
             val model = config.getModel()
-            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("global").id, model.id)
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("eu").id, model.id)
         }
     }
     
@@ -362,8 +347,8 @@ class ModelConfigurationTest {
             
             val model = config.getModel()
             
-            // Should fallback to AmazonNovaPro
-            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("global").id, model.id)
+            // Should fallback to AmazonNovaPro with eu prefix (AUTO mode)
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("eu").id, model.id)
             assertEquals("InvalidModelName", config.getModelName())
             assertEquals(false, config.isOfficiallySupported())
         }
@@ -375,7 +360,7 @@ class ModelConfigurationTest {
             
             val model = config.getModel()
             
-            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("global").id, model.id)
+            assertEquals(BedrockModels.AmazonNovaPro.withInferenceProfile("eu").id, model.id)
         }
         
         @Test
@@ -404,24 +389,6 @@ class ModelConfigurationTest {
             val config = ModelConfiguration("AmazonNovaPro", resolver)
             
             assertEquals("AmazonNovaPro", config.getModelName())
-        }
-        
-        @Test
-        fun `Given uncached configuration When getting cached prefix Then should return null`() {
-            val resolver = DefaultInferencePrefixResolver("eu-west-1", InferenceMode.AUTO)
-            val config = ModelConfiguration("AmazonNovaPro", resolver)
-            
-            assertEquals(null, config.getCachedPrefix())
-        }
-        
-        @Test
-        fun `Given cached configuration When getting cached prefix Then should return cached value`() {
-            val resolver = DefaultInferencePrefixResolver("eu-west-1", InferenceMode.AUTO)
-            val config = ModelConfiguration("AmazonNovaPro", resolver)
-            
-            config.getModel() // This caches the prefix
-            
-            assertEquals("global", config.getCachedPrefix())
         }
     }
 }

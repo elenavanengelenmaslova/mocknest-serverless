@@ -42,7 +42,7 @@ interface InferencePrefixResolver {
      * a retryable error (e.g., model not found, access denied).
      * 
      * The returned list depends on the configured inference mode:
-     * - AUTO: Returns ["global", geo_prefix] - try global first, then geo-specific
+     * - AUTO: Returns [geo_prefix, "global"] - try geo-specific first (Nova models only support geo), then global
      * - GLOBAL_ONLY: Returns ["global"] - only use global inference profile
      * - GEO_ONLY: Returns [geo_prefix] - only use geo-specific inference profile
      * 

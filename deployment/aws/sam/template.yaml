@@ -81,7 +81,7 @@ Parameters:
     Default: 'AUTO'
     Description: |
       Inference profile selection mode for Bedrock model access:
-      - AUTO: Try global inference profile first, then region-specific (recommended for most use cases)
+      - AUTO: Try region-specific inference profile first, then global (recommended for most use cases, especially Nova models)
       - GLOBAL_ONLY: Force global inference profile only (use when model is only available globally)
       - GEO_ONLY: Force region-specific inference profile only (use for data residency requirements)
     AllowedValues:

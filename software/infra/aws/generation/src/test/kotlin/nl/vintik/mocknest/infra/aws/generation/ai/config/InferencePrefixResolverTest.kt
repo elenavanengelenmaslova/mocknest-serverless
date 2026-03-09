@@ -76,83 +76,83 @@ class InferencePrefixResolverTest {
     inner class AutoModeGeneration {
         
         @Test
-        fun `Given AUTO mode with eu region When getting candidate prefixes Then should return global then eu`() {
+        fun `Given AUTO mode with eu region When getting candidate prefixes Then should return eu then global`() {
             val resolver = DefaultInferencePrefixResolver("eu-west-1", InferenceMode.AUTO)
             val prefixes = resolver.getCandidatePrefixes()
             
             assertEquals(2, prefixes.size)
-            assertEquals("global", prefixes[0])
-            assertEquals("eu", prefixes[1])
+            assertEquals("eu", prefixes[0])
+            assertEquals("global", prefixes[1])
         }
         
         @Test
-        fun `Given AUTO mode with us region When getting candidate prefixes Then should return global then us`() {
+        fun `Given AUTO mode with us region When getting candidate prefixes Then should return us then global`() {
             val resolver = DefaultInferencePrefixResolver("us-east-1", InferenceMode.AUTO)
             val prefixes = resolver.getCandidatePrefixes()
             
             assertEquals(2, prefixes.size)
-            assertEquals("global", prefixes[0])
-            assertEquals("us", prefixes[1])
+            assertEquals("us", prefixes[0])
+            assertEquals("global", prefixes[1])
         }
         
         @Test
-        fun `Given AUTO mode with ap region When getting candidate prefixes Then should return global then ap`() {
+        fun `Given AUTO mode with ap region When getting candidate prefixes Then should return ap then global`() {
             val resolver = DefaultInferencePrefixResolver("ap-southeast-1", InferenceMode.AUTO)
             val prefixes = resolver.getCandidatePrefixes()
             
             assertEquals(2, prefixes.size)
-            assertEquals("global", prefixes[0])
-            assertEquals("ap", prefixes[1])
+            assertEquals("ap", prefixes[0])
+            assertEquals("global", prefixes[1])
         }
         
         @Test
-        fun `Given AUTO mode with ca region When getting candidate prefixes Then should return global then ca`() {
+        fun `Given AUTO mode with ca region When getting candidate prefixes Then should return ca then global`() {
             val resolver = DefaultInferencePrefixResolver("ca-central-1", InferenceMode.AUTO)
             val prefixes = resolver.getCandidatePrefixes()
             
             assertEquals(2, prefixes.size)
-            assertEquals("global", prefixes[0])
-            assertEquals("ca", prefixes[1])
+            assertEquals("ca", prefixes[0])
+            assertEquals("global", prefixes[1])
         }
         
         @Test
-        fun `Given AUTO mode with me region When getting candidate prefixes Then should return global then me`() {
+        fun `Given AUTO mode with me region When getting candidate prefixes Then should return me then global`() {
             val resolver = DefaultInferencePrefixResolver("me-south-1", InferenceMode.AUTO)
             val prefixes = resolver.getCandidatePrefixes()
             
             assertEquals(2, prefixes.size)
-            assertEquals("global", prefixes[0])
-            assertEquals("me", prefixes[1])
+            assertEquals("me", prefixes[0])
+            assertEquals("global", prefixes[1])
         }
         
         @Test
-        fun `Given AUTO mode with sa region When getting candidate prefixes Then should return global then sa`() {
+        fun `Given AUTO mode with sa region When getting candidate prefixes Then should return sa then global`() {
             val resolver = DefaultInferencePrefixResolver("sa-east-1", InferenceMode.AUTO)
             val prefixes = resolver.getCandidatePrefixes()
             
             assertEquals(2, prefixes.size)
-            assertEquals("global", prefixes[0])
-            assertEquals("sa", prefixes[1])
+            assertEquals("sa", prefixes[0])
+            assertEquals("global", prefixes[1])
         }
         
         @Test
-        fun `Given AUTO mode with af region When getting candidate prefixes Then should return global then af`() {
+        fun `Given AUTO mode with af region When getting candidate prefixes Then should return af then global`() {
             val resolver = DefaultInferencePrefixResolver("af-south-1", InferenceMode.AUTO)
             val prefixes = resolver.getCandidatePrefixes()
             
             assertEquals(2, prefixes.size)
-            assertEquals("global", prefixes[0])
-            assertEquals("af", prefixes[1])
+            assertEquals("af", prefixes[0])
+            assertEquals("global", prefixes[1])
         }
         
         @Test
-        fun `Given AUTO mode with unknown region When getting candidate prefixes Then should return global then us`() {
+        fun `Given AUTO mode with unknown region When getting candidate prefixes Then should return us then global`() {
             val resolver = DefaultInferencePrefixResolver("unknown-region-1", InferenceMode.AUTO)
             val prefixes = resolver.getCandidatePrefixes()
             
             assertEquals(2, prefixes.size)
-            assertEquals("global", prefixes[0])
-            assertEquals("us", prefixes[1])
+            assertEquals("us", prefixes[0])
+            assertEquals("global", prefixes[1])
         }
     }
 

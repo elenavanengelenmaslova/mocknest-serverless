@@ -26,7 +26,7 @@ class DefaultInferencePrefixResolver(
      * Get ordered list of candidate inference profile prefixes based on inference mode.
      * 
      * The implementation follows these rules:
-     * - AUTO mode: Returns ["global", geo_prefix] - try global first, then geo-specific
+     * - AUTO mode: Returns [geo_prefix, "global"] - try geo-specific first (Nova models only support geo), then global
      * - GLOBAL_ONLY mode: Returns ["global"] - only use global inference profile
      * - GEO_ONLY mode: Returns [geo_prefix] - only use geo-specific inference profile
      * 
@@ -36,7 +36,7 @@ class DefaultInferencePrefixResolver(
         val geoPrefix = deriveGeoPrefix(deployRegion)
         
         return when (inferenceMode) {
-            InferenceMode.AUTO -> listOf("global", geoPrefix)
+            InferenceMode.AUTO -> listOf(geoPrefix, "global")
             InferenceMode.GLOBAL_ONLY -> listOf("global")
             InferenceMode.GEO_ONLY -> listOf(geoPrefix)
         }
