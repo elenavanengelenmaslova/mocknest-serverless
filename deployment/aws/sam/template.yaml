@@ -198,8 +198,12 @@ Resources:
                 Action:
                   - bedrock:InvokeModel
                   - bedrock:InvokeModelWithResponseStream
-                  - bedrock:ListFoundationModels
-                Resource: "*"
+                # Resource pattern allows all regions for Bedrock to support cross-region inference profiles.
+                # Inference profiles (e.g., eu.amazon-nova-pro-v1:0) can route to models in different regions.
+                # Pattern covers both foundation models and inference profiles:
+                # - arn:aws:bedrock:region::foundation-model/model-id
+                # - arn:aws:bedrock:region::inference-profile/prefix.model-id
+                Resource: "arn:aws:bedrock:*:*:*"
       Tags:
         - Key: Application
           Value: MockNest-Serverless

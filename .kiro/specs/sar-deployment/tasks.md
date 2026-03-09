@@ -162,13 +162,13 @@ The implementation follows a phased approach: core configuration changes first, 
     - Verify environment variable mappings
     - _Requirements: 2.1, 2.2, 2.3, 3.1, 3.2, 3.3, 11.1, 11.2, 11.3_
 
-- [ ] 5. Tighten IAM permissions in SAM template
-  - [ ] 5.1 Remove bedrock:ListFoundationModels action
+- [x] 5. Tighten IAM permissions in SAM template
+  - [x] 5.1 Remove bedrock:ListFoundationModels action
     - Remove `bedrock:ListFoundationModels` from IAM policy
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 5.1_
   
-  - [ ] 5.2 Scope Bedrock permissions to deployment region
+  - [x] 5.2 Scope Bedrock permissions to deployment region
     - Update Resource ARN to use `!Sub "arn:aws:bedrock:${AWS::Region}:*:*"`
     - Add comment documenting resource scope and why it includes both foundation models and inference profiles
     - Ensure policy includes `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream`
