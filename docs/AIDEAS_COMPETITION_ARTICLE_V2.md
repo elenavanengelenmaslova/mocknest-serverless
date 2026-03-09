@@ -83,7 +83,7 @@ PLACEHOLDER YOUTUBE DEMO LINK HERE
 
 ### Building with Kiro AI
 
-I built MockNest with Kiro AI as a development partner. When I started with Kiro, I created a set of **steering documents** to ensure Kiro has the correct context to generate deliverables.
+I built MockNest with Kiro[2] as a development partner. When I started with Kiro, I created a set of **steering documents** to ensure Kiro has the correct context to generate deliverables.
 
 These documents provide long-lived context for the project. In MockNest they include:
 
