@@ -8,14 +8,14 @@ The implementation follows a phased approach: core configuration changes first, 
 
 ## Tasks
 
-- [ ] 1. Remove misleading region parameters
-  - [ ] 1.1 Remove AppRegion parameter from SAM template
+- [-] 1. Remove misleading region parameters
+  - [x] 1.1 Remove AppRegion parameter from SAM template
     - Remove `AppRegion` parameter definition from `deployment/aws/sam/template.yaml`
     - Remove all references to `AppRegion` in parameter overrides and mappings
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 1.1_
   
-  - [ ] 1.2 Remove MOCKNEST_APP_REGION environment variable
+  - [x] 1.2 Remove MOCKNEST_APP_REGION environment variable
     - Remove `MOCKNEST_APP_REGION` from Lambda function environment variables in SAM template
     - Remove `aws.region` property from `application.properties`
     - Remove any references to `MOCKNEST_APP_REGION` in configuration classes

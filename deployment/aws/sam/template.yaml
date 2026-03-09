@@ -99,11 +99,6 @@ Parameters:
     Default: 1
     Description: Maximum number of retry attempts for AI mock generation if validation fails.
 
-  AppRegion:
-    Type: String
-    Default: 'eu-west-1'
-    Description: AWS region for deployment and Bedrock access.
-
 Conditions:
   HasCustomBucketName: !Not [!Equals [!Ref BucketName, '']]
 
@@ -284,7 +279,6 @@ Resources:
       ReservedConcurrentExecutions: 10
       Environment:
         Variables:
-          MOCKNEST_APP_REGION: !Ref AppRegion
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
@@ -326,7 +320,6 @@ Resources:
       Timeout: 300
       Environment:
         Variables:
-          MOCKNEST_APP_REGION: !Ref AppRegion
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "generationRouter"
