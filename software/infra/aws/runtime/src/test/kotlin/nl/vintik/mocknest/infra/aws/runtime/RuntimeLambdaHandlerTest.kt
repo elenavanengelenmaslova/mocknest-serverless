@@ -5,6 +5,7 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.application.runtime.usecases.HandleAdminRequest
 import nl.vintik.mocknest.application.runtime.usecases.HandleClientRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
@@ -22,8 +23,9 @@ class RuntimeLambdaHandlerTest {
 
     private val mockHandleClientRequest: HandleClientRequest = mockk(relaxed = true)
     private val mockHandleAdminRequest: HandleAdminRequest = mockk(relaxed = true)
+    private val mockGetRuntimeHealth: GetRuntimeHealth = mockk(relaxed = true)
     
-    private val handler = RuntimeLambdaHandler(mockHandleClientRequest, mockHandleAdminRequest)
+    private val handler = RuntimeLambdaHandler(mockHandleClientRequest, mockHandleAdminRequest, mockGetRuntimeHealth)
     private val runtimeRouter = handler.runtimeRouter()
 
     @AfterEach

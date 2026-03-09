@@ -5,6 +5,7 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import nl.vintik.mocknest.application.generation.usecases.GetAIHealth
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
 import org.junit.jupiter.api.AfterEach
@@ -19,8 +20,9 @@ import org.springframework.util.LinkedMultiValueMap
 class GenerationLambdaHandlerTest {
 
     private val mockHandleAIGenerationRequest: HandleAIGenerationRequest = mockk(relaxed = true)
+    private val mockGetAIHealth: GetAIHealth = mockk(relaxed = true)
     
-    private val handler = GenerationLambdaHandler(mockHandleAIGenerationRequest)
+    private val handler = GenerationLambdaHandler(mockHandleAIGenerationRequest, mockGetAIHealth)
     private val generationRouter = handler.generationRouter()
 
     @AfterEach

@@ -182,8 +182,8 @@ The implementation follows a phased approach: core configuration changes first, 
     - Verify required actions are present
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-- [ ] 6. Add SAR metadata to SAM template
-  - [ ] 6.1 Add AWS::ServerlessRepo::Application metadata section
+- [x] 6. Add SAR metadata to SAM template
+  - [x] 6.1 Add AWS::ServerlessRepo::Application metadata section
     - Add `Metadata` section with `AWS::ServerlessRepo::Application`
     - Include Name: "MockNest-Serverless"
     - Include comprehensive Description summarizing application purpose
@@ -192,7 +192,7 @@ The implementation follows a phased approach: core configuration changes first, 
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 13.1, 13.2_
   
-  - [ ] 6.2 Add SAR metadata URLs and labels
+  - [x] 6.2 Add SAR metadata URLs and labels
     - Add LicenseUrl pointing to LICENSE file
     - Add ReadmeUrl pointing to README-SAR.md
     - Add HomePageUrl pointing to GitHub repository
@@ -208,8 +208,8 @@ The implementation follows a phased approach: core configuration changes first, 
     - Verify Labels array contains expected values
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 13.1, 13.2, 13.7_
 
-- [ ] 7. Implement separate health check endpoints
-  - [ ] 7.1 Create RuntimeHealthController
+- [x] 7. Implement separate health check endpoints
+  - [x] 7.1 Create RuntimeHealthController
     - Create controller at `software/infra/aws/runtime/src/main/kotlin/nl/vintik/mocknest/infra/aws/runtime/health/`
     - Implement `GET /__admin/health` endpoint
     - Return JSON response with status, timestamp, region, storage bucket name, and connectivity status
@@ -217,7 +217,7 @@ The implementation follows a phased approach: core configuration changes first, 
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
   
-  - [ ] 7.2 Create AIHealthController
+  - [x] 7.2 Create AIHealthController
     - Create controller at `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/health/`
     - Implement `GET /ai/health` endpoint
     - Return JSON response with status, timestamp, region, model name, inference prefix, inference mode
@@ -226,14 +226,14 @@ The implementation follows a phased approach: core configuration changes first, 
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 8.5, 8.6, 8.7, 8.8, 11.6_
   
-  - [ ] 7.3 Create health response data models
+  - [x] 7.3 Create health response data models
     - Create `RuntimeHealthResponse` and `StorageHealth` data classes
     - Create `AIHealthResponse` and `AIHealth` data classes
     - Ensure all fields are properly serialized to JSON
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 8.3, 8.7, 8.10_
   
-  - [ ] 7.4 Write unit tests for health controllers
+  - [x] 7.4 Write unit tests for health controllers
     - Test runtime health endpoint response structure
     - Test AI health endpoint response structure
     - Test storage connectivity checking

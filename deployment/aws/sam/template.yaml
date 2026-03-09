@@ -2,6 +2,28 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: MockNest Serverless - AWS-native serverless mock runtime
 
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: MockNest-Serverless
+    Description: |
+      MockNest Serverless is an AWS-native serverless mock runtime that enables realistic integration and exploratory testing 
+      without relying on live external services. Built on WireMock, it provides persistent mock definitions stored in S3, 
+      AI-powered mock generation using Amazon Bedrock, and comprehensive support for REST, SOAP, and GraphQL APIs. 
+      Deploy directly into your AWS account for complete control, network isolation, and predictable costs.
+    Author: Vintik
+    SemanticVersion: 1.0.0
+    LicenseUrl: ../../../LICENSE
+    ReadmeUrl: ../../../README-SAR.md
+    HomePageUrl: https://github.com/vintikzzz/mocknest-serverless
+    SourceCodeUrl: https://github.com/vintikzzz/mocknest-serverless
+    Labels:
+      - mock
+      - testing
+      - wiremock
+      - serverless
+      - ai
+      - bedrock
+
 Parameters:
   DeploymentName:
     Type: String
