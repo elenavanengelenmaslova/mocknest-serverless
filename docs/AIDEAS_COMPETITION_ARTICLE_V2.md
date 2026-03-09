@@ -18,7 +18,7 @@ MockNest provides a WireMock-compatible mock runtime running on AWS Lambda, with
 Current capabilities include:
 
 - **Serverless Mock Runtime** – A WireMock-compatible API running on AWS Lambda with S3-backed persistence for mock definitions
-- **AI-Powered Mock Generation** – Uses Amazon Bedrock (with Amazon Nova Pro as the default model) to generate WireMock mappings from OpenAPI specifications or natural-language descriptions
+- **AI-Powered Mock Generation** – Uses Amazon Bedrock (with Amazon Nova Pro as the default model) to generate WireMock [1] mappings from OpenAPI specifications or natural-language descriptions, with automatic validation and retry on errors
 - **Protocol Support** – REST, GraphQL over HTTP, and SOAP APIs with synchronous request-response patterns
 - **AWS-Native Deployment** – AWS SAM templates for deploying the runtime directly into a customer’s AWS account
 
@@ -83,27 +83,23 @@ PLACEHOLDER YOUTUBE DEMO LINK HERE
 
 ### Building with Kiro AI
 
-I built MockNest using Kiro AI as a development partner, but the process did not start with code generation. Instead, I started by defining a set of steering documents that describe the product vision, scope, architecture, AWS usage, and development guidelines.
+I built MockNest with Kiro[2] as a development partner. When I started with Kiro, I created a set of **steering documents** to ensure Kiro has the correct context to generate deliverables.
 
-These documents provided persistent context so Kiro could generate code and design proposals aligned with the system architecture.
+These documents provide long-lived context for the project. In MockNest they include:
 
-The development process followed an iterative workflow:
+- **Product vision** – the problem the project solves and the long-term direction
+- **Scope and non-goals** – what the project intentionally does and does not try to solve
+- **Architecture** – system structure, clean architecture boundaries, and package layout
+- **AWS services** – how cloud components such as Lambda, API Gateway, and S3 are used
+- **Development guidelines** – coding standards and workflows for working with Kiro
 
-1. **Vision and scope** – defining the problem, target users, and initial feature set
-2. **Architecture design** – defining runtime behavior, storage, and clean architecture boundaries
-3. **Feature specifications** – translating ideas into requirements, design, and implementation tasks
-4. **Implementation and refinement** – generating code, reviewing results, and improving steering documents when needed
+Kiro provides a structured workflow where changes are planned using **requirements, design, and tasks** before code generation begins. Each feature, bugfix or refactoring includes checkpoints to verify that acceptance criteria are met.
 
-Every time Kiro produced code that did not fully match the intended design, I refined the steering documents. This created a feedback loop where better documentation led to better AI-generated results.
-
-This approach helped maintain architectural consistency while building the system incrementally.
+Using this workflow, I built the serverless mock runtime with WireMock integration, S3 persistence layer, and the AI-powered mock generation interface that produces validated WireMock mappings from OpenAPI specifications and natural-language descriptions.
 
 ### Architecture
 
-MockNest uses a simplified clean architecture adapted for serverless systems.
-
-[IMAGE PLACEHOLDER – Clean Architecture Diagram]
-
+MockNest uses a simplified clean architecture [3] adapted for serverless systems.
 The system is organized into three layers:
 
 **Domain layer**
@@ -135,6 +131,11 @@ The current implementation uses a small set of AWS services:
 
 This architecture keeps the runtime lightweight while allowing mocks to persist across Lambda cold starts and deployments.
 
+### Security Considerations
+
+All endpoints are protected with API key authentication through Amazon API Gateway. Since MockNest is a mock API intended for test environments, I chose to start with basic API key security with planned expansion for additional authentication mechanisms in the future.
+
+For the AWS Serverless Application Repository publication, the SAM templates follow least privilege principles, ensuring Lambda functions and other components receive only the minimum IAM permissions required for their specific operations.
 
 ### Key Development Milestones
 
@@ -181,13 +182,15 @@ Building MockNest with AI assistance changed how I approach software development
 
 The most important lesson was that AI works best with strong context. Instead of relying on individual prompts, I started the project by writing steering documents that describe the product vision, architecture, AWS usage, and development guidelines.
 
-These documents provided persistent context for Kiro so it could generate code and design proposals aligned with the intended system architecture. When generated output did not fully match my expectations, improving the steering documents consistently improved the next results.
+These documents provided persistent context for Kiro so it could generate code and design proposals aligned with the intended system architecture. When generated output did not fully match my expectations, improving the steering documents consistently improved the next results. Over time this created a feedback loop where better documentation produced better AI-generated output.
 
 ### Smaller features work better with AI
 
 Breaking work into smaller, clearly defined features made the development process much smoother. Smaller deliverables are easier to review, adjust, and regenerate when requirements change.
 
-Trying to generate large features at once makes it harder to maintain oversight and often leads to more corrections later.
+In practice, I discovered that this workflow works best with small, focused scope. When scope became too large and requirements changed during implementation, keeping requirements, design, and tasks aligned became difficult. Breaking work down into smaller, story-sized changes made the process much easier to manage.
+
+Trying to generate large features at once makes it harder to maintain oversight and often leads to more corrections later. The experience was close to pair programming, where I preferred working on and reviewing one task at a time.
 
 ### Clear architecture improves AI output
 
@@ -195,11 +198,25 @@ Using a clean architecture structure turned out to be very helpful when working 
 
 This helped keep business logic independent from AWS-specific code and made the system easier to test.
 
-### Integration tests reveal real problems
+### Test-first approach catches issues early
+
+Bug fixing and refactoring worked well because Kiro encourages a test-first approach. When fixing issues Kiro would first reproduce the bug with a test or add tests before refactoring to ensure behavior stayed correct.
 
 Integration tests using TestContainers and LocalStack proved extremely valuable. They validate real interactions with AWS services such as S3 and Lambda and often expose issues that unit tests alone would not detect.
 
 Testing the system against real service behavior increased confidence that the runtime would behave correctly once deployed.
+
+### Keep documentation manageable
+
+The number of requirements, design, and task documents can grow quickly. After completing bugfixes or refactorings I often archived those files and kept only documentation that helped explain the product functionality and architecture.
+
+This kept the steering documents focused on what matters most for generating quality code going forward.
+
+### Configure AI tool permissions carefully
+
+When working with AI development tools, it is important to configure permissions thoughtfully. I learned to give Kiro only specific, read-only permissions to git and build tools rather than broade access.
+
+This approach maintains control over critical operations like commits, pushes, and build configurations while still allowing the AI to understand the project context and generate appropriate code.
 
 ### Build the foundation before adding AI
 
@@ -226,3 +243,8 @@ Expand support for asynchronous and streaming interactions such as webhooks, cal
 Add support for mocking MCP servers and tools to help teams test AI agents and LLM-based systems.
 
 The long-term goal is to evolve MockNest from a serverless mock runtime into an intelligent platform that helps teams keep their integration tests accurate as APIs and systems continue to evolve.
+
+References
+[1] WireMock - https://github.com/wiremock/wiremock
+[2] Kiro - https://kiro.dev/
+[3] Clean Architecture for Serverless - https://medium.com/nntech/keeping-business-logic-portable-in-serverless-functions-with-clean-architecture-bd1976276562
