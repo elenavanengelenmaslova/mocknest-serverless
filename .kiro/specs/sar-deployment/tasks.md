@@ -59,14 +59,14 @@ The implementation follows a phased approach: core configuration changes first, 
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 3.4, 3.5, 3.6, 3.7_
   
-  - [ ]* 2.4 Write unit tests for InferencePrefixResolver
+  - [ ] 2.4 Write unit tests for InferencePrefixResolver
     - Test geo prefix derivation for all AWS region patterns
     - Test candidate prefix generation for each InferenceMode
     - Test unknown region handling with default fallback
     - Use parameterized tests for comprehensive region coverage
     - _Requirements: 3.4, 3.5, 3.6, 3.7_
   
-  - [ ]* 2.5 Write property test for geo prefix derivation
+  - [ ] 2.5 Write property test for geo prefix derivation
     - **Property 3: Geo Prefix Derivation**
     - **Validates: Requirements 3.4**
     - Generate random AWS region strings with various prefixes
