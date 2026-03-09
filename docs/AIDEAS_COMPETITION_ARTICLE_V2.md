@@ -18,7 +18,7 @@ MockNest provides a WireMock-compatible mock runtime running on AWS Lambda, with
 Current capabilities include:
 
 - **Serverless Mock Runtime** – A WireMock-compatible API running on AWS Lambda with S3-backed persistence for mock definitions
-- **AI-Powered Mock Generation** – Uses Amazon Bedrock (with Amazon Nova Pro as the default model) to generate WireMock mappings from OpenAPI specifications or natural-language descriptions
+- **AI-Powered Mock Generation** – Uses Amazon Bedrock (with Amazon Nova Pro as the default model) to generate WireMock [1] mappings from OpenAPI specifications or natural-language descriptions
 - **Protocol Support** – REST, GraphQL over HTTP, and SOAP APIs with synchronous request-response patterns
 - **AWS-Native Deployment** – AWS SAM templates for deploying the runtime directly into a customer’s AWS account
 
@@ -83,9 +83,9 @@ PLACEHOLDER YOUTUBE DEMO LINK HERE
 
 ### Building with Kiro AI
 
-I built MockNest with Kiro AI as a development partner. When I started exploring Kiro, I learned that it works best when the project context is clearly defined, so the first step was creating a set of **steering documents**.
+I built MockNest with Kiro AI as a development partner. When I started with Kiro, I created a set of **steering documents** to ensure Kiro has the correct context to generate deliverables.
 
-These documents provide long-lived context for the project and guide how the AI generates requirements, design and code. In MockNest they include:
+These documents provide long-lived context for the project. In MockNest they include:
 
 - **Product vision** – the problem the project solves and the long-term direction
 - **Scope and non-goals** – what the project intentionally does and does not try to solve
@@ -110,7 +110,6 @@ Overall the experience was close to **pair programming**, whereby I preferred wo
 ### Architecture
 
 MockNest uses a simplified clean architecture [3] adapted for serverless systems.
-![CleanArchitecture.png](images/CleanArchitecture.png)
 The system is organized into three layers:
 
 **Domain layer**
@@ -235,6 +234,6 @@ Add support for mocking MCP servers and tools to help teams test AI agents and L
 The long-term goal is to evolve MockNest from a serverless mock runtime into an intelligent platform that helps teams keep their integration tests accurate as APIs and systems continue to evolve.
 
 References
-[1] WireMock
-[2] Kiro
-[3] Clean Architecture for Serverless
+[1] WireMock - https://github.com/wiremock/wiremock
+[2] Kiro - https://kiro.dev/
+[3] Clean Architecture for Serverless - https://medium.com/nntech/keeping-business-logic-portable-in-serverless-functions-with-clean-architecture-bd1976276562
