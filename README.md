@@ -6,6 +6,14 @@ MockNest Serverless is a serverless WireMock runtime for AWS that enables realis
   <img src="docs/images/MockNestServerlessLogo.png" alt="MockNest Serverless Logo" width="400">
 </div>
 
+## Architecture Overview
+
+<div style="text-align: center;">
+  <img src="docs/images/SolutionDesign.png" alt="MockNest Serverless Architecture" width="600">
+</div>
+
+MockNest Serverless consists of AWS Lambda functions that serve both the WireMock admin API and mocked endpoints, with persistent storage in Amazon S3. AI features use Amazon Bedrock for intelligent mock generation when called.
+
 ## Features
 
 - **Serverless WireMock Runtime**: Full WireMock API running on AWS Lambda
@@ -15,99 +23,119 @@ MockNest Serverless is a serverless WireMock runtime for AWS that enables realis
 - **AWS Free Tier Compatible**: Designed to operate within AWS Free Tier limits
 - **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR)
 
-## Quick Start
+## Quick Start for SAR Users
+
+**Recommended Path**: Deploy MockNest Serverless directly from the AWS Serverless Application Repository for the easiest setup experience.
 
 ### Prerequisites
 
-- AWS CLI configured with appropriate permissions
-- AWS SAM CLI installed
-- Docker (or equivalent such as Colima, for local testing)
+- AWS account with appropriate permissions
+- Access to AWS Console
 
-### Deployment
+### Deployment from AWS Serverless Application Repository
 
-**Option 1: AWS Serverless Application Repository (SAR)** - *Coming Soon*
-```bash
-# One-click deploy from AWS Console
-# 1. Switch to your preferred AWS region in the console
-# 2. Go to AWS Serverless Application Repository
-# 3. Search for "MockNest Serverless"
-# 4. Click "Deploy" and configure parameters
-```
+1. **Navigate to SAR**: Go to the [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home) in your AWS Console
+2. **Select Region**: Choose your preferred deployment region (us-east-1, eu-west-1, or ap-southeast-1 recommended)
+3. **Search**: Search for "MockNest-Serverless"
+4. **Deploy**: Click "Deploy" and configure parameters:
+   - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
+   - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
+   - **BedrockInferenceMode**: Inference profile selection (default: "AUTO" - recommended)
+   - **LambdaMemorySize**: Memory allocation in MB (default: 1024)
+   - **LambdaTimeout**: Function timeout in seconds (default: 120)
 
-**Option 2: Direct SAM Deployment**
-```bash
-# Build and deploy from source (defaults to eu-west-1)
-./gradlew build
-cd deployment/aws/sam
-sam build
-sam deploy --guided
-```
+### Getting Started After Deployment
 
-> **📍 Region Notes**: 
-> - **SAR deployment**: Deploys to your current AWS Console region
-> - **Direct SAM deployment**: Defaults to eu-west-1 (easily configurable)
+**Quick Start with Postman**: Import our ready-to-use Postman collections from [`docs/postman/`](docs/postman/) for instant access to all API endpoints with working examples.
 
-**Quick Deploy with Defaults**:
-```bash
-sam build && sam deploy
-```
+**Manual Setup**: Follow the [SAR User Guide](README-SAR.md) for step-by-step instructions using cURL.
 
-**Default Configuration (Direct SAM):**
-- **Region**: eu-west-1 (Ireland) - supports all features including AI
-- **S3 Bucket**: Auto-generated unique name
-- **AI Features**: Disabled (Free Tier friendly)
-- **API Key**: Auto-generated
+#### Region Selection and Model Availability
 
-### Configuration
+**Choose Your Deployment Region**: When deploying from SAR, you select the deployment region in the AWS Console. MockNest automatically configures itself for that region.
 
-#### AWS Region Configuration
+**Bedrock Model Availability**: Amazon Bedrock model availability varies by region. Before deploying with AI features:
 
-MockNest Serverless defaults to **eu-west-1** (Ireland) because:
-- ✅ Supports all AWS services (Lambda, API Gateway, S3)
-- ✅ Supports Amazon Bedrock for AI features
-- ✅ Good global connectivity and performance
-- ✅ GDPR-compliant for European users
+1. **Check Model Availability**: Verify Amazon Nova Pro is available in your chosen region using the [AWS Bedrock model availability documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html)
+2. **Enable Model Access**: In the Amazon Bedrock console, go to "Model access" and enable access for Amazon Nova Pro
+3. **Wait for Approval**: Model access requests may take a few minutes to be approved
 
-**To deploy to a different region:**
+#### BedrockInferenceMode Configuration
 
-1. **US East (most common alternative)**:
-   ```bash
-   sam deploy --region us-east-1
-   ```
+The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock inference profiles:
 
-2. **US West (California)**:
-   ```bash
-   sam deploy --region us-west-1
-   ```
+- **AUTO** (recommended): Tries cross-region inference profile first, then falls back to region-specific profile
+  - **Best for**: Most users who want automatic optimization
+  - **Behavior**: Maximizes model availability and performance
+  
+- **GLOBAL_ONLY**: Forces use of cross-region inference profile only
+  - **Best for**: Users who need consistent global model behavior
+  - **Behavior**: Uses shared cross-region capacity (may have higher latency but better availability)
+  
+- **GEO_ONLY**: Forces use of region-specific inference profile only
+  - **Best for**: Users with data residency requirements
+  - **Behavior**: Uses geo-specific profile (e.g., "eu" for eu-west-1, "us" for us-east-1)
 
-3. **Edit SAM Config** (for permanent change):
-   ```bash
-   # Edit deployment/aws/sam/samconfig.toml
-   region = "us-east-1"
-   ```
+**Recommendation**: Use AUTO mode for most use cases as it provides the best balance of availability and performance.
 
-**Supported Regions:**
-- All AWS regions where Lambda, API Gateway, and S3 are available
-- For AI features: Ensure Amazon Bedrock is available in your chosen region (see [AWS Bedrock regions](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html))
+#### When to Use Each Mode
 
-**For detailed deployment instructions and regional considerations, see [DEPLOYMENT.md](docs/DEPLOYMENT.md).**
+**Use GLOBAL_ONLY when**:
+- You need consistent model behavior across all regions
+- Your application requires the latest model capabilities
+- Data residency is not a concern (uses cross-region capacity)
 
-#### Optional Customizations
+**Use GEO_ONLY when**:
+- You have strict data residency requirements
+- You want to ensure data stays within a specific geographic region
+- Compliance requires regional data processing
 
-**Enable AI Features** (requires Bedrock-supported region):
-```bash
-sam deploy --parameter-overrides BedrockInferencePrefix=eu
-```
+**Use AUTO when** (recommended):
+- You want the best availability and performance
+- You're not sure which mode to choose
+- You want automatic fallback behavior
 
-**Custom S3 Bucket Name**:
-```bash
-sam deploy --parameter-overrides BucketName=my-custom-bucket-name
-```
+#### Support and Troubleshooting
 
-**Combined Customizations**:
-```bash
-sam deploy --region us-east-1 --parameter-overrides BedrockInferencePrefix=us BucketName=my-bucket
-```
+**Getting Help**:
+- **Issues**: Report problems via [GitHub Issues](https://github.com/your-org/mocknest-serverless/issues)
+- **Documentation**: See the [User Guide](docs/USER_GUIDE.md) for detailed instructions
+- **API Reference**: Complete API documentation in the [OpenAPI specification](docs/api/mocknest-openapi.yaml)
+
+**Common Deployment Issues**:
+- **Bedrock Access Denied**: Ensure model access is enabled in Amazon Bedrock console
+- **Region Not Supported**: Verify Amazon Bedrock is available in your deployment region
+- **CloudFormation Failures**: Check CloudFormation events for detailed error messages
+
+## Tested Configuration
+
+MockNest Serverless has been thoroughly tested in the following configurations:
+
+### Officially Supported Regions
+- **us-east-1** (N. Virginia)
+- **eu-west-1** (Ireland) 
+- **ap-southeast-1** (Singapore)
+
+### Core Runtime Compatibility
+- **Works in any AWS region** with Lambda, API Gateway, and S3 support
+- **Deployment to other regions** is possible but not officially supported
+
+### AI Features Support
+- **Officially supported**: Amazon Nova Pro model in the three tested regions above
+- **Other Bedrock models**: May work but are experimental and not officially supported
+- **Other regions**: AI features may work but are not officially tested
+
+### Tested WireMock Features
+The following WireMock capabilities have been validated in the serverless environment:
+- Request matching (URL, headers, body, query parameters)
+- Response templating and transformation
+- JSON and XML body matching
+- Stateful behavior and scenarios
+- Request verification and admin API
+- File serving for response bodies
+- Callback and webhook simulation
+
+**Note**: MockNest does not claim support for WireMock features that have not been explicitly tested in serverless environments.
 
 ## Usage
 
@@ -120,32 +148,39 @@ Once deployed, MockNest Serverless exposes the standard WireMock admin API:
 export MOCKNEST_URL="https://your-api-id.execute-api.eu-west-1.amazonaws.com/prod"
 export API_KEY="your-api-key"
 
-# Create a mock
+# Create a mock for Petstore API
 curl -X POST "$MOCKNEST_URL/__admin/mappings" \
   -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "request": {
       "method": "GET",
-      "url": "/api/users/123"
+      "urlPath": "/petstore/pet/123"
     },
     "response": {
       "status": 200,
       "headers": {
         "Content-Type": "application/json"
       },
-      "body": "{\"id\": 123, \"name\": \"John Doe\"}"
+      "jsonBody": {
+        "id": 123,
+        "name": "Buddy",
+        "status": "available",
+        "photoUrls": ["https://example.com/buddy.jpg"],
+        "category": {"id": 1, "name": "dog"},
+        "tags": [{"id": 1, "name": "friendly"}, {"id": 2, "name": "new"}]
+      }
     }
   }'
 
 # Test the mock
-curl "$MOCKNEST_URL/api/users/123" \
+curl "$MOCKNEST_URL/petstore/pet/123" \
   -H "x-api-key: $API_KEY"
 ```
 
-### AI-Assisted Mock Generation (Optional)
+### AI-Assisted Mock Generation
 
-If AI features are enabled during deployment, MockNest provides intelligent mock generation capabilities:
+MockNest provides intelligent mock generation capabilities using Amazon Bedrock:
 
 #### Generate from API Specification with Description
 
@@ -178,13 +213,30 @@ The response contains an array of generated WireMock mappings:
     {
       "request": {
         "method": "GET",
-        "urlPath": "/demo/petstore/pets"
+        "urlPath": "/petstore/pet/findByStatus",
+        "queryParameters": {
+          "status": {"equalTo": "available"}
+        }
       },
       "response": {
         "status": 200,
         "jsonBody": [
-          { "id": 1, "name": "Buddy", "status": "available" },
-          { "id": 2, "name": "Max", "status": "available" }
+          {
+            "id": 1,
+            "name": "Buddy",
+            "status": "available",
+            "photoUrls": ["https://example.com/buddy.jpg"],
+            "category": {"id": 1, "name": "dog"},
+            "tags": [{"id": 1, "name": "friendly"}, {"id": 2, "name": "new"}]
+          },
+          {
+            "id": 2,
+            "name": "Max",
+            "status": "available",
+            "photoUrls": ["https://example.com/max.jpg"],
+            "category": {"id": 1, "name": "dog"},
+            "tags": [{"id": 1, "name": "friendly"}]
+          }
         ],
         "headers": {
           "Content-Type": "application/json"
@@ -195,7 +247,7 @@ The response contains an array of generated WireMock mappings:
 }
 ```
 
-Mocks are automatically organized using namespaces (e.g., `/demo/petstore/`). You can then import these mocks using the standard WireMock `/__admin/mappings/import` endpoint.
+Mocks are automatically organized using namespaces (e.g., `/petstore/`). You can then import these mocks using the standard WireMock `/__admin/mappings/import` endpoint.
 
 #### Generate from Natural Language
 
@@ -206,10 +258,10 @@ curl -X POST "$MOCKNEST_URL/ai/generation/from-description" \
   -H "Content-Type: application/json" \
   -d '{
     "namespace": {
-      "apiName": "user-service",
+      "apiName": "petstore",
       "client": "demo"
     },
-    "description": "Create a REST API for managing users with endpoints to get all users, get user by ID, create new user, update user, and delete user. Include proper error responses for not found (404) and validation errors (400).",
+    "description": "Create a REST API for managing pets with endpoints to get all pets, get pet by ID, create new pet, update pet, and delete pet. Include proper error responses for not found (404) and validation errors (400). Use realistic pet data with dogs and cats.",
     "useExistingSpec": false,
     "options": {
       "includeExamples": true,
@@ -237,35 +289,81 @@ curl -X POST "$MOCKNEST_URL/__admin/mappings" \
 
 AI-generated mocks are organized using namespaces for better management:
 
-- **Simple API**: `mocknest/salesforce/` 
-- **Client-specific**: `mocknest/client-a/payments/`
-- **Multi-tenant**: `mocknest/tenant-b/users/`
+- **Simple API**: `petstore/` 
+- **Client-specific**: `client-a/petstore/`
+- **Multi-tenant**: `tenant-b/petstore/`
 
 This allows multiple teams and APIs to coexist without conflicts.
 
-## Development
+## Deployment for Developers
 
-### Local Development Setup
+For developers who want to build from source or contribute to MockNest Serverless.
 
-1. **Clone the repository**:
+### Prerequisites
+
+- AWS CLI configured with appropriate permissions
+- AWS SAM CLI installed
+- Docker (or equivalent such as Colima, for local testing)
+- Java 21+ and Gradle (or use included Gradle wrapper)
+
+### Build and Deploy from Source
+
+1. **Clone and Build**:
    ```bash
    git clone <repository-url>
    cd mocknest-serverless
-   ```
-
-2. **Build the project**:
-   ```bash
    ./gradlew build
    ```
 
-3. **Run tests**:
+2. **Deploy with SAM**:
+   ```bash
+   cd deployment/aws/sam
+   sam build
+   sam deploy --guided
+   ```
+
+3. **Quick Deploy with Defaults**:
+   ```bash
+   sam build && sam deploy
+   ```
+
+### Development Configuration
+
+**Default SAM Configuration:**
+- **Region**: eu-west-1 (Ireland) - supports all features including AI
+- **S3 Bucket**: Auto-generated unique name
+- **AI Features**: Enabled with Amazon Nova Pro
+- **API Key**: Auto-generated
+
+**Deploy to Different Region**:
+```bash
+sam deploy --region us-east-1
+```
+
+**Custom Parameters**:
+```bash
+sam deploy --parameter-overrides \
+  BedrockModelName=AmazonNovaPro \
+  BedrockInferenceMode=AUTO \
+  BucketName=my-custom-bucket
+```
+
+### Local Development
+
+1. **Run Tests**:
    ```bash
    ./gradlew test
    ```
 
-4. **Run integration tests** (requires Docker):
+2. **Run Integration Tests** (requires Docker):
    ```bash
    ./gradlew :software:infra:aws:test
+   ```
+
+3. **Local SAM Testing**:
+   ```bash
+   cd deployment/aws/sam
+   sam local start-api
    ```
 
 ### Project Structure
@@ -283,14 +381,6 @@ mocknest-serverless/
 ├── docs/                       # Documentation and examples
 └── .kiro/steering/            # Architecture and design decisions
 ```
-
-### Architecture
-
-MockNest Serverless follows clean architecture principles:
-
-- **Domain Layer**: Business models and rules
-- **Application Layer**: Use cases and service interfaces
-- **Infrastructure Layer**: AWS-specific adapters and implementations
 
 For detailed architecture information, see [Architecture Documentation](.kiro/steering/02-architecture.md).
 
@@ -346,7 +436,23 @@ sam logs -n MockNestFunction --stack-name mocknest-serverless --tail
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines and contribution process.
+We welcome contributions to MockNest Serverless! Whether you're fixing bugs, adding features, or improving documentation, your help makes the project better.
+
+### How to Contribute
+
+1. **Report Issues**: Use [GitHub Issues](https://github.com/your-org/mocknest-serverless/issues) to report bugs or request features
+2. **Submit Pull Requests**: Fork the repository, make your changes, and submit a pull request
+3. **Improve Documentation**: Help us keep documentation accurate and helpful
+4. **Share Use Cases**: Tell us how you're using MockNest Serverless
+
+### Development Guidelines
+
+- Follow the clean architecture principles outlined in our [Architecture Documentation](.kiro/steering/02-architecture.md)
+- Ensure all tests pass before submitting PRs
+- Add tests for new functionality
+- Update documentation for user-facing changes
+
+For detailed development guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
