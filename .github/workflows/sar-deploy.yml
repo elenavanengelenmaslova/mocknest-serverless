@@ -67,13 +67,6 @@ jobs:
           ./gradlew test
           echo "✅ All tests passed"
         
-      - name: SAM build
-        run: |
-          echo "📦 Building SAM application..."
-          cd deployment/aws/sam
-          sam build
-          echo "✅ SAM build completed"
-        
       - name: SAM package
         run: |
           echo "📦 Packaging SAM application for SAR..."
@@ -83,7 +76,7 @@ jobs:
           SAR_BUCKET="mocknest-sar-artifacts-${{ secrets.AWS_ACCOUNT_ID }}"
           aws s3 mb s3://$SAR_BUCKET --region ${{ env.SAR_PUBLISH_REGION }} || echo "Bucket already exists"
           
-          # Package the application
+          # Package the application (skip sam build since JARs are already built by Gradle)
           sam package \
             --s3-bucket $SAR_BUCKET \
             --s3-prefix "private-sar/${{ inputs.version }}" \
