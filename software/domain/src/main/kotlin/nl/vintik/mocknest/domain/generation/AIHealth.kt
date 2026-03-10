@@ -19,13 +19,10 @@ data class AIHealth(
 /**
  * AI model health information.
  * 
- * Includes model name, inference prefix, inference mode, last invocation status,
- * and whether the model is officially supported.
+ * Includes model name, inference prefix, and inference mode.
  */
 data class AIModelHealth(
     val modelName: String,
     val inferencePrefix: String?,
-    val inferenceMode: String,
-    val lastInvocationSuccess: Boolean?,
-    val officiallySupported: Boolean
+    val inferenceMode: String
 )

@@ -39,9 +39,4 @@ interface AIModelServiceInterface {
      * Get the configured inference prefix (if any).
      */
     fun getConfiguredPrefix(): String?
-
-    /**
-     * Check if the current model is officially supported.
-     */
-    fun isOfficiallySupported(): Boolean
 }

@@ -172,8 +172,4 @@ class BedrockServiceAdapter(
     override fun getConfiguredPrefix(): String? {
         return modelConfiguration.getConfiguredPrefix()
     }
-
-    override fun isOfficiallySupported(): Boolean {
-        return modelConfiguration.isOfficiallySupported()
-    }
 }

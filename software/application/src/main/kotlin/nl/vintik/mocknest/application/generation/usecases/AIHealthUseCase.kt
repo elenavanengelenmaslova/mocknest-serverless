@@ -34,9 +34,7 @@ class AIHealthUseCase(
             ai = AIModelHealth(
                 modelName = aiModelService.getModelName(),
                 inferencePrefix = aiModelService.getConfiguredPrefix(),
-                inferenceMode = inferenceMode.uppercase(),
-                lastInvocationSuccess = null, // Will be updated after first invocation in future enhancement
-                officiallySupported = aiModelService.isOfficiallySupported()
+                inferenceMode = inferenceMode.uppercase()
             )
         )
         

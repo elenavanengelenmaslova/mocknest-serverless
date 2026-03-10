@@ -30,7 +30,7 @@ class RuntimeLambdaHandler(
             with(event) {
                 logger.info { "Runtime Lambda request: $httpMethod $path $headers" }
                 when {
-                    path == "$ADMIN_PREFIX/health" -> {
+                    path == "${ADMIN_PREFIX}health" -> {
                         logger.debug { "Processing health check request" }
                         getRuntimeHealth()
                     }

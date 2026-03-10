@@ -35,18 +35,14 @@ data class AIHealthJsonResponse(
 data class AIModelHealthJson(
     @param:JsonProperty("modelName") val modelName: String,
     @param:JsonProperty("inferencePrefix") val inferencePrefix: String?,
-    @param:JsonProperty("inferenceMode") val inferenceMode: String,
-    @param:JsonProperty("lastInvocationSuccess") val lastInvocationSuccess: Boolean?,
-    @param:JsonProperty("officiallySupported") val officiallySupported: Boolean
+    @param:JsonProperty("inferenceMode") val inferenceMode: String
 ) {
     companion object {
         fun from(ai: AIModelHealth): AIModelHealthJson {
             return AIModelHealthJson(
                 modelName = ai.modelName,
                 inferencePrefix = ai.inferencePrefix,
-                inferenceMode = ai.inferenceMode,
-                lastInvocationSuccess = ai.lastInvocationSuccess,
-                officiallySupported = ai.officiallySupported
+                inferenceMode = ai.inferenceMode
             )
         }
     }

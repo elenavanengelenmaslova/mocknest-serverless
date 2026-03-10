@@ -1,0 +1,26 @@
+// Deployment module for SAM template processing
+
+// Process SAM template to substitute version
+tasks.register("processSamTemplate", Copy) {
+    from("aws/sam")
+    into("build/sam")
+    
+    filesMatching("template.yaml") {
+        filter { line ->
+            line.replace('${version}', project.version.toString())
+        }
+    }
+    
+    doLast {
+        println("Processed SAM template with version: ${project.version}")
+    }
+}
+
+// Make sure the processed template is available for SAM builds
+tasks.register("prepareSamBuild") {
+    dependsOn("processSamTemplate")
+    
+    doLast {
+        println("SAM template ready for deployment with version: ${project.version}")
+    }
+}

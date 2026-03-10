@@ -11,7 +11,7 @@ Metadata:
       AI-powered mock generation using Amazon Bedrock, and comprehensive support for REST, SOAP, and GraphQL APIs. 
       Deploy directly into your AWS account for complete control, network isolation, and predictable costs.
     Author: Vintik
-    SemanticVersion: 1.0.0
+    SemanticVersion: ${version}
     LicenseUrl: ../../../LICENSE
     ReadmeUrl: ../../../README.md
     HomePageUrl: https://github.com/vintikzzz/mocknest-serverless

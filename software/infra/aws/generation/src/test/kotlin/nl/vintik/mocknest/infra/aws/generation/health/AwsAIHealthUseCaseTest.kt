@@ -27,7 +27,6 @@ class AwsAIHealthUseCaseTest {
         // Given
         every { mockAIModelService.getModelName() } returns "AmazonNovaPro"
         every { mockAIModelService.getConfiguredPrefix() } returns "eu"
-        every { mockAIModelService.isOfficiallySupported() } returns true
 
         // When
         val response = useCase.invoke()
@@ -39,12 +38,10 @@ class AwsAIHealthUseCaseTest {
 
         val health = mapper.readValue(response.body, AIHealth::class.java)
         assertEquals("healthy", health.status)
-        assertEquals("1.0.0", health.version)
+        assertNotNull(health.version) // Version should be present but don't assert specific value
         assertEquals("AmazonNovaPro", health.ai.modelName)
         assertEquals("eu", health.ai.inferencePrefix)
         assertEquals("AUTO", health.ai.inferenceMode)
-        assertEquals(true, health.ai.officiallySupported)
-        assertEquals(null, health.ai.lastInvocationSuccess)
     }
 
     @Test
@@ -52,7 +49,6 @@ class AwsAIHealthUseCaseTest {
         // Given
         every { mockAIModelService.getModelName() } returns "AmazonNovaPro"
         every { mockAIModelService.getConfiguredPrefix() } returns null
-        every { mockAIModelService.isOfficiallySupported() } returns true
 
         // When
         val response = useCase.invoke()

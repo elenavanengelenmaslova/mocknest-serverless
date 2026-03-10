@@ -37,6 +37,41 @@ class RuntimeLambdaHandlerTest {
     inner class AdminPathRouting {
 
         @Test
+        fun `Given health endpoint request When routing Then should call GetRuntimeHealth`() {
+            // Given
+            val event = APIGatewayProxyRequestEvent()
+                .withPath("/__admin/health")
+                .withHttpMethod("GET")
+                .withHeaders(mapOf("Accept" to "application/json"))
+                .withQueryStringParameters(emptyMap())
+            
+            val expectedResponse = HttpResponse(
+                HttpStatus.OK,
+                LinkedMultiValueMap<String, String>().apply {
+                    add("Content-Type", "application/json")
+                },
+                """{"status": "healthy", "version": "0.2.0"}"""
+            )
+            
+            every { 
+                mockGetRuntimeHealth.invoke() 
+            } returns expectedResponse
+
+            // When
+            val response = runtimeRouter.apply(event)
+
+            // Then
+            verify(exactly = 1) { mockGetRuntimeHealth.invoke() }
+            verify(exactly = 0) { mockHandleAdminRequest.invoke(any(), any()) }
+            verify(exactly = 0) { mockHandleClientRequest.invoke(any()) }
+            
+            assertEquals(200, response.statusCode)
+            assertNotNull(response.body)
+            assert(response.body.contains("\"status\": \"healthy\""))
+            assert(response.body.contains("\"version\":"))
+        }
+
+        @Test
         fun `Given admin mappings request When routing Then should call HandleAdminRequest with correct path`() {
             // Given
             val event = APIGatewayProxyRequestEvent()
