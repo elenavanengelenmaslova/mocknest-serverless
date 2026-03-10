@@ -141,6 +141,8 @@ Send request.
 
 MockNest uses AI to generate realistic WireMock mappings automatically.
 
+The generated mappings are validated automatically, and if validation fails, MockNest retries until it produces correct mappings.
+
 ## On Screen
 
 Show response containing generated mappings.
