@@ -34,6 +34,36 @@ class GenerationLambdaHandlerTest {
     inner class AIPathRouting {
 
         @Test
+        fun `Given AI health request When routing Then should call GetAIHealth`() {
+            // Given
+            val event = APIGatewayProxyRequestEvent()
+                .withPath("/ai/generation/health")
+                .withHttpMethod("GET")
+                .withHeaders(mapOf("Accept" to "application/json"))
+                .withQueryStringParameters(emptyMap())
+            
+            val expectedResponse = HttpResponse(
+                HttpStatus.OK,
+                LinkedMultiValueMap<String, String>().apply {
+                    add("Content-Type", "application/json")
+                },
+                """{"status": "healthy", "version": "1.0.0"}"""
+            )
+            
+            every { mockGetAIHealth.invoke() } returns expectedResponse
+
+            // When
+            val response = generationRouter.apply(event)
+
+            // Then
+            verify(exactly = 1) { mockGetAIHealth.invoke() }
+            verify(exactly = 0) { mockHandleAIGenerationRequest.invoke(any(), any()) }
+            
+            assertEquals(200, response.statusCode)
+            assertEquals("""{"status": "healthy", "version": "1.0.0"}""", response.body)
+        }
+
+        @Test
         fun `Given AI generation request When routing Then should call HandleAIGenerationRequest with correct path`() {
             // Given
             val event = APIGatewayProxyRequestEvent()

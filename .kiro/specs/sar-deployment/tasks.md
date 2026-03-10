@@ -289,6 +289,7 @@ The implementation follows a phased approach: core configuration changes first, 
 
 - [ ] 10. Create comprehensive documentation
   - [ ] 10.1 Restructure README.md for user personas
+    - Add architecture diagram from `docs/images/SolutionDesign.png` to show AWS services and data flow
     - Create "Quick Start for SAR Users" section as primary path
     - Create "Deployment for Developers" section for SAM-based deployment
     - Create "Tested Configuration" section documenting officially supported regions and models
@@ -298,6 +299,7 @@ The implementation follows a phased approach: core configuration changes first, 
   
   - [ ] 10.2 Create README-SAR.md for SAR users
     - Create SAR-specific README at repository root
+    - Include architecture diagram from `docs/images/SolutionDesign.png` to show system overview
     - Include "How to Use" section with post-deployment instructions
     - Include input parameter documentation with examples
     - Include output format documentation with examples
@@ -471,3 +473,31 @@ The implementation follows a phased approach: core configuration changes first, 
 - Unit tests validate specific examples and edge cases
 - Integration tests validate end-to-end functionality in AWS environment
 - Private SAR testing is critical before public release to ensure smooth user experience
+
+- [ ] 15. Simplify SAR deployment architecture
+  - [ ] 15.1 Evaluate SAR folder necessity
+    - Review current SAR folder structure against AWS Lambda Power Tuning approach
+    - Analyze whether wrapper template (deploy-sar-app.yml) adds value or complexity
+    - Document pros/cons of current approach vs direct SAR deployment
+    - _Requirements: Analysis of deployment complexity_
+  
+  - [ ] 15.2 Fix parameter synchronization issues
+    - Audit parameter differences between SAM template and SAR wrapper template
+    - Ensure deploy-sar-app.yml parameters match sam/template.yaml exactly
+    - Create validation script to detect parameter drift between templates
+    - Update parameter names, types, and defaults to be consistent
+    - _Requirements: Deployment consistency_
+  
+  - [ ] 15.3 Choose deployment architecture
+    - **Option A (Recommended)**: Remove SAR folder, publish directly from SAM template (like Lambda Power Tuning)
+    - **Option B**: Fix synchronization and maintain wrapper template
+    - **Option C**: Keep SAR folder for scripts only, remove wrapper template
+    - Implement chosen option and update documentation accordingly
+    - _Requirements: Simplified deployment experience_
+  
+  - [ ] 15.4 Update deployment documentation
+    - Update README with simplified deployment instructions
+    - Remove or update SAR-specific deployment guides based on chosen architecture
+    - Ensure deployment instructions match actual implementation
+    - Test documentation accuracy with fresh AWS account
+    - _Requirements: Accurate deployment documentation_

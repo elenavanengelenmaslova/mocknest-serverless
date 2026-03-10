@@ -27,7 +27,7 @@ class GenerationLambdaHandler(
             with(event) {
                 logger.info { "Generation Lambda request: $httpMethod $path $headers" }
                 when {
-                    path == "$AI_PREFIX/health" -> {
+                    path == "${AI_PREFIX}health" -> {
                         logger.debug { "Processing AI health check request" }
                         getAIHealth()
                     }

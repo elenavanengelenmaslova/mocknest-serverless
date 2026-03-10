@@ -1,57 +1,46 @@
-package nl.vintik.mocknest.infra.aws.runtime.health
+package nl.vintik.mocknest.application.runtime.usecases
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.vintik.mocknest.application.core.HttpResponseHelper
+import nl.vintik.mocknest.application.core.Version
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.application.core.mapper
-import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.domain.core.HttpResponse
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.HttpStatus
-import org.springframework.stereotype.Component
-import org.springframework.util.LinkedMultiValueMap
+import nl.vintik.mocknest.domain.runtime.RuntimeHealth
+import nl.vintik.mocknest.domain.runtime.StorageHealth
 import java.time.Instant
 
 private val logger = KotlinLogging.logger {}
 
 /**
- * Implementation of runtime health check use case.
+ * Application layer implementation of runtime health check.
  * 
- * Checks storage connectivity and returns comprehensive health information
- * including deployment region, S3 bucket name, and connectivity status.
+ * Contains the core business logic for checking runtime health,
+ * independent of infrastructure concerns.
  */
-@Component
 class RuntimeHealthUseCase(
     private val storage: ObjectStorageInterface,
-    @param:Value("\${storage.bucket.name}") private val bucketName: String
+    private val bucketName: String,
+    private val region: String
 ) : GetRuntimeHealth {
     
     override fun invoke(): HttpResponse {
         logger.debug { "Checking runtime health" }
         
-        val region = System.getenv("AWS_REGION") ?: "unknown"
         val connectivity = checkStorageConnectivity()
         val status = if (connectivity) "healthy" else "degraded"
         
-        val response = RuntimeHealthResponse(
+        val health = RuntimeHealth(
             status = status,
-            timestamp = Instant.now().toString(),
+            timestamp = Instant.now(),
             region = region,
+            version = Version.MOCKNEST_VERSION,
             storage = StorageHealth(
                 bucket = bucketName,
                 connectivity = if (connectivity) "ok" else "error"
             )
         )
         
-        val jsonBody = mapper.writeValueAsString(response)
-        
-        val headers = LinkedMultiValueMap<String, String>()
-        headers.add("Content-Type", "application/json")
-        
-        return HttpResponse(
-            statusCode = HttpStatus.OK,
-            headers = headers,
-            body = jsonBody
-        )
+        return HttpResponseHelper.ok(health)
     }
     
     /**
