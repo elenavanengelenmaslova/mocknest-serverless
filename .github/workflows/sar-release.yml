@@ -1,4 +1,4 @@
-name: Publish to SAR
+name: SAR Release (Public)
 
 on:
   release:
@@ -43,7 +43,7 @@ jobs:
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name || 'GitHubActionsRole' }}
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name || 'GitHubOIDCAdmin' }}
           role-session-name: MockNestSARPublishing
           aws-region: ${{ inputs.aws-region || 'us-east-1' }}
           
@@ -51,20 +51,36 @@ jobs:
         uses: aws-actions/setup-sam@v2
         
       - name: Build application
-        run: ./gradlew clean build
-        
-      - name: Publish to SAR
         run: |
-          echo "🚀 Publishing to SAR..."
+          echo "🔨 Building MockNest Serverless..."
+          ./gradlew clean :software:infra:aws:runtime:shadowJar :software:infra:aws:generation:shadowJar --no-build-cache
+          echo "✅ Build completed successfully"
+          
+      - name: Verify JAR artifacts
+        run: |
+          if [ ! -f "build/dist/mocknest-runtime.jar" ]; then
+            echo "ERROR: mocknest-runtime.jar not found"
+            exit 1
+          fi
+          if [ ! -f "build/dist/mocknest-generation.jar" ]; then
+            echo "ERROR: mocknest-generation.jar not found"
+            exit 1
+          fi
+          echo "✓ Runtime JAR: $(du -h build/dist/mocknest-runtime.jar | cut -f1)"
+          echo "✓ Generation JAR: $(du -h build/dist/mocknest-generation.jar | cut -f1)"
+        
+      - name: Package and publish to SAR
+        run: |
+          echo "� Packaging and publishing to SAR..."
           cd deployment/aws/sam
           
           # Create S3 bucket for SAR artifacts if it doesn't exist
           SAR_BUCKET="mocknest-sar-publish-${{ secrets.AWS_ACCOUNT_ID }}"
           aws s3 mb s3://$SAR_BUCKET --region ${{ inputs.aws-region || 'us-east-1' }} || echo "Bucket already exists"
           
-          # Build and package
-          sam build
+          # Package (JARs are pre-built by Gradle, no sam build needed)
           sam package \
+            --template-file template.yaml \
             --s3-bucket $SAR_BUCKET \
             --output-template-file packaged-template.yaml \
             --region ${{ inputs.aws-region || 'us-east-1' }}

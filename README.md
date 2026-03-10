@@ -1,10 +1,10 @@
 # MockNest Serverless
 
-MockNest Serverless is a serverless WireMock runtime for AWS that enables realistic integration testing without relying on live external services. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
+MockNest Serverless is a serverless WireMock compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-powered mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
 
-<div style="text-align: center;">
+<p align="center">
   <img src="docs/images/MockNestServerlessLogo.png" alt="MockNest Serverless Logo" width="400">
-</div>
+</p>
 
 ## Architecture Overview
 
