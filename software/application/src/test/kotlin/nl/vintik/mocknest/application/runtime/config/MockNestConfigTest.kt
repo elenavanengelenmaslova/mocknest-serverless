@@ -7,9 +7,8 @@ import kotlin.test.assertNotNull
 class MockNestConfigTest {
 
     @Test
-    fun `Should have correct defaults`() {
+    fun `Should create required beans`() {
         val config = MockNestConfig()
-        assertEquals("mocknest", config.rootDir)
         assertNotNull(config.directCallHttpServerFactory())
     }
 }

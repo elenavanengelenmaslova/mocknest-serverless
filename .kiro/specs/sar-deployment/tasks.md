@@ -249,22 +249,22 @@ The implementation follows a phased approach: core configuration changes first, 
     - Verify JSON format validity
     - Minimum 100 iterations
 
-- [ ] 8. Remove local filesystem support
-  - [ ] 8.1 Remove CompositeMappingsSource
+- [x] 8. Remove local filesystem support
+  - [x] 8.1 Remove CompositeMappingsSource
     - Remove or simplify `CompositeMappingsSource` to only use S3-backed storage
     - Update configuration to use `ObjectStorageMappingsSource` directly
     - Remove any classpath or filesystem fallback logic
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 24.1, 24.2, 24.3_
   
-  - [ ] 8.2 Remove classpath health check mapping
+  - [x] 8.2 Remove classpath health check mapping
     - Ensure built-in health check endpoint is not loaded from classpath
     - Implement health check as standard controller endpoint (already done in task 7)
     - Remove any classpath resource loading for mappings
     - Run existing unit tests to ensure no regressions: `./gradlew test`
     - _Requirements: 24.6_
   
-  - [ ] 8.3 Update configuration to enforce S3-only storage
+  - [x] 8.3 Update configuration to enforce S3-only storage
     - Remove any filesystem paths from configuration
     - Update documentation to clearly state all mocks must be in S3
     - Run existing unit tests to ensure no regressions: `./gradlew test`
@@ -284,7 +284,7 @@ The implementation follows a phased approach: core configuration changes first, 
     - Verify no filesystem or classpath access attempts
     - Minimum 100 iterations
 
-- [ ] 9. Checkpoint - Ensure all tests pass
+- [x] 9. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 10. Create comprehensive documentation
