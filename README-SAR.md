@@ -388,7 +388,7 @@ To troubleshoot issues, view CloudWatch logs:
 
 ### Getting Help
 
-- **Documentation**: See the [User Guide](docs/USER_GUIDE.md) for detailed usage instructions
+- **Documentation**: This guide provides comprehensive deployment and usage instructions
 - **API Reference**: Complete API documentation in the [OpenAPI specification](docs/api/mocknest-openapi.yaml)
 - **Issues**: Report bugs or ask questions at [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
 

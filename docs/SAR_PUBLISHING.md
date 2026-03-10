@@ -6,6 +6,57 @@ This guide covers how to publish MockNest Serverless to the AWS Serverless Appli
 
 MockNest Serverless will be published as a public SAR application, allowing users to deploy it with one click from the AWS Console without requiring local development tools.
 
+## SAR Publishing via GitHub Actions
+
+MockNest uses automated GitHub Actions workflows for SAR publishing with comprehensive multi-region testing.
+
+### SAR Beta Test Pipeline (Private)
+
+**Purpose**: Test SAR deployment across multiple regions before public release
+
+**Workflow**: `.github/workflows/sar-beta-test.yml`
+
+**Features**:
+- Multi-region testing (us-east-1, eu-west-1, ap-southeast-1)
+- Comprehensive functionality validation
+- Private SAR sharing with test accounts
+- Automatic cleanup after testing
+
+**To Run**:
+1. Go to **Actions** → **SAR Beta Test (Private)**
+2. **Run workflow** with:
+   - Version: `0.2.0-beta.1` (beta version)
+   - Test Account IDs: comma-separated AWS account IDs
+   - Role Name: `GitHubOIDCAdmin` (your OIDC role)
+
+### SAR Release Pipeline (Public)
+
+**Purpose**: Publish to public SAR after beta testing passes
+
+**Workflow**: `.github/workflows/sar-release.yml`
+
+**Features**:
+- Direct public SAR publishing
+- Automatic version handling
+- GitHub release integration
+
+**To Run**:
+1. Go to **Actions** → **SAR Release (Public)**
+2. **Run workflow** with:
+   - Version: `0.2.0` (public version)
+   - Region: `us-east-1` (recommended for public SAR)
+
+### Prerequisites for SAR Publishing
+- GitHub OIDC role with SAR permissions
+- GitHub secrets: `AWS_ACCOUNT_ID`, `TEST_AWS_ACCOUNT_ID`
+- AWS account with Serverless Application Repository access
+
+### SAR Publishing Process
+1. **Beta Testing**: Run SAR Beta Test pipeline to validate across regions
+2. **Review Results**: Ensure all tests pass in all regions
+3. **Public Release**: Run SAR Release pipeline to make application available
+4. **Verification**: Confirm application appears in public SAR catalog
+
 ## SAR Application Metadata
 
 ### Application Information

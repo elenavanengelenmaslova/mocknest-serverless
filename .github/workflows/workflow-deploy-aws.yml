@@ -1,4 +1,4 @@
-name: Reusable AWS Build and Deploy
+name: Reusable AWS Deploy
 
 on:
   workflow_call:

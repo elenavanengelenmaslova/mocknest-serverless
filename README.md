@@ -99,7 +99,7 @@ The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock infer
 
 **Getting Help**:
 - **Issues**: Report problems via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
-- **Documentation**: See the [User Guide](docs/USER_GUIDE.md) for detailed instructions
+- **Documentation**: See the [SAR User Guide](README-SAR.md) for detailed deployment and usage instructions
 - **API Reference**: Complete API documentation in the [OpenAPI specification](docs/api/mocknest-openapi.yaml)
 
 **Common Deployment Issues**:
