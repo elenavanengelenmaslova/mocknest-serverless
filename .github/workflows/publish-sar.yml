@@ -18,7 +18,7 @@ on:
       github-actions-role-name:
         description: 'GitHub Actions OIDC role name'
         required: false
-        default: 'GitHubActionsRole'
+        default: 'GitHubOIDCAdmin'
         type: string
 
 permissions:
@@ -55,13 +55,28 @@ jobs:
         
       - name: Publish to SAR
         run: |
-          cd deployment/aws/sar
-          chmod +x publish-sar.sh
-          ./publish-sar.sh
+          echo "🚀 Publishing to SAR..."
+          cd deployment/aws/sam
+          
+          # Create S3 bucket for SAR artifacts if it doesn't exist
+          SAR_BUCKET="mocknest-sar-publish-${{ secrets.AWS_ACCOUNT_ID }}"
+          aws s3 mb s3://$SAR_BUCKET --region ${{ inputs.aws-region || 'us-east-1' }} || echo "Bucket already exists"
+          
+          # Build and package
+          sam build
+          sam package \
+            --s3-bucket $SAR_BUCKET \
+            --output-template-file packaged-template.yaml \
+            --region ${{ inputs.aws-region || 'us-east-1' }}
+          
+          # Publish to SAR
+          sam publish \
+            --template packaged-template.yaml \
+            --region ${{ inputs.aws-region || 'us-east-1' }} \
+            --semantic-version ${{ inputs.version || github.event.release.tag_name || '1.0.0' }}
         env:
           SAR_VERSION: ${{ inputs.version || github.event.release.tag_name || '1.0.0' }}
           AWS_REGION: ${{ inputs.aws-region || 'us-east-1' }}
-          SAR_PUBLISH_BUCKET: mocknest-sar-publish-${{ secrets.AWS_ACCOUNT_ID }}
           
       - name: Create SAR deployment summary
         run: |

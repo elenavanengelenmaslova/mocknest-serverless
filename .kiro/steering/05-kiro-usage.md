@@ -43,7 +43,6 @@ mocknest-serverless/
         │   ├── build.sh             // Build script for SAM deployment
         │   └── deploy.sh            // Deployment script for SAM
         ├── sar/              // SAR deployment method
-        │   ├── deploy-sar-app.yml   // CloudFormation template for SAR deployment
         │   ├── deploy-sar-app.sh    // Script to deploy from SAR
         │   └── publish-sar.sh       // Script to publish to SAR
         └── shared/           // Shared deployment utilities

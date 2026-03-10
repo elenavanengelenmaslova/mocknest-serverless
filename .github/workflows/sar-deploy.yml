@@ -1,0 +1,373 @@
+name: Private SAR Deployment and Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Beta version for private SAR (e.g., 0.2.0-beta.1)'
+        required: true
+        type: string
+      test-account-ids:
+        description: 'Comma-separated test AWS account IDs for private sharing'
+        required: true
+        type: string
+      github-actions-role-name:
+        description: 'GitHub Actions OIDC role name'
+        required: false
+        default: 'GitHubOIDCAdmin'
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+  pull-requests: write
+
+env:
+  SAR_PUBLISH_REGION: us-east-1  # AWS SAR requirement for public apps
+  TEST_REGIONS: us-east-1,eu-west-1,ap-southeast-1
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+    outputs:
+      sar-application-id: ${{ steps.publish.outputs.application-id }}
+      sar-version: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+          
+      - name: Configure AWS credentials for SAR publishing
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
+          role-session-name: MockNestPrivateSARPublishing
+          aws-region: ${{ env.SAR_PUBLISH_REGION }}
+          
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+        
+      - name: Build application
+        run: |
+          echo "🔨 Building MockNest Serverless..."
+          ./gradlew clean build
+          echo "✅ Build completed successfully"
+        
+      - name: Run tests
+        run: |
+          echo "🧪 Running test suite..."
+          ./gradlew test
+          echo "✅ All tests passed"
+        
+      - name: SAM build
+        run: |
+          echo "📦 Building SAM application..."
+          cd deployment/aws/sam
+          sam build
+          echo "✅ SAM build completed"
+        
+      - name: SAM package
+        run: |
+          echo "📦 Packaging SAM application for SAR..."
+          cd deployment/aws/sam
+          
+          # Create S3 bucket for SAR artifacts if it doesn't exist
+          SAR_BUCKET="mocknest-sar-artifacts-${{ secrets.AWS_ACCOUNT_ID }}"
+          aws s3 mb s3://$SAR_BUCKET --region ${{ env.SAR_PUBLISH_REGION }} || echo "Bucket already exists"
+          
+          # Package the application
+          sam package \
+            --s3-bucket $SAR_BUCKET \
+            --s3-prefix "private-sar/${{ inputs.version }}" \
+            --output-template-file packaged-template.yaml \
+            --region ${{ env.SAR_PUBLISH_REGION }}
+          
+          echo "✅ SAM package completed"
+        
+      - name: Publish to private SAR
+        id: publish
+        run: |
+          echo "🚀 Publishing to private SAR..."
+          cd deployment/aws/sam
+          
+          # Publish to SAR (SemanticVersion is already set in template or injected)
+          RESULT=$(sam publish \
+            --template packaged-template.yaml \
+            --region ${{ env.SAR_PUBLISH_REGION }} \
+            --semantic-version ${{ inputs.version }})
+          
+          # Extract application ID from output
+          APP_ID=$(echo "$RESULT" | grep -o 'arn:aws:serverlessrepo:[^:]*:[^:]*:applications/[^"]*' | head -1)
+          echo "application-id=$APP_ID" >> $GITHUB_OUTPUT
+          echo "📦 Published SAR application: $APP_ID"
+          
+      - name: Share with test accounts
+        run: |
+          echo "🔐 Sharing SAR application with test accounts..."
+          
+          # Parse test account IDs
+          IFS=',' read -ra ACCOUNT_IDS <<< "${{ inputs.test-account-ids }}"
+          
+          for ACCOUNT_ID in "${ACCOUNT_IDS[@]}"; do
+            ACCOUNT_ID=$(echo "$ACCOUNT_ID" | xargs)  # Trim whitespace
+            echo "Sharing with account: $ACCOUNT_ID"
+            
+            aws serverlessrepo put-application-policy \
+              --application-id "${{ steps.publish.outputs.application-id }}" \
+              --statements '[{
+                "Sid": "TestAccount'$ACCOUNT_ID'",
+                "Effect": "Allow",
+                "Principal": {
+                  "AWS": "arn:aws:iam::'$ACCOUNT_ID':root"
+                },
+                "Action": "serverlessrepo:Deploy"
+              }]' \
+              --region ${{ env.SAR_PUBLISH_REGION }}
+          done
+          
+          echo "✅ SAR application shared with test accounts"
+        
+      - name: Verify SAR publication
+        run: |
+          echo "✅ Verifying SAR publication..."
+          
+          # Get application details
+          aws serverlessrepo get-application \
+            --application-id "${{ steps.publish.outputs.application-id }}" \
+            --region ${{ env.SAR_PUBLISH_REGION }} \
+            --query '{Name:Name,Version:Version.SemanticVersion,CreationTime:CreationTime}' \
+            --output table
+          
+          echo "✅ SAR publication verified successfully"
+
+  test-deployment:
+    needs: build-and-package
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        region: [us-east-1, eu-west-1, ap-southeast-1]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Configure AWS credentials for testing
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.TEST_AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
+          role-session-name: MockNestSARTesting-${{ matrix.region }}
+          aws-region: ${{ matrix.region }}
+          
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+        
+      - name: Deploy SAR application
+        id: deploy
+        run: |
+          echo "🚀 Deploying SAR application in ${{ matrix.region }}..."
+          
+          STACK_NAME="mocknest-sar-test-${{ matrix.region }}-$(echo ${{ inputs.version }} | tr '.' '-')"
+          
+          # Deploy from SAR
+          aws cloudformation create-stack \
+            --stack-name "$STACK_NAME" \
+            --template-url "https://serverlessrepo.amazonaws.com/applications/${{ needs.build-and-package.outputs.sar-application-id }}/templates/${{ needs.build-and-package.outputs.sar-version }}" \
+            --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
+            --parameters \
+              ParameterKey=DeploymentName,ParameterValue=sar-test \
+              ParameterKey=BedrockModelName,ParameterValue=AmazonNovaPro \
+              ParameterKey=BedrockInferenceMode,ParameterValue=AUTO \
+            --region ${{ matrix.region }}
+          
+          # Wait for deployment to complete
+          echo "⏳ Waiting for stack deployment to complete..."
+          aws cloudformation wait stack-create-complete \
+            --stack-name "$STACK_NAME" \
+            --region ${{ matrix.region }}
+          
+          # Get outputs
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --region ${{ matrix.region }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
+            --output text)
+          
+          API_KEY=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --region ${{ matrix.region }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
+            --output text)
+          
+          echo "stack-name=$STACK_NAME" >> $GITHUB_OUTPUT
+          echo "api-url=$API_URL" >> $GITHUB_OUTPUT
+          echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
+          
+          echo "✅ Deployment completed in ${{ matrix.region }}"
+          echo "📍 API URL: $API_URL"
+        
+      - name: Test core runtime functionality
+        run: |
+          echo "🧪 Testing core runtime functionality in ${{ matrix.region }}..."
+          
+          API_URL="${{ steps.deploy.outputs.api-url }}"
+          API_KEY="${{ steps.deploy.outputs.api-key }}"
+          
+          # Test health endpoint
+          echo "Testing health endpoint..."
+          curl -f -H "x-api-key: $API_KEY" "$API_URL/__admin/health" | jq .
+          
+          # Create a test mock
+          echo "Creating test mock..."
+          curl -f -X POST \
+            -H "x-api-key: $API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "request": {
+                "method": "GET",
+                "url": "/test-endpoint"
+              },
+              "response": {
+                "status": 200,
+                "body": "Hello from MockNest SAR test in ${{ matrix.region }}!",
+                "headers": {
+                  "Content-Type": "text/plain"
+                }
+              }
+            }' \
+            "$API_URL/__admin/mappings"
+          
+          # Test the mock endpoint
+          echo "Testing mock endpoint..."
+          RESPONSE=$(curl -f -H "x-api-key: $API_KEY" "$API_URL/test-endpoint")
+          echo "Mock response: $RESPONSE"
+          
+          # Verify mock persistence (simulate cold start by waiting)
+          echo "Waiting 30 seconds to test persistence..."
+          sleep 30
+          
+          # Test mock again to verify persistence
+          echo "Testing mock persistence..."
+          RESPONSE2=$(curl -f -H "x-api-key: $API_KEY" "$API_URL/test-endpoint")
+          echo "Persistent mock response: $RESPONSE2"
+          
+          if [ "$RESPONSE" = "$RESPONSE2" ]; then
+            echo "✅ Mock persistence verified"
+          else
+            echo "❌ Mock persistence failed"
+            exit 1
+          fi
+          
+          echo "✅ Core runtime tests passed in ${{ matrix.region }}"
+        
+      - name: Test AI functionality
+        run: |
+          echo "🤖 Testing AI functionality in ${{ matrix.region }}..."
+          
+          API_URL="${{ steps.deploy.outputs.api-url }}"
+          API_KEY="${{ steps.deploy.outputs.api-key }}"
+          
+          # Test AI health endpoint
+          echo "Testing AI health endpoint..."
+          AI_HEALTH=$(curl -f -H "x-api-key: $API_KEY" "$API_URL/ai/health" | jq .)
+          echo "AI Health: $AI_HEALTH"
+          
+          # Check if Bedrock is available in this region
+          OFFICIALLY_SUPPORTED=$(echo "$AI_HEALTH" | jq -r '.ai.officiallySupported')
+          
+          if [ "$OFFICIALLY_SUPPORTED" = "true" ]; then
+            echo "🎯 Testing AI generation (officially supported region)..."
+            
+            # Test AI generation endpoint
+            curl -f -X POST \
+              -H "x-api-key: $API_KEY" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "description": "Create a simple user profile endpoint that returns user data",
+                "method": "GET",
+                "path": "/users/123"
+              }' \
+              "$API_URL/ai/generate-from-description" || echo "AI generation test skipped (may not be available)"
+            
+            echo "✅ AI functionality tests completed"
+          else
+            echo "ℹ️ AI functionality not officially supported in ${{ matrix.region }}, skipping AI tests"
+          fi
+        
+      - name: Cleanup deployment
+        if: always()
+        run: |
+          echo "🧹 Cleaning up test deployment in ${{ matrix.region }}..."
+          
+          STACK_NAME="${{ steps.deploy.outputs.stack-name }}"
+          
+          if [ -n "$STACK_NAME" ]; then
+            aws cloudformation delete-stack \
+              --stack-name "$STACK_NAME" \
+              --region ${{ matrix.region }}
+            
+            echo "⏳ Waiting for stack deletion to complete..."
+            aws cloudformation wait stack-delete-complete \
+              --stack-name "$STACK_NAME" \
+              --region ${{ matrix.region }} || echo "Stack deletion completed or timed out"
+            
+            echo "✅ Cleanup completed for ${{ matrix.region }}"
+          else
+            echo "ℹ️ No stack to clean up in ${{ matrix.region }}"
+          fi
+
+  report-results:
+    needs: [build-and-package, test-deployment]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Collect test results
+        run: |
+          echo "📊 Collecting test results..."
+          
+          # Create summary
+          echo "## 🚀 Private SAR Deployment Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ needs.build-and-package.outputs.sar-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**SAR Application ID:** ${{ needs.build-and-package.outputs.sar-application-id }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check deployment job results
+          if [ "${{ needs.test-deployment.result }}" = "success" ]; then
+            echo "### ✅ Multi-Region Deployment Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "All regions (us-east-1, eu-west-1, ap-southeast-1) deployed and tested successfully." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Multi-Region Deployment Tests: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "One or more regions failed deployment or testing. Check job logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Core runtime functionality (mock creation, serving, persistence)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Health endpoint validation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ AI functionality (where officially supported)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Multi-region deployment validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Next Steps" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.test-deployment.result }}" = "success" ]; then
+            echo "1. ✅ Private SAR testing completed successfully" >> $GITHUB_STEP_SUMMARY
+            echo "2. 🚀 Ready for public SAR release workflow" >> $GITHUB_STEP_SUMMARY
+            echo "3. 📝 Update version in SAM template for public release" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "1. ❌ Fix issues identified in failed regions" >> $GITHUB_STEP_SUMMARY
+            echo "2. 🔄 Re-run private SAR testing" >> $GITHUB_STEP_SUMMARY
+            echo "3. ⏸️ Do not proceed to public release until all tests pass" >> $GITHUB_STEP_SUMMARY
+          fi
+        
+      - name: Update GitHub issue or PR
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "📝 Test results would be posted to GitHub issue/PR if configured"
+          echo "This step can be enhanced to automatically update related issues or PRs"

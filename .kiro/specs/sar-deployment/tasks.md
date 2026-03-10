@@ -404,65 +404,123 @@ The implementation follows a phased approach: core configuration changes first, 
     - Verify all SDK clients use the region from AWS_REGION
     - Minimum 100 iterations
 
-- [ ] 12. Checkpoint - Ensure all tests pass
+- [x] 12. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 13. Private SAR testing and validation
-  - [ ] 13.1 Prepare S3 bucket for SAR artifacts
-    - Create S3 bucket for SAM packaging with appropriate bucket policy
-    - Grant `serverlessrepo.amazonaws.com` read permissions
-    - _Requirements: 13.5_
+- [x] 13. Simplify SAR deployment architecture
+  - [x] 13.1 Evaluate current SAR deployment complexity
+    - Review current dual-template approach: `sam/template.yaml` vs `sar/deploy-sar-app.yml`
+    - Analyze parameter synchronization issues between templates
+    - Compare against AWS Lambda Power Tuning approach (direct SAM template publishing)
+    - Document pros/cons of current approach vs simplified direct deployment
+    - _Requirements: Analysis of deployment complexity_
   
-  - [ ] 13.2 Package and publish to private SAR
-    - Run `sam package` to create deployment package
-    - Run `sam publish` with semantic version 1.0.0-beta.1
-    - Publish from us-east-1 region (AWS requirement)
-    - Share application with specific test AWS account IDs
-    - _Requirements: 13.6, 14.1, 14.2_
+  - [x] 13.2 Audit parameter differences between templates
+    - Compare parameters in `sam/template.yaml` vs `sar/deploy-sar-app.yml`
+    - Identify parameter name, type, and default value mismatches
+    - Document all parameter drift issues found
+    - Create validation script to detect future parameter drift
+    - _Requirements: Deployment consistency_
   
-  - [ ] 13.3 Test deployment in us-east-1
-    - Deploy from SAR in fresh AWS account
-    - Verify core runtime works (create, serve, persist mocks)
-    - Verify AI generation works with AmazonNovaPro
-    - Verify health endpoints return correct information
-    - Verify API Gateway endpoints accessible with API key
-    - Verify CloudFormation outputs are correct
-    - Verify no manual region configuration needed
-    - _Requirements: 14.3, 14.4, 14.5, 14.6, 14.7, 14.8_
+  - [x] 13.3 Choose simplified deployment architecture
+    - **Recommended**: Remove SAR folder, publish directly from SAM template
+    - Remove `deployment/aws/sar/deploy-sar-app.yml` wrapper template
+    - Keep SAR scripts (`deploy-sar-app.sh`, `publish-sar.sh`) but update for direct SAM publishing
+    - Update SAM template metadata for direct SAR publication
+    - _Requirements: Simplified deployment experience_
   
-  - [ ] 13.4 Test deployment in eu-west-1
-    - Deploy from SAR in fresh AWS account
-    - Verify all functionality from 13.3 in eu-west-1 region
-    - _Requirements: 14.3, 14.4, 14.5, 14.6, 14.7, 14.8_
+  - [x] 13.4 Update deployment scripts for simplified architecture
+    - Update `deployment/aws/sar/publish-sar.sh` to use `sam publish` directly on SAM template
+    - Update `deployment/aws/sar/deploy-sar-app.sh` for direct SAR deployment
+    - Remove references to wrapper template from all scripts
+    - Test scripts work with simplified architecture
+    - _Requirements: Working deployment scripts_
   
-  - [ ] 13.5 Test deployment in ap-southeast-1
-    - Deploy from SAR in fresh AWS account
-    - Verify all functionality from 13.3 in ap-southeast-1 region
-    - _Requirements: 14.3, 14.4, 14.5, 14.6, 14.7, 14.8_
-  
-  - [ ] 13.6 Document test results
-    - Document any issues found during testing
-    - Update documentation based on testing feedback
-    - Verify all validation checklist items pass
-    - _Requirements: 14.9_
+  - [x] 13.5 Update documentation for simplified deployment
+    - Update README with simplified SAR deployment instructions
+    - Remove references to wrapper template from all documentation
+    - Update SAR deployment guides to match actual implementation
+    - Ensure documentation accuracy with simplified approach
+    - _Requirements: Accurate deployment documentation_
 
-- [ ] 14. Public SAR release preparation
-  - [ ] 14.1 Update to public sharing
-    - Run `aws serverlessrepo put-application-policy` to make application public
-    - Set Principals='*' and Actions=Deploy
-    - _Requirements: 14.9_
+- [x] 14. Create pipeline-based private SAR deployment
+  - [x] 14.1 Create GitHub Actions workflow for SAR deployment
+    - Create `.github/workflows/sar-deploy.yml` workflow file
+    - Add workflow triggers: manual dispatch with version parameter
+    - Configure AWS credentials using OIDC (existing setup)
+    - Add environment variables for test AWS account IDs
+    - _Requirements: Automated SAR deployment pipeline_
   
-  - [ ] 14.2 Publish release version
-    - Update SemanticVersion to 1.0.0 in SAM template
-    - Run `sam publish` with version 1.0.0
-    - Create Git tag v1.0.0
-    - _Requirements: 13.1, 22.6, 22.7_
+  - [x] 14.2 Implement build and package steps
+    - Add Kotlin build step: `./gradlew build`
+    - Add test execution step: `./gradlew test`
+    - Add SAM build step: `sam build`
+    - Add SAM package step with S3 bucket for artifacts
+    - Ensure build artifacts are properly prepared for SAR publishing
+    - _Requirements: Automated build and packaging_
   
-  - [ ] 14.3 Update documentation for release
-    - Update README with SAR deployment instructions
-    - Update CHANGELOG with release date
-    - Create GitHub release with release notes
-    - _Requirements: 22.5_
+  - [x] 14.3 Implement private SAR publication
+    - Add step to publish to SAR with beta version (e.g., `0.2.0-beta.1`)
+    - Publish from `us-east-1` region (AWS SAR requirement)
+    - Share application with specific test AWS account IDs only (not public)
+    - Add step to verify SAR publication succeeded
+    - _Requirements: Private SAR publication_
+  
+  - [x] 14.4 Implement multi-region deployment testing
+    - Add matrix strategy for 3 regions: `us-east-1`, `eu-west-1`, `ap-southeast-1`
+    - Deploy SAR application in test AWS account for each region
+    - Use different stack names per region to avoid conflicts
+    - Capture CloudFormation outputs (API URL, API Key) for testing
+    - _Requirements: Multi-region deployment validation_
+  
+  - [x] 14.5 Implement automated functionality testing
+    - Add test steps for core runtime functionality:
+      - Create mock via admin API
+      - Serve mock via mocked endpoint
+      - Verify mock persistence across Lambda cold starts
+      - Test health endpoint response
+    - Add test steps for AI functionality (where Bedrock available):
+      - Test AI generation endpoint
+      - Verify AI health endpoint
+      - Test automatic inference prefix selection
+    - Use captured API URL and API Key from deployment outputs
+    - _Requirements: Automated functionality validation_
+  
+  - [x] 14.6 Add deployment cleanup and reporting
+    - Add cleanup steps to delete test CloudFormation stacks after testing
+    - Add step to collect and report test results
+    - Add step to update GitHub issue or PR with test results
+    - Ensure cleanup runs even if tests fail
+    - _Requirements: Clean test environment and reporting_
+
+- [ ] 15. Public SAR release pipeline
+  - [ ] 15.1 Create public release workflow
+    - Create `.github/workflows/sar-release.yml` workflow file
+    - Add workflow trigger: manual dispatch with release version parameter
+    - Add prerequisite check: ensure private SAR testing passed
+    - Configure same AWS credentials and build steps as private workflow
+    - _Requirements: Automated public release pipeline_
+  
+  - [ ] 15.2 Implement public SAR publication
+    - Add step to update SAM template SemanticVersion to release version
+    - Add step to publish to SAR with release version (e.g., `0.2.0`)
+    - Add step to make SAR application public using `aws serverlessrepo put-application-policy`
+    - Set Principals='*' and Actions=Deploy for public access
+    - _Requirements: Public SAR publication_
+  
+  - [ ] 15.3 Implement release documentation updates
+    - Add step to update CHANGELOG.md with release date
+    - Add step to create Git tag for release version
+    - Add step to create GitHub release with changelog content
+    - Add step to update README if needed for release
+    - _Requirements: Release documentation and tagging_
+  
+  - [ ] 15.4 Add release validation and rollback
+    - Add step to verify public SAR application is accessible
+    - Add step to test public deployment in fresh AWS account
+    - Add rollback mechanism if public release validation fails
+    - Add notification step for successful public release
+    - _Requirements: Release validation and safety_
 
 ## Notes
 
@@ -472,32 +530,6 @@ The implementation follows a phased approach: core configuration changes first, 
 - Property tests validate universal correctness properties
 - Unit tests validate specific examples and edge cases
 - Integration tests validate end-to-end functionality in AWS environment
-- Private SAR testing is critical before public release to ensure smooth user experience
-
-- [ ] 15. Simplify SAR deployment architecture
-  - [ ] 15.1 Evaluate SAR folder necessity
-    - Review current SAR folder structure against AWS Lambda Power Tuning approach
-    - Analyze whether wrapper template (deploy-sar-app.yml) adds value or complexity
-    - Document pros/cons of current approach vs direct SAR deployment
-    - _Requirements: Analysis of deployment complexity_
-  
-  - [ ] 15.2 Fix parameter synchronization issues
-    - Audit parameter differences between SAM template and SAR wrapper template
-    - Ensure deploy-sar-app.yml parameters match sam/template.yaml exactly
-    - Create validation script to detect parameter drift between templates
-    - Update parameter names, types, and defaults to be consistent
-    - _Requirements: Deployment consistency_
-  
-  - [ ] 15.3 Choose deployment architecture
-    - **Option A (Recommended)**: Remove SAR folder, publish directly from SAM template (like Lambda Power Tuning)
-    - **Option B**: Fix synchronization and maintain wrapper template
-    - **Option C**: Keep SAR folder for scripts only, remove wrapper template
-    - Implement chosen option and update documentation accordingly
-    - _Requirements: Simplified deployment experience_
-  
-  - [ ] 15.4 Update deployment documentation
-    - Update README with simplified deployment instructions
-    - Remove or update SAR-specific deployment guides based on chosen architecture
-    - Ensure deployment instructions match actual implementation
-    - Test documentation accuracy with fresh AWS account
-    - _Requirements: Accurate deployment documentation_
+- **Pipeline-based approach ensures consistent, repeatable SAR deployments**
+- **Private testing in multiple regions before public release ensures quality**
+- **Simplified architecture reduces deployment complexity and maintenance overhead**

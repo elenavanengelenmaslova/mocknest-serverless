@@ -13,9 +13,9 @@ Metadata:
     Author: Vintik
     SemanticVersion: ${version}
     LicenseUrl: ../../../LICENSE
-    ReadmeUrl: ../../../README.md
-    HomePageUrl: https://github.com/vintikzzz/mocknest-serverless
-    SourceCodeUrl: https://github.com/vintikzzz/mocknest-serverless
+    ReadmeUrl: ../../../README-SAR.md
+    HomePageUrl: https://github.com/elenavanengelenmaslova/mocknest-serverless
+    SourceCodeUrl: https://github.com/elenavanengelenmaslova/mocknest-serverless
     Labels:
       - mock
       - testing
