@@ -91,10 +91,10 @@ sam list stack-outputs --stack-name mocknest-serverless
 
 MockNest uses GitHub Actions workflows for SAR publishing with comprehensive testing:
 
-#### Private SAR Testing Pipeline
+#### SAR Beta Test Pipeline (Private)
 **Purpose**: Test SAR deployment across multiple regions before public release
 
-**Workflow**: `.github/workflows/sar-deploy.yml`
+**Workflow**: `.github/workflows/sar-beta-test.yml`
 
 **Features**:
 - Multi-region testing (us-east-1, eu-west-1, ap-southeast-1)
@@ -103,16 +103,16 @@ MockNest uses GitHub Actions workflows for SAR publishing with comprehensive tes
 - Automatic cleanup after testing
 
 **To Run**:
-1. Go to **Actions** → **Private SAR Deployment and Testing**
+1. Go to **Actions** → **SAR Beta Test (Private)**
 2. **Run workflow** with:
    - Version: `0.2.0-beta.1` (beta version)
    - Test Account IDs: comma-separated AWS account IDs
    - Role Name: `GitHubOIDCAdmin` (your OIDC role)
 
-#### Public SAR Publishing Pipeline
-**Purpose**: Publish to public SAR after private testing passes
+#### SAR Release Pipeline (Public)
+**Purpose**: Publish to public SAR after beta testing passes
 
-**Workflow**: `.github/workflows/publish-sar.yml`
+**Workflow**: `.github/workflows/sar-release.yml`
 
 **Features**:
 - Direct public SAR publishing
@@ -120,7 +120,7 @@ MockNest uses GitHub Actions workflows for SAR publishing with comprehensive tes
 - GitHub release integration
 
 **To Run**:
-1. Go to **Actions** → **Publish to SAR**
+1. Go to **Actions** → **SAR Release (Public)**
 2. **Run workflow** with:
    - Version: `0.2.0` (public version)
    - Region: `us-east-1` (recommended for public SAR)
@@ -131,9 +131,9 @@ MockNest uses GitHub Actions workflows for SAR publishing with comprehensive tes
 - AWS account with Serverless Application Repository access
 
 #### SAR Publishing Process
-1. **Private Testing**: Run private SAR pipeline to validate across regions
+1. **Beta Testing**: Run SAR Beta Test pipeline to validate across regions
 2. **Review Results**: Ensure all tests pass in all regions
-3. **Public Release**: Run public SAR pipeline to make application available
+3. **Public Release**: Run SAR Release pipeline to make application available
 4. **Verification**: Confirm application appears in public SAR catalog
 
 ## Custom Deployments (Optional)
@@ -338,13 +338,13 @@ aws cloudformation describe-stack-events \
 
 ### Pipeline Troubleshooting
 
-**Private SAR Testing Issues**:
+**SAR Beta Test Issues**:
 - Check GitHub OIDC role has SAR permissions
 - Verify `TEST_AWS_ACCOUNT_ID` secret is set
 - Ensure Bedrock is available in test regions
 
-**Public SAR Publishing Issues**:
-- Verify private testing passed first
+**SAR Release Issues**:
+- Verify beta testing passed first
 - Check SAR application appears in us-east-1
 - Confirm application policy allows public access
 

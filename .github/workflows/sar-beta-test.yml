@@ -1,4 +1,4 @@
-name: Private SAR Deployment and Testing
+name: SAR Beta Test (Private)
 
 on:
   workflow_dispatch:
@@ -58,8 +58,21 @@ jobs:
       - name: Build application
         run: |
           echo "🔨 Building MockNest Serverless..."
-          ./gradlew clean build
+          ./gradlew clean :software:infra:aws:runtime:shadowJar :software:infra:aws:generation:shadowJar --no-build-cache
           echo "✅ Build completed successfully"
+          
+      - name: Verify JAR artifacts
+        run: |
+          if [ ! -f "build/dist/mocknest-runtime.jar" ]; then
+            echo "ERROR: mocknest-runtime.jar not found"
+            exit 1
+          fi
+          if [ ! -f "build/dist/mocknest-generation.jar" ]; then
+            echo "ERROR: mocknest-generation.jar not found"
+            exit 1
+          fi
+          echo "✓ Runtime JAR: $(du -h build/dist/mocknest-runtime.jar | cut -f1)"
+          echo "✓ Generation JAR: $(du -h build/dist/mocknest-generation.jar | cut -f1)"
         
       - name: Run tests
         run: |
@@ -67,7 +80,7 @@ jobs:
           ./gradlew test
           echo "✅ All tests passed"
         
-      - name: SAM package
+      - name: Package for SAR
         run: |
           echo "📦 Packaging SAM application for SAR..."
           cd deployment/aws/sam
@@ -76,8 +89,9 @@ jobs:
           SAR_BUCKET="mocknest-sar-artifacts-${{ secrets.AWS_ACCOUNT_ID }}"
           aws s3 mb s3://$SAR_BUCKET --region ${{ env.SAR_PUBLISH_REGION }} || echo "Bucket already exists"
           
-          # Package the application (skip sam build since JARs are already built by Gradle)
+          # Package the application (JARs are pre-built by Gradle, no sam build needed)
           sam package \
+            --template-file template.yaml \
             --s3-bucket $SAR_BUCKET \
             --s3-prefix "private-sar/${{ inputs.version }}" \
             --output-template-file packaged-template.yaml \
