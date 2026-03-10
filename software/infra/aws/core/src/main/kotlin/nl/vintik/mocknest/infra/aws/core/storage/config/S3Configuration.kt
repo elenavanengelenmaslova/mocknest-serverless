@@ -12,7 +12,7 @@ class S3Configuration {
 
     @Bean
     fun s3Client(
-        @Value("\${aws.region}") region: String
+        @Value("\${AWS_REGION:eu-west-1}") region: String
     ): S3Client = S3Client { 
         this.region = region 
     }

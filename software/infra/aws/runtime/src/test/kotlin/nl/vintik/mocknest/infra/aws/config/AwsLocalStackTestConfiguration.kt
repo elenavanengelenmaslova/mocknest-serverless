@@ -38,7 +38,7 @@ class AwsLocalStackTestConfiguration {
             registry.add("aws.endpointUrl") { s3Endpoint }
             registry.add("aws.accessKeyId") { container.accessKey }
             registry.add("aws.secretAccessKey") { container.secretKey }
-            registry.add("aws.region") { TEST_REGION }
+            registry.add("AWS_REGION") { TEST_REGION }
             registry.add("mocknest.s3.bucket-name") { TEST_BUCKET_NAME }
             registry.add("storage.bucket.name") { TEST_BUCKET_NAME }
         }

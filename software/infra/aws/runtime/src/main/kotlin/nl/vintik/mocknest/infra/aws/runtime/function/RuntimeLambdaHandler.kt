@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.runtime.usecases.ADMIN_PREFIX
+import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.application.runtime.usecases.HandleAdminRequest
 import nl.vintik.mocknest.application.runtime.usecases.HandleClientRequest
 import nl.vintik.mocknest.application.runtime.usecases.MOCKNEST_PREFIX
@@ -20,7 +21,8 @@ private val logger = KotlinLogging.logger {}
 @Configuration
 class RuntimeLambdaHandler(
     private val handleClientRequest: HandleClientRequest,
-    private val handleAdminRequest: HandleAdminRequest
+    private val handleAdminRequest: HandleAdminRequest,
+    private val getRuntimeHealth: GetRuntimeHealth
 ) {
     @Bean
     fun runtimeRouter(): Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -28,6 +30,10 @@ class RuntimeLambdaHandler(
             with(event) {
                 logger.info { "Runtime Lambda request: $httpMethod $path $headers" }
                 when {
+                    path == "${ADMIN_PREFIX}health" -> {
+                        logger.debug { "Processing health check request" }
+                        getRuntimeHealth()
+                    }
                     path.startsWith(ADMIN_PREFIX) -> {
                         logger.debug { "Processing admin request $path" }
                         val adminPath = path.removePrefix(ADMIN_PREFIX)

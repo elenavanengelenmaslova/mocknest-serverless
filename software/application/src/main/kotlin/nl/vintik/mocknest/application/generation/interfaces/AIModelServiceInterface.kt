@@ -29,4 +29,14 @@ interface AIModelServiceInterface {
         sourceType: SourceType,
         sourceReference: String
     ): List<GeneratedMock>
+
+    /**
+     * Get the configured model name.
+     */
+    fun getModelName(): String
+
+    /**
+     * Get the configured inference prefix (if any).
+     */
+    fun getConfiguredPrefix(): String?
 }

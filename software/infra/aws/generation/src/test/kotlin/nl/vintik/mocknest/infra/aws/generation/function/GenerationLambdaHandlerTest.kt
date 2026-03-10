@@ -5,6 +5,7 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import nl.vintik.mocknest.application.generation.usecases.GetAIHealth
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
 import org.junit.jupiter.api.AfterEach
@@ -19,8 +20,9 @@ import org.springframework.util.LinkedMultiValueMap
 class GenerationLambdaHandlerTest {
 
     private val mockHandleAIGenerationRequest: HandleAIGenerationRequest = mockk(relaxed = true)
+    private val mockGetAIHealth: GetAIHealth = mockk(relaxed = true)
     
-    private val handler = GenerationLambdaHandler(mockHandleAIGenerationRequest)
+    private val handler = GenerationLambdaHandler(mockHandleAIGenerationRequest, mockGetAIHealth)
     private val generationRouter = handler.generationRouter()
 
     @AfterEach
@@ -30,6 +32,38 @@ class GenerationLambdaHandlerTest {
 
     @Nested
     inner class AIPathRouting {
+
+        @Test
+        fun `Given AI health request When routing Then should call GetAIHealth`() {
+            // Given
+            val event = APIGatewayProxyRequestEvent()
+                .withPath("/ai/generation/health")
+                .withHttpMethod("GET")
+                .withHeaders(mapOf("Accept" to "application/json"))
+                .withQueryStringParameters(emptyMap())
+            
+            val expectedResponse = HttpResponse(
+                HttpStatus.OK,
+                LinkedMultiValueMap<String, String>().apply {
+                    add("Content-Type", "application/json")
+                },
+                """{"status": "healthy", "version": "0.2.0"}"""
+            )
+            
+            every { mockGetAIHealth.invoke() } returns expectedResponse
+
+            // When
+            val response = generationRouter.apply(event)
+
+            // Then
+            verify(exactly = 1) { mockGetAIHealth.invoke() }
+            verify(exactly = 0) { mockHandleAIGenerationRequest.invoke(any(), any()) }
+            
+            assertEquals(200, response.statusCode)
+            assertNotNull(response.body)
+            assert(response.body.contains("\"status\": \"healthy\""))
+            assert(response.body.contains("\"version\":"))
+        }
 
         @Test
         fun `Given AI generation request When routing Then should call HandleAIGenerationRequest with correct path`() {

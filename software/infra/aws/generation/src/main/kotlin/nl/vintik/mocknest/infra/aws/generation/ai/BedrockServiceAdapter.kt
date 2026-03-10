@@ -164,4 +164,12 @@ class BedrockServiceAdapter(
             generatedAt = Instant.now()
         )
     }
+
+    override fun getModelName(): String {
+        return modelConfiguration.getModelName()
+    }
+
+    override fun getConfiguredPrefix(): String? {
+        return modelConfiguration.getConfiguredPrefix()
+    }
 }

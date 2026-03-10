@@ -3,6 +3,13 @@ plugins {
     kotlin("plugin.spring")
 }
 
+// Generate version.properties from Gradle version
+tasks.processResources {
+    filesMatching("**/version.properties") {
+        expand("version" to project.version)
+    }
+}
+
 dependencies {
     // Domain dependency
     implementation(project(":software:domain"))

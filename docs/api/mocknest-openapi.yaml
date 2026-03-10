@@ -1,0 +1,1543 @@
+openapi: 3.1.1
+info:
+  title: MockNest Serverless API
+  description: |
+    MockNest Serverless provides a comprehensive WireMock runtime with AI-assisted mock generation capabilities.
+    
+    **Current Serverless Architecture (v0.2.0):**
+    - **Mock mappings are persistent**: Stored in S3 and survive Lambda cold starts
+    - **Response files are persistent**: Stored in S3 and survive cold starts
+    - **Request data is transient**: Only available during current Lambda instance lifecycle (lost after ~15 minutes of inactivity)
+    
+    **Future Enhancements (v2.0+):**
+    - **Persistent request logging**: Traffic data will be stored in S3 for AI-powered analysis
+    - **Enhanced AI insights**: Traffic analysis for mock coverage gaps and optimization recommendations
+    - **Callback support**: Stateful behavior through callback mechanisms rather than scenarios
+    
+    **Getting Started:**
+    - Import our Postman collections from the GitHub repository for instant access to all endpoints with working examples
+    - Use this comprehensive OpenAPI specification for integration and testing
+    
+    **Endpoint Status Legend:**
+    - **Persistent**: Data stored in S3, survives Lambda cold starts
+    - **Transient**: Data only available during current Lambda instance lifecycle
+    - **Experimental**: Available but not fully tested in serverless environment
+    
+    All endpoints require API key authentication via the `x-api-key` header.
+  version: 0.2.0
+  contact:
+    name: MockNest Serverless
+    url: https://github.com/elenavanengelenmaslova/mocknest-serverless
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://your-api-id.execute-api.region.amazonaws.com/prod
+    description: MockNest Serverless API Gateway endpoint
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  # AI-Powered Mock Generation
+  /ai/generation/from-spec:
+    post:
+      summary: Generate Mocks from API Specification
+      description: Generate WireMock mappings from OpenAPI or Swagger specifications with optional instruction text for customization
+      tags:
+        - AI Generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateFromSpecRequest'
+            example:
+              namespace:
+                apiName: petstore
+                client: null
+              specification: null
+              specificationUrl: "https://petstore3.swagger.io/api/v3/openapi.json"
+              format: OPENAPI_3
+              description: "Generate mocks for 3 pets from the Petstore OpenAPI specification, pets endpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets across endpoints, 1 pet is a dog with this image: https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg, this dog is available and a new pet and should have a tag new, we need to have api call to get all new pets and its that dog, the other two pets are available also but are not new"
+              options:
+                enableValidation: true
+                includeExamples: true
+                generateErrorCases: true
+      responses:
+        '200':
+          description: Mocks generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratedMocksResponse'
+              example:
+                mappings:
+                  - priority: 1
+                    request:
+                      method: GET
+                      urlPath: "/petstore/pet/findByStatus"
+                      queryParameters:
+                        status:
+                          equalTo: "available"
+                    response:
+                      status: 200
+                      headers:
+                        Content-Type: "application/json"
+                      jsonBody:
+                        - id: 1
+                          name: "Buddy"
+                          status: "available"
+                          photoUrls:
+                            - "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+                          tags:
+                            - name: "new"
+                        - id: 2
+                          name: "Max"
+                          status: "available"
+                          photoUrls:
+                            - "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+                        - id: 3
+                          name: "Luna"
+                          status: "available"
+                          photoUrls:
+                            - "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+                  - priority: 1
+                    request:
+                      method: GET
+                      urlPath: "/petstore/pet/findByTags"
+                      queryParameters:
+                        tags:
+                          equalTo: "new"
+                    response:
+                      status: 200
+                      headers:
+                        Content-Type: "application/json"
+                      jsonBody:
+                        - id: 1
+                          name: "Buddy"
+                          status: "available"
+                          photoUrls:
+                            - "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+                          tags:
+                            - name: "new"
+                  - priority: 1
+                    request:
+                      method: GET
+                      urlPath: "/petstore/pet/1"
+                    response:
+                      status: 200
+                      headers:
+                        Content-Type: "application/json"
+                      jsonBody:
+                        id: 1
+                        name: "Buddy"
+                        status: "available"
+                        photoUrls:
+                          - "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+                        tags:
+                          - name: "new"
+                  - priority: 1
+                    request:
+                      method: GET
+                      urlPath: "/petstore/pet/2"
+                    response:
+                      status: 200
+                      headers:
+                        Content-Type: "application/json"
+                      jsonBody:
+                        id: 2
+                        name: "Max"
+                        status: "available"
+                        photoUrls:
+                          - "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+                  - priority: 1
+                    request:
+                      method: GET
+                      urlPath: "/petstore/pet/3"
+                    response:
+                      status: 200
+                      headers:
+                        Content-Type: "application/json"
+                      jsonBody:
+                        id: 3
+                        name: "Luna"
+                        status: "available"
+                        photoUrls:
+                          - "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+        '400':
+          description: Invalid specification or parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: AI service unavailable
+
+  /ai/health:
+    get:
+      summary: AI Features Health Check
+      description: Check the health status of AI-powered mock generation features
+      tags:
+        - AI Generation
+      responses:
+        '200':
+          description: AI features are healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIHealthResponse'
+              example:
+                status: healthy
+                timestamp: "2024-01-15T10:30:00Z"
+                region: us-east-1
+                ai:
+                  modelName: AmazonNovaPro
+                  inferencePrefix: global
+                  inferenceMode: AUTO
+                  lastInvocationSuccess: true
+                  officiallySupported: true
+        '503':
+          description: AI features are unhealthy
+
+  # WireMock Admin API - Mock Management
+  /__admin/health:
+    get:
+      summary: Runtime Health Check
+      description: Check the health status of the MockNest runtime and storage connectivity
+      tags:
+        - Mock Management
+      responses:
+        '200':
+          description: Runtime is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeHealthResponse'
+              example:
+                status: healthy
+                timestamp: "2024-01-15T10:30:00Z"
+                region: us-east-1
+                storage:
+                  bucket: mocknest-storage-bucket-abc123
+                  connectivity: ok
+        '503':
+          description: Runtime is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeHealthResponse'
+  /__admin/mappings:
+    get:
+      summary: List All Mappings
+      description: Retrieve all configured mock mappings from S3 storage (persistent)
+      tags:
+        - Mock Management
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of mappings to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: offset
+          in: query
+          description: Number of mappings to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of mappings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MappingsResponse'
+
+    post:
+      summary: Create New Mapping
+      description: Create a new mock mapping and persist it to S3 storage (persistent)
+      tags:
+        - Mock Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StubMapping'
+            example:
+              request:
+                method: GET
+                url: /api/users/123
+              response:
+                status: 200
+                headers:
+                  Content-Type: application/json
+                jsonBody:
+                  id: 123
+                  name: "John Doe"
+                  email: "john@example.com"
+      responses:
+        '201':
+          description: Mapping created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StubMapping'
+        '400':
+          description: Invalid mapping definition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /__admin/mappings/{mappingId}:
+    get:
+      summary: Get Mapping by ID
+      description: Retrieve a specific mapping by its ID
+      tags:
+        - Mock Management
+      parameters:
+        - name: mappingId
+          in: path
+          required: true
+          description: Unique identifier of the mapping
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Mapping details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StubMapping'
+        '404':
+          description: Mapping not found
+
+    put:
+      summary: Update Mapping
+      description: Update an existing mapping
+      tags:
+        - Mock Management
+      parameters:
+        - name: mappingId
+          in: path
+          required: true
+          description: Unique identifier of the mapping
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StubMapping'
+      responses:
+        '200':
+          description: Mapping updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StubMapping'
+        '404':
+          description: Mapping not found
+
+    delete:
+      summary: Delete Mapping
+      description: Delete a specific mapping
+      tags:
+        - Mock Management
+      parameters:
+        - name: mappingId
+          in: path
+          required: true
+          description: Unique identifier of the mapping
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Mapping deleted successfully
+        '404':
+          description: Mapping not found
+
+  /__admin/mappings/save:
+    post:
+      summary: Persist Stub Mappings
+      description: Save all persistent stub mappings to S3 storage (persistent)
+      tags:
+        - Mock Management
+      responses:
+        '200':
+          description: Mappings saved successfully
+
+  /__admin/mappings/find-by-metadata:
+    post:
+      summary: Find Mappings by Metadata
+      description: Find stub mappings by matching on their metadata (experimental)
+      tags:
+        - Mock Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentPattern'
+            example:
+              matchesJsonPath:
+                expression: "$.outer"
+                equalToJson: '{ "inner": 42 }'
+      responses:
+        '200':
+          description: Matching stub mappings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MappingsResponse'
+
+  /__admin/mappings/remove-by-metadata:
+    post:
+      summary: Remove Mappings by Metadata
+      description: Delete stub mappings matching metadata criteria (experimental)
+      tags:
+        - Mock Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentPattern'
+      responses:
+        '200':
+          description: Mappings removed successfully
+
+  /__admin/mappings/unmatched:
+    get:
+      summary: Find Unmatched Mappings
+      description: |
+        Find stub mappings that haven't matched any requests in the journal (transient).
+        **Current Limitation**: Depends on request journal data which is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        **Future Enhancement**: Will be enhanced with persistent request tracking for comprehensive coverage analysis.
+      tags:
+        - Mock Management
+      responses:
+        '200':
+          description: Unmatched stub mappings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MappingsResponse'
+    delete:
+      summary: Remove Unmatched Mappings
+      description: |
+        Remove stub mappings that haven't matched any requests (transient).
+        **Current Limitation**: Depends on request journal data which is only available during the current Lambda instance lifecycle.
+      tags:
+        - Mock Management
+      responses:
+        '200':
+          description: Unmatched mappings removed successfully
+
+  /__admin/reset:
+    post:
+      summary: Reset All Mappings
+      description: Delete all mappings and reset the mock server state (persistent mappings removed from S3)
+      tags:
+        - Mock Management
+      responses:
+        '200':
+          description: All mappings reset successfully
+
+  # Request Verification (Transient - Current Lambda Instance Only)
+  /__admin/requests:
+    get:
+      summary: List Received Requests
+      description: |
+        Retrieve all requests received by the mock server (transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts (typically after 15+ minutes of inactivity).
+        **Future Enhancement**: Request data will be stored in S3 for AI-powered traffic analysis and persistent mock optimization.
+      tags:
+        - Request Verification
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of requests to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: since
+          in: query
+          description: Only return requests received after this timestamp
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: List of received requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestsResponse'
+    delete:
+      summary: Clear All Requests
+      description: |
+        Clear all recorded requests from the journal (transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+      tags:
+        - Request Verification
+      responses:
+        '200':
+          description: All requests cleared successfully
+
+  /__admin/requests/find:
+    post:
+      summary: Find Specific Requests
+      description: |
+        Find requests matching specific criteria (transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        **Future Enhancement**: Will enable persistent traffic analysis for AI-powered mock insights.
+      tags:
+        - Request Verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestPattern'
+            example:
+              method: POST
+              url: /api/users
+              headers:
+                Content-Type:
+                  equalTo: application/json
+      responses:
+        '200':
+          description: Matching requests found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestsResponse'
+
+  /__admin/requests/reset:
+    post:
+      summary: Clear Request Log
+      description: |
+        Clear all recorded requests (transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle.
+      tags:
+        - Request Verification
+      responses:
+        '200':
+          description: Request log cleared successfully
+
+  /__admin/requests/count:
+    post:
+      summary: Count Requests by Criteria
+      description: |
+        Count requests logged in the journal matching the specified criteria (transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        **Future Enhancement**: Will enable persistent request analytics for coverage analysis.
+      tags:
+        - Request Verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestPattern'
+      responses:
+        '200':
+          description: Number of matching requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 4
+
+  /__admin/requests/remove:
+    post:
+      summary: Remove Requests by Criteria
+      description: |
+        Remove requests logged in the journal matching the specified criteria (transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+      tags:
+        - Request Verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestPattern'
+      responses:
+        '200':
+          description: Removed request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestsResponse'
+
+  /__admin/requests/remove-by-metadata:
+    post:
+      summary: Remove Requests by Metadata
+      description: |
+        Delete requests matching metadata criteria (transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+      tags:
+        - Request Verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentPattern'
+      responses:
+        '200':
+          description: Removed request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestsResponse'
+
+  /__admin/requests/unmatched:
+    get:
+      summary: Find Unmatched Requests
+      description: |
+        Get details of logged requests that weren't matched by any stub mapping (transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+      tags:
+        - Request Verification
+      responses:
+        '200':
+          description: Unmatched request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestsResponse'
+
+  # Near Miss Analysis (Transient - Current Lambda Instance Only)
+  /__admin/requests/unmatched/near-misses:
+    get:
+      summary: Near Misses for Unmatched Requests
+      description: |
+        Retrieve near-misses for all unmatched requests (experimental, transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        **Future Enhancement**: Will be enhanced with AI-powered analysis for better mock suggestions.
+      tags:
+        - Near Miss Analysis
+      responses:
+        '200':
+          description: Near misses for unmatched requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NearMissesResponse'
+
+  /__admin/near-misses/request:
+    post:
+      summary: Find Near Misses for Request
+      description: |
+        Find at most 3 near misses for closest stub mappings to the specified request (experimental, transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+      tags:
+        - Near Miss Analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoggedRequest'
+      responses:
+        '200':
+          description: Near misses for the request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NearMissesResponse'
+
+  /__admin/near-misses/request-pattern:
+    post:
+      summary: Find Near Misses for Request Pattern
+      description: |
+        Find at most 3 near misses for closest logged requests to the specified request pattern (experimental, transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+      tags:
+        - Near Miss Analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestPattern'
+      responses:
+        '200':
+          description: Near misses for the request pattern
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NearMissesResponse'
+
+
+
+
+
+  # Files (Persistent)
+  /__admin/files:
+    get:
+      summary: Get All File Names
+      description: Get all file names stored in S3 (persistent)
+      tags:
+        - Files
+      responses:
+        '200':
+          description: List of all file names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: ["file1.json", "file2.json", "file3.txt"]
+
+  /__admin/files/{fileId}:
+    parameters:
+      - name: fileId
+        in: path
+        required: true
+        description: The name of the file
+        schema:
+          type: string
+        example: "response-body.json"
+    get:
+      summary: Get File by ID
+      description: Get file contents from S3 storage (persistent)
+      tags:
+        - Files
+      responses:
+        '200':
+          description: The contents of the file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found
+    put:
+      summary: Update or Create File
+      description: Update or create a file in S3 storage (persistent)
+      tags:
+        - Files
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: File updated successfully
+    delete:
+      summary: Delete File
+      description: Delete a file from S3 storage if it exists (persistent)
+      tags:
+        - Files
+      responses:
+        '200':
+          description: File deleted successfully
+
+  /__admin/mappings/import:
+    post:
+      summary: Import Stub Mappings
+      description: Import given stub mappings to S3 storage (experimental)
+      tags:
+        - Mock Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MappingsResponse'
+      responses:
+        '200':
+          description: Mappings imported successfully
+
+  # Individual Request Operations (Transient)
+  /__admin/requests/{requestId}:
+    parameters:
+      - name: requestId
+        in: path
+        required: true
+        description: Unique identifier of the logged request
+        schema:
+          type: string
+          format: uuid
+        example: "12fb14bb-600e-4bfa-bd8d-be7f12562c99"
+    get:
+      summary: Get Request by ID
+      description: |
+        Retrieve a specific logged request by its ID (transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+      tags:
+        - Request Verification
+      responses:
+        '200':
+          description: Request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggedRequest'
+        '404':
+          description: Request not found
+    delete:
+      summary: Delete Request by ID
+      description: |
+        Delete a specific logged request by its ID (transient).
+        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+      tags:
+        - Request Verification
+      responses:
+        '200':
+          description: Request deleted successfully
+        '404':
+          description: Request not found
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for authentication. Obtain from CloudFormation stack outputs.
+
+  schemas:
+    # Health Check Schemas
+    RuntimeHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall health status
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of health check
+        region:
+          type: string
+          description: AWS region where MockNest is deployed
+        storage:
+          $ref: '#/components/schemas/StorageHealth'
+      required:
+        - status
+        - timestamp
+        - region
+        - storage
+
+    StorageHealth:
+      type: object
+      properties:
+        bucket:
+          type: string
+          description: S3 bucket name used for mock storage
+        connectivity:
+          type: string
+          enum: [ok, error]
+          description: S3 connectivity status
+      required:
+        - bucket
+        - connectivity
+
+    AIHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        region:
+          type: string
+          description: AWS region
+        ai:
+          $ref: '#/components/schemas/AIHealth'
+      required:
+        - status
+        - timestamp
+        - region
+        - ai
+
+    AIHealth:
+      type: object
+      properties:
+        modelName:
+          type: string
+          description: Bedrock model name being used
+        inferencePrefix:
+          type: string
+          description: Current inference profile prefix
+        inferenceMode:
+          type: string
+          enum: [AUTO, GLOBAL_ONLY, GEO_ONLY]
+          description: Inference mode configuration
+        lastInvocationSuccess:
+          type: ["boolean", "null"]
+          description: Success status of last AI invocation
+        officiallySupported:
+          type: boolean
+          description: Whether the current model is officially supported
+      required:
+        - modelName
+        - inferencePrefix
+        - inferenceMode
+        - officiallySupported
+
+    # WireMock Schemas
+    StubMapping:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the mapping
+        uuid:
+          type: string
+          format: uuid
+          description: Alternative UUID field (WireMock compatibility)
+        name:
+          type: string
+          description: Optional name for the mapping
+        request:
+          $ref: '#/components/schemas/RequestPattern'
+        response:
+          $ref: '#/components/schemas/ResponseDefinition'
+        priority:
+          type: integer
+          description: Priority for matching (higher numbers = higher priority)
+          minimum: 1
+        persistent:
+          type: boolean
+          description: Whether this mapping should persist across server restarts
+        metadata:
+          type: object
+          description: Additional metadata for the mapping
+        postServeActions:
+          type: array
+          items:
+            type: object
+          description: Actions to execute after serving this mapping
+      required:
+        - request
+        - response
+
+    RequestPattern:
+      type: object
+      properties:
+        scheme:
+          type: string
+          enum: [http, https]
+          description: The scheme (protocol) part of the request URL
+        host:
+          type: string
+          description: The hostname part of the request URL
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The HTTP port number of the request URL
+        method:
+          type: string
+          pattern: "^[A-Z]+$"
+          description: HTTP method (e.g., GET, POST, PUT, DELETE)
+        url:
+          type: string
+          description: Exact URL match (path and query)
+        urlPath:
+          type: string
+          description: URL path match (ignores query parameters)
+        urlPattern:
+          type: string
+          description: URL regex pattern (path and query)
+        urlPathPattern:
+          type: string
+          description: URL path regex pattern (ignores query parameters)
+        pathParameters:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ContentPattern'
+          description: Path parameter matching patterns
+        queryParameters:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/StringValuePattern'
+          description: Query parameter matching patterns
+        formParameters:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ContentPattern'
+          description: Form parameter matching patterns
+        headers:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/StringValuePattern'
+          description: Header matching patterns
+        basicAuthCredentials:
+          type: object
+          properties:
+            username:
+              type: string
+            password:
+              type: string
+          required: [username, password]
+          description: Basic authentication credentials to match
+        cookies:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/StringValuePattern'
+          description: Cookie matching patterns
+        bodyPatterns:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentPattern'
+          description: Request body matching patterns
+        customMatcher:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Custom matcher name
+            parameters:
+              type: object
+              description: Custom matcher parameters
+        multipartPatterns:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              matchingType:
+                type: string
+                enum: [ALL, ANY]
+                default: ANY
+              headers:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/ContentPattern'
+              bodyPatterns:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContentPattern'
+
+    StringValuePattern:
+      type: object
+      description: Pattern for matching string values
+      oneOf:
+        - type: object
+          properties:
+            equalTo:
+              type: string
+              description: Exact string match
+            caseInsensitive:
+              type: boolean
+              description: Whether matching should be case insensitive
+          required: [equalTo]
+        - type: object
+          properties:
+            matches:
+              type: string
+              description: Regex pattern match
+          required: [matches]
+        - type: object
+          properties:
+            contains:
+              type: string
+              description: String contains match
+          required: [contains]
+        - type: object
+          properties:
+            doesNotMatch:
+              type: string
+              description: Regex pattern that should not match
+          required: [doesNotMatch]
+        - type: object
+          properties:
+            doesNotContain:
+              type: string
+              description: String that should not be contained
+          required: [doesNotContain]
+        - type: object
+          properties:
+            absent:
+              type: boolean
+              description: Whether the value should be absent
+          required: [absent]
+
+    ContentPattern:
+      type: object
+      description: Pattern for matching content (headers, body, etc.)
+      oneOf:
+        - type: object
+          properties:
+            equalTo:
+              type: string
+          required: [equalTo]
+        - type: object
+          properties:
+            binaryEqualTo:
+              type: string
+              format: byte
+              description: Base64 encoded binary data
+          required: [binaryEqualTo]
+        - type: object
+          properties:
+            matches:
+              type: string
+          required: [matches]
+        - type: object
+          properties:
+            contains:
+              type: string
+          required: [contains]
+        - type: object
+          properties:
+            doesNotMatch:
+              type: string
+          required: [doesNotMatch]
+        - type: object
+          properties:
+            doesNotContain:
+              type: string
+          required: [doesNotContain]
+        - type: object
+          properties:
+            equalToJson:
+              type: string
+            ignoreExtraElements:
+              type: boolean
+            ignoreArrayOrder:
+              type: boolean
+          required: [equalToJson]
+        - type: object
+          properties:
+            equalToXml:
+              type: string
+            enablePlaceholders:
+              type: boolean
+          required: [equalToXml]
+        - type: object
+          properties:
+            matchesJsonPath:
+              oneOf:
+                - type: string
+                - type: object
+                  properties:
+                    expression:
+                      type: string
+                    equalTo:
+                      type: string
+                    matches:
+                      type: string
+                    contains:
+                      type: string
+                  required: [expression]
+          required: [matchesJsonPath]
+        - type: object
+          properties:
+            matchesXPath:
+              oneOf:
+                - type: string
+                - type: object
+                  properties:
+                    expression:
+                      type: string
+                    equalTo:
+                      type: string
+                    matches:
+                      type: string
+                  required: [expression]
+            xPathNamespaces:
+              type: object
+              additionalProperties:
+                type: string
+          required: [matchesXPath]
+        - type: object
+          properties:
+            absent:
+              type: boolean
+          required: [absent]
+        - type: object
+          properties:
+            and:
+              type: array
+              items:
+                $ref: '#/components/schemas/ContentPattern'
+          required: [and]
+        - type: object
+          properties:
+            or:
+              type: array
+              items:
+                $ref: '#/components/schemas/ContentPattern'
+          required: [or]
+        - type: object
+          properties:
+            not:
+              $ref: '#/components/schemas/ContentPattern'
+          required: [not]
+
+    ResponseDefinition:
+      type: object
+      properties:
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+          description: HTTP status code
+        statusMessage:
+          type: string
+          description: HTTP status message
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: Response headers
+        additionalProxyRequestHeaders:
+          type: object
+          additionalProperties:
+            type: string
+          description: Extra headers to send when proxying
+        removeProxyRequestHeaders:
+          type: array
+          items:
+            type: string
+          description: Headers to remove when proxying
+        body:
+          type: string
+          description: Response body content
+        base64Body:
+          type: string
+          format: byte
+          description: Base64 encoded response body
+        jsonBody:
+          description: Response body as JSON object
+          oneOf:
+            - type: object
+            - type: array
+        bodyFileName:
+          type: string
+          description: File name containing response body (stored in S3)
+        fault:
+          type: string
+          enum: [CONNECTION_RESET_BY_PEER, EMPTY_RESPONSE, MALFORMED_RESPONSE_CHUNK, RANDOM_DATA_THEN_CLOSE]
+          description: Network fault to simulate
+        fixedDelayMilliseconds:
+          type: integer
+          minimum: 0
+          description: Fixed delay before sending response
+        delayDistribution:
+          $ref: '#/components/schemas/DelayDistribution'
+        chunkedDribbleDelay:
+          type: object
+          properties:
+            numberOfChunks:
+              type: integer
+            totalDuration:
+              type: integer
+          description: Chunked response delay configuration
+        transformers:
+          type: array
+          items:
+            type: string
+          description: Response transformers to apply
+        transformerParameters:
+          type: object
+          description: Parameters for response transformers
+        fromConfiguredStub:
+          type: boolean
+          description: Whether response came from configured stub
+      required:
+        - status
+
+    DelayDistribution:
+      type: object
+      description: Response delay distribution configuration
+      oneOf:
+        - type: object
+          title: Fixed delay
+          properties:
+            type:
+              type: string
+              enum: [fixed]
+            milliseconds:
+              type: integer
+          required: [type, milliseconds]
+        - type: object
+          title: Uniform distribution
+          properties:
+            type:
+              type: string
+              enum: [uniform]
+            lower:
+              type: integer
+            upper:
+              type: integer
+          required: [type, lower, upper]
+        - type: object
+          title: Log normal distribution
+          properties:
+            type:
+              type: string
+              enum: [lognormal]
+            median:
+              type: integer
+            sigma:
+              type: number
+          required: [type, median, sigma]
+
+    MappingsResponse:
+      type: object
+      properties:
+        mappings:
+          type: array
+          items:
+            $ref: '#/components/schemas/StubMapping'
+        meta:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: Total number of mappings
+      required:
+        - mappings
+
+    RequestsResponse:
+      type: object
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/LoggedRequest'
+        meta:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: Total number of requests
+      required:
+        - requests
+
+    LoggedRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique request identifier
+        url:
+          type: string
+          description: Request URL path and query
+        absoluteUrl:
+          type: string
+          description: Complete request URL
+        method:
+          type: string
+          description: HTTP method
+        clientIp:
+          type: string
+          description: Client IP address
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: Request headers
+        cookies:
+          type: object
+          additionalProperties:
+            type: string
+          description: Request cookies
+        body:
+          type: string
+          description: Request body as string
+        bodyAsBase64:
+          type: string
+          format: byte
+          description: Request body as base64 encoded string
+        browserProxyRequest:
+          type: boolean
+          description: Whether this was a browser proxy request
+        loggedDate:
+          type: integer
+          description: Timestamp when request was logged (milliseconds since epoch)
+        loggedDateString:
+          type: string
+          format: date-time
+          description: Human-readable timestamp when request was logged
+        wasMatched:
+          type: boolean
+          description: Whether the request matched any mapping
+        responseDefinition:
+          $ref: '#/components/schemas/ResponseDefinition'
+      required:
+        - id
+        - url
+        - method
+        - loggedDate
+        - wasMatched
+
+    # AI Generation Schemas
+    GenerateFromSpecRequest:
+      type: object
+      properties:
+        namespace:
+          $ref: '#/components/schemas/Namespace'
+        specification:
+          type: ["string", "null"]
+          description: API specification content (OpenAPI/Swagger YAML or JSON) - use either this or specificationUrl
+        specificationUrl:
+          type: ["string", "null"]
+          description: URL to fetch the API specification from - use either this or specification
+          format: uri
+        format:
+          type: string
+          enum: [OPENAPI_3, OPENAPI_2, SWAGGER_2]
+          description: Specification format
+        description:
+          type: string
+          description: Instruction text for customizing mock generation based on the specification (e.g., specific data requirements, filtering, custom scenarios)
+        options:
+          $ref: '#/components/schemas/GenerationOptions'
+      required:
+        - namespace
+        - format
+      oneOf:
+        - required: [specification]
+        - required: [specificationUrl]
+
+    Namespace:
+      type: object
+      properties:
+        apiName:
+          type: string
+          description: Name of the API being mocked
+        client:
+          type: string
+          description: Client or environment identifier
+      required:
+        - apiName
+        - client
+
+    GenerationOptions:
+      type: object
+      properties:
+        enableValidation:
+          type: boolean
+          description: Enable request/response validation
+          default: true
+        includeExamples:
+          type: boolean
+          description: Include example data in responses
+          default: true
+        generateErrorCases:
+          type: boolean
+          description: Generate error response scenarios
+          default: true
+        realisticData:
+          type: boolean
+          description: Use realistic data in examples
+          default: true
+        includePagination:
+          type: boolean
+          description: Include pagination patterns for list endpoints
+          default: false
+
+    GeneratedMocksResponse:
+      type: object
+      properties:
+        mappings:
+          type: array
+          items:
+            $ref: '#/components/schemas/StubMapping'
+          description: Generated WireMock mappings
+        metadata:
+          type: object
+          properties:
+            generatedAt:
+              type: string
+              format: date-time
+            modelUsed:
+              type: string
+            tokensUsed:
+              type: integer
+      required:
+        - mappings
+
+    NearMissesResponse:
+      type: object
+      properties:
+        nearMisses:
+          type: array
+          items:
+            type: object
+            properties:
+              request:
+                $ref: '#/components/schemas/LoggedRequest'
+              requestPattern:
+                $ref: '#/components/schemas/RequestPattern'
+              matchResult:
+                type: object
+                properties:
+                  distance:
+                    type: number
+                    description: Distance score (0.0 = perfect match, 1.0 = no match)
+                    minimum: 0.0
+                    maximum: 1.0
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              description: Additional error details
+            timestamp:
+              type: string
+              format: date-time
+          required:
+            - code
+            - message
+            - timestamp
+      required:
+        - error
+
+tags:
+  - name: AI Generation
+    description: AI-powered mock generation capabilities
+  - name: Mock Management
+    description: WireMock admin API for managing mock mappings (persistent = stored in S3, transient = depends on current instance data)
+  - name: Request Verification
+    description: Endpoints for verifying and inspecting received requests (transient = current Lambda instance only)
+  - name: Near Miss Analysis
+    description: Near miss analysis for debugging unmatched requests (experimental & transient)
+  - name: Files
+    description: File management for response bodies (persistent = stored in S3)

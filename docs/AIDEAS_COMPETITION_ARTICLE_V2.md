@@ -102,14 +102,16 @@ Using this workflow, I built the serverless mock runtime with WireMock integrati
 MockNest uses a simplified clean architecture [3] adapted for serverless systems.
 The system is organized into three layers:
 
+![Clean Architecture](images/CleanArchitecture.png)
+
 **Domain layer**
 
-Contains business models and rules related to mock behavior.  
+Contains business models and rules related to mock behavior.
 This layer has no framework or cloud dependencies and can be tested in isolation.
 
 **Application layer**
 
-Contains use cases and orchestration logic.  
+Contains use cases and orchestration logic.
 It defines interfaces for persistence and AI services and coordinates mock generation workflows.
 
 **Infrastructure layer**
@@ -120,7 +122,7 @@ Dependencies flow inward from infrastructure to application to domain, keeping t
 
 ### AWS Solution Design
 
-[IMAGE PLACEHOLDER – AWS Architecture Diagram]
+![AWS Solution Design](images/SolutionDesign.png)
 
 The current implementation uses a small set of AWS services:
 
@@ -192,7 +194,7 @@ In practice, I discovered that this workflow works best with small, focused scop
 
 Trying to generate large features at once makes it harder to maintain oversight and often leads to more corrections later. The experience was close to pair programming, where I preferred working on and reviewing one task at a time.
 
-### Clear architecture improves AI output
+### Clear architecture improves AI-generated code
 
 Using a clean architecture structure turned out to be very helpful when working with AI-assisted development. Clear boundaries between domain logic, application orchestration, and infrastructure implementations made it easier for Kiro to understand where new code should live.
 

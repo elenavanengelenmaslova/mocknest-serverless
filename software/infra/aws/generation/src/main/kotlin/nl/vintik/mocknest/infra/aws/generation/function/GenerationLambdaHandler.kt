@@ -3,6 +3,7 @@ package nl.vintik.mocknest.infra.aws.generation.function
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.vintik.mocknest.application.generation.usecases.GetAIHealth
 import nl.vintik.mocknest.application.runtime.usecases.AI_PREFIX
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.domain.core.HttpRequest
@@ -17,7 +18,8 @@ private val logger = KotlinLogging.logger {}
 
 @Configuration
 class GenerationLambdaHandler(
-    private val handleAIGenerationRequest: HandleAIGenerationRequest
+    private val handleAIGenerationRequest: HandleAIGenerationRequest,
+    private val getAIHealth: GetAIHealth
 ) {
     @Bean
     fun generationRouter(): Function<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -25,6 +27,10 @@ class GenerationLambdaHandler(
             with(event) {
                 logger.info { "Generation Lambda request: $httpMethod $path $headers" }
                 when {
+                    path == "${AI_PREFIX}health" -> {
+                        logger.debug { "Processing AI health check request" }
+                        getAIHealth()
+                    }
                     path.startsWith(AI_PREFIX) -> {
                         logger.debug { "Processing AI generation request $path" }
                         val aiPath = "/" + path.removePrefix(AI_PREFIX)
