@@ -10,7 +10,7 @@ This comprehensive guide helps you get the most out of MockNest Serverless, from
 
 The fastest way to get started is with our comprehensive Postman collections:
 
-1. **Download from GitHub**: [docs/postman/](https://github.com/your-org/mocknest-serverless/tree/main/docs/postman)
+1. **Download from GitHub**: [docs/postman/](https://github.com/elenavanengelenmaslova/mocknest-serverless/tree/main/docs/postman)
    - `AWS MockNest Serverless.postman_collection.json` - Complete API with working examples
    - `AI Mock Generation.postman_collection.json` - AI-powered mock generation examples
    - `Mock Nest AWS.postman_environment.json` - Pre-configured environment template

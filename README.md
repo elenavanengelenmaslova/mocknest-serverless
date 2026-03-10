@@ -98,7 +98,7 @@ The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock infer
 #### Support and Troubleshooting
 
 **Getting Help**:
-- **Issues**: Report problems via [GitHub Issues](https://github.com/your-org/mocknest-serverless/issues)
+- **Issues**: Report problems via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
 - **Documentation**: See the [User Guide](docs/USER_GUIDE.md) for detailed instructions
 - **API Reference**: Complete API documentation in the [OpenAPI specification](docs/api/mocknest-openapi.yaml)
 
@@ -440,7 +440,7 @@ We welcome contributions to MockNest Serverless! Whether you're fixing bugs, add
 
 ### How to Contribute
 
-1. **Report Issues**: Use [GitHub Issues](https://github.com/your-org/mocknest-serverless/issues) to report bugs or request features
+1. **Report Issues**: Use [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues) to report bugs or request features
 2. **Submit Pull Requests**: Fork the repository, make your changes, and submit a pull request
 3. **Improve Documentation**: Help us keep documentation accurate and helpful
 4. **Share Use Cases**: Tell us how you're using MockNest Serverless
@@ -464,7 +464,7 @@ MockNest Serverless is an open-source project that provides AWS-native serverles
 
 ## Support
 
-- **Issues**: Report bugs and feature requests via [GitHub Issues](https://github.com/your-org/mocknest-serverless/issues)
+- **Issues**: Report bugs and feature requests via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
 - **Documentation**: Additional documentation in the `docs/` directory
 - **Architecture**: Design decisions documented in `.kiro/steering/`
 - **Community**: Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md)

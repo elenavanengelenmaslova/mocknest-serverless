@@ -37,7 +37,7 @@ After deployment, find your API Gateway endpoint and API key in the CloudFormati
 
 The fastest way to explore MockNest Serverless is using our Postman collections:
 
-1. **Download Collections**: Get the collections from [GitHub](https://github.com/your-org/mocknest-serverless/tree/main/docs/postman):
+1. **Download Collections**: Get the collections from [GitHub](https://github.com/elenavanengelenmaslova/mocknest-serverless/tree/main/docs/postman):
    - `AWS MockNest Serverless.postman_collection.json` - Complete API with examples
    - `AI Mock Generation.postman_collection.json` - AI-powered mock generation
    - `Mock Nest AWS.postman_environment.json` - Environment template
@@ -390,7 +390,7 @@ To troubleshoot issues, view CloudWatch logs:
 
 - **Documentation**: See the [User Guide](docs/USER_GUIDE.md) for detailed usage instructions
 - **API Reference**: Complete API documentation in the [OpenAPI specification](docs/api/mocknest-openapi.yaml)
-- **Issues**: Report bugs or ask questions at [GitHub Issues](https://github.com/your-org/mocknest-serverless/issues)
+- **Issues**: Report bugs or ask questions at [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
 
 ## Cost
 
@@ -461,4 +461,4 @@ MockNest follows AWS security best practices with least-privilege IAM permission
 - No data sharing between different MockNest deployments
 - All data stays within your selected AWS region
 
-For security questions or to report security issues, please contact us through [GitHub Issues](https://github.com/your-org/mocknest-serverless/issues) with the "security" label.
+For security questions or to report security issues, please contact us through [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues) with the "security" label.
