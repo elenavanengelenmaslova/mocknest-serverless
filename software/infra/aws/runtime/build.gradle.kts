@@ -41,6 +41,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:localstack")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation(project(":software:infra:aws:mocknest"))
 }
 
 configurations {

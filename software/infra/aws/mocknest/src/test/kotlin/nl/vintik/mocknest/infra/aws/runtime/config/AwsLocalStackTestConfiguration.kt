@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.config
+package nl.vintik.mocknest.infra.aws.runtime.config
 
 import aws.sdk.kotlin.runtime.auth.credentials.StaticCredentialsProvider
 import aws.sdk.kotlin.services.s3.S3Client
@@ -8,6 +8,9 @@ import aws.smithy.kotlin.runtime.net.url.Url
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.infra.aws.config.SharedLocalStackContainer
+import nl.vintik.mocknest.infra.aws.config.TEST_BUCKET_NAME
+import nl.vintik.mocknest.infra.aws.config.TEST_REGION
 import nl.vintik.mocknest.infra.aws.runtime.storage.S3ObjectStorageAdapter
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.TestConfiguration
@@ -16,11 +19,6 @@ import org.springframework.context.annotation.Primary
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.localstack.LocalStackContainer
-
-/**
- * Test bucket name used across all runtime integration tests
- */
-const val TEST_BUCKET_NAME = "test-mocknest-bucket"
 
 @TestConfiguration
 class AwsLocalStackTestConfiguration {

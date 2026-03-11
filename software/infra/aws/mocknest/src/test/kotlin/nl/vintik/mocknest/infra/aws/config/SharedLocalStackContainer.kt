@@ -60,3 +60,8 @@ object SharedLocalStackContainer {
  * Test region constant for LocalStack tests
  */
 const val TEST_REGION = "us-east-1"
+
+/**
+ * Test bucket name used across all integration tests
+ */
+const val TEST_BUCKET_NAME = "test-mocknest-bucket"

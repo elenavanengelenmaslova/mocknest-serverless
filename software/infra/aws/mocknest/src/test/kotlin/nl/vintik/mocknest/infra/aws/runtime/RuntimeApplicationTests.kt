@@ -1,6 +1,7 @@
 package nl.vintik.mocknest.infra.aws.runtime
 
-import nl.vintik.mocknest.infra.aws.config.AwsLocalStackTestConfiguration
+import nl.vintik.mocknest.infra.aws.MockNestApplication
+import nl.vintik.mocknest.infra.aws.runtime.config.AwsLocalStackTestConfiguration
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -11,7 +12,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.testcontainers.junit.jupiter.Testcontainers
 
 @SpringBootTest(
-    classes = [RuntimeApplication::class],
+    classes = [MockNestApplication::class],
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
     properties = [
         "spring.main.allow-bean-definition-overriding=true",

@@ -3,7 +3,8 @@ package nl.vintik.mocknest.infra.aws.runtime
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import io.github.oshai.kotlinlogging.KotlinLogging
-import nl.vintik.mocknest.infra.aws.config.AwsLocalStackTestConfiguration
+import nl.vintik.mocknest.infra.aws.MockNestApplication
+import nl.vintik.mocknest.infra.aws.runtime.config.AwsLocalStackTestConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Nested
@@ -22,14 +23,14 @@ private val logger = KotlinLogging.logger {}
  * Integration test for RuntimeLambdaHandler using Spring Boot test support with LocalStack S3.
  * 
  * This test validates:
- * - Spring context loads successfully with RuntimeApplication configuration
+ * - Spring context loads successfully with MockNestApplication configuration
  * - LocalStack S3 integration works correctly
  * - Runtime Lambda handler routes requests appropriately
  * - Admin API and mock endpoint paths are handled correctly
  * - Generation paths are properly isolated (return 404)
  */
 @SpringBootTest(
-    classes = [RuntimeApplication::class],
+    classes = [MockNestApplication::class],
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
     properties = [
         "spring.main.allow-bean-definition-overriding=true",

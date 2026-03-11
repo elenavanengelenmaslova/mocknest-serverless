@@ -4,9 +4,9 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import kotlinx.coroutines.flow.toList
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.infra.aws.config.AwsLocalStackTestConfiguration
+import nl.vintik.mocknest.infra.aws.MockNestApplication
+import nl.vintik.mocknest.infra.aws.runtime.config.AwsLocalStackTestConfiguration
 import nl.vintik.mocknest.infra.aws.config.TestContextDebugListener
-import nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -21,7 +21,7 @@ import java.util.function.Function
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
-@SpringBootTest(classes = [RuntimeApplication::class])
+@SpringBootTest(classes = [MockNestApplication::class])
 @TestPropertySource(locations = ["classpath:application-test.properties"])
 @ContextConfiguration(classes = [AwsLocalStackTestConfiguration::class])
 @TestExecutionListeners(
