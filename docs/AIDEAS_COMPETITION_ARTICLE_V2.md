@@ -17,7 +17,7 @@ MockNest provides a WireMock-compatible mock runtime running on AWS Lambda, with
 
 Current capabilities include:
 
-- **Serverless Mock Runtime** – A WireMock-compatible API running on AWS Lambda with S3-backed persistence for mock definitions
+- **Serverless Mock Runtime** – A WireMock-compatible API (providing familiar patterns and ecosystem integration) running on AWS Lambda with S3-backed persistence for mock definitions
 - **AI-Powered Mock Generation** – Uses Amazon Bedrock (with Amazon Nova Pro as the default model) to generate WireMock [1] mappings from OpenAPI specifications or natural-language descriptions, with automatic validation and retry on errors
 - **Protocol Support** – REST, GraphQL over HTTP, and SOAP APIs with synchronous request-response patterns
 - **AWS-Native Deployment** – AWS SAM templates for deploying the runtime directly into a customer’s AWS account
@@ -77,6 +77,8 @@ MockNest addresses these challenges with a serverless mock runtime and AI-assist
 MockNest reduces integration testing friction today while laying the foundation for automated mock maintenance as systems evolve.
 
 ## Demo time!
+The demo shows generating WireMock mocks from natural language descriptions using Amazon Bedrock, validating the generated mappings, and using them in a pet adoption newsletter application that sends emails with currently available pets.
+
 PLACEHOLDER YOUTUBE DEMO LINK HERE
 
 ## How I Built This
@@ -133,11 +135,18 @@ The current implementation uses a small set of AWS services:
 
 This architecture keeps the runtime lightweight while allowing mocks to persist across Lambda cold starts and deployments.
 
+**Performance Characteristics**
+Cold start performance varies based on the number of mock definitions loaded at startup. [PLACEHOLDER: AWS Lambda SnapStart optimization in progress to reduce cold start latency]
+
 ### Security Considerations
 
 All endpoints are protected with API key authentication through Amazon API Gateway. Since MockNest is a mock API intended for test environments, I chose to start with basic API key security with planned expansion for additional authentication mechanisms in the future.
 
 For the AWS Serverless Application Repository publication, the SAM templates follow least privilege principles, ensuring Lambda functions and other components receive only the minimum IAM permissions required for their specific operations.
+
+### Current Limitations
+
+The current release is optimized for integration testing with moderate mock catalogs. It scales to a maximum concurrency of 1, which keeps the solution simple and cost-efficient. Future releases will add configurable scaling options and performance optimizations for larger workloads.
 
 ### Key Development Milestones
 
@@ -216,7 +225,7 @@ This kept the steering documents focused on what matters most for generating qua
 
 ### Configure AI tool permissions carefully
 
-When working with AI development tools, it is important to configure permissions thoughtfully. I learned to give Kiro only specific, read-only permissions to git and build tools rather than broade access.
+When working with AI development tools, it is important to configure permissions thoughtfully. I learned to give Kiro only specific, read-only permissions to git and build tools rather than broad access.
 
 This approach maintains control over critical operations like commits, pushes, and build configurations while still allowing the AI to understand the project context and generate appropriate code.
 
