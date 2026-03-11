@@ -49,10 +49,34 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           role-session-name: MockNestSARSharing
           aws-region: us-east-1
+      
+      - name: Debug AWS identity
+        run: |
+          echo "AWS_REGION=$AWS_REGION"
+          echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION"
+          aws sts get-caller-identity
+      
+      - name: Validate application ID
+        run: |
+          APP_ID="${{ needs.publish.outputs.application-id }}"
+          if [ -z "$APP_ID" ]; then
+            echo "❌ Application ID is empty"
+            exit 1
+          fi
+          echo "✅ Application ID: $APP_ID"
+      
+      - name: Verify application is readable
+        run: |
+          echo "Verifying application can be read..."
+          aws serverlessrepo get-application \
+            --application-id "${{ needs.publish.outputs.application-id }}" \
+            --region us-east-1 \
+            --output json
           
       - name: Share with test accounts
         run: |
           echo "🔐 Sharing SAR application with test accounts..."
+          echo "Application ID: ${{ needs.publish.outputs.application-id }}"
           
           # Parse test account IDs
           IFS=',' read -ra ACCOUNT_IDS <<< "${{ inputs.test-account-ids }}"
@@ -73,9 +97,18 @@ jobs:
           aws serverlessrepo put-application-policy \
             --application-id "${{ needs.publish.outputs.application-id }}" \
             --statements Principals=[$PRINCIPALS],Actions=Deploy \
-            --region us-east-1
+            --region us-east-1 \
+            --debug
           
           echo "✅ SAR application shared with test accounts"
+      
+      - name: Verify application policy
+        run: |
+          echo "Reading application policy..."
+          aws serverlessrepo get-application-policy \
+            --application-id "${{ needs.publish.outputs.application-id }}" \
+            --region us-east-1 \
+            --output json
         
       - name: Verify SAR publication
         run: |
@@ -96,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        region: [us-east-1, eu-west-1, ap-southeast-1]
+        region: [us-east-1]  # Private SAR apps can only be deployed in the same region
       fail-fast: false
     steps:
       - uses: actions/checkout@v6
@@ -107,6 +140,21 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           role-session-name: MockNestSARTesting-${{ matrix.region }}
           aws-region: ${{ matrix.region }}
+      
+      - name: Debug AWS identity
+        run: |
+          echo "AWS_REGION=$AWS_REGION"
+          echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION"
+          aws sts get-caller-identity
+      
+      - name: Validate application ID
+        run: |
+          APP_ID="${{ needs.publish.outputs.application-id }}"
+          if [ -z "$APP_ID" ]; then
+            echo "❌ Application ID is empty"
+            exit 1
+          fi
+          echo "✅ Application ID: $APP_ID"
           
       - name: Setup SAM CLI
         uses: aws-actions/setup-sam@v2
@@ -115,6 +163,7 @@ jobs:
         id: deploy
         run: |
           echo "🚀 Deploying SAR application in ${{ matrix.region }}..."
+          echo "Application ID: ${{ needs.publish.outputs.application-id }}"
           
           STACK_NAME="mocknest-sar-test-${{ matrix.region }}-$(echo ${{ inputs.version }} | tr '.' '-')"
           
@@ -129,7 +178,8 @@ jobs:
               Name=BedrockInferenceMode,Value=AUTO \
             --region ${{ matrix.region }} \
             --query 'ChangeSetId' \
-            --output text)
+            --output text \
+            --debug)
           
           echo "Change set created: $CHANGE_SET_ID"
           
@@ -261,10 +311,10 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📋 Test Coverage" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Core runtime functionality (mock creation, serving, persistence)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Health endpoint validation" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ AI functionality (where officially supported)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Multi-region deployment validation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Core runtime functionality (health checks)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Generation functionality (health checks)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Single-region deployment validation (us-east-1)" >> $GITHUB_STEP_SUMMARY
+          echo "- ℹ️ Multi-region testing will be done after public release" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🎯 Next Steps" >> $GITHUB_STEP_SUMMARY
           
