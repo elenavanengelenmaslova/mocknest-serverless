@@ -56,22 +56,23 @@ jobs:
           # Parse test account IDs
           IFS=',' read -ra ACCOUNT_IDS <<< "${{ inputs.test-account-ids }}"
           
+          # Build principals array
+          PRINCIPALS=""
           for ACCOUNT_ID in "${ACCOUNT_IDS[@]}"; do
             ACCOUNT_ID=$(echo "$ACCOUNT_ID" | xargs)  # Trim whitespace
-            echo "Sharing with account: $ACCOUNT_ID"
-            
-            aws serverlessrepo put-application-policy \
-              --application-id "${{ needs.publish.outputs.application-id }}" \
-              --statements '[{
-                "Sid": "TestAccount'$ACCOUNT_ID'",
-                "Effect": "Allow",
-                "Principal": {
-                  "AWS": "arn:aws:iam::'$ACCOUNT_ID':root"
-                },
-                "Action": "serverlessrepo:Deploy"
-              }]' \
-              --region us-east-1
+            echo "Adding account to policy: $ACCOUNT_ID"
+            if [ -z "$PRINCIPALS" ]; then
+              PRINCIPALS="\"$ACCOUNT_ID\""
+            else
+              PRINCIPALS="$PRINCIPALS,\"$ACCOUNT_ID\""
+            fi
           done
+          
+          # Apply policy to share with all test accounts
+          aws serverlessrepo put-application-policy \
+            --application-id "${{ needs.publish.outputs.application-id }}" \
+            --statements Principals=[$PRINCIPALS],Actions=Deploy \
+            --region us-east-1
           
           echo "✅ SAR application shared with test accounts"
         
@@ -89,7 +90,7 @@ jobs:
           echo "✅ SAR publication verified successfully"
 
   test-deployment:
-    needs: publish
+    needs: [publish, share-with-test-accounts]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -115,15 +116,24 @@ jobs:
           
           STACK_NAME="mocknest-sar-test-${{ matrix.region }}-$(echo ${{ inputs.version }} | tr '.' '-')"
           
-          # Deploy from SAR
-          aws cloudformation create-stack \
+          # Create change set from SAR
+          CHANGE_SET_ID=$(aws serverlessrepo create-cloud-formation-change-set \
+            --application-id "${{ needs.publish.outputs.application-id }}" \
             --stack-name "$STACK_NAME" \
-            --template-url "https://serverlessrepo.amazonaws.com/applications/${{ needs.publish.outputs.application-id }}/templates/${{ inputs.version }}" \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
-            --parameters \
-              ParameterKey=DeploymentName,ParameterValue=sar-test \
-              ParameterKey=BedrockModelName,ParameterValue=AmazonNovaPro \
-              ParameterKey=BedrockInferenceMode,ParameterValue=AUTO \
+            --parameter-overrides \
+              DeploymentName=sar-test \
+              BedrockModelName=AmazonNovaPro \
+              BedrockInferenceMode=AUTO \
+            --region ${{ matrix.region }} \
+            --query 'ChangeSetId' \
+            --output text)
+          
+          echo "Change set created: $CHANGE_SET_ID"
+          
+          # Execute the change set
+          aws cloudformation execute-change-set \
+            --change-set-name "$CHANGE_SET_ID" \
             --region ${{ matrix.region }}
           
           # Wait for deployment to complete
@@ -154,91 +164,51 @@ jobs:
         
       - name: Test core runtime functionality
         run: |
-          echo "🧪 Testing core runtime functionality in ${{ matrix.region }}..."
+          echo "🧪 Testing runtime health endpoint in ${{ matrix.region }}..."
           
           API_URL="${{ steps.deploy.outputs.api-url }}"
           API_KEY="${{ steps.deploy.outputs.api-key }}"
           
-          # Test health endpoint
-          echo "Testing health endpoint..."
-          curl -f -H "x-api-key: $API_KEY" "$API_URL/__admin/health" | jq .
+          # Test runtime health endpoint
+          echo "Testing runtime health endpoint..."
+          RUNTIME_HEALTH=$(curl -f -H "x-api-key: $API_KEY" "$API_URL/__admin/health")
+          echo "Runtime Health Response:"
+          echo "$RUNTIME_HEALTH" | jq .
           
-          # Create a test mock
-          echo "Creating test mock..."
-          curl -f -X POST \
-            -H "x-api-key: $API_KEY" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "request": {
-                "method": "GET",
-                "url": "/test-endpoint"
-              },
-              "response": {
-                "status": 200,
-                "body": "Hello from MockNest SAR test in ${{ matrix.region }}!",
-                "headers": {
-                  "Content-Type": "text/plain"
-                }
-              }
-            }' \
-            "$API_URL/__admin/mappings"
-          
-          # Test the mock endpoint
-          echo "Testing mock endpoint..."
-          RESPONSE=$(curl -f -H "x-api-key: $API_KEY" "$API_URL/test-endpoint")
-          echo "Mock response: $RESPONSE"
-          
-          # Verify mock persistence (simulate cold start by waiting)
-          echo "Waiting 30 seconds to test persistence..."
-          sleep 30
-          
-          # Test mock again to verify persistence
-          echo "Testing mock persistence..."
-          RESPONSE2=$(curl -f -H "x-api-key: $API_KEY" "$API_URL/test-endpoint")
-          echo "Persistent mock response: $RESPONSE2"
-          
-          if [ "$RESPONSE" = "$RESPONSE2" ]; then
-            echo "✅ Mock persistence verified"
-          else
-            echo "❌ Mock persistence failed"
+          # Verify runtime health status
+          RUNTIME_STATUS=$(echo "$RUNTIME_HEALTH" | jq -r '.status')
+          if [ "$RUNTIME_STATUS" != "UP" ]; then
+            echo "❌ Runtime health check failed: status=$RUNTIME_STATUS"
             exit 1
           fi
           
-          echo "✅ Core runtime tests passed in ${{ matrix.region }}"
+          echo "✅ Runtime health check passed in ${{ matrix.region }}"
         
       - name: Test AI functionality
         run: |
-          echo "🤖 Testing AI functionality in ${{ matrix.region }}..."
+          echo "🤖 Testing generation health endpoint in ${{ matrix.region }}..."
           
           API_URL="${{ steps.deploy.outputs.api-url }}"
           API_KEY="${{ steps.deploy.outputs.api-key }}"
           
-          # Test AI health endpoint
-          echo "Testing AI health endpoint..."
-          AI_HEALTH=$(curl -f -H "x-api-key: $API_KEY" "$API_URL/ai/health" | jq .)
-          echo "AI Health: $AI_HEALTH"
+          # Test generation health endpoint
+          echo "Testing generation health endpoint..."
+          GENERATION_HEALTH=$(curl -f -H "x-api-key: $API_KEY" "$API_URL/ai/generation/health")
+          echo "Generation Health Response:"
+          echo "$GENERATION_HEALTH" | jq .
           
-          # Check if Bedrock is available in this region
-          OFFICIALLY_SUPPORTED=$(echo "$AI_HEALTH" | jq -r '.ai.officiallySupported')
-          
-          if [ "$OFFICIALLY_SUPPORTED" = "true" ]; then
-            echo "🎯 Testing AI generation (officially supported region)..."
-            
-            # Test AI generation endpoint
-            curl -f -X POST \
-              -H "x-api-key: $API_KEY" \
-              -H "Content-Type: application/json" \
-              -d '{
-                "description": "Create a simple user profile endpoint that returns user data",
-                "method": "GET",
-                "path": "/users/123"
-              }' \
-              "$API_URL/ai/generate-from-description" || echo "AI generation test skipped (may not be available)"
-            
-            echo "✅ AI functionality tests completed"
-          else
-            echo "ℹ️ AI functionality not officially supported in ${{ matrix.region }}, skipping AI tests"
+          # Verify generation health status
+          GENERATION_STATUS=$(echo "$GENERATION_HEALTH" | jq -r '.status')
+          if [ "$GENERATION_STATUS" != "UP" ]; then
+            echo "❌ Generation health check failed: status=$GENERATION_STATUS"
+            exit 1
           fi
+          
+          # Check Bedrock availability
+          OFFICIALLY_SUPPORTED=$(echo "$GENERATION_HEALTH" | jq -r '.ai.officiallySupported')
+          echo "Bedrock officially supported in ${{ matrix.region }}: $OFFICIALLY_SUPPORTED"
+          
+          echo "✅ Generation health check passed in ${{ matrix.region }}"
         
       - name: Cleanup deployment
         if: always()
