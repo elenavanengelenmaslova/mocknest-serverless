@@ -138,14 +138,29 @@ jobs:
               --region ${{ inputs.aws-region }}
           fi
           
-          # Publish to SAR
+          # Publish to SAR and capture output
           echo "🚀 Publishing to SAR..."
-          RESULT=$(sam publish \
+          sam publish \
             --template packaged-template.yaml \
             --region ${{ inputs.aws-region }} \
-            --semantic-version ${{ inputs.version }})
+            --semantic-version ${{ inputs.version }} | tee publish-output.txt
           
-          # Extract application ID from output
-          APP_ID=$(echo "$RESULT" | grep -o 'arn:aws:serverlessrepo:[^:]*:[^:]*:applications/[^"]*' | head -1)
+          echo ""
+          echo "📋 Full publish output saved to publish-output.txt"
+          cat publish-output.txt
+          echo ""
+          
+          # Extract application ID - SAM publish outputs the ARN
+          APP_ID=$(grep -o 'arn:aws:serverlessrepo:[^[:space:]]*' publish-output.txt | head -1)
+          
+          echo "Extracted APP_ID: '$APP_ID'"
+          
+          if [ -z "$APP_ID" ]; then
+            echo "❌ ERROR: Failed to extract application ID"
+            echo "Full output:"
+            cat publish-output.txt
+            exit 1
+          fi
+          
           echo "application-id=$APP_ID" >> $GITHUB_OUTPUT
-          echo "📦 Published SAR application: $APP_ID"
+          echo "✅ Published SAR application: $APP_ID"
