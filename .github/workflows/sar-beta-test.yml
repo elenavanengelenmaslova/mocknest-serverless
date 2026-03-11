@@ -41,6 +41,7 @@ jobs:
   share-with-test-accounts:
     needs: publish
     runs-on: ubuntu-latest
+    if: ${{ inputs.test-account-ids != '' }}  # Only run if test accounts provided
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -90,7 +91,8 @@ jobs:
           echo "✅ SAR publication verified successfully"
 
   test-deployment:
-    needs: [publish, share-with-test-accounts]
+    needs: [publish]
+    if: always() && needs.publish.result == 'success'  # Run even if sharing is skipped
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -102,7 +104,7 @@ jobs:
       - name: Configure AWS credentials for testing
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.TEST_AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           role-session-name: MockNestSARTesting-${{ matrix.region }}
           aws-region: ${{ matrix.region }}
           
