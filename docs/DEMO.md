@@ -145,7 +145,7 @@ The generated mappings are validated automatically, and if validation fails, Moc
 
 ## On Screen
 
-Show response containing generated mappings.
+Show a response containing generated mappings.
 
 Scroll slightly.
 
@@ -157,13 +157,51 @@ Do not stay too long.
 
 ---
 
-## 🎬 Clip 6 – Application Using the Mock
+## 🎬 Clip 6 – Configuration Comparison
 
-# 6. Application Using the Mock
+# 6. Configuration Comparison
 
 ## Narration
 
-Now let’s see how an application can use this generated mock.
+In development, we simply configure our application to point to MockNest instead of the real API.
+
+Here's our development config with the MockNest URL, and here's production pointing to the real pet API.
+
+The application code stays the same—we just swap the endpoint.
+
+## On Screen
+
+Show two configuration files side by side or toggle between them:
+
+**application-dev.yml**
+```yaml
+pet_service:
+  url: ${MOCKNEST_URL}/petstore
+  # Uses AI-generated mocks
+```
+
+**application-prod.yml**
+```yaml
+pet_service:
+  url: https://api.real-pet-service.com
+  # Uses real production API
+```
+
+Highlight the URL differences briefly (2-3 seconds).
+
+## Time
+
+~15 seconds total
+
+---
+
+## 🎬 Clip 7 – Application Using the Mock
+
+# 7. Application Using the Mock
+
+## Narration
+
+Now let's see the application in action.
 
 Our pet adoption application generates a newsletter email showing pets available for adoption.
 
@@ -187,9 +225,9 @@ The application now behaves exactly as if it was calling a real external API.
 
 ---
 
-## 🎬 Clip 7 – Installation
+## 🎬 Clip 8 – Installation
 
-# 7. Installation
+# 8. Installation
 
 ## Narration
 
@@ -207,9 +245,9 @@ Do not show the full deployment process.
 
 ---
 
-## 🎬 Clip 8 – Closing
+## 🎬 Clip 9 – Closing
 
-# 8. Closing
+# 9. Closing
 
 ## Narration
 
@@ -232,9 +270,10 @@ Record the demo in separate segments:
 3. Manual mock example
 4. AI mock generation
 5. Generated mock result
-6. Application using the mock
-7. SAR page
-8. Closing
+6. Configuration comparison (dev vs prod)
+7. Application using the mock
+8. SAR page
+9. Closing
 
 These segments will be combined during editing.
 
@@ -262,4 +301,5 @@ Video recording and editing tools used for this demo:
 - MockNest logo
 - GitHub README
 - Postman requests
+- Application configuration files (dev and prod)
 - Newsletter email example
