@@ -28,11 +28,6 @@ Parameters:
     AllowedPattern: '^[a-zA-Z0-9\\-_]+$'
     ConstraintDescription: Stage name must contain only alphanumeric characters, hyphens, and underscores
 
-  BucketName:
-    Type: String
-    Default: ''
-    Description: Custom S3 bucket name for mock storage (optional, auto-generated if empty)
-
   LambdaMemorySize:
     Type: Number
     Default: "1024"
@@ -108,32 +103,10 @@ Parameters:
       - GEO_ONLY
     ConstraintDescription: Must be AUTO, GLOBAL_ONLY, or GEO_ONLY
 
-  BedrockInferencePrefix:
-    Type: String
-    Default: 'eu'
-    Description: |
-      Bedrock inference profile prefix for cross-region routing.
-      Use 'eu' for Europe, 'us' for USA.
-      Note: Nova models require 'eu' or 'us' prefix for cross-region access.
-    AllowedValues:
-      - global
-      - us
-      - ca
-      - mx
-      - af
-      - ap
-      - eu
-      - il
-      - me
-      - sa
-
   BedrockGenerationMaxRetries:
     Type: Number
     Default: 1
     Description: Maximum number of retry attempts for AI mock generation if validation fails.
-
-Conditions:
-  HasCustomBucketName: !Not [!Equals [!Ref BucketName, '']]
 
 Globals:
   Function:
@@ -149,10 +122,6 @@ Resources:
   MockStorage:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !If
-        - HasCustomBucketName
-        - !Ref BucketName
-        - !Ref AWS::NoValue
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:

@@ -162,5 +162,11 @@ jobs:
             exit 1
           fi
           
-          echo "application_id=$APP_ID" >> $GITHUB_OUTPUT
+          # Set output - use absolute path to ensure it works from subdirectory
+          echo "application_id=$APP_ID" >> "$GITHUB_OUTPUT"
           echo "✅ Published SAR application: $APP_ID"
+          echo "✅ Output written to: $GITHUB_OUTPUT"
+          
+          # Verify output was written
+          echo "📋 Verifying GITHUB_OUTPUT contents:"
+          cat "$GITHUB_OUTPUT" || echo "Could not read GITHUB_OUTPUT"
