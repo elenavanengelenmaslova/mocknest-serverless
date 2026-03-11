@@ -124,9 +124,9 @@ jobs:
             --stack-name "$STACK_NAME" \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
             --parameter-overrides \
-              DeploymentName=sar-test \
-              BedrockModelName=AmazonNovaPro \
-              BedrockInferenceMode=AUTO \
+              Name=DeploymentName,Value=sar-test \
+              Name=BedrockModelName,Value=AmazonNovaPro \
+              Name=BedrockInferenceMode,Value=AUTO \
             --region ${{ matrix.region }} \
             --query 'ChangeSetId' \
             --output text)
