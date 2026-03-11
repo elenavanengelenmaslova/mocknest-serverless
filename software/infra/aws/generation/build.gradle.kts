@@ -1,20 +1,36 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 plugins {
     kotlin("jvm")
     kotlin("plugin.spring")
-    id("org.springframework.boot")
     id("io.spring.dependency-management")
-    id("com.gradleup.shadow")
-}
-
-springBoot {
-    mainClass.set("nl.vintik.mocknest.infra.aws.generation.GenerationApplicationKt")
 }
 
 dependencies {
-    // Core module dependency
-    implementation(project(":software:infra:aws:core"))
+    // Clean architecture dependencies
+    api(project(":software:domain"))
+    api(project(":software:application"))
+
+    // Spring Boot - exclude embedded servers (no web starter, just core)
+    api("org.springframework.boot:spring-boot-starter") {
+        exclude(group = "org.springframework.boot", module = "spring-boot-starter-tomcat")
+        exclude(group = "org.apache.tomcat.embed")
+    }
+    api("org.springframework.boot:spring-boot-starter-validation")
+    api("com.fasterxml.jackson.module:jackson-module-kotlin")
+
+    // Kotlin AWS SDK - S3 for storage and Bedrock for AI
+    api("aws.sdk.kotlin:s3")
+    api("aws.sdk.kotlin:bedrockruntime")
+    
+    // HTTP client for AWS SDK
+    val smithyKotlinVersion = "1.3.31"
+    api("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
+    api("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
+
+    // Coroutines
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core")
+    
+    // Koog Framework for AI Agent orchestration
+    implementation("ai.koog:koog-agents")
 
     // Spring Cloud Function for AWS Lambda
     implementation("org.springframework.cloud:spring-cloud-function-adapter-aws")
@@ -35,9 +51,6 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:localstack")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    
-    // Test utilities from core module
-    testImplementation(project(":software:infra:aws:core", "testArtifacts"))
 }
 
 configurations {
@@ -72,59 +85,6 @@ configurations {
     }
 }
 
-tasks {
-    bootJar {
-        enabled = false
-    }
-
-    bootRun {
-        enabled = false
-    }
-
-    val shadowJar by getting(ShadowJar::class) {
-        archiveFileName.set("mocknest-generation.jar")
-        destinationDirectory.set(file("${project.rootDir}/build/dist"))
-        
-        from(sourceSets.main.get().output)
-        configurations = listOf(project.configurations.runtimeClasspath.get())
-        
-        isZip64 = true
-        
-        manifest {
-            attributes["Main-Class"] = "org.springframework.cloud.function.adapter.aws.FunctionInvoker"
-        }
-        
-        // CRITICAL: These make Spring Boot work in fat JAR
-        mergeServiceFiles()
-        append("META-INF/spring.handlers")
-        append("META-INF/spring.schemas")
-        append("META-INF/spring.tooling")
-        append("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
-        append("META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports")
-        append("META-INF/spring.factories")
-        
-        // Exclude unnecessary files
-        exclude("META-INF/*.SF")
-        exclude("META-INF/*.DSA")
-        exclude("META-INF/*.RSA")
-        exclude("META-INF/LICENSE*")
-        exclude("META-INF/NOTICE*")
-        exclude("META-INF/maven/**")
-        exclude("module-info.class")
-        
-        // Size optimization exclusions
-        exclude("org/springframework/boot/devtools/**")
-        exclude("org/springframework/boot/test/**")
-        exclude("org/springframework/test/**")
-        exclude("assets/swagger-ui/**")
-        exclude("samples/**")
-        exclude("mozilla/public-suffix-list.txt")
-        exclude("ucd/**")
-        exclude("org/eclipse/jetty/websocket/**")
-        exclude("org/eclipse/jetty/http2/**")
-    }
-
-    assemble {
-        dependsOn("shadowJar")
-    }
+tasks.test {
+    useJUnitPlatform()
 }

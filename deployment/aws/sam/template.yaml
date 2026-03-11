@@ -310,7 +310,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime"
-      CodeUri: ../../../build/dist/mocknest-runtime.jar
+      CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
       ReservedConcurrentExecutions: 10
@@ -319,7 +319,7 @@ Resources:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
-          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication"
+          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
       DeadLetterQueue:
         Type: SQS
@@ -350,7 +350,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${AWS::StackName}-generation"
-      CodeUri: ../../../build/dist/mocknest-generation.jar
+      CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
       ReservedConcurrentExecutions: 5
@@ -360,7 +360,7 @@ Resources:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "generationRouter"
-          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.generation.GenerationApplication"
+          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           BEDROCK_MODEL_NAME: !Ref BedrockModelName
           BEDROCK_INFERENCE_MODE: !Ref BedrockInferenceMode

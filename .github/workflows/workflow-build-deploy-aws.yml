@@ -74,24 +74,19 @@ jobs:
       - name: Setup SAM CLI
         uses: aws-actions/setup-sam@v2
         
-      - name: Build Lambda JARs
+      - name: Build Lambda JAR
         run: |
-          ./gradlew clean :software:infra:aws:runtime:shadowJar :software:infra:aws:generation:shadowJar --no-build-cache
-          echo "Build completed, verifying JAR files:"
+          ./gradlew clean :software:infra:aws:mocknest:shadowJar --no-build-cache
+          echo "Build completed, verifying JAR file:"
           ls -lh build/dist/
           
-      - name: Verify JAR artifacts
+      - name: Verify JAR artifact
         run: |
-          if [ ! -f "build/dist/mocknest-runtime.jar" ]; then
-            echo "ERROR: mocknest-runtime.jar not found"
+          if [ ! -f "build/dist/mocknest-serverless.jar" ]; then
+            echo "ERROR: mocknest-serverless.jar not found"
             exit 1
           fi
-          if [ ! -f "build/dist/mocknest-generation.jar" ]; then
-            echo "ERROR: mocknest-generation.jar not found"
-            exit 1
-          fi
-          echo "✓ Runtime JAR: $(du -h build/dist/mocknest-runtime.jar | cut -f1)"
-          echo "✓ Generation JAR: $(du -h build/dist/mocknest-generation.jar | cut -f1)"
+          echo "✓ Unified JAR: $(du -h build/dist/mocknest-serverless.jar | cut -f1)"
         
       - name: Deploy with SAM
         run: |
