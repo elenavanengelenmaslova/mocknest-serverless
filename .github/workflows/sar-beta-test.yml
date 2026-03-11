@@ -25,7 +25,6 @@ permissions:
 
 env:
   SAR_PUBLISH_REGION: us-east-1  # AWS SAR requirement for public apps
-  TEST_REGIONS: us-east-1,eu-west-1,ap-southeast-1
 
 jobs:
   publish:
@@ -56,9 +55,13 @@ jobs:
           echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION"
           aws sts get-caller-identity
       
+      - name: Debug publish output
+        run: |
+          echo "Publish output application_id = [${{ needs.publish.outputs.application_id }}]"
+      
       - name: Validate application ID
         run: |
-          APP_ID="${{ needs.publish.outputs.application-id }}"
+          APP_ID="${{ needs.publish.outputs.application_id }}"
           if [ -z "$APP_ID" ]; then
             echo "❌ Application ID is empty"
             exit 1
@@ -69,14 +72,14 @@ jobs:
         run: |
           echo "Verifying application can be read..."
           aws serverlessrepo get-application \
-            --application-id "${{ needs.publish.outputs.application-id }}" \
+            --application-id "${{ needs.publish.outputs.application_id }}" \
             --region us-east-1 \
             --output json
           
       - name: Share with test accounts
         run: |
           echo "🔐 Sharing SAR application with test accounts..."
-          echo "Application ID: ${{ needs.publish.outputs.application-id }}"
+          echo "Application ID: ${{ needs.publish.outputs.application_id }}"
           
           # Parse test account IDs
           IFS=',' read -ra ACCOUNT_IDS <<< "${{ inputs.test-account-ids }}"
@@ -95,7 +98,7 @@ jobs:
           
           # Apply policy to share with all test accounts
           aws serverlessrepo put-application-policy \
-            --application-id "${{ needs.publish.outputs.application-id }}" \
+            --application-id "${{ needs.publish.outputs.application_id }}" \
             --statements Principals=[$PRINCIPALS],Actions=Deploy \
             --region us-east-1 \
             --debug
@@ -106,7 +109,7 @@ jobs:
         run: |
           echo "Reading application policy..."
           aws serverlessrepo get-application-policy \
-            --application-id "${{ needs.publish.outputs.application-id }}" \
+            --application-id "${{ needs.publish.outputs.application_id }}" \
             --region us-east-1 \
             --output json
         
@@ -116,7 +119,7 @@ jobs:
           
           # Get application details
           aws serverlessrepo get-application \
-            --application-id "${{ needs.publish.outputs.application-id }}" \
+            --application-id "${{ needs.publish.outputs.application_id }}" \
             --region us-east-1 \
             --query '{Name:Name,Version:Version.SemanticVersion,CreationTime:CreationTime}' \
             --output table
@@ -147,9 +150,13 @@ jobs:
           echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION"
           aws sts get-caller-identity
       
+      - name: Debug publish output
+        run: |
+          echo "Publish output application_id = [${{ needs.publish.outputs.application_id }}]"
+      
       - name: Validate application ID
         run: |
-          APP_ID="${{ needs.publish.outputs.application-id }}"
+          APP_ID="${{ needs.publish.outputs.application_id }}"
           if [ -z "$APP_ID" ]; then
             echo "❌ Application ID is empty"
             exit 1
@@ -163,13 +170,13 @@ jobs:
         id: deploy
         run: |
           echo "🚀 Deploying SAR application in ${{ matrix.region }}..."
-          echo "Application ID: ${{ needs.publish.outputs.application-id }}"
+          echo "Application ID: ${{ needs.publish.outputs.application_id }}"
           
           STACK_NAME="mocknest-sar-test-${{ matrix.region }}-$(echo ${{ inputs.version }} | tr '.' '-')"
           
           # Create change set from SAR
           CHANGE_SET_ID=$(aws serverlessrepo create-cloud-formation-change-set \
-            --application-id "${{ needs.publish.outputs.application-id }}" \
+            --application-id "${{ needs.publish.outputs.application_id }}" \
             --stack-name "$STACK_NAME" \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
             --parameter-overrides \
@@ -297,16 +304,16 @@ jobs:
           echo "## 🚀 SAR Beta Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**SAR Application ID:** ${{ needs.publish.outputs.application-id }}" >> $GITHUB_STEP_SUMMARY
+          echo "**SAR Application ID:** ${{ needs.publish.outputs.application_id }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Check deployment job results
           if [ "${{ needs.test-deployment.result }}" = "success" ]; then
-            echo "### ✅ Multi-Region Deployment Tests: PASSED" >> $GITHUB_STEP_SUMMARY
-            echo "All regions (us-east-1, eu-west-1, ap-southeast-1) deployed and tested successfully." >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ Private SAR Deployment Test: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "Single-region private SAR deployment test in us-east-1 completed successfully." >> $GITHUB_STEP_SUMMARY
           else
-            echo "### ❌ Multi-Region Deployment Tests: FAILED" >> $GITHUB_STEP_SUMMARY
-            echo "One or more regions failed deployment or testing. Check job logs for details." >> $GITHUB_STEP_SUMMARY
+            echo "### ❌ Private SAR Deployment Test: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "Deployment or testing failed in us-east-1. Check job logs for details." >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY

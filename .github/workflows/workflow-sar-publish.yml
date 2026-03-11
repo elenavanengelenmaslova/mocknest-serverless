@@ -31,9 +31,9 @@ on:
       AWS_ACCOUNT_ID:
         required: true
     outputs:
-      application-id:
+      application_id:
         description: 'SAR application ID'
-        value: ${{ jobs.publish.outputs.application-id }}
+        value: ${{ jobs.publish.outputs.application_id }}
 
 permissions:
   id-token: write
@@ -43,7 +43,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     outputs:
-      application-id: ${{ steps.publish.outputs.application-id }}
+      application_id: ${{ steps.publish.outputs.application_id }}
     steps:
       - uses: actions/checkout@v6
       
@@ -151,9 +151,9 @@ jobs:
           echo ""
           
           # Extract application ID - SAM publish outputs the ARN
-          APP_ID=$(grep -o 'arn:aws:serverlessrepo:[^[:space:]]*' publish-output.txt | head -1)
+          APP_ID=$(grep -o 'arn:aws:serverlessrepo:[^"]*applications/[^"]*' publish-output.txt | head -1 | tr -d '"')
           
-          echo "Extracted APP_ID: '$APP_ID'"
+          echo "Extracted APP_ID: [$APP_ID]"
           
           if [ -z "$APP_ID" ]; then
             echo "❌ ERROR: Failed to extract application ID"
@@ -162,5 +162,5 @@ jobs:
             exit 1
           fi
           
-          echo "application-id=$APP_ID" >> $GITHUB_OUTPUT
+          echo "application_id=$APP_ID" >> $GITHUB_OUTPUT
           echo "✅ Published SAR application: $APP_ID"
