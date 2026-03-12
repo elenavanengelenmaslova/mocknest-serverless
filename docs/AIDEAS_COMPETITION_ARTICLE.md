@@ -1,4 +1,7 @@
-# AIdeas: MockNest Serverless
+# AIdeas: MockNest Serverless – AI-Powered API Mocking for Cloud-Native Testing
+
+MockNest Serverless is an AWS-native API mocking platform that runs on AWS Lambda and uses Amazon Bedrock to generate realistic test mocks from API specifications and natural-language descriptions. It helps cloud-native teams test integrations even when external APIs are unavailable or difficult to control.
+
 
 ## App Category
 **Workplace Efficiency**
@@ -9,7 +12,7 @@ MockNest Serverless is an open-source AWS Serverless Application Repository appl
 
 ### What is Built Today
 
-MockNest provides a WireMock-compatible mock runtime running on AWS Lambda, with mock definitions persisted in Amazon S3. This allows mocks to remain available across Lambda cold starts while keeping the solution simple and cost-efficient within the AWS Free Tier.
+MockNest provides a WireMock[3]-compatible mock runtime running on AWS Lambda, with mock definitions persisted in Amazon S3. This allows mocks to remain available across Lambda cold starts while keeping the solution simple and cost-efficient within the AWS Free Tier.
 
 Current capabilities include:
 
@@ -77,21 +80,21 @@ The demo shows generating WireMock mocks from natural language descriptions usin
 
 ### AI Mock Generation Request
 
-![AI Mock Generation Request](images/demo-ai-request.png)
+![AI Mock Generation Request](images/demo/ai-request.png)
 *Requesting AI-generated mocks using a natural language description in Postman*
 
 We send a natural language description to MockNest's AI endpoint, asking it to generate mocks for a pet adoption API with realistic data.
 
 ### Generated WireMock Mappings
 
-![Generated WireMock Mappings](images/demo-ai-response.png)
+![Generated WireMock Mappings](images/demo/ai-response.png)
 *Amazon Nova Pro generates validated WireMock mappings with realistic pet data*
 
-MockNest uses Amazon Bedrock with Amazon Nova Pro to generate complete WireMock mappings with persistent storage enabled by default. The mappings are automatically validated, stored in Amazon S3, and remain available across Lambda cold starts. If validation fails, the AI retries until it produces correct output.
+MockNest uses Amazon Bedrock with Amazon Nova Pro to generate complete WireMock mappings with persistent storage enabled by default. The mappings are automatically validated, and if validation fails, the AI retries once (configurable) to produce correct output. Only valid mappings are included in the response.
 
 ### Application in Action
 
-![Pet Newsletter Application](images/demo-newsletter.png)
+![Pet Newsletter Application](images/demo/newsletter.png)
 *Pet adoption newsletter application using AI-generated mocks*
 
 Our application calls the MockNest endpoint instead of a real external API. It generates a newsletter email showing pets available for adoption, using the AI-generated mock data.
@@ -100,11 +103,13 @@ Our application calls the MockNest endpoint instead of a real external API. It g
 
 PLACEHOLDER YOUTUBE DEMO LINK HERE
 
+**Want to try MockNest yourself?** Get it from the AWS Serverless Application Repository[2] or deploy with SAM from GitHub[1].
+
 ## How I Built This
 
 ### Building with Kiro AI
 
-I built MockNest with Kiro[2] as a development partner. When I started with Kiro, I created a set of **steering documents** to ensure Kiro has the correct context to generate deliverables.
+I built MockNest with Kiro[4] as a development partner. When I started with Kiro, I created a set of **steering documents** to ensure Kiro has the correct context to generate deliverables.
 
 These documents provide long-lived context for the project. In MockNest they include:
 
@@ -120,7 +125,7 @@ Using this workflow, I built the serverless mock runtime with WireMock integrati
 
 ### Architecture
 
-MockNest uses a simplified clean architecture [3] adapted for serverless systems.
+MockNest uses a simplified clean architecture [5] adapted for serverless systems.
 The system is organized into three layers:
 
 ![Clean Architecture](images/CleanArchitecture.png)
@@ -288,6 +293,12 @@ Add support for mocking MCP servers and tools to help teams test AI agents and L
 The long-term goal is to evolve MockNest from a serverless mock runtime into an intelligent platform that helps teams keep their integration tests accurate as APIs and systems continue to evolve.
 
 ## References
-[1] WireMock - https://github.com/wiremock/wiremock
-[2] Kiro - https://kiro.dev/
-[3] Clean Architecture for Serverless - https://medium.com/nntech/keeping-business-logic-portable-in-serverless-functions-with-clean-architecture-bd1976276562
+[1] MockNest Serverless GitHub Repository - https://github.com/elenavanengelenmaslova/mocknest-serverless
+
+[2] MockNest Serverless on AWS SAR - [PLACEHOLDER - ADD SAR LINK]
+
+[3] WireMock - https://github.com/wiremock/wiremock
+
+[4] Kiro - https://kiro.dev/
+
+[5] Clean Architecture for Serverless - https://medium.com/nntech/keeping-business-logic-portable-in-serverless-functions-with-clean-architecture-bd1976276562
