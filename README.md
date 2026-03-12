@@ -20,8 +20,7 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 - **Persistent Mock Storage**: Mock definitions stored in Amazon S3
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
 - **AI-Assisted Mock Generation**: Intelligent mock creation from API specifications using Amazon Nova Pro
-- **AWS Free Tier Compatible**: Designed to operate within AWS Free Tier limits for typical development and testing scenarios
-- **Cost Optimized**: Architecture optimized for minimal AWS costs with planned ARM64 and SnapStart support
+- **AWS Free Tier Compatible**: Designed to operate within AWS Free Tier limits
 - **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR)
 
 ## Quick Start for SAR Users
@@ -37,7 +36,7 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 
 1. **Navigate to SAR**: Go to the [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home) in your AWS Console
 2. **Select Region**: Choose your preferred deployment region (us-east-1, eu-west-1, or ap-southeast-1 recommended)
-3. **Search**: Search for "MockNest-Serverless"
+2. **Select Region**: Choose your preferred deployment region (us-east-1 recommended for SAR deployment)
 4. **Deploy**: Click "Deploy" and configure parameters:
    - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
@@ -113,20 +112,17 @@ The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock infer
 MockNest Serverless has been thoroughly tested in the following configurations:
 
 ### Officially Supported Regions
+### Officially Supported Regions
 - **us-east-1** (N. Virginia)
-- **eu-west-1** (Ireland) 
-- **ap-southeast-1** (Singapore)
-
-### Core Runtime Compatibility
 - **Works in any AWS region** with Lambda, API Gateway, and S3 support
 - **Deployment to other regions** is possible but not officially supported
 
 ### AI Features Support
 - **Officially supported**: Amazon Nova Pro model in the three tested regions above
+### AI Features Support
+- **Officially supported**: Amazon Nova Pro model in us-east-1
 - **Other Bedrock models**: May work but are experimental and not officially supported
-- **Other regions**: AI features may work but are not officially tested
-
-### Tested WireMock Features
+- **Officially supported**: Amazon Nova Pro model in us-east-1
 The following WireMock capabilities have been validated in the serverless environment:
 - Request matching (URL, headers, body, query parameters)
 - Response templating and transformation
@@ -422,36 +418,16 @@ spring.application.name=mocknest-serverless
 
 ## Cost Information
 
-MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.amazon.com/free/) limits for typical development and testing scenarios.
+MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.amazon.com/free/) limits for typical development and testing scenarios. The serverless, pay-as-you-go architecture means you only pay for what you use.
 
-### AWS Services Used
+**Core Services**: AWS Lambda, API Gateway, S3, SQS, CloudWatch, and IAM  
+**AI Services**: Amazon Bedrock (pay-per-use when generating mocks)
 
-**Core Services (Always Used)**:
-- **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)** - Serverless compute for mock runtime (2 functions)
-- **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)** - HTTP API endpoints with API key authentication
-- **[Amazon S3](https://aws.amazon.com/s3/pricing/)** - Mock storage and response files
-- **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)** - Dead Letter Queue for failed invocations
-- **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)** - Application logging (30-day retention)
-- **[AWS IAM](https://aws.amazon.com/iam/pricing/)** - Access control (free service)
+Most development and testing scenarios stay within free tier limits, resulting in $0 monthly cost for core functionality.
 
-**AI Services (Optional)**:
-- **[Amazon Bedrock](https://aws.amazon.com/bedrock/pricing/)** - AI-powered mock generation (pay-per-use only when calling AI endpoints)
-
-### Free Tier Alignment
-
-MockNest's architecture maximizes AWS Free Tier usage:
-- **Lambda**: 1M requests/month + 400,000 GB-seconds compute
-- **API Gateway**: 1M API calls/month
-- **S3**: 5GB storage + 20,000 GET + 2,000 PUT requests/month
-- **SQS**: 1M requests/month (minimal usage - only on failures)
-- **CloudWatch**: 5GB log ingestion/month
-
-**Typical development and testing scenarios stay well within these free tier limits.**
-
-For detailed cost analysis, optimization tips, and usage scenarios, see our comprehensive [Cost Guide](docs/COST.md).
+For detailed cost analysis, service breakdowns, and optimization tips, see our comprehensive [Cost Guide](docs/COST.md).
 
 ## Troubleshooting
-
 ### Common Issues
 
 1. **Region Mismatch**: Ensure all AWS resources are in the same region

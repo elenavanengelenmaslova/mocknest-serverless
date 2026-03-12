@@ -8,34 +8,34 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 
 **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)**
 - **2 Lambda functions**: Runtime (mock serving) and Generation (AI features)
-- **Memory**: 1024 MB default (configurable 512-10240 MB)
-- **Timeout**: 120 seconds default (configurable 3-900 seconds)
+- **Memory**: [1024 MB default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html) (configurable 512-10240 MB)
+- **Timeout**: [120 seconds default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-timeout.html) (configurable 3-900 seconds)
 - **Concurrency**: Runtime (10), Generation (5) - optimized for cost efficiency
-- **Architecture**: x86_64 (ARM64 optimization planned)
+- **Architecture**: [x86_64 default](https://docs.aws.amazon.com/lambda/latest/dg/foundation-arch.html) (ARM64 and SnapStart optimization planned)
 - **Java Runtime**: Java 25 with JVM optimizations for cold start performance
 
 **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)**
-- **Type**: REST API (not HTTP API) for full WireMock compatibility
+- **Type**: [REST API default](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-basic-concept.html) (not HTTP API) for full WireMock compatibility
 - **Authentication**: API key-based access control
-- **Throttling**: 100 requests/second, 200 burst limit
-- **Caching**: Disabled (to minimize costs)
+- **Throttling**: [100 requests/second, 200 burst limit default](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html)
+- **Caching**: [Disabled default](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-caching.html) (to minimize costs)
 
 **[Amazon S3](https://aws.amazon.com/s3/pricing/)**
 - **Storage**: Mock definitions, response payloads, and metadata
-- **Versioning**: Enabled with 30-day lifecycle for old versions
+- **Versioning**: [Enabled default](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html) with [30-day lifecycle for old versions](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-configuration-examples.html)
 - **Access**: Private bucket with lifecycle rules for cleanup
-- **Encryption**: Server-side encryption at rest (included)
+- **Encryption**: [Server-side encryption at rest default](https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-encryption-faq.html) (included)
 
 **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**
 - **Dead Letter Queue**: For failed Lambda invocations
-- **Retention**: 14 days message retention
+- **Retention**: [14 days message retention default](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html)
 - **Usage**: Only receives messages on Lambda failures (minimal cost)
 
 **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)**
 - **Log Groups**: 2 log groups (Runtime and Generation functions)
-- **Retention**: 30 days log retention
-- **Metrics**: Basic Lambda and API Gateway metrics (included)
-- **Alarms**: None configured (to minimize costs)
+- **Retention**: [7 days log retention default](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html)
+- **Metrics**: [Basic Lambda and API Gateway metrics default](https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics.html) (included)
+- **Alarms**: [None configured default](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html) (to minimize costs)
 
 **[AWS IAM](https://aws.amazon.com/iam/pricing/)**
 - **Cost**: Free service
@@ -44,8 +44,8 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 ### AI Services
 
 **[Amazon Bedrock](https://aws.amazon.com/bedrock/pricing/)**
-- **Model**: Amazon Nova Pro (officially supported)
-- **Usage**: Pay-per-request only when calling AI endpoints
+- **Model**: [Amazon Nova Pro](https://aws.amazon.com/bedrock/nova/) (officially supported)
+- **Pricing**: [Pay-per-request pricing](https://aws.amazon.com/bedrock/pricing/) only when calling AI endpoints
 - **No base cost**: Only charged when generating mocks
 - **Inference Profiles**: Supports cross-region and geo-specific profiles
 
@@ -62,42 +62,26 @@ MockNest Serverless is specifically architected to maximize [AWS Free Tier](http
 - **[Amazon S3 Free Tier](https://aws.amazon.com/s3/pricing/)**: 5 GB storage, 20,000 GET requests, and 2,000 PUT requests monthly
 - **[Amazon SQS Free Tier](https://aws.amazon.com/sqs/pricing/)**: 1M requests monthly
 - **[Amazon CloudWatch Free Tier](https://aws.amazon.com/cloudwatch/pricing/)**: 5 GB log ingestion monthly
-- **Amazon Bedrock**: Pay-per-use only when calling AI endpoints (no base cost)
+- **[Amazon Bedrock Free Tier](https://aws.amazon.com/bedrock/pricing/)**: Pay-per-use only when calling AI endpoints (no base cost)
 
 **Typical Development Usage**: Most development and testing scenarios stay well within these free tier limits.
 
 ## Cost Optimization Features
 
-### Architecture Optimizations
+MockNest includes several built-in cost optimization features:
 
-**Lambda Efficiency**
-- **Reserved concurrency**: Limits to prevent unexpected scaling costs
-- **Memory optimization**: 1024 MB balances performance and cost
-- **JVM tuning**: `-XX:+TieredCompilation -XX:TieredStopAtLevel=1` for faster cold starts
-- **Planned**: ARM64 architecture for 20% cost reduction
-- **Planned**: SnapStart for Java to reduce cold start latency
+- **Reserved concurrency limits** prevent unexpected Lambda scaling costs
+- **Lifecycle policies** automatically clean up old S3 object versions  
+- **JVM optimizations** reduce Lambda cold start costs
+- **Response externalization** keeps payloads in S3, not Lambda memory
+- **ARM64 and SnapStart optimizations** for improved performance and cost efficiency
 
-**Storage Efficiency**
-- **Response externalization**: Large payloads stored in S3, not Lambda memory
-- **Lifecycle policies**: Automatic cleanup of old S3 object versions
-- **Compression**: Efficient JSON storage for mock definitions
+## Cost Monitoring
 
-**API Gateway Efficiency**
-- **No caching**: Avoids caching charges for development/testing use cases
-- **Throttling limits**: Prevents runaway costs from excessive requests
-- **Regional deployment**: Avoids cross-region data transfer charges
-
-### Cost Monitoring
-
-**Built-in Cost Controls**
-- **Concurrency limits**: Prevents unexpected Lambda scaling
-- **Timeout limits**: Prevents long-running expensive operations
-- **DLQ retention**: 14-day limit prevents indefinite message storage
-
-**Monitoring Recommendations**
-- **AWS Cost Explorer**: Track actual usage against free tier limits
-- **CloudWatch billing alarms**: Set up alerts for unexpected costs
-- **Resource tagging**: All resources tagged with `Application: MockNest-Serverless`
+**Recommended Tools**:
+- **[AWS Cost Explorer](https://aws.amazon.com/aws-cost-management/aws-cost-explorer/)** - Track actual usage against free tier limits
+- **[CloudWatch billing alarms](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/monitor_estimated_charges_with_cloudwatch.html)** - Set up alerts for unexpected costs
+- **Resource tagging** - All resources tagged with `Application: MockNest-Serverless`
 
 ## Typical Cost Scenarios
 
@@ -129,47 +113,13 @@ MockNest Serverless is specifically architected to maximize [AWS Free Tier](http
 
 ### Production-Scale Testing (exceeding free tier)
 
-**Monthly Usage Estimate**:
-- Costs scale predictably with usage beyond free tier limits
-- Transparent AWS billing with detailed cost breakdown
+## Usage Scenarios
 
-**Total**: Minimal incremental costs, typically under $5/month
+**Typical Development**: Most development and testing scenarios stay within AWS Free Tier limits, resulting in $0 monthly cost.
 
-## Cost Optimization Tips
+**Heavy AI Usage**: Core infrastructure remains free, with costs only for Amazon Bedrock when generating mocks.
 
-### Maximize Free Tier Usage
-
-1. **Monitor usage**: Use AWS Cost Explorer to track free tier consumption
-2. **Clean up regularly**: Remove unused mock definitions to minimize S3 storage
-3. **Batch AI operations**: Generate multiple mocks in single requests
-4. **Use namespaces**: Organize mocks efficiently to reduce storage overhead
-
-### Beyond Free Tier
-
-1. **Right-size Lambda memory**: Reduce memory if your mocks are simple
-2. **Optimize mock storage**: Use compressed JSON, avoid large embedded payloads
-3. **Monitor concurrency**: Adjust reserved concurrency based on actual needs
-4. **Regional deployment**: Deploy in region closest to your team
-
-### AI Cost Management
-
-1. **Strategic AI usage**: Use AI for complex specifications, manual creation for simple mocks
-2. **Batch generation**: Generate multiple related mocks in single requests
-3. **Specification quality**: Well-structured OpenAPI specs generate better results with fewer retries
-4. **Model selection**: Amazon Nova Pro provides best balance of quality and cost
-
-## Regional Cost Considerations
-
-**Supported Regions**:
-- **us-east-1** (N. Virginia) - Lowest costs, all services available
-- **eu-west-1** (Ireland) - EU data residency, slightly higher costs
-- **ap-southeast-1** (Singapore) - APAC access, moderate costs
-
-**Cost Variations**:
-- **Lambda**: ~10-15% variation between regions
-- **API Gateway**: Minimal regional variation
-- **S3**: ~5-10% variation between regions
-- **Bedrock**: Model availability and pricing varies by region
+**Production-Scale Testing**: Costs scale predictably with usage beyond free tier limits, typically under $5/month.
 
 ## Getting Help with Costs
 
@@ -180,20 +130,3 @@ MockNest Serverless is specifically architected to maximize [AWS Free Tier](http
 
 **MockNest Resources**:
 - [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues) - Report cost-related questions
-- [Architecture Documentation](.kiro/steering/02-architecture.md) - Technical cost optimization details
-
-## Planned Cost Optimizations
-
-**Short Term**:
-- **ARM64 Lambda**: 20% cost reduction for compute
-- **SnapStart**: Reduce cold start costs and improve performance
-- **S3 Intelligent Tiering**: Automatic cost optimization for infrequently accessed mocks
-
-**Medium Term**:
-- **On-demand mapping loading**: Reduce Lambda memory usage for large mock sets
-- **Compression improvements**: Better storage efficiency for mock definitions
-- **Regional optimization**: Automatic region selection for cost optimization
-
-**Long Term**:
-- **Usage analytics**: Built-in cost tracking and optimization recommendations
-- **Tiered deployment options**: Different configurations for development vs. production use cases
