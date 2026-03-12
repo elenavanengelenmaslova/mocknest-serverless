@@ -71,8 +71,32 @@ MockNest addresses these challenges with a serverless mock runtime and AI-assist
 
 MockNest reduces integration testing friction today while laying the foundation for automated mock maintenance as systems evolve.
 
-## Demo time!
+## Demo
+
 The demo shows generating WireMock mocks from natural language descriptions using Amazon Bedrock, validating the generated mappings, and using them in a pet adoption newsletter application that sends emails with currently available pets.
+
+### AI Mock Generation Request
+
+![AI Mock Generation Request](images/demo-ai-request.png)
+*Requesting AI-generated mocks using a natural language description in Postman*
+
+We send a natural language description to MockNest's AI endpoint, asking it to generate mocks for a pet adoption API with realistic data.
+
+### Generated WireMock Mappings
+
+![Generated WireMock Mappings](images/demo-ai-response.png)
+*Amazon Nova Pro generates validated WireMock mappings with realistic pet data*
+
+MockNest uses Amazon Bedrock with Amazon Nova Pro to generate complete WireMock mappings. The mappings are automatically validated, and if validation fails, the AI retries until it produces correct output.
+
+### Application in Action
+
+![Pet Newsletter Application](images/demo-newsletter.png)
+*Pet adoption newsletter application using AI-generated mocks*
+
+Our application calls the MockNest endpoint instead of a real external API. It generates a newsletter email showing pets available for adoption, using the AI-generated mock data.
+
+### Full Demo Video
 
 PLACEHOLDER YOUTUBE DEMO LINK HERE
 
