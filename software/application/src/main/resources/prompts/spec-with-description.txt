@@ -14,6 +14,7 @@ Enhancement Description: {{DESCRIPTION}}
 Requirements:
 - Generate WireMock mappings that follow the API specification structure
 - IMPORTANT: All mock URLs must be prefixed with /{{NAMESPACE}} (e.g., if the spec has /users, the mock URL should be /{{NAMESPACE}}/users)
+- CRITICAL: Every mapping MUST include `"persistent": true` to ensure mocks survive Lambda cold starts and are stored in S3
 - Enhance the mappings based on the description (add error cases, specific data, behaviors, etc.)
 - Include realistic response data that matches both the spec and description
 - Handle appropriate HTTP status codes
@@ -41,5 +42,5 @@ Requirements:
     - Use `priority` to ensure deterministic selection.
   - Never output multiple mappings that would all match the same request unless they differ by `priority` and are intended as fallback.
 
-- Return only a JSON array of WireMock mappings. Each mapping should be a complete, valid WireMock JSON object.
+- Return only a JSON array of WireMock mappings. Each mapping should be a complete, valid WireMock JSON object with `"persistent": true`.
 - Do not include any explanatory text, only the JSON array.
