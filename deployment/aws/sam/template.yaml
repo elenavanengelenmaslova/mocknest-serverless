@@ -211,7 +211,6 @@ Resources:
     Properties:
       Name: !Sub "${AWS::StackName}-api"
       StageName: !Ref DeploymentName
-      TracingEnabled: true
       OpenApiVersion: '3.0.1'
       Tags:
         Application: MockNest-Serverless
