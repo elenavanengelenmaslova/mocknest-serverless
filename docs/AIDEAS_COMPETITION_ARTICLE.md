@@ -118,7 +118,7 @@ These documents provide long-lived context for the project. In MockNest they inc
 
 One of the main features I used is Kiro's structured workflow where changes are planned using **requirements, design, and tasks** before code generation begins. Each feature, bugfix or refactoring includes checkpoints to verify that acceptance criteria are met.
 
-Using this workflow, I built the serverless mock runtime with WireMock integration, S3 persistence layer, and the AI-powered mock generation interface that produces validated, persistent WireMock mappings from OpenAPI specifications and natural-language descriptions. MockNest uses Kotlin for its multiplatform capabilities and first-class AWS SDK support, with the Koog framework providing Kotlin-native AI agent orchestration for Amazon Bedrock integration.
+Using this workflow, I built the serverless mock runtime with WireMock integration, S3 persistence layer, and the AI-powered mock generation interface that produces validated, persistent WireMock mappings from OpenAPI specifications and natural-language descriptions. MockNest uses Kotlin[6] for its multiplatform capabilities and first-class AWS SDK support[7], with the Koog framework[8] providing Kotlin-native AI agent orchestration for Amazon Bedrock integration.
 
 ## Architecture
 
@@ -202,7 +202,7 @@ If validation fails, the errors are sent back into the generation workflow so th
 To maintain reliability and code quality:
 
 - **80% code coverage** is enforced using Kover
-- **Integration tests** run with TestContainers and LocalStack
+- **Integration tests** run with TestContainers and LocalStack[9]
 - **GitHub Actions** provide automated build and validation pipelines
 
 Each milestone was implemented incrementally and validated before moving to the next.
@@ -243,7 +243,7 @@ This helped keep business logic independent from AWS-specific code and made the 
 
 Bug fixing and refactoring worked well because Kiro encourages a test-first approach. When fixing issues Kiro would first reproduce the bug with a test or add tests before refactoring to ensure behavior stayed correct.
 
-Integration tests using TestContainers and LocalStack proved extremely valuable. They validate real interactions with AWS services such as S3 and Lambda and often expose issues that unit tests alone would not detect.
+Integration tests using TestContainers and LocalStack[9] proved extremely valuable. They validate real interactions with AWS services such as S3 and Lambda and often expose issues that unit tests alone would not detect.
 
 Testing the system against real service behavior increased confidence that the runtime would behave correctly once deployed.
 
@@ -299,3 +299,11 @@ The long-term goal is to evolve MockNest from a serverless mock runtime into an 
 [4] Kiro - https://kiro.dev/
 
 [5] Clean Architecture for Serverless - https://medium.com/nntech/keeping-business-logic-portable-in-serverless-functions-with-clean-architecture-bd1976276562
+
+[6] Kotlin - https://kotlinlang.org/
+
+[7] AWS SDK for Kotlin - https://aws.amazon.com/sdk-for-kotlin/
+
+[8] Koog - https://github.com/JetBrains/koog
+
+[9] LocalStack - https://www.localstack.cloud/
