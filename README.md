@@ -429,10 +429,28 @@ spring.application.name=mocknest-serverless
 
 ### Logs
 
-View Lambda logs in CloudWatch:
+MockNest Serverless provides comprehensive logging through CloudWatch:
+
+**Log Groups Created:**
+- `/aws/lambda/{stack-name}-runtime` - WireMock runtime and mock serving
+- `/aws/lambda/{stack-name}-generation` - AI-powered mock generation
+- **Retention**: 30 days (configurable in SAM template)
+
+**View logs via SAM CLI:**
 ```bash
-sam logs -n MockNestFunction --stack-name mocknest-serverless --tail
+# Runtime function logs
+sam logs -n MockNestRuntimeFunction --stack-name mocknest-serverless --tail
+
+# Generation function logs  
+sam logs -n MockNestGenerationFunction --stack-name mocknest-serverless --tail
 ```
+
+**View logs in AWS Console:**
+1. Go to CloudWatch → Log groups
+2. Find `/aws/lambda/mocknest-serverless-*` log groups
+3. View recent log streams
+
+**Note**: API Gateway access logs are disabled to simplify deployment. Lambda logs provide comprehensive application monitoring.
 
 ## Contributing
 

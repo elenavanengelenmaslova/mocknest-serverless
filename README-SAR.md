@@ -379,12 +379,24 @@ curl -X POST "$MOCKNEST_URL/__admin/mappings" \
 
 ### Viewing Logs
 
-To troubleshoot issues, view CloudWatch logs:
+MockNest Serverless automatically creates CloudWatch log groups for monitoring and troubleshooting:
+
+**Log Configuration:**
+- **Runtime logs**: `/aws/lambda/{stack-name}-runtime` - WireMock runtime and mock serving
+- **Generation logs**: `/aws/lambda/{stack-name}-generation` - AI-powered mock generation  
+- **Retention**: 30 days (automatically configured)
+- **Content**: Application logs, error traces, performance metrics
+
+**To view logs:**
 
 1. Go to **CloudWatch** in your AWS Console
 2. Click **Log groups**
-3. Find the log group for your MockNest Lambda function (usually `/aws/lambda/mocknest-serverless-*`)
-4. View recent log streams for error details
+3. Find the log groups for your MockNest functions:
+   - `/aws/lambda/serverlessrepo-MockNest-Serverless-*-runtime`
+   - `/aws/lambda/serverlessrepo-MockNest-Serverless-*-generation`
+4. View recent log streams for error details and application behavior
+
+**Note**: API Gateway access logs are disabled to avoid requiring additional AWS account setup. Lambda function logs provide comprehensive application-level monitoring.
 
 ### Getting Help
 
