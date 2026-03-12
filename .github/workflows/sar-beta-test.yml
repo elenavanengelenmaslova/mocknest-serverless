@@ -1,15 +1,18 @@
-name: SAR Beta Test (Private)
+name: SAR Publish
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Beta version for private SAR (e.g., 0.2.0-beta.1)'
+        description: 'Version for SAR (e.g., 1.0.0 or 0.2.0-beta.1)'
         required: true
         type: string
-      test-account-ids:
-        description: 'Comma-separated test AWS account IDs for private sharing'
-        required: true
+      aws-region:
+        description: 'AWS region for SAR publishing'
+        required: false
+        default: 'us-east-1'
         type: string
       github-actions-role-name:
         description: 'GitHub Actions OIDC role name'
@@ -20,36 +23,32 @@ on:
 permissions:
   id-token: write
   contents: read
-  issues: write
-  pull-requests: write
-
-env:
-  SAR_PUBLISH_REGION: us-east-1  # AWS SAR requirement for public apps
 
 jobs:
   publish:
     uses: ./.github/workflows/workflow-sar-publish.yml
     with:
-      version: ${{ inputs.version }}
-      aws-region: us-east-1
-      s3-prefix: 'private-sar/${{ inputs.version }}'
+      version: ${{ inputs.version || github.event.release.tag_name }}
+      aws-region: ${{ inputs.aws-region || 'us-east-1' }}
       github-actions-role-name: ${{ inputs.github-actions-role-name }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   
-  verify:
+  summary:
     needs: publish
     runs-on: ubuntu-latest
     steps:
-      - name: Summary
+      - name: Create deployment summary
         run: |
-          echo "## 🚀 SAR Private Beta Published" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 SAR Application Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Region:** us-east-1" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ inputs.version || github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Region:** ${{ inputs.aws-region || 'us-east-1' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Application ID:** ${{ needs.publish.outputs.application_id }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ✅ Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. Go to AWS Console → Serverless Application Repository" >> $GITHUB_STEP_SUMMARY
-          echo "2. Find 'MockNest-Serverless' in Available Applications → Private" >> $GITHUB_STEP_SUMMARY
-          echo "3. Click Deploy and test manually" >> $GITHUB_STEP_SUMMARY
-          echo "4. If tests pass, run 'SAR Release (Public)' workflow" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home)" >> $GITHUB_STEP_SUMMARY
+          echo "2. Find 'MockNest-Serverless' in your applications" >> $GITHUB_STEP_SUMMARY
+          echo "3. Test deployment in your account" >> $GITHUB_STEP_SUMMARY
+          echo "4. When ready, click 'Make public' to allow others to deploy it" >> $GITHUB_STEP_SUMMARY
+          echo "5. Repeat for other regions if needed" >> $GITHUB_STEP_SUMMARY
