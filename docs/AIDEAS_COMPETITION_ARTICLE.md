@@ -292,7 +292,7 @@ The long-term goal is to evolve MockNest from a serverless mock runtime into an 
 # References
 [1] MockNest Serverless GitHub Repository - https://github.com/elenavanengelenmaslova/mocknest-serverless
 
-[2] MockNest Serverless on AWS SAR - [PLACEHOLDER - ADD SAR LINK]
+[2] MockNest Serverless on AWS SAR - https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless
 
 [3] WireMock - https://github.com/wiremock/wiremock
 

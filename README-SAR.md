@@ -6,11 +6,13 @@ MockNest Serverless is a serverless WireMock runtime that enables realistic inte
 
 ## Architecture Overview
 
-<div style="text-align: center;">
-  <img src="docs/images/SolutionDesign.png" alt="MockNest Serverless Architecture" width="600">
-</div>
-
 MockNest Serverless runs entirely within your AWS account using Lambda functions for compute, API Gateway for HTTP routing, and S3 for persistent mock storage. AI features leverage Amazon Bedrock for intelligent mock generation when called.
+
+**Key Components:**
+- **AWS Lambda** - Serverless compute for WireMock runtime
+- **Amazon API Gateway** - HTTP routing and API key authentication
+- **Amazon S3** - Persistent storage for mock definitions
+- **Amazon Bedrock** - AI-powered mock generation (optional)
 
 ### Data Persistence and Scaling Behavior
 
