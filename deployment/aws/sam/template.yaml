@@ -112,6 +112,8 @@ Parameters:
 Globals:
   Function:
     Runtime: java25
+    Architectures:
+      - arm64
     MemorySize: !Ref LambdaMemorySize
     Timeout: !Ref LambdaTimeout
     Environment:

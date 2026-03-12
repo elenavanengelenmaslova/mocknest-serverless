@@ -11,7 +11,7 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 - **Memory**: [1024 MB default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html) (configurable 512-10240 MB)
 - **Timeout**: [120 seconds default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-timeout.html) (configurable 3-900 seconds)
 - **Concurrency**: Auto-scales within AWS account limits - designed for cost efficiency
-- **Architecture**: [x86_64 default](https://docs.aws.amazon.com/lambda/latest/dg/foundation-arch.html) (ARM64 and SnapStart optimization planned)
+- **Architecture**: [ARM64](https://docs.aws.amazon.com/lambda/latest/dg/foundation-arch.html) for 20% cost reduction (SnapStart optimization planned)
 - **Java Runtime**: Java 25 with JVM optimizations for cold start performance
 
 **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)**
@@ -74,7 +74,8 @@ MockNest includes several built-in cost optimization features:
 - **Lifecycle policies** automatically clean up old S3 object versions  
 - **JVM optimizations** reduce Lambda cold start costs
 - **Response externalization** keeps payloads in S3, not Lambda memory
-- **ARM64 and SnapStart optimizations** for improved performance and cost efficiency
+- **ARM64 architecture** provides 20% Lambda cost reduction
+- **SnapStart optimization** planned for improved performance and cost efficiency
 
 ## Cost Monitoring
 

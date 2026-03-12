@@ -56,7 +56,7 @@ MockNest Serverless offers a unique combination of capabilities that no existing
 - Ready-to-deploy serverless runtime (unlike solutions requiring custom function code)
 - Persistent mocks state without requiring always-on infrastructure
 - AI-assisted mock generation as a first-class capability
-- AWS Free Tier compatibility with cost-optimized architecture (ARM64 and SnapStart planned)
+- AWS Free Tier compatibility with cost-optimized architecture (ARM64 implemented, SnapStart planned)
 - Planned support for MCP (Model Context Protocol) mocking, positioning it as the first serverless solution for AI agent testing scenarios
 
 This positions MockNest Serverless as complementary to traditional API tooling rather than a replacement for full testing platforms, while uniquely addressing the emerging need for AI agent and MCP-based application testing.
@@ -98,7 +98,7 @@ MockNest Serverless provides significant cost advantages over competing solution
 - Reserved Lambda concurrency prevents unexpected scaling costs
 - S3 lifecycle policies automatically clean up old data
 - JVM optimizations reduce cold start costs
-- Planned ARM64 support for 20% Lambda cost reduction
+- ARM64 architecture provides 20% Lambda cost reduction
 - Planned SnapStart support for improved performance and cost efficiency
 
 **Total Cost of Ownership:**
