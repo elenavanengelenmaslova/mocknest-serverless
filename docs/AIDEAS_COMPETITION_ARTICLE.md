@@ -14,7 +14,7 @@ MockNest provides a WireMock-compatible mock runtime running on AWS Lambda, with
 Current capabilities include:
 
 - **Serverless Mock Runtime** – A WireMock-compatible API (providing familiar patterns and ecosystem integration) running on AWS Lambda with S3-backed persistence for mock definitions
-- **AI-Powered Mock Generation** – Uses Amazon Bedrock (with Amazon Nova Pro as the default model) to generate WireMock [1] mappings from OpenAPI specifications or natural-language descriptions, with automatic validation and retry on errors
+- **AI-Powered Mock Generation** – Uses Amazon Bedrock (with Amazon Nova Pro as the default model) to generate persistent WireMock mappings from OpenAPI specifications or natural-language descriptions, with automatic validation and retry on errors. 
 - **Protocol Support** – REST, GraphQL over HTTP, and SOAP APIs with synchronous request-response patterns
 - **AWS-Native Deployment** – Deploy using AWS SAM templates or one-click installation from the AWS Serverless Application Repository
 
@@ -87,7 +87,7 @@ We send a natural language description to MockNest's AI endpoint, asking it to g
 ![Generated WireMock Mappings](images/demo-ai-response.png)
 *Amazon Nova Pro generates validated WireMock mappings with realistic pet data*
 
-MockNest uses Amazon Bedrock with Amazon Nova Pro to generate complete WireMock mappings. The mappings are automatically validated, and if validation fails, the AI retries until it produces correct output.
+MockNest uses Amazon Bedrock with Amazon Nova Pro to generate complete WireMock mappings with persistent storage enabled by default. The mappings are automatically validated, stored in Amazon S3, and remain available across Lambda cold starts. If validation fails, the AI retries until it produces correct output.
 
 ### Application in Action
 
@@ -116,7 +116,7 @@ These documents provide long-lived context for the project. In MockNest they inc
 
 One of the main features I used is Kiro's structured workflow where changes are planned using **requirements, design, and tasks** before code generation begins. Each feature, bugfix or refactoring includes checkpoints to verify that acceptance criteria are met.
 
-Using this workflow, I built the serverless mock runtime with WireMock integration, S3 persistence layer, and the AI-powered mock generation interface that produces validated WireMock mappings from OpenAPI specifications and natural-language descriptions.
+Using this workflow, I built the serverless mock runtime with WireMock integration, S3 persistence layer, and the AI-powered mock generation interface that produces validated, persistent WireMock mappings from OpenAPI specifications and natural-language descriptions.
 
 ### Architecture
 
@@ -165,7 +165,16 @@ For the AWS Serverless Application Repository publication, the SAM templates fol
 
 ### Current Limitations
 
-The current release is optimized for integration testing with moderate mock catalogs. It scales to a maximum concurrency of 1, which keeps the solution simple and cost-efficient. Future releases will add configurable scaling options and performance optimizations for larger workloads.
+The current release is optimized for integration testing with moderate mock catalogs and includes the following architectural considerations:
+
+**Scaling and Concurrency**
+The runtime is designed to comply with AWS Free Tier terms of service using API Gateway throttling for cost control. This keeps the solution simple and cost-efficient for typical integration testing scenarios.
+
+**Request Data Persistence**
+Mock definitions and response files are fully persistent (stored in Amazon S3), ensuring mocks remain available across Lambda cold starts and deployments. However, request logging data (used for debugging and analysis) is currently stored in-memory and only available during the current Lambda instance lifecycle.
+
+**Planned Enhancements**
+Future releases will address the in-memory limitation by implementing shared cache storage for request data, enabling persistent traffic analysis and enhanced AI-powered mock insights across all Lambda instances. This will unlock advanced capabilities like comprehensive coverage analysis and intelligent mock evolution based on real usage patterns.
 
 ### Key Development Milestones
 

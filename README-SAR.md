@@ -1,5 +1,7 @@
 # MockNest Serverless
 
+**⚠️ EXPERIMENTAL RELEASE** - This is an early release of MockNest Serverless. We welcome feedback and bug reports via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
+
 MockNest Serverless is a serverless WireMock runtime that enables realistic integration testing without relying on live external services. Deploy it directly into your AWS account for secure, cost-effective API mocking.
 
 ## Architecture Overview
@@ -9,6 +11,22 @@ MockNest Serverless is a serverless WireMock runtime that enables realistic inte
 </div>
 
 MockNest Serverless runs entirely within your AWS account using Lambda functions for compute, API Gateway for HTTP routing, and S3 for persistent mock storage. AI features leverage Amazon Bedrock for intelligent mock generation when called.
+
+### Data Persistence and Scaling Behavior
+
+**Persistent Data (Survives Lambda Scaling)**:
+- **Mock definitions**: Stored in Amazon S3, available across all Lambda instances
+- **Response files**: Stored in Amazon S3, loaded on-demand  
+- **Configuration**: Fully persistent and consistent
+
+**Transient Data (Current Lambda Instance Only)**:
+- **Request logs**: Used for debugging and analysis, reset on Lambda cold starts
+- **Near-miss analysis**: Available during current instance lifecycle only
+- **Unmatched request tracking**: Reset when Lambda scales
+
+**Eventual Consistency**: Mock mappings work with eventual consistency since they're S3-backed. When you create or update mocks, they're immediately available and persist across Lambda scaling events. Request logging APIs are designed for development and debugging scenarios where temporary data loss is acceptable.
+
+**API Gateway Throttling**: Configured with BurstLimit: 1 to prevent Lambda scaling (preserving in-memory request data) while allowing 100 requests/second sequential throughput for practical testing performance.
 
 ## Deployment Options
 
@@ -411,7 +429,7 @@ MockNest Serverless is designed to run within [AWS Free Tier](https://aws.amazon
 **Core Services**: AWS Lambda, API Gateway, S3, SQS, CloudWatch, and IAM  
 **AI Services**: Amazon Bedrock (pay-per-use when generating mocks)
 
-Most development and testing scenarios stay within free tier limits, resulting in $0 monthly cost for core functionality. The architecture includes cost optimization features like reserved concurrency limits, lifecycle policies, and lambda optimizations.
+Most development and testing scenarios stay within free tier limits, resulting in $0 monthly cost for core functionality. The architecture is designed to comply with AWS Free Tier terms of service, with lifecycle policies and lambda optimizations.
 
 For detailed cost analysis, service breakdowns, and optimization tips, see the [Cost Guide](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/COST.md).
 
@@ -447,3 +465,14 @@ MockNest follows AWS security best practices with least-privilege IAM permission
 - All data stays within your selected AWS region
 
 For security questions or to report security issues, please contact us through [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues) with the "security" label.
+
+## Roadmap
+
+### Planned Enhancements
+
+**Persistent Request Analytics**: We're planning to implement shared cache storage (Amazon ElastiCache or DynamoDB) for request logging data. This will enable comprehensive traffic analysis across all Lambda instances, unlocking advanced AI-powered mock insights including:
+- Cross-instance coverage analysis and mock optimization recommendations
+- Persistent near-miss tracking for better debugging capabilities
+- Enhanced AI-driven mock evolution based on real usage patterns
+
+This enhancement will address the current limitation where request data is only available during the current Lambda instance lifecycle, providing a foundation for intelligent mock management that learns from real API usage patterns.

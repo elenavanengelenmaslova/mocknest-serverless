@@ -5,7 +5,7 @@ Description: MockNest Serverless - AWS-native serverless mock runtime
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: MockNest-Serverless
-    Description: AWS-native serverless mock runtime with WireMock, S3 persistence, AI-powered generation via Bedrock, and support for REST, SOAP, and GraphQL APIs.
+    Description: "[EXPERIMENTAL] AWS-native serverless mock runtime with WireMock, S3 persistence, AI-powered generation via Bedrock, and support for REST, SOAP, and GraphQL APIs. Early release - feedback welcome!"
     Author: Vintik
     SemanticVersion: ${version}
     LicenseUrl: ../../../LICENSE
@@ -14,6 +14,7 @@ Metadata:
     SourceCodeUrl: https://github.com/elenavanengelenmaslova/mocknest-serverless
     Labels:
       - mock
+      - experimental
       - testing
       - wiremock
       - serverless
@@ -238,8 +239,8 @@ Resources:
         - ApiId: !Ref MockNestApi
           Stage: !Ref DeploymentName
       Throttle:
-        BurstLimit: 200
-        RateLimit: 100
+        BurstLimit: 1    # Prevent Lambda scaling to preserve in-memory data
+        RateLimit: 100   # Allow 100 requests/second sequential - mocks are very fast
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -260,7 +261,6 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
-      ReservedConcurrentExecutions: 10
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
@@ -300,7 +300,6 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
-      ReservedConcurrentExecutions: 5
       Timeout: 300
       Environment:
         Variables:
