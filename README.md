@@ -20,7 +20,8 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 - **Persistent Mock Storage**: Mock definitions stored in Amazon S3
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
 - **AI-Assisted Mock Generation**: Intelligent mock creation from API specifications using Amazon Nova Pro
-- **AWS Free Tier Compatible**: Designed to operate within AWS Free Tier limits
+- **AWS Free Tier Compatible**: Designed to operate within AWS Free Tier limits for typical development and testing scenarios
+- **Cost Optimized**: Architecture optimized for minimal AWS costs with planned ARM64 and SnapStart support
 - **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR)
 
 ## Quick Start for SAR Users
@@ -418,6 +419,36 @@ storage.bucket.name=${MOCKNEST_S3_BUCKET_NAME:mocknest-serverless-storage}
 # Application Configuration
 spring.application.name=mocknest-serverless
 ```
+
+## Cost Information
+
+MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.amazon.com/free/) limits for typical development and testing scenarios.
+
+### AWS Services Used
+
+**Core Services (Always Used)**:
+- **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)** - Serverless compute for mock runtime (2 functions)
+- **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)** - HTTP API endpoints with API key authentication
+- **[Amazon S3](https://aws.amazon.com/s3/pricing/)** - Mock storage and response files
+- **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)** - Dead Letter Queue for failed invocations
+- **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)** - Application logging (30-day retention)
+- **[AWS IAM](https://aws.amazon.com/iam/pricing/)** - Access control (free service)
+
+**AI Services (Optional)**:
+- **[Amazon Bedrock](https://aws.amazon.com/bedrock/pricing/)** - AI-powered mock generation (pay-per-use only when calling AI endpoints)
+
+### Free Tier Alignment
+
+MockNest's architecture maximizes AWS Free Tier usage:
+- **Lambda**: 1M requests/month + 400,000 GB-seconds compute
+- **API Gateway**: 1M API calls/month
+- **S3**: 5GB storage + 20,000 GET + 2,000 PUT requests/month
+- **SQS**: 1M requests/month (minimal usage - only on failures)
+- **CloudWatch**: 5GB log ingestion/month
+
+**Typical development and testing scenarios stay well within these free tier limits.**
+
+For detailed cost analysis, optimization tips, and usage scenarios, see our comprehensive [Cost Guide](docs/COST.md).
 
 ## Troubleshooting
 

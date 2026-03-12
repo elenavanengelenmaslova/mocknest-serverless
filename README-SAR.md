@@ -406,41 +406,14 @@ MockNest Serverless automatically creates CloudWatch log groups for monitoring a
 
 ## Cost
 
-MockNest Serverless is designed to run within [AWS Free Tier](https://aws.amazon.com/free/) limits for typical development and testing scenarios. You pay only for the AWS resources you use in your own account.
+MockNest Serverless is designed to run within [AWS Free Tier](https://aws.amazon.com/free/) limits for typical development and testing scenarios. The serverless, pay-as-you-go architecture means you only pay for the AWS resources you use in your own account.
 
-### AWS Service Costs
+**Core Services**: AWS Lambda, API Gateway, S3, SQS, CloudWatch, and IAM  
+**AI Services**: Amazon Bedrock (pay-per-use when generating mocks)
 
-MockNest uses these AWS services - see current pricing at the official AWS pricing pages:
+Most development and testing scenarios stay within free tier limits, resulting in $0 monthly cost for core functionality. The architecture includes cost optimization features like reserved concurrency limits, lifecycle policies, and lambda optimizations.
 
-**Core Services (Always Used)**:
-- **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)** - Serverless compute for mock runtime
-- **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)** - HTTP API endpoints  
-- **[Amazon S3](https://aws.amazon.com/s3/pricing/)** - Mock storage and response files
-
-**AI Services**:
-- **[Amazon Bedrock](https://aws.amazon.com/bedrock/pricing/)** - AI-powered mock generation (you only pay when calling AI endpoints)
-
-### Free Tier Alignment
-
-MockNest Serverless is specifically designed to operate within AWS Free Tier limits:
-
-**AWS Free Tier Includes**:
-- **Lambda**: 1M requests/month + 400,000 GB-seconds compute
-- **API Gateway**: 1M API calls/month  
-- **S3**: 5GB storage + 20,000 GET requests + 2,000 PUT requests/month
-- **Bedrock**: Pay-per-use only when calling AI endpoints (no base cost)
-
-**Typical Development Usage**: Most development and testing scenarios stay well within these free tier limits.
-
-### Cost Optimization Tips
-
-1. **Leverage Free Tier**: MockNest's architecture maximizes free tier usage for core functionality
-2. **Clean Up Unused Mocks**: Regularly remove old mock definitions to minimize S3 storage
-3. **Monitor Usage**: Use [AWS Cost Explorer](https://aws.amazon.com/aws-cost-management/aws-cost-explorer/) to track your usage
-4. **AI Usage**: Use AI features judiciously - generate mocks in batches rather than individually
-5. **Right-Size Lambda**: Adjust memory allocation based on your mock complexity needs
-
-For current pricing details, always refer to the official AWS pricing pages linked above.
+For detailed cost analysis, service breakdowns, and optimization tips, see the [Cost Guide](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/COST.md).
 
 ## Security
 

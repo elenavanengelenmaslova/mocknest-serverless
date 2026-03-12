@@ -333,7 +333,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-runtime"
-      RetentionInDays: 30
+      RetentionInDays: 7
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -343,7 +343,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-generation"
-      RetentionInDays: 30
+      RetentionInDays: 7
       Tags:
         - Key: Application
           Value: MockNest-Serverless

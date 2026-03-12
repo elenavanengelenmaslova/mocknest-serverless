@@ -19,7 +19,7 @@ MockNest Serverless is designed to support both internal and external API mockin
 
 | Tool / Platform | Deployment Model | Executable Serverless Runtime | Persistent State Across Invocations | Protocol Support | AI Assistance | Operating & Commercial Model | Mocks External APIs | Requires Public Internet Egress | Callbacks/Webhooks | Proxying/Partial Mocking |
 |-----------------|------------------|-------------------------------|-----------------------------------|------------------|---------------|------------------------------|---------------------|-------------------------------|-------------------|-------------------------|
-| **MockNest Serverless** | AWS account (SAR) | Yes | Yes | REST, SOAP, GraphQL (HTTP) | Yes | Open source; customer-operated; infrastructure costs apply | Yes | No | Yes | Yes |
+| **MockNest Serverless** | AWS account (SAR) | Yes | Yes | REST, SOAP, GraphQL (HTTP) | Yes | Open source; customer-operated; AWS Free Tier compatible | Yes | No | Yes | Yes |
 | [WireMock Cloud](https://wiremock.io/cloud/) | Vendor SaaS | No | Yes | REST, SOAP, GraphQL (HTTP), gRPC | Yes | Proprietary SaaS; vendor-operated; subscription-based | Yes | Yes | Yes | Yes |
 | [Mockoon Cloud](https://mockoon.com/cloud/) | Vendor SaaS | No | Yes | REST | Yes | Proprietary SaaS; vendor-operated; subscription-based | Yes | Yes | Yes | Yes |
 | [Mockoon Serverless](https://mockoon.com/serverless/) | Serverless function package (library) | Yes (custom function code required) | Yes (custom function code required) | REST | No | Open source; customer-operated; infrastructure costs apply | Yes | No | Yes | Yes |
@@ -48,13 +48,15 @@ MockNest Serverless offers a unique combination of capabilities that no existing
 - **AI-assisted + Open Source + Serverless Runtime** - The only solution combining AI mock generation, open source transparency, and true serverless execution
 - **AWS-native with no internet dependency** - Runs entirely within customer AWS accounts without requiring external network access
 - **Comprehensive protocol support** - REST, SOAP, and GraphQL with both callbacks/webhooks and partial mocking capabilities
-- **Predictable costs** - Infrastructure costs in customer account vs. unpredictable SaaS subscription fees
+- **AWS Free Tier compatible** - Designed to operate within free tier limits for typical development scenarios
+- **Predictable, transparent costs** - Pay only for AWS resources you use vs. unpredictable SaaS subscription fees
 
 **Key Differentiators:**
 - Deployment inside the customer’s AWS account rather than vendor-hosted SaaS
 - Ready-to-deploy serverless runtime (unlike solutions requiring custom function code)
 - Persistent mocks state without requiring always-on infrastructure
 - AI-assisted mock generation as a first-class capability
+- AWS Free Tier compatibility with cost-optimized architecture (ARM64 and SnapStart planned)
 - Planned support for MCP (Model Context Protocol) mocking, positioning it as the first serverless solution for AI agent testing scenarios
 
 This positions MockNest Serverless as complementary to traditional API tooling rather than a replacement for full testing platforms, while uniquely addressing the emerging need for AI agent and MCP-based application testing.
@@ -76,6 +78,34 @@ MockNest Serverless represents a paradigm shift from static mock servers to inte
 - **Optional AI Enhancement**: Leverages cloud AI for advanced generation when needed, but works without it
 
 This positions MockNest Serverless as the first "intelligent mocking platform" that solves the critical problem of mock maintenance and evolution that existing solutions ignore.
+
+## Cost Advantage Analysis
+
+MockNest Serverless provides significant cost advantages over competing solutions:
+
+**Free Tier Compatibility:**
+- Designed to operate within AWS Free Tier limits for typical development scenarios
+- Most development and testing workloads result in $0 monthly cost
+- Predictable scaling costs only when exceeding free tier limits
+
+**Cost Comparison vs. SaaS Solutions:**
+- **WireMock Cloud**: $99-499/month subscription fees
+- **Mockoon Cloud**: $8-49/month subscription fees  
+- **Postman Mock Servers**: $12-49/month per user
+- **MockNest Serverless**: $0/month within free tier, ~$4/month for heavy usage
+
+**Cost Optimization Features:**
+- Reserved Lambda concurrency prevents unexpected scaling costs
+- S3 lifecycle policies automatically clean up old data
+- JVM optimizations reduce cold start costs
+- Planned ARM64 support for 20% Lambda cost reduction
+- Planned SnapStart support for improved performance and cost efficiency
+
+**Total Cost of Ownership:**
+- No subscription fees or per-user costs
+- No vendor lock-in or data export fees
+- Transparent AWS billing with detailed cost breakdown
+- Cost scales linearly with actual usage, not team size
 
 
 ## Go-to-Market Strategy
