@@ -36,7 +36,7 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 
 1. **Navigate to SAR**: Go to the [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home) in your AWS Console
 2. **Select Region**: Choose your preferred deployment region (us-east-1, eu-west-1, or ap-southeast-1 recommended)
-3. **Search**: Search for "MockNest-Serverless"
+2. **Select Region**: Choose your preferred deployment region (us-east-1 recommended for SAR deployment)
 4. **Deploy**: Click "Deploy" and configure parameters:
    - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
@@ -99,7 +99,7 @@ The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock infer
 
 **Getting Help**:
 - **Issues**: Report problems via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
-- **Documentation**: See the [User Guide](docs/USER_GUIDE.md) for detailed instructions
+- **Documentation**: See the [SAR User Guide](README-SAR.md) for detailed deployment and usage instructions
 - **API Reference**: Complete API documentation in the [OpenAPI specification](docs/api/mocknest-openapi.yaml)
 
 **Common Deployment Issues**:
@@ -112,20 +112,17 @@ The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock infer
 MockNest Serverless has been thoroughly tested in the following configurations:
 
 ### Officially Supported Regions
+### Officially Supported Regions
 - **us-east-1** (N. Virginia)
-- **eu-west-1** (Ireland) 
-- **ap-southeast-1** (Singapore)
-
-### Core Runtime Compatibility
 - **Works in any AWS region** with Lambda, API Gateway, and S3 support
 - **Deployment to other regions** is possible but not officially supported
 
 ### AI Features Support
 - **Officially supported**: Amazon Nova Pro model in the three tested regions above
+### AI Features Support
+- **Officially supported**: Amazon Nova Pro model in us-east-1
 - **Other Bedrock models**: May work but are experimental and not officially supported
-- **Other regions**: AI features may work but are not officially tested
-
-### Tested WireMock Features
+- **Officially supported**: Amazon Nova Pro model in us-east-1
 The following WireMock capabilities have been validated in the serverless environment:
 - Request matching (URL, headers, body, query parameters)
 - Response templating and transformation
@@ -419,8 +416,18 @@ storage.bucket.name=${MOCKNEST_S3_BUCKET_NAME:mocknest-serverless-storage}
 spring.application.name=mocknest-serverless
 ```
 
-## Troubleshooting
+## Cost Information
 
+MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.amazon.com/free/) limits for typical development and testing scenarios. The serverless, pay-as-you-go architecture means you only pay for what you use.
+
+**Core Services**: AWS Lambda, API Gateway, S3, SQS, CloudWatch, and IAM  
+**AI Services**: Amazon Bedrock (pay-per-use when generating mocks)
+
+Most development and testing scenarios stay within free tier limits, resulting in $0 monthly cost for core functionality.
+
+For detailed cost analysis, service breakdowns, and optimization tips, see our comprehensive [Cost Guide](docs/COST.md).
+
+## Troubleshooting
 ### Common Issues
 
 1. **Region Mismatch**: Ensure all AWS resources are in the same region
@@ -429,10 +436,28 @@ spring.application.name=mocknest-serverless
 
 ### Logs
 
-View Lambda logs in CloudWatch:
+MockNest Serverless provides comprehensive logging through CloudWatch:
+
+**Log Groups Created:**
+- `/aws/lambda/{stack-name}-runtime` - WireMock runtime and mock serving
+- `/aws/lambda/{stack-name}-generation` - AI-powered mock generation
+- **Retention**: 30 days (configurable in SAM template)
+
+**View logs via SAM CLI:**
 ```bash
-sam logs -n MockNestFunction --stack-name mocknest-serverless --tail
+# Runtime function logs
+sam logs -n MockNestRuntimeFunction --stack-name mocknest-serverless --tail
+
+# Generation function logs  
+sam logs -n MockNestGenerationFunction --stack-name mocknest-serverless --tail
 ```
+
+**View logs in AWS Console:**
+1. Go to CloudWatch → Log groups
+2. Find `/aws/lambda/mocknest-serverless-*` log groups
+3. View recent log streams
+
+**Note**: API Gateway access logs are disabled to simplify deployment. Lambda logs provide comprehensive application monitoring.
 
 ## Contributing
 

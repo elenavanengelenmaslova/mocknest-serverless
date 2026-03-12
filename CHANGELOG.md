@@ -129,7 +129,7 @@ MockNest Serverless follows [Semantic Versioning](https://semver.org/):
 ### Release Process
 
 1. **Development**: Features developed in feature branches
-2. **Testing**: Comprehensive testing in multiple AWS regions (us-east-1, eu-west-1, ap-southeast-1)
+2. **Testing**: Comprehensive testing in multiple AWS regions (us-east-1, eu-west-1)
 3. **Private SAR**: Testing via private SAR deployment before public release
 4. **Public Release**: Publication to public AWS Serverless Application Repository
 5. **Documentation**: Release notes and migration guides for breaking changes

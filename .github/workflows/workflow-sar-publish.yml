@@ -1,0 +1,172 @@
+name: Reusable SAR Package and Publish
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: 'Semantic version for SAR publication'
+      aws-region:
+        required: false
+        type: string
+        default: 'us-east-1'
+        description: 'AWS region for SAR publishing'
+      bucket-name:
+        required: false
+        type: string
+        default: ''
+        description: 'S3 bucket name (auto-generated if empty)'
+      s3-prefix:
+        required: false
+        type: string
+        default: ''
+        description: 'S3 prefix for artifacts (optional)'
+      github-actions-role-name:
+        required: false
+        type: string
+        default: 'GitHubOIDCAdmin'
+        description: 'Name of the GitHub Actions OIDC role'
+    secrets:
+      AWS_ACCOUNT_ID:
+        required: true
+    outputs:
+      application_id:
+        description: 'SAR application ID'
+        value: ${{ jobs.publish.outputs.application_id }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    outputs:
+      application_id: ${{ steps.publish.outputs.application_id }}
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+          
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
+          role-session-name: MockNestSARPublishing
+          aws-region: ${{ inputs.aws-region }}
+          
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+        
+      - name: Build application
+        run: |
+          echo "🔨 Building MockNest Serverless..."
+          ./gradlew clean :software:infra:aws:mocknest:shadowJar --no-build-cache
+          echo "✅ Build completed successfully"
+          
+      - name: Verify JAR artifact
+        run: |
+          if [ ! -f "build/dist/mocknest-serverless.jar" ]; then
+            echo "ERROR: mocknest-serverless.jar not found"
+            exit 1
+          fi
+          JAR_SIZE=$(du -h build/dist/mocknest-serverless.jar | cut -f1)
+          echo "✓ Unified JAR: $JAR_SIZE"
+          
+          # Check if JAR is under 100MB (SAR limit is 250MB, but we target 100MB)
+          JAR_SIZE_BYTES=$(stat -f%z build/dist/mocknest-serverless.jar 2>/dev/null || stat -c%s build/dist/mocknest-serverless.jar)
+          MAX_SIZE=$((100 * 1024 * 1024))
+          if [ $JAR_SIZE_BYTES -gt $MAX_SIZE ]; then
+            echo "⚠️  WARNING: JAR size ($JAR_SIZE) exceeds 100MB target"
+          else
+            echo "✅ JAR size is within 100MB target"
+          fi
+        
+      - name: Package and publish to SAR
+        id: publish
+        run: |
+          echo "📦 Packaging and publishing to SAR..."
+          cd deployment/aws/sam
+          
+          # Determine bucket name
+          if [ -z "${{ inputs.bucket-name }}" ]; then
+            SAR_BUCKET="mocknest-sar-artifacts-${{ secrets.AWS_ACCOUNT_ID }}"
+          else
+            SAR_BUCKET="${{ inputs.bucket-name }}"
+          fi
+          
+          # Create S3 bucket if it doesn't exist
+          aws s3 mb s3://$SAR_BUCKET --region ${{ inputs.aws-region }} || echo "Bucket already exists"
+          
+          # Set bucket policy to allow SAR to read artifacts
+          echo "🔐 Setting bucket policy for SAR access..."
+          aws s3api put-bucket-policy --bucket $SAR_BUCKET --policy '{
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "serverlessrepo.amazonaws.com"
+                },
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::'$SAR_BUCKET'/*"
+              }
+            ]
+          }'
+          
+          # Package the application (JARs are pre-built by Gradle)
+          if [ -z "${{ inputs.s3-prefix }}" ]; then
+            sam package \
+              --template-file template.yaml \
+              --s3-bucket $SAR_BUCKET \
+              --output-template-file packaged-template.yaml \
+              --region ${{ inputs.aws-region }}
+          else
+            sam package \
+              --template-file template.yaml \
+              --s3-bucket $SAR_BUCKET \
+              --s3-prefix "${{ inputs.s3-prefix }}" \
+              --output-template-file packaged-template.yaml \
+              --region ${{ inputs.aws-region }}
+          fi
+          
+          # Publish to SAR and capture output
+          echo "🚀 Publishing to SAR..."
+          sam publish \
+            --template packaged-template.yaml \
+            --region ${{ inputs.aws-region }} \
+            --semantic-version ${{ inputs.version }} | tee publish-output.txt
+          
+          echo ""
+          echo "📋 Full publish output saved to publish-output.txt"
+          cat publish-output.txt
+          echo ""
+          
+          # Extract application ID - SAM publish outputs the ARN
+          APP_ID=$(grep -o 'arn:aws:serverlessrepo:[^"]*applications/[^"]*' publish-output.txt | head -1 | tr -d '"')
+          
+          echo "Extracted APP_ID: [$APP_ID]"
+          
+          if [ -z "$APP_ID" ]; then
+            echo "❌ ERROR: Failed to extract application ID"
+            echo "Full output:"
+            cat publish-output.txt
+            exit 1
+          fi
+          
+          # Set output - use absolute path to ensure it works from subdirectory
+          echo "application_id=$APP_ID" >> "$GITHUB_OUTPUT"
+          echo "✅ Published SAR application: $APP_ID"
+          echo "✅ Output written to: $GITHUB_OUTPUT"
+          
+          # Verify output was written
+          echo "📋 Verifying GITHUB_OUTPUT contents:"
+          cat "$GITHUB_OUTPUT" || echo "Could not read GITHUB_OUTPUT"

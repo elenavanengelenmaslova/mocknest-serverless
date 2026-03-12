@@ -493,29 +493,111 @@ The implementation follows a phased approach: core configuration changes first, 
     - Ensure cleanup runs even if tests fail
     - _Requirements: Clean test environment and reporting_
 
-- [ ] 15. Public SAR release pipeline
-  - [ ] 15.1 Create public release workflow
+- [x] 15. Create unified mocknest module to reduce JAR size
+  - [x] 15.1 Create mocknest module structure
+    - Create `software/infra/aws/mocknest/` directory
+    - Create `build.gradle.kts` with dependencies on `:runtime` and `:generation`
+    - Create `src/main/kotlin/nl/vintik/mocknest/infra/aws/` directory
+    - Create `src/main/resources/` directory
+    - Move all code from `core/src/main/kotlin/` to `mocknest/src/main/kotlin/`
+    - Move all code from `core/src/test/kotlin/` to `mocknest/src/test/kotlin/`
+    - _Requirements: Unified application module, SAR 100MB limit_
+  
+  - [x] 15.2 Create MockNestApplication entry point
+    - Create `MockNestApplication.kt` in `software/infra/aws/mocknest/src/main/kotlin/nl/vintik/mocknest/infra/aws/`
+    - Add `@SpringBootApplication` annotation with scanBasePackages for all modules
+    - Add `main()` function to run Spring Boot application
+    - _Requirements: Single Spring Boot entry point_
+  
+  - [x] 15.3 Merge application.yml configuration files
+    - Copy `runtime/src/main/resources/application.yml` content
+    - Copy `generation/src/main/resources/application.yml` content
+    - Merge both into `mocknest/src/main/resources/application.yml`
+    - Resolve any conflicting properties
+    - _Requirements: Unified Spring configuration_
+  
+  - [x] 15.4 Configure mocknest shadow JAR build
+    - Add shadow JAR plugin configuration to `mocknest/build.gradle.kts`
+    - Set archiveFileName to `mocknest-serverless.jar`
+    - Set destinationDirectory to `${project.rootDir}/build/dist`
+    - Set main class to `nl.vintik.mocknest.infra.aws.MockNestApplicationKt`
+    - Copy all shadow JAR exclusions and optimizations from runtime module
+    - Add mergeServiceFiles() and META-INF append configurations
+    - _Requirements: Single JAR artifact under 100MB_
+  
+  - [x] 15.5 Update runtime module to library-only
+    - Remove `RuntimeApplication.kt` file
+    - Remove `application.yml` file
+    - Remove shadow JAR task from `build.gradle.kts`
+    - Disable `bootJar` task
+    - Change dependency from `:core` to `:mocknest`
+    - Keep all `@Configuration`, `@Bean`, and service classes
+    - _Requirements: Runtime as library module_
+  
+  - [x] 15.6 Update generation module to library-only
+    - Remove `GenerationApplication.kt` file
+    - Remove `application.yml` file
+    - Remove shadow JAR task from `build.gradle.kts`
+    - Disable `bootJar` task
+    - Change dependency from `:core` to `:mocknest`
+    - Keep all `@Configuration`, `@Bean`, and service classes
+    - _Requirements: Generation as library module_
+  
+  - [x] 15.7 Update settings.gradle.kts
+    - Add `include(":software:infra:aws:mocknest")`
+    - Remove `include(":software:infra:aws:core")`
+    - _Requirements: Module registration_
+  
+  - [x] 15.8 Update SAM template for unified JAR
+    - Change `MockNestRuntimeFunction` CodeUri to `../../../build/dist/mocknest-serverless.jar`
+    - Change `MockNestGenerationFunction` CodeUri to `../../../build/dist/mocknest-serverless.jar`
+    - Update `MAIN_CLASS` environment variable to `nl.vintik.mocknest.infra.aws.MockNestApplication`
+    - Keep separate `SPRING_CLOUD_FUNCTION_DEFINITION` for each Lambda (runtimeRouter, generationRouter)
+    - _Requirements: Both Lambdas use same JAR with function routing_
+  
+  - [x] 15.9 Update workflows for unified build
+    - Update `workflow-deploy-aws.yml`: Change build command to `./gradlew clean :software:infra:aws:mocknest:shadowJar --no-build-cache`
+    - Update `workflow-sar-publish.yml`: Change build command to `./gradlew clean :software:infra:aws:mocknest:shadowJar --no-build-cache`
+    - Update JAR verification to check for `mocknest-serverless.jar` only
+    - Remove verification for separate runtime/generation JARs
+    - _Requirements: Workflow compatibility with unified JAR_
+  
+  - [x] 15.10 Delete core module
+    - Remove `software/infra/aws/core/` directory completely
+    - Verify no remaining references to `:core` module in any build files
+    - _Requirements: Clean up obsolete module_
+  
+  - [x] 15.11 Test unified JAR deployment
+    - Run `./gradlew clean :software:infra:aws:mocknest:shadowJar`
+    - Verify `build/dist/mocknest-serverless.jar` is created
+    - Verify JAR size is under 100MB
+    - Deploy to AWS using SAM and verify both runtime and generation functions work
+    - Run all existing tests to ensure no regressions
+    - _Requirements: Functional unified deployment under SAR limit_
+
+- [ ] 16. Public SAR release pipeline
+  - [ ] 16.1 Create public release workflow
     - Create `.github/workflows/sar-release.yml` workflow file
     - Add workflow trigger: manual dispatch with release version parameter
     - Add prerequisite check: ensure private SAR testing passed
     - Configure same AWS credentials and build steps as private workflow
     - _Requirements: Automated public release pipeline_
   
-  - [ ] 15.2 Implement public SAR publication
+  - [ ] 16.2 Implement public SAR publication
     - Add step to update SAM template SemanticVersion to release version
     - Add step to publish to SAR with release version (e.g., `0.2.0`)
     - Add step to make SAR application public using `aws serverlessrepo put-application-policy`
     - Set Principals='*' and Actions=Deploy for public access
     - _Requirements: Public SAR publication_
   
-  - [ ] 15.3 Implement release documentation updates
+  - [ ] 16.3 Implement release documentation updates
     - Add step to update CHANGELOG.md with release date
     - Add step to create Git tag for release version
     - Add step to create GitHub release with changelog content
     - Add step to update README if needed for release
     - _Requirements: Release documentation and tagging_
   
-  - [ ] 15.4 Add release validation and rollback
+  - [ ] 16.4 Add release validation and rollback
     - Add step to verify public SAR application is accessible
     - Add step to test public deployment in fresh AWS account
     - Add rollback mechanism if public release validation fails

@@ -1,20 +1,32 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 plugins {
     kotlin("jvm")
     kotlin("plugin.spring")
-    id("org.springframework.boot")
     id("io.spring.dependency-management")
-    id("com.gradleup.shadow")
-}
-
-springBoot {
-    mainClass.set("nl.vintik.mocknest.infra.aws.runtime.RuntimeApplicationKt")
 }
 
 dependencies {
-    // Core module dependency
-    implementation(project(":software:infra:aws:core"))
+    // Clean architecture dependencies
+    api(project(":software:domain"))
+    api(project(":software:application"))
+
+    // Spring Boot - exclude embedded servers (no web starter, just core)
+    api("org.springframework.boot:spring-boot-starter") {
+        exclude(group = "org.springframework.boot", module = "spring-boot-starter-tomcat")
+        exclude(group = "org.apache.tomcat.embed")
+    }
+    api("org.springframework.boot:spring-boot-starter-validation")
+    api("com.fasterxml.jackson.module:jackson-module-kotlin")
+
+    // Kotlin AWS SDK - S3 for storage
+    api("aws.sdk.kotlin:s3")
+    
+    // HTTP client for AWS SDK
+    val smithyKotlinVersion = "1.3.31"
+    api("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
+    api("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
+
+    // Coroutines
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core")
 
     // Spring Cloud Function for AWS Lambda
     implementation("org.springframework.cloud:spring-cloud-function-adapter-aws")
@@ -29,9 +41,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:localstack")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    
-    // Test utilities from core module
-    testImplementation(project(":software:infra:aws:core", "testArtifacts"))
+    testImplementation(project(":software:infra:aws:mocknest"))
 }
 
 configurations {
@@ -66,84 +76,6 @@ configurations {
     }
 }
 
-tasks {
-    bootJar {
-        enabled = false
-    }
-
-    bootRun {
-        enabled = false
-    }
-
-    val shadowJar by getting(ShadowJar::class) {
-        archiveFileName.set("mocknest-runtime.jar")
-        destinationDirectory.set(file("${project.rootDir}/build/dist"))
-        
-        from(sourceSets.main.get().output)
-        configurations = listOf(project.configurations.runtimeClasspath.get())
-        
-        // Manual dependency exclusions for runtime Lambda
-        dependencies {
-            // Exclude Bedrock SDK - not needed for runtime, only for AI generation
-            exclude(dependency("aws.sdk.kotlin:bedrockruntime"))
-        }
-
-        isZip64 = true
-        
-        manifest {
-            attributes["Main-Class"] = "org.springframework.cloud.function.adapter.aws.FunctionInvoker"
-        }
-        
-        // CRITICAL: These make Spring Boot work in fat JAR
-        mergeServiceFiles()
-        append("META-INF/spring.handlers")
-        append("META-INF/spring.schemas")
-        append("META-INF/spring.tooling")
-        append("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
-        append("META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports")
-        append("META-INF/spring.factories")
-        
-        // Exclude unnecessary files
-        exclude("META-INF/*.SF")
-        exclude("META-INF/*.DSA")
-        exclude("META-INF/*.RSA")
-        exclude("META-INF/LICENSE*")
-        exclude("META-INF/NOTICE*")
-        exclude("META-INF/maven/**")
-        exclude("module-info.class")
-        
-        // Size optimization exclusions
-        exclude("org/springframework/boot/devtools/**")
-        exclude("org/springframework/boot/test/**")
-        exclude("org/springframework/test/**")
-        exclude("assets/swagger-ui/**")
-        exclude("samples/**")
-        exclude("mozilla/public-suffix-list.txt")
-        exclude("ucd/**")
-        exclude("org/eclipse/jetty/websocket/**")
-        exclude("org/eclipse/jetty/http2/**")
-
-        // Exclude unnecessary Jetty components
-        exclude("org/eclipse/jetty/alpn/**")
-        exclude("org/eclipse/jetty/jmx/**")
-        exclude("org/eclipse/jetty/annotations/**")
-        exclude("org/eclipse/jetty/jaas/**")
-        exclude("org/eclipse/jetty/jndi/**")
-        exclude("org/eclipse/jetty/plus/**")
-        exclude("org/eclipse/jetty/proxy/**")
-        exclude("org/eclipse/jetty/rewrite/**")
-        exclude("org/eclipse/jetty/servlets/**")
-        exclude("org/eclipse/jetty/webapp/**")
-        exclude("org/eclipse/jetty/xml/**")
-    }
-
-    test {
-        dependsOn(shadowJar)
-        useJUnitPlatform()
-    }
-
-    assemble {
-        dependsOn("shadowJar")
-    }
-
+tasks.test {
+    useJUnitPlatform()
 }

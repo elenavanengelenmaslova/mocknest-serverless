@@ -44,7 +44,7 @@ paths:
   /ai/generation/from-spec:
     post:
       summary: Generate Mocks from API Specification
-      description: Generate WireMock mappings from OpenAPI or Swagger specifications with optional instruction text for customization
+      description: Generate WireMock mappings from OpenAPI or Swagger specifications with optional instruction text for customization. All generated mappings include persistent: true by default, ensuring they survive Lambda cold starts and are stored in S3.
       tags:
         - AI Generation
       requestBody:
@@ -75,6 +75,7 @@ paths:
               example:
                 mappings:
                   - priority: 1
+                    persistent: true
                     request:
                       method: GET
                       urlPath: "/petstore/pet/findByStatus"
@@ -104,6 +105,7 @@ paths:
                           photoUrls:
                             - "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
                   - priority: 1
+                    persistent: true
                     request:
                       method: GET
                       urlPath: "/petstore/pet/findByTags"
@@ -123,6 +125,7 @@ paths:
                           tags:
                             - name: "new"
                   - priority: 1
+                    persistent: true
                     request:
                       method: GET
                       urlPath: "/petstore/pet/1"
@@ -139,6 +142,7 @@ paths:
                         tags:
                           - name: "new"
                   - priority: 1
+                    persistent: true
                     request:
                       method: GET
                       urlPath: "/petstore/pet/2"
@@ -153,6 +157,7 @@ paths:
                         photoUrls:
                           - "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
                   - priority: 1
+                    persistent: true
                     request:
                       method: GET
                       urlPath: "/petstore/pet/3"

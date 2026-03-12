@@ -5,11 +5,7 @@ Description: MockNest Serverless - AWS-native serverless mock runtime
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: MockNest-Serverless
-    Description: |
-      MockNest Serverless is an AWS-native serverless mock runtime that enables realistic integration and exploratory testing 
-      without relying on live external services. Built on WireMock, it provides persistent mock definitions stored in S3, 
-      AI-powered mock generation using Amazon Bedrock, and comprehensive support for REST, SOAP, and GraphQL APIs. 
-      Deploy directly into your AWS account for complete control, network isolation, and predictable costs.
+    Description: "[EXPERIMENTAL] AWS-native serverless mock runtime with WireMock, S3 persistence, AI-powered generation via Bedrock, and support for REST, SOAP, and GraphQL APIs. Early release - feedback welcome!"
     Author: Vintik
     SemanticVersion: ${version}
     LicenseUrl: ../../../LICENSE
@@ -18,6 +14,7 @@ Metadata:
     SourceCodeUrl: https://github.com/elenavanengelenmaslova/mocknest-serverless
     Labels:
       - mock
+      - experimental
       - testing
       - wiremock
       - serverless
@@ -31,11 +28,6 @@ Parameters:
     Description: Deployment instance identifier for this MockNest installation (e.g., team-alpha, payment-apis, test, mocks)
     AllowedPattern: '^[a-zA-Z0-9\\-_]+$'
     ConstraintDescription: Stage name must contain only alphanumeric characters, hyphens, and underscores
-
-  BucketName:
-    Type: String
-    Default: ''
-    Description: Custom S3 bucket name for mock storage (optional, auto-generated if empty)
 
   LambdaMemorySize:
     Type: Number
@@ -112,32 +104,10 @@ Parameters:
       - GEO_ONLY
     ConstraintDescription: Must be AUTO, GLOBAL_ONLY, or GEO_ONLY
 
-  BedrockInferencePrefix:
-    Type: String
-    Default: 'eu'
-    Description: |
-      Bedrock inference profile prefix for cross-region routing.
-      Use 'eu' for Europe, 'us' for USA.
-      Note: Nova models require 'eu' or 'us' prefix for cross-region access.
-    AllowedValues:
-      - global
-      - us
-      - ca
-      - mx
-      - af
-      - ap
-      - eu
-      - il
-      - me
-      - sa
-
   BedrockGenerationMaxRetries:
     Type: Number
     Default: 1
     Description: Maximum number of retry attempts for AI mock generation if validation fails.
-
-Conditions:
-  HasCustomBucketName: !Not [!Equals [!Ref BucketName, '']]
 
 Globals:
   Function:
@@ -153,10 +123,6 @@ Resources:
   MockStorage:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !If
-        - HasCustomBucketName
-        - !Ref BucketName
-        - !Ref AWS::NoValue
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
@@ -240,35 +206,13 @@ Resources:
         - Key: Application
           Value: MockNest-Serverless
 
-  # CloudWatch Log Group for API Gateway
-  ApiGatewayLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/apigateway/${AWS::StackName}"
-      RetentionInDays: 30
-      Tags:
-        - Key: Application
-          Value: MockNest-Serverless
-
   # API Gateway REST API
   MockNestApi:
     Type: AWS::Serverless::Api
     Properties:
       Name: !Sub "${AWS::StackName}-api"
       StageName: !Ref DeploymentName
-      TracingEnabled: true
       OpenApiVersion: '3.0.1'
-      MethodSettings:
-        - ResourcePath: "/*"
-          HttpMethod: "*"
-          LoggingLevel: INFO
-          DataTraceEnabled: true
-          MetricsEnabled: true
-          ThrottlingBurstLimit: 200
-          ThrottlingRateLimit: 100
-      AccessLogSetting:
-        DestinationArn: !GetAtt ApiGatewayLogGroup.Arn
-        Format: '{"requestId":"$context.requestId","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","path":"$context.path","resourcePath":"$context.resourcePath","status":$context.status,"responseLength":$context.responseLength,"responseTime":$context.responseTime,"userAgent":"$context.identity.userAgent","sourceIp":"$context.identity.sourceIp"}'
       Tags:
         Application: MockNest-Serverless
 
@@ -295,8 +239,8 @@ Resources:
         - ApiId: !Ref MockNestApi
           Stage: !Ref DeploymentName
       Throttle:
-        BurstLimit: 200
-        RateLimit: 100
+        BurstLimit: 1    # Prevent Lambda scaling to preserve in-memory data
+        RateLimit: 100   # Allow 100 requests/second sequential - mocks are very fast
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -314,16 +258,15 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime"
-      CodeUri: ../../../build/dist/mocknest-runtime.jar
+      CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
-      ReservedConcurrentExecutions: 10
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
-          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.runtime.RuntimeApplication"
+          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
       DeadLetterQueue:
         Type: SQS
@@ -354,17 +297,16 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${AWS::StackName}-generation"
-      CodeUri: ../../../build/dist/mocknest-generation.jar
+      CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
-      ReservedConcurrentExecutions: 5
       Timeout: 300
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "generationRouter"
-          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.generation.GenerationApplication"
+          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           BEDROCK_MODEL_NAME: !Ref BedrockModelName
           BEDROCK_INFERENCE_MODE: !Ref BedrockInferenceMode
@@ -390,7 +332,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-runtime"
-      RetentionInDays: 30
+      RetentionInDays: 7
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -400,7 +342,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-generation"
-      RetentionInDays: 30
+      RetentionInDays: 7
       Tags:
         - Key: Application
           Value: MockNest-Serverless
