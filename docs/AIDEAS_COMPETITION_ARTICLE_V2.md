@@ -16,7 +16,7 @@ Current capabilities include:
 - **Serverless Mock Runtime** – A WireMock-compatible API (providing familiar patterns and ecosystem integration) running on AWS Lambda with S3-backed persistence for mock definitions
 - **AI-Powered Mock Generation** – Uses Amazon Bedrock (with Amazon Nova Pro as the default model) to generate WireMock [1] mappings from OpenAPI specifications or natural-language descriptions, with automatic validation and retry on errors
 - **Protocol Support** – REST, GraphQL over HTTP, and SOAP APIs with synchronous request-response patterns
-- **AWS-Native Deployment** – AWS SAM templates for deploying the runtime directly into a customer’s AWS account
+- **AWS-Native Deployment** – Deploy using AWS SAM templates or one-click installation from the AWS Serverless Application Repository
 
 ### The Vision – Intelligent Mock Maintenance
 
@@ -26,7 +26,6 @@ Planned capabilities include:
 
 **AI-Assisted Mock Maintenance**
 - **Traffic Analysis** – Analyze recorded requests to identify unmatched calls, near-miss patterns, and coverage gaps
-- **API Change Detection** – Compare API specification versions and suggest updates to existing mocks
 - **Automated Mock Evolution** – Recommend or generate updated mocks when APIs change
 
 **Advanced Interaction Support**
@@ -57,7 +56,7 @@ MockNest addresses these challenges with a serverless mock runtime and AI-assist
 - Runs entirely within your AWS account on AWS Lambda
 - Deploys quickly using AWS SAR or SAM
 - Persists mocks in Amazon S3
-- Operates within AWS Free Tier limits
+- Can operate within AWS Free Tier limits for typical integration testing workloads
 
 **AI-Powered Mock Generation (Available Today)**
 - **Amazon Nova Pro as Default** – Uses Amazon Nova Pro as the primary supported model for high-quality mock generation
@@ -91,7 +90,7 @@ These documents provide long-lived context for the project. In MockNest they inc
 - **AWS services** – how cloud components such as Lambda, API Gateway, S3 and Bedrock are used
 - **Development guidelines** – coding guidelines and work instructions for Kiro
 
-Kiro provides a structured workflow where changes are planned using **requirements, design, and tasks** before code generation begins. Each feature, bugfix or refactoring includes checkpoints to verify that acceptance criteria are met.
+One of the main features I used is Kiro's structured workflow where changes are planned using **requirements, design, and tasks** before code generation begins. Each feature, bugfix or refactoring includes checkpoints to verify that acceptance criteria are met.
 
 Using this workflow, I built the serverless mock runtime with WireMock integration, S3 persistence layer, and the AI-powered mock generation interface that produces validated WireMock mappings from OpenAPI specifications and natural-language descriptions.
 
@@ -177,7 +176,7 @@ Each milestone was implemented incrementally and validated before moving to the 
 
 The runtime prioritizes predictable behavior for integration testing workloads.
 
-Mock definitions are stored in Amazon S3 and loaded during startup so the runtime can behave deterministically when mocks are created or updated.
+Mock mappings are stored in Amazon S3 and loaded during startup, while response bodies are stored separately and loaded on demand. This optimization reduces memory footprint and improves cold start performance while maintaining deterministic behavior when mocks are created or updated.
 
 Future versions will introduce configurable scaling options and additional runtime optimizations as the project evolves.
 
@@ -209,11 +208,15 @@ This helped keep business logic independent from AWS-specific code and made the 
 
 Bug fixing and refactoring worked well because Kiro encourages a test-first approach. When fixing issues Kiro would first reproduce the bug with a test or add tests before refactoring to ensure behavior stayed correct.
 
+Integration tests using TestContainers and LocalStack proved extremely valuable. They validate real interactions with AWS services such as S3 and Lambda and often expose issues that unit tests alone would not detect.
+
+Testing the system against real service behavior increased confidence that the runtime would behave correctly once deployed.
+
 ### Requirements review is easier than code review
 
 One of the most valuable insights was discovering that reviewing requirements is much easier than reviewing code. I preferred the requirements-first flow over "vibe coding" for almost everything - not just features, but also bugs and refactorings.
 
-Vibe coding happened only in very rare cases to fix something very small. Code review is still mandatory, but it is much easier to conduct when requirements are already agreed because ambiguity is already minimised which prevents many issues from happening.
+Vibe coding happened only in very rare cases to fix something very small. Code review is still mandatory, but it's much easier to conduct when requirements are sound because you've already prevented many issues from happening.
 
 Reviewing tasks was also very helpful because you see the concrete steps that will be taken to implement requirements. This gives you a chance to catch potential problems before any code is written.
 
@@ -223,7 +226,7 @@ Setting guardrails proved important - usually in steering documents, but also in
 
 The number of requirements, design, and task documents can grow quickly. After completing bugfixes or refactorings I often archived those files and kept only documentation that helped explain the product functionality and architecture.
 
-This kept the spec documents focused on what matters most for generating quality code going forward.
+This kept the steering documents focused on what matters most for generating quality code going forward.
 
 ### Configure AI tool permissions carefully
 
