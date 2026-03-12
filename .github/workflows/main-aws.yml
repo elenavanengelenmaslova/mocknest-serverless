@@ -8,6 +8,8 @@ on:
       - '**.md'
       - '.kiro/**'
       - 'docs/**'
+      - '.github/workflows/sar-*.yml'
+      - '.github/workflows/workflow-sar-*.yml'
 
 permissions:
   id-token: write

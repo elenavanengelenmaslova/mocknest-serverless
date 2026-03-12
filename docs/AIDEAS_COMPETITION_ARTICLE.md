@@ -116,7 +116,7 @@ These documents provide long-lived context for the project. In MockNest they inc
 
 One of the main features I used is Kiro's structured workflow where changes are planned using **requirements, design, and tasks** before code generation begins. Each feature, bugfix or refactoring includes checkpoints to verify that acceptance criteria are met.
 
-Using this workflow, I built the serverless mock runtime with WireMock integration, S3 persistence layer, and the AI-powered mock generation interface that produces validated, persistent WireMock mappings from OpenAPI specifications and natural-language descriptions.
+Using this workflow, I built the serverless mock runtime with WireMock integration, S3 persistence layer, and the AI-powered mock generation interface that produces validated, persistent WireMock mappings from OpenAPI specifications and natural-language descriptions. MockNest uses Kotlin for its multiplatform capabilities and first-class AWS SDK support, with the Koog framework providing Kotlin-native AI agent orchestration for Amazon Bedrock integration.
 
 ### Architecture
 
@@ -155,7 +155,7 @@ The current implementation uses a small set of AWS services:
 This architecture keeps the runtime lightweight while allowing mocks to persist across Lambda cold starts and deployments.
 
 **Performance Characteristics**
-Cold start performance varies based on the number of mock definitions loaded at startup. [PLACEHOLDER: AWS Lambda SnapStart optimization in progress to reduce cold start latency]
+Cold start performance varies based on the number of mock definitions loaded at startup. ARM64 architecture provides improved price/performance ratio. SnapStart optimization is planned to further reduce cold start latency.
 
 ### Security Considerations
 
