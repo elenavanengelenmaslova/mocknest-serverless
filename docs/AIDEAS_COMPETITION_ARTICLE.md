@@ -73,7 +73,7 @@ MockNest reduces integration testing friction today while laying the foundation 
 
 # Demo
 
-The demo shows generating WireMock mocks from natural language descriptions using Amazon Bedrock, validating the generated mappings, and using them in a pet adoption newsletter application that sends emails with currently available pets.
+The demo shows the complete workflow: generating WireMock mocks from natural language using Amazon Bedrock, importing them via the WireMock-compatible API, testing the mock endpoint directly, and finally using it in a pet adoption newsletter application.
 
 ## AI Mock Generation Request
 
@@ -87,7 +87,15 @@ We send a natural language description to MockNest's AI endpoint, asking it to g
 ![Generated WireMock Mappings](https://raw.githubusercontent.com/elenavanengelenmaslova/mocknest-serverless/refs/heads/main/docs/images/demo/ai-response.png)
 *Amazon Nova Pro generates validated WireMock mappings with realistic pet data*
 
-MockNest uses Amazon Bedrock with Amazon Nova Pro to generate complete WireMock mappings with persistent storage enabled by default. The mappings are automatically validated, and if validation fails, the AI retries once (configurable) to produce correct output. Only valid mappings are included in the response.
+MockNest uses Amazon Bedrock with Amazon Nova Pro to generate complete WireMock mappings with persistent storage enabled by default. The mappings are automatically validated, and if validation fails, the AI retries to produce correct output.
+
+## Importing via WireMock-Compatible API
+
+When satisfied with the generated mocks, we import them using MockNest's WireMock-compatible API. This demonstrates MockNest's compatibility with the WireMock ecosystem and allows teams to integrate MockNest into existing workflows that already use WireMock tooling.
+
+## Testing the Mock Endpoint
+
+We test the mock endpoint directly by calling it to verify it returns realistic pet adoption data. This simulates how a real external API would respond, confirming the mock behaves correctly before integrating it with the client application.
 
 ## Application in Action
 
@@ -194,8 +202,12 @@ This provides a fully serverless mock environment that can run directly inside a
 
 The second milestone added an AI interface powered by Amazon Nova Pro on Amazon Bedrock, capable of generating mocks from OpenAPI specifications or natural-language descriptions.
 
-Generated mappings are automatically validated.  
+Generated mappings are automatically validated.
 If validation fails, the errors are sent back into the generation workflow so the AI can correct the mappings before returning the final result.
+
+**3. AWS Serverless Application Repository Release**
+
+The third milestone prepared MockNest for public distribution through the AWS Serverless Application Repository. This included preparing comprehensive documentation with architecture diagrams and usage examples, creating SAR metadata with proper categorization and search keywords, validating security policies to ensure all IAM roles follow least privilege principles, and testing deployments across multiple AWS regions to verify consistent behavior and proper resource provisioning. The SAR release makes MockNest accessible through one-click deployment while maintaining the same infrastructure-as-code approach available through the GitHub repository.
 
 ## Quality and Delivery
 
