@@ -84,7 +84,7 @@ The application calls the mock endpoint to generate a newsletter email showing a
 
 ## Full Demo Video
 
-PLACEHOLDER YOUTUBE DEMO LINK HERE
+https://youtu.be/Rvip8rtULww
 
 **Want to try MockNest yourself?** Get it from the AWS Serverless Application Repository[2] or deploy with SAM from GitHub[1].
 
