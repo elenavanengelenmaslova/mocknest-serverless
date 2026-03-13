@@ -44,7 +44,14 @@ paths:
   /ai/generation/from-spec:
     post:
       summary: Generate Mocks from API Specification
-      description: Generate WireMock mappings from OpenAPI or Swagger specifications with optional instruction text for customization. All generated mappings include persistent: true by default, ensuring they survive Lambda cold starts and are stored in S3.
+      description: |
+        Generate WireMock mappings from OpenAPI 3.x specifications with optional instruction text for customization. All generated mappings include persistent: true by default, ensuring they survive Lambda cold starts and are stored in S3.
+
+        **Supported Formats**:
+        - OpenAPI 3.x (fully tested)
+        - Swagger 2.0 (experimental - supported but not extensively tested)
+
+        **Current Limitations**: AI generation currently supports REST APIs only. GraphQL and SOAP API generation is not yet supported.
       tags:
         - AI Generation
       requestBody:

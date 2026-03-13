@@ -178,9 +178,15 @@ curl "$MOCKNEST_URL/petstore/pet/123" \
 
 MockNest provides intelligent mock generation capabilities using Amazon Bedrock:
 
+**Supported Formats**:
+- OpenAPI 3.x (fully tested)
+- Swagger 2.0 (experimental - supported but not extensively tested)
+
+**Current Limitations**: AI generation currently supports REST APIs only. GraphQL and SOAP API generation is not yet supported.
+
 #### Generate from API Specification with Description
 
-Generate WireMock mappings from an OpenAPI or Swagger specification enhanced with natural language instructions.
+Generate WireMock mappings from an OpenAPI 3.x specification enhanced with natural language instructions.
 
 ```bash
 # Generate mocks from OpenAPI specification + natural language description

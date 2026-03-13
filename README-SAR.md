@@ -122,6 +122,12 @@ curl "$MOCKNEST_URL/ai/health" \
 
 If you enabled AI features during deployment, you can generate mocks from API specifications:
 
+**Supported Formats**:
+- OpenAPI 3.x (fully tested)
+- Swagger 2.0 (experimental - supported but not extensively tested)
+
+**Current Limitations**: AI generation currently supports REST APIs only. GraphQL and SOAP API generation is not yet supported.
+
 ```bash
 # Generate mocks from OpenAPI specification
 curl -X POST "$MOCKNEST_URL/ai/generation/from-spec" \
