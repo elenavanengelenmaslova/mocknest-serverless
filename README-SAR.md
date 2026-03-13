@@ -1,16 +1,16 @@
 # MockNest Serverless
-
-**⚠️ EXPERIMENTAL RELEASE** - This is an early release of MockNest Serverless. We welcome feedback and bug reports via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
-
 MockNest Serverless is a serverless WireMock runtime that enables realistic integration testing without relying on live external services. Deploy it directly into your AWS account for secure, cost-effective API mocking.
 
+**⚠️ EXPERIMENTAL RELEASE** - This is an early release of MockNest Serverless. We welcome feedback and bug reports via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
 ## Architecture Overview
 
-<div style="text-align: center;">
-  <img src="docs/images/SolutionDesign.png" alt="MockNest Serverless Architecture" width="600">
-</div>
-
 MockNest Serverless runs entirely within your AWS account using Lambda functions for compute, API Gateway for HTTP routing, and S3 for persistent mock storage. AI features leverage Amazon Bedrock for intelligent mock generation when called.
+
+**Key Components:**
+- **AWS Lambda** - Serverless compute for WireMock runtime
+- **Amazon API Gateway** - HTTP routing and API key authentication
+- **Amazon S3** - Persistent storage for mock definitions
+- **Amazon Bedrock** - AI-powered mock generation (optional)
 
 ### Data Persistence and Scaling Behavior
 
@@ -121,6 +121,12 @@ curl "$MOCKNEST_URL/ai/health" \
 ### AI-Assisted Mock Generation
 
 If you enabled AI features during deployment, you can generate mocks from API specifications:
+
+**Supported Formats**:
+- OpenAPI 3.x (fully tested)
+- Swagger 2.0 (experimental - supported but not extensively tested)
+
+**Current Limitations**: AI generation currently supports REST APIs only. GraphQL and SOAP API generation is not yet supported.
 
 ```bash
 # Generate mocks from OpenAPI specification

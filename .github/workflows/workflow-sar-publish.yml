@@ -10,7 +10,7 @@ on:
       aws-region:
         required: false
         type: string
-        default: 'us-east-1'
+        default: 'eu-west-1'
         description: 'AWS region for SAR publishing'
       bucket-name:
         required: false

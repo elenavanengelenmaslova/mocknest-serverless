@@ -357,7 +357,7 @@ The implementation follows a phased approach: core configuration changes first, 
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9_
   
   - [x] 10.8 Document tested regions and features
-    - Add "Tested Configuration" section to README listing us-east-1, eu-west-1, ap-southeast-1
+    - Add "Tested Configuration" section to README listing us-east-1, eu-west-1
     - State that core runtime works in any AWS region with Lambda, API Gateway, and S3
     - State that AI features are tested only with Amazon Nova Pro in the three tested regions
     - Indicate that deployment to other regions is possible but not officially supported
@@ -425,7 +425,6 @@ The implementation follows a phased approach: core configuration changes first, 
   - [x] 13.3 Choose simplified deployment architecture
     - **Recommended**: Remove SAR folder, publish directly from SAM template
     - Remove `deployment/aws/sar/deploy-sar-app.yml` wrapper template
-    - Keep SAR scripts (`deploy-sar-app.sh`, `publish-sar.sh`) but update for direct SAM publishing
     - Update SAM template metadata for direct SAR publication
     - _Requirements: Simplified deployment experience_
   

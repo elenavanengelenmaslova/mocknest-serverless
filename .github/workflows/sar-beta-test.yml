@@ -12,7 +12,7 @@ on:
       aws-region:
         description: 'AWS region for SAR publishing'
         required: false
-        default: 'us-east-1'
+        default: 'eu-west-1'
         type: string
       github-actions-role-name:
         description: 'GitHub Actions OIDC role name'
@@ -29,7 +29,7 @@ jobs:
     uses: ./.github/workflows/workflow-sar-publish.yml
     with:
       version: ${{ inputs.version || github.event.release.tag_name }}
-      aws-region: ${{ inputs.aws-region || 'us-east-1' }}
+      aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
       github-actions-role-name: ${{ inputs.github-actions-role-name }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
@@ -43,7 +43,7 @@ jobs:
           echo "## 📦 SAR Application Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ inputs.version || github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Region:** ${{ inputs.aws-region || 'us-east-1' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Region:** ${{ inputs.aws-region || 'eu-west-1' }}" >> $GITHUB_STEP_SUMMARY
           echo "**Application ID:** ${{ needs.publish.outputs.application_id }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🎯 Next Steps" >> $GITHUB_STEP_SUMMARY
