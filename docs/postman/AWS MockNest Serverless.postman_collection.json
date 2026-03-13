@@ -1,20 +1,22 @@
 {
   "info": {
-    "_postman_id": "73a25b32-d786-457e-8e8f-a51aef166b00",
-    "name": "AWS MockNest Conf Demo",
+    "_postman_id": "ff6154b8-35cd-4919-9a03-38eb6401d6cd",
+    "name": "AWS MockNest Example",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "20128017"
   },
   "item": [
     {
-      "name": "Reset mappings",
+      "name": "Admin Health",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
       "request": {
-        "method": "POST",
+        "method": "GET",
         "header": [
           {
             "key": "x-api-key",
             "value": "{{api_key}}",
-            "description": "API key",
             "type": "text"
           }
         ],
@@ -28,18 +30,223 @@
           }
         },
         "url": {
-          "raw": "{{AWS_URL}}/__admin/mappings/reset",
+          "raw": "{{AWS_URL}}/__admin/health",
           "host": [
             "{{AWS_URL}}"
           ],
           "path": [
             "__admin",
-            "mappings",
-            "reset"
+            "health"
           ]
         }
       },
-      "response": []
+      "response": [
+        {
+          "name": "Admin Health",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/__admin/health",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "__admin",
+                "health"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Content-Length",
+              "value": "192"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 13 Mar 2026 05:39:33 GMT"
+            },
+            {
+              "key": "X-Amzn-Trace-Id",
+              "value": "Root=1-69b3a315-4f5ae95c4a3edbd16a11249e"
+            },
+            {
+              "key": "x-amzn-RequestId",
+              "value": "d4ca7cd8-0081-4922-9f44-079f6238cfe4"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "aJZreGOOjoEEAIQ="
+            },
+            {
+              "key": "X-Cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "Via",
+              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "X-Amz-Cf-Pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "X-Amz-Cf-Id",
+              "value": "l7zjAROTyuBba6JcjG5CYYGVTbGCsG57LjgBWw9ONkvPP__lCP8krA=="
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"status\": \"healthy\",\n    \"timestamp\": \"2026-03-13T05:39:33.882708215Z\",\n    \"region\": \"eu-west-1\",\n    \"version\": \"0.2.0\",\n    \"storage\": {\n        \"bucket\": \"mocknest-serverless-mockstorage-uqxz33qujmfh\",\n        \"connectivity\": \"ok\"\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "AI Generation Health",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/ai/generation/health",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "ai",
+            "generation",
+            "health"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "AI Generation Health",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/ai/generation/health",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "ai",
+                "generation",
+                "health"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Content-Length",
+              "value": "185"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 13 Mar 2026 05:39:29 GMT"
+            },
+            {
+              "key": "X-Amzn-Trace-Id",
+              "value": "Root=1-69b3a311-522fc4f43e3c6fb815cc35e2"
+            },
+            {
+              "key": "x-amzn-RequestId",
+              "value": "018cdf2c-f853-46c2-904a-0468ff046e3d"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "aJZqwE2jjoEEcbQ="
+            },
+            {
+              "key": "X-Cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "Via",
+              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "X-Amz-Cf-Pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "X-Amz-Cf-Id",
+              "value": "6ft6sWZWMIxMOvf8orfP6_ItchCUNoEOvNZ72VrZ6rfQUxE0V7UyUA=="
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"status\": \"healthy\",\n    \"timestamp\": \"2026-03-13T05:39:29.324140231Z\",\n    \"region\": \"eu-west-1\",\n    \"version\": \"0.2.0\",\n    \"ai\": {\n        \"modelName\": \"AmazonNovaPro\",\n        \"inferencePrefix\": \"eu\",\n        \"inferenceMode\": \"AUTO\"\n    }\n}"
+        }
+      ]
     },
     {
       "name": "Create mapping Add Soap 5+3",
@@ -73,7 +280,92 @@
           ]
         }
       },
-      "response": []
+      "response": [
+        {
+          "name": "Create mapping Add Soap 5+3",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "AWS API Key",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"76ada7b0-55ae-4229-91c4-396a36f18123\",\n  \"priority\": 1,\n  \"request\": {\n    \"method\": \"POST\",\n    \"url\": \"/dneonline/calculator.asmx\",\n    \"bodyPatterns\": [\n      {\n        \"matchesXPath\": \"//*[local-name()='intA' and text()='5']\"\n      },\n      {\n        \"matchesXPath\": \"//*[local-name()='intB' and text()='3']\"\n      }\n    ]\n  },\n  \"response\": {\n    \"status\": 200,\n    \"headers\": {\n      \"Content-Type\": \"text/xml; charset=utf-8\"\n    },\n    \"body\": \"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n<soap:Envelope xmlns:soap=\\\"http://schemas.xmlsoap.org/soap/envelope/\\\">\\n  <soap:Body>\\n    <AddResponse xmlns=\\\"http://tempuri.org/\\\">\\n      <AddResult>42</AddResult>\\n    </AddResponse>\\n  </soap:Body>\\n</soap:Envelope>\"\n  },\n  \"persistent\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/__admin/mappings",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "__admin",
+                "mappings"
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Content-Length",
+              "value": "582"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 13 Mar 2026 05:39:50 GMT"
+            },
+            {
+              "key": "X-Amzn-Trace-Id",
+              "value": "Root=1-69b3a326-21b02d5770c51ccf2eee7d51"
+            },
+            {
+              "key": "x-amzn-RequestId",
+              "value": "f96e1ff0-9216-46d7-838a-85afd3c3c4d6"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "aJZuBEwojoEEZeg="
+            },
+            {
+              "key": "X-Cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "Via",
+              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "X-Amz-Cf-Pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "X-Amz-Cf-Id",
+              "value": "vFXKuQ4eaQ42HUir1vgLuk2S2a7i3jeqw_wOSRO9ciqqMAP2S20PMA=="
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"id\": \"76ada7b0-55ae-4229-91c4-396a36f18123\",\n    \"request\": {\n        \"url\": \"/dneonline/calculator.asmx\",\n        \"method\": \"POST\",\n        \"bodyPatterns\": [\n            {\n                \"matchesXPath\": \"//*[local-name()='intA' and text()='5']\"\n            },\n            {\n                \"matchesXPath\": \"//*[local-name()='intB' and text()='3']\"\n            }\n        ]\n    },\n    \"response\": {\n        \"status\": 200,\n        \"bodyFileName\": \"76ada7b0-55ae-4229-91c4-396a36f18123.json\",\n        \"headers\": {\n            \"Content-Type\": \"text/xml; charset=utf-8\"\n        }\n    },\n    \"uuid\": \"76ada7b0-55ae-4229-91c4-396a36f18123\",\n    \"persistent\": true,\n    \"priority\": 1\n}"
+        }
+      ]
     },
     {
       "name": "Call mock Add Soap",
@@ -108,10 +400,233 @@
           ]
         }
       },
-      "response": []
+      "response": [
+        {
+          "name": "Call mock Add Soap",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "AWS API Key",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n               xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\n               xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soap:Body>\n    <Add xmlns=\"http://tempuri.org/\">\n      <intA>5</intA>\n      <intB>3</intB>\n    </Add>\n  </soap:Body>\n</soap:Envelope>\n",
+              "options": {
+                "raw": {
+                  "language": "xml"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/mocknest/dneonline/calculator.asmx",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "mocknest",
+                "dneonline",
+                "calculator.asmx"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "text/xml; charset=utf-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "252"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 13 Mar 2026 05:39:58 GMT"
+            },
+            {
+              "key": "X-Amzn-Trace-Id",
+              "value": "Root=1-69b3a32e-51c7c041461dd9920c8f8d69"
+            },
+            {
+              "key": "x-amzn-RequestId",
+              "value": "ee791605-ee5e-456e-9b1a-a25fac68b732"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "aJZvWGiojoEEkHA="
+            },
+            {
+              "key": "X-Cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "Via",
+              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "X-Amz-Cf-Pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "X-Amz-Cf-Id",
+              "value": "4b9olKpnV2qBeyJuOFQ39eYEwZ1Kc8o6jLvsQ82ntiCHANQVnaBLMA=="
+            }
+          ],
+          "cookie": [],
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n    <soap:Body>\n        <AddResponse xmlns=\"http://tempuri.org/\">\n            <AddResult>42</AddResult>\n        </AddResponse>\n    </soap:Body>\n</soap:Envelope>"
+        }
+      ]
     },
     {
-      "name": "Create mapping Bored API",
+      "name": "AI Generate Mocks",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "let response = pm.response.json();",
+              "",
+              "// store the mappings array as a variable",
+              "pm.collectionVariables.set(\"generatedMappings\", JSON.stringify(response.mappings));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "API key",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"namespace\": {\n        \"apiName\": \"petstore\",\n        \"client\": null\n    },\n    \"specification\": null,\n    \"specificationUrl\": \"https://petstore3.swagger.io/api/v3/openapi.json\",\n    \"format\": \"OPENAPI_3\",\n    \"description\": \"Generate mocks for 3 pets from the Petstore OpenAPI specification, pets enpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets accross endpoints, 1 pet is a dog with this image: https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg, this dog is available and a new pet and should have a tag with id=1 and name=new, we need to have api call to get all new pets and its that dog, the other two pets are available also but are not new\",\n    \"options\": {\n        \"enableValidation\": true\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/ai/generation/from-spec",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "ai",
+            "generation",
+            "from-spec"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "AI Generate Mocks",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "API key",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"namespace\": {\n        \"apiName\": \"petstore\",\n        \"client\": null\n    },\n    \"specification\": null,\n    \"specificationUrl\": \"https://petstore3.swagger.io/api/v3/openapi.json\",\n    \"format\": \"OPENAPI_3\",\n    \"description\": \"Generate mocks for 3 pets from the Petstore OpenAPI specification, pets enpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets accross endpoints, 1 pet is a dog with this image: https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg, this dog is available and a new pet and should have a tag with id=1 and name=new, we need to have api call to get all new pets and its that dog, the other two pets are available also but are not new\",\n    \"options\": {\n        \"enableValidation\": true\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/ai/generation/from-spec",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "ai",
+                "generation",
+                "from-spec"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Content-Length",
+              "value": "1818"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 13 Mar 2026 05:39:04 GMT"
+            },
+            {
+              "key": "X-Amzn-Trace-Id",
+              "value": "Root=1-69b3a2e8-781db7ff3ac39d40075fc6de"
+            },
+            {
+              "key": "x-amzn-RequestId",
+              "value": "5c9c42cb-0250-4cdb-9a85-bdfc2dcafc4a"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "aJZkYER-DoEEELw="
+            },
+            {
+              "key": "X-Cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "Via",
+              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "X-Amz-Cf-Pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "X-Amz-Cf-Id",
+              "value": "SLdYMG3UXkoLqASiVHz65ebOAx_XVyWMv2IAe2U2uN0amTJz9igFTw=="
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"mappings\": [\n        {\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/findByStatus\",\n                \"queryParameters\": {\n                    \"status\": {\n                        \"equalTo\": \"available\"\n                    }\n                }\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": [\n                    {\n                        \"id\": 1,\n                        \"name\": \"Buddy\",\n                        \"status\": \"available\",\n                        \"photoUrls\": [\n                            \"https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg\"\n                        ],\n                        \"tags\": [\n                            {\n                                \"id\": 1,\n                                \"name\": \"new\"\n                            }\n                        ]\n                    },\n                    {\n                        \"id\": 2,\n                        \"name\": \"Max\",\n                        \"status\": \"available\",\n                        \"photoUrls\": [\n                            \"https://example.com/max.jpg\"\n                        ]\n                    },\n                    {\n                        \"id\": 3,\n                        \"name\": \"Luna\",\n                        \"status\": \"available\",\n                        \"photoUrls\": [\n                            \"https://example.com/luna.jpg\"\n                        ]\n                    }\n                ]\n            },\n            \"persistent\": true\n        },\n        {\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/findByTags\",\n                \"queryParameters\": {\n                    \"tags\": {\n                        \"equalTo\": \"new\"\n                    }\n                }\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": [\n                    {\n                        \"id\": 1,\n                        \"name\": \"Buddy\",\n                        \"status\": \"available\",\n                        \"photoUrls\": [\n                            \"https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg\"\n                        ],\n                        \"tags\": [\n                            {\n                                \"id\": 1,\n                                \"name\": \"new\"\n                            }\n                        ]\n                    }\n                ]\n            },\n            \"persistent\": true\n        },\n        {\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/1\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": {\n                    \"id\": 1,\n                    \"name\": \"Buddy\",\n                    \"status\": \"available\",\n                    \"photoUrls\": [\n                        \"https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg\"\n                    ],\n                    \"tags\": [\n                        {\n                            \"id\": 1,\n                            \"name\": \"new\"\n                        }\n                    ]\n                }\n            },\n            \"persistent\": true\n        },\n        {\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/2\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": {\n                    \"id\": 2,\n                    \"name\": \"Max\",\n                    \"status\": \"available\",\n                    \"photoUrls\": [\n                        \"https://example.com/max.jpg\"\n                    ]\n                }\n            },\n            \"persistent\": true\n        },\n        {\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/3\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": {\n                    \"id\": 3,\n                    \"name\": \"Luna\",\n                    \"status\": \"available\",\n                    \"photoUrls\": [\n                        \"https://example.com/luna.jpg\"\n                    ]\n                }\n            },\n            \"persistent\": true\n        }\n    ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "Import",
       "request": {
         "method": "POST",
         "header": [
@@ -124,7 +639,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"id\": \"76ada7b0-55ae-4229-91c4-396a36f18347\",\n  \"priority\": 2,\n  \"request\": {\n    \"method\": \"GET\",\n    \"urlPath\": \"/bored/api/activity\",\n    \"queryParameters\": {\n      \"type\": {\n        \"equalTo\": \"social\"\n      }\n    }\n  },\n  \"response\": {\n    \"status\": 200,\n    \"headers\": {\n      \"Content-Type\": \"application/json\"\n    },\n    \"body\": \"[\\n {\\n  \\\"activity\\\": \\\"Escape the nulls of daily life — nerd out over WireMock on AWS Lambda @ AWS Community Day\\\",\\n  \\\"type\\\": \\\"social\\\",\\n  \\\"participants\\\": 1,\\n  \\\"link\\\": \\\"https://awscommunityday.nl/\\\",\\n  \\\"price\\\": 0.3,\\n  \\\"accessibility\\\": 0.4\\n}\\n]\"\n  },\n  \"persistent\": true\n}\n",
+          "raw": "{\n  \"mappings\": {{generatedMappings}}\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -132,183 +647,109 @@
           }
         },
         "url": {
-          "raw": "{{AWS_URL}}/__admin/mappings",
+          "raw": "{{AWS_URL}}/__admin/mappings/import",
           "host": [
             "{{AWS_URL}}"
           ],
           "path": [
             "__admin",
-            "mappings"
+            "mappings",
+            "import"
           ]
         }
       },
-      "response": []
-    },
-    {
-      "name": "Call mock Bored API",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{api_key}}",
-            "description": "AWS API Key",
-            "type": "text",
-            "disabled": true
-          }
-        ],
-        "url": {
-          "raw": "{{AWS_URL}}/mocknest/bored/api/activity?type=social",
-          "host": [
-            "{{AWS_URL}}"
-          ],
-          "path": [
-            "mocknest",
-            "bored",
-            "api",
-            "activity"
-          ],
-          "query": [
+      "response": [
+        {
+          "name": "Import",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "AWS API Key",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mappings\": {{generatedMappings}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/__admin/mappings/import",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "__admin",
+                "mappings",
+                "import"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
             {
-              "key": "type",
-              "value": "social"
-            }
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Get near misses",
-      "protocolProfileBehavior": {
-        "disableBodyPruning": true
-      },
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{api_key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{AWS_URL}}/__admin/requests/unmatched/near-misses",
-          "host": [
-            "{{AWS_URL}}"
-          ],
-          "path": [
-            "__admin",
-            "requests",
-            "unmatched",
-            "near-misses"
-          ],
-          "query": [
+              "key": "Content-Type",
+              "value": "application/json; charset=UTF-8"
+            },
             {
-              "key": "",
-              "value": "",
-              "type": "text",
-              "disabled": true
-            }
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Get file",
-      "protocolProfileBehavior": {
-        "disableBodyPruning": true
-      },
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{api_key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{AWS_URL}}/__admin/files/76ada7b0-55ae-4229-91c4-396a36f18347.json",
-          "host": [
-            "{{AWS_URL}}"
-          ],
-          "path": [
-            "__admin",
-            "files",
-            "76ada7b0-55ae-4229-91c4-396a36f18347.json"
-          ],
-          "query": [
+              "key": "Content-Length",
+              "value": "0"
+            },
             {
-              "key": "",
-              "value": "",
-              "type": "text",
-              "disabled": true
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 13 Mar 2026 05:39:10 GMT"
+            },
+            {
+              "key": "X-Amzn-Trace-Id",
+              "value": "Root=1-69b3a2fd-3d86749047b9c9882d60fdc7"
+            },
+            {
+              "key": "x-amzn-RequestId",
+              "value": "175af5cf-f154-411b-98da-d4c1da0fdcff"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "aJZnuFP-DoEEELw="
+            },
+            {
+              "key": "X-Cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "Via",
+              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "X-Amz-Cf-Pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "X-Amz-Cf-Id",
+              "value": "o0SgeUI4B8iNrm33sU6OYvdTeXTaNvLgYsKAcUgCfToHzoIqalWWMQ=="
             }
-          ]
+          ],
+          "cookie": [],
+          "body": null
         }
-      },
-      "response": []
+      ]
     },
     {
-      "name": "Health",
-      "protocolProfileBehavior": {
-        "disableBodyPruning": true
-      },
+      "name": "Call Pets API Status",
       "request": {
         "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{api_key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{AWS_URL}}/mocknest/health",
-          "host": [
-            "{{AWS_URL}}"
-          ],
-          "path": [
-            "mocknest",
-            "health"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Delete mappings",
-      "request": {
-        "method": "DELETE",
         "header": [
           {
             "key": "x-api-key",
@@ -317,27 +758,227 @@
             "type": "text"
           }
         ],
-        "body": {
-          "mode": "raw",
-          "raw": "",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
         "url": {
-          "raw": "{{AWS_URL}}/__admin/mappings",
+          "raw": "{{AWS_URL}}/mocknest/petstore/pet/findByStatus?status=available",
           "host": [
             "{{AWS_URL}}"
           ],
           "path": [
-            "__admin",
-            "mappings"
+            "mocknest",
+            "petstore",
+            "pet",
+            "findByStatus"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "available"
+            }
           ]
         }
       },
-      "response": []
+      "response": [
+        {
+          "name": "Call Pets API Status",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "AWS API Key",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{AWS_URL}}/mocknest/petstore/pet/findByStatus?status=available",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "mocknest",
+                "petstore",
+                "pet",
+                "findByStatus"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "available"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Content-Length",
+              "value": "357"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 13 Mar 2026 05:39:14 GMT"
+            },
+            {
+              "key": "X-Amzn-Trace-Id",
+              "value": "Root=1-69b3a302-2ae231c92760fd2a161bc803"
+            },
+            {
+              "key": "x-amzn-RequestId",
+              "value": "271e5eca-ce5f-45ae-aa06-b2345e392984"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "aJZodH29DoEEQtg="
+            },
+            {
+              "key": "X-Cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "Via",
+              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "X-Amz-Cf-Pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "X-Amz-Cf-Id",
+              "value": "ktpTiXbnCfaZ1wrKLQAsftmGa8z6F6rmHEvgGye7gjKSHOfUqxWFng=="
+            }
+          ],
+          "cookie": [],
+          "body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Buddy\",\n        \"status\": \"available\",\n        \"photoUrls\": [\n            \"https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg\"\n        ],\n        \"tags\": [\n            {\n                \"id\": 1,\n                \"name\": \"new\"\n            }\n        ]\n    },\n    {\n        \"id\": 2,\n        \"name\": \"Max\",\n        \"status\": \"available\",\n        \"photoUrls\": [\n            \"https://example.com/max.jpg\"\n        ]\n    },\n    {\n        \"id\": 3,\n        \"name\": \"Luna\",\n        \"status\": \"available\",\n        \"photoUrls\": [\n            \"https://example.com/luna.jpg\"\n        ]\n    }\n]"
+        }
+      ]
+    },
+    {
+      "name": "Call Pets API Tags",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{AWS_URL}}/mocknest/petstore/pet/findByTags?tags=new",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "mocknest",
+            "petstore",
+            "pet",
+            "findByTags"
+          ],
+          "query": [
+            {
+              "key": "tags",
+              "value": "new"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Call Pets API Tags",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "AWS API Key",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{AWS_URL}}/mocknest/petstore/pet/findByTags?tags=new",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "mocknest",
+                "petstore",
+                "pet",
+                "findByTags"
+              ],
+              "query": [
+                {
+                  "key": "tags",
+                  "value": "new"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Content-Length",
+              "value": "181"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 13 Mar 2026 05:39:18 GMT"
+            },
+            {
+              "key": "X-Amzn-Trace-Id",
+              "value": "Root=1-69b3a306-2cbcd8474750bd9f402dded8"
+            },
+            {
+              "key": "x-amzn-RequestId",
+              "value": "de23a322-556b-4e9b-8ffc-1949646482ab"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "aJZpDEr0joEEQuw="
+            },
+            {
+              "key": "X-Cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "Via",
+              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "X-Amz-Cf-Pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "X-Amz-Cf-Id",
+              "value": "hMYaXwtUOuQ-yZS1oueu06WXIc2xA91q-6tAeOsTWc-qqRM0hvfBKg=="
+            }
+          ],
+          "cookie": [],
+          "body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Buddy\",\n        \"status\": \"available\",\n        \"photoUrls\": [\n            \"https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg\"\n        ],\n        \"tags\": [\n            {\n                \"id\": 1,\n                \"name\": \"new\"\n            }\n        ]\n    }\n]"
+        }
+      ]
     },
     {
       "name": "Get mappings",
@@ -374,10 +1015,233 @@
           ]
         }
       },
-      "response": []
+      "response": [
+        {
+          "name": "Get mappings",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "AWS API Key",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/__admin/mappings",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "__admin",
+                "mappings"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Content-Length",
+              "value": "2937"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 13 Mar 2026 05:40:52 GMT"
+            },
+            {
+              "key": "X-Amzn-Trace-Id",
+              "value": "Root=1-69b3a364-451c0aa72af034f50659cf87"
+            },
+            {
+              "key": "x-amzn-RequestId",
+              "value": "5583b9b8-c883-4244-9a5c-cc77f9c5aaeb"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "aJZ3sGOhDoEEG3g="
+            },
+            {
+              "key": "X-Cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "Via",
+              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "X-Amz-Cf-Pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "X-Amz-Cf-Id",
+              "value": "GhOsECso_S-Pxzkbh-qvLV600dwkafhAlZFoaiR9GHX_KzwHXOJAaQ=="
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"mappings\": [\n        {\n            \"id\": \"76ada7b0-55ae-4229-91c4-396a36f18123\",\n            \"request\": {\n                \"url\": \"/dneonline/calculator.asmx\",\n                \"method\": \"POST\",\n                \"bodyPatterns\": [\n                    {\n                        \"matchesXPath\": \"//*[local-name()='intA' and text()='5']\"\n                    },\n                    {\n                        \"matchesXPath\": \"//*[local-name()='intB' and text()='3']\"\n                    }\n                ]\n            },\n            \"response\": {\n                \"status\": 200,\n                \"bodyFileName\": \"76ada7b0-55ae-4229-91c4-396a36f18123.json\",\n                \"headers\": {\n                    \"Content-Type\": \"text/xml; charset=utf-8\"\n                }\n            },\n            \"uuid\": \"76ada7b0-55ae-4229-91c4-396a36f18123\",\n            \"persistent\": true,\n            \"priority\": 1\n        },\n        {\n            \"id\": \"cd47d2dd-4b85-434e-9681-1962ed8ba271\",\n            \"request\": {\n                \"urlPath\": \"/petstore/pet/findByStatus\",\n                \"method\": \"GET\",\n                \"queryParameters\": {\n                    \"status\": {\n                        \"equalTo\": \"available\"\n                    }\n                }\n            },\n            \"response\": {\n                \"status\": 200,\n                \"bodyFileName\": \"cd47d2dd-4b85-434e-9681-1962ed8ba271.json\",\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                }\n            },\n            \"uuid\": \"cd47d2dd-4b85-434e-9681-1962ed8ba271\",\n            \"persistent\": true\n        },\n        {\n            \"id\": \"a486b41e-4ab8-496f-86d1-6d71f18efc07\",\n            \"request\": {\n                \"urlPath\": \"/petstore/pet/findByTags\",\n                \"method\": \"GET\",\n                \"queryParameters\": {\n                    \"tags\": {\n                        \"equalTo\": \"new\"\n                    }\n                }\n            },\n            \"response\": {\n                \"status\": 200,\n                \"bodyFileName\": \"a486b41e-4ab8-496f-86d1-6d71f18efc07.json\",\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                }\n            },\n            \"uuid\": \"a486b41e-4ab8-496f-86d1-6d71f18efc07\",\n            \"persistent\": true\n        },\n        {\n            \"id\": \"18b3e0e2-2275-4781-ae0c-b02dcd8c02c1\",\n            \"request\": {\n                \"urlPath\": \"/petstore/pet/1\",\n                \"method\": \"GET\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"bodyFileName\": \"18b3e0e2-2275-4781-ae0c-b02dcd8c02c1.json\",\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                }\n            },\n            \"uuid\": \"18b3e0e2-2275-4781-ae0c-b02dcd8c02c1\",\n            \"persistent\": true\n        },\n        {\n            \"id\": \"781cc5dd-c73b-4e1e-bf2d-bf199457c758\",\n            \"request\": {\n                \"urlPath\": \"/petstore/pet/2\",\n                \"method\": \"GET\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"bodyFileName\": \"781cc5dd-c73b-4e1e-bf2d-bf199457c758.json\",\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                }\n            },\n            \"uuid\": \"781cc5dd-c73b-4e1e-bf2d-bf199457c758\",\n            \"persistent\": true\n        },\n        {\n            \"id\": \"59120511-1169-42db-b3a7-8387e820bdda\",\n            \"request\": {\n                \"urlPath\": \"/petstore/pet/3\",\n                \"method\": \"GET\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"bodyFileName\": \"59120511-1169-42db-b3a7-8387e820bdda.json\",\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                }\n            },\n            \"uuid\": \"59120511-1169-42db-b3a7-8387e820bdda\",\n            \"persistent\": true\n        }\n    ],\n    \"meta\": {\n        \"total\": 6\n    }\n}"
+        }
+      ]
     },
     {
-      "name": "Delete mapping soap request",
+      "name": "Get file",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/files/76ada7b0-55ae-4229-91c4-396a36f18123.json",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "__admin",
+            "files",
+            "76ada7b0-55ae-4229-91c4-396a36f18123.json"
+          ],
+          "query": [
+            {
+              "key": "",
+              "value": "",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Get file",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/__admin/files/76ada7b0-55ae-4229-91c4-396a36f18123.json",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "__admin",
+                "files",
+                "76ada7b0-55ae-4229-91c4-396a36f18123.json"
+              ],
+              "query": [
+                {
+                  "key": "",
+                  "value": "",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=UTF-8"
+            },
+            {
+              "key": "Content-Length",
+              "value": "252"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 13 Mar 2026 05:41:15 GMT"
+            },
+            {
+              "key": "X-Amzn-Trace-Id",
+              "value": "Root=1-69b3a37b-5a848c157048e8b17fefc250"
+            },
+            {
+              "key": "x-amzn-RequestId",
+              "value": "24021f10-384e-4fcf-8edc-f07768b159dc"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "aJZ7TFaPDoEEjgQ="
+            },
+            {
+              "key": "X-Cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "Via",
+              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "X-Amz-Cf-Pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "X-Amz-Cf-Id",
+              "value": "uQdbRGqh5MBSlPnlyyTddImwYOkTtHRO4IFoCI5JftziqcnDU3LQqw=="
+            }
+          ],
+          "cookie": [],
+          "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soap:Body>\n    <AddResponse xmlns=\"http://tempuri.org/\">\n      <AddResult>42</AddResult>\n    </AddResponse>\n  </soap:Body>\n</soap:Envelope>"
+        }
+      ]
+    },
+    {
+      "name": "Delete mappings",
       "request": {
         "method": "DELETE",
         "header": [
@@ -398,18 +1262,108 @@
           }
         },
         "url": {
-          "raw": "{{AWS_URL}}/__admin/mappings/76ada7b0-55ae-4229-91c4-396a36f18345",
+          "raw": "{{AWS_URL}}/__admin/mappings",
           "host": [
             "{{AWS_URL}}"
           ],
           "path": [
             "__admin",
-            "mappings",
-            "76ada7b0-55ae-4229-91c4-396a36f18345"
+            "mappings"
           ]
         }
       },
-      "response": []
+      "response": [
+        {
+          "name": "Delete mappings",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "AWS API Key",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/__admin/mappings",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "__admin",
+                "mappings"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Content-Length",
+              "value": "2"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 13 Mar 2026 05:41:24 GMT"
+            },
+            {
+              "key": "X-Amzn-Trace-Id",
+              "value": "Root=1-69b3a384-33ac91db3bd2376c3cda7496"
+            },
+            {
+              "key": "x-amzn-RequestId",
+              "value": "80365069-66c8-48c2-8047-d882853df41c"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "aJZ8uH_yDoEEWuw="
+            },
+            {
+              "key": "X-Cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "Via",
+              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "X-Amz-Cf-Pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "X-Amz-Cf-Id",
+              "value": "R1iAP-bor2cqUa62QmcMkJXOHIrcyw7pgxXCLROHZe8aCw_6FI-niQ=="
+            }
+          ],
+          "cookie": [],
+          "body": "{}"
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "generatedMappings",
+      "value": ""
     }
   ]
 }
