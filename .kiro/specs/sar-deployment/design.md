@@ -727,7 +727,7 @@ The SAR deployment hardening introduces several error scenarios that must be han
 #### 3. Region Detection Errors
 
 **Scenario**: AWS_REGION environment variable not set
-- **Handling**: This should never happen in Lambda, but fall back to us-east-1 with warning
+- **Handling**: This should never happen in Lambda, but fall back to eu-west-1 with warning
 - **User Impact**: May use wrong region for Bedrock calls
 - **Logging**: WARN level indicating fallback
 
@@ -862,7 +862,7 @@ Integration tests validate end-to-end behavior in AWS environment:
 - Verify Bedrock client configuration (using LocalStack Bedrock emulation)
 
 **Multi-Region Validation**:
-- Test deployment to us-east-1, eu-west-1, ap-southeast-1
+- Test deployment to us-east-1, eu-west-1
 - Verify automatic region detection works in each region
 - Verify geo prefix derivation is correct for each region
 - Verify Bedrock model access works (or fails gracefully)

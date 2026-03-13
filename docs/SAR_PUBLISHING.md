@@ -17,7 +17,7 @@ MockNest uses automated GitHub Actions workflows for SAR publishing with compreh
 **Workflow**: `.github/workflows/sar-beta-test.yml`
 
 **Features**:
-- Multi-region testing (us-east-1, eu-west-1, ap-southeast-1)
+- Multi-region testing (us-east-1, eu-west-1)
 - Comprehensive functionality validation
 - Private SAR sharing with test accounts
 - Automatic cleanup after testing
@@ -43,8 +43,8 @@ MockNest uses automated GitHub Actions workflows for SAR publishing with compreh
 **To Run**:
 1. Go to **Actions** → **SAR Release (Public)**
 2. **Run workflow** with:
-   - Version: `0.2.0` (public version)
-   - Region: `us-east-1` (recommended for public SAR)
+   - Version: `0.2.1` (public version)
+   - Region: `eu-west-1`
 
 ### Prerequisites for SAR Publishing
 - GitHub OIDC role with SAR permissions

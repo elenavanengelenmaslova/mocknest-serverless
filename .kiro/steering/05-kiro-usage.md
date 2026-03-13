@@ -42,9 +42,6 @@ mocknest-serverless/
         │   ├── samconfig.toml       // SAM configuration for different environments
         │   ├── build.sh             // Build script for SAM deployment
         │   └── deploy.sh            // Deployment script for SAM
-        ├── sar/              // SAR deployment method
-        │   ├── deploy-sar-app.sh    // Script to deploy from SAR
-        │   └── publish-sar.sh       // Script to publish to SAR
         └── shared/           // Shared deployment utilities
             ├── setup-github-oidc.sh     // OIDC setup script
             └── update-existing-oidc-role.sh // OIDC role update script

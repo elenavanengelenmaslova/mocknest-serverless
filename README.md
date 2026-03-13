@@ -35,8 +35,7 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 ### Deployment from AWS Serverless Application Repository
 
 1. **Navigate to SAR**: Go to the [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home) in your AWS Console
-2. **Select Region**: Choose your preferred deployment region (us-east-1, eu-west-1, or ap-southeast-1 recommended)
-2. **Select Region**: Choose your preferred deployment region (us-east-1 recommended for SAR deployment)
+2. **Select Region**: Choose your preferred deployment region (us-east-1 or eu-west-1 recommended)
 4. **Deploy**: Click "Deploy" and configure parameters:
    - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")

@@ -1,9 +1,7 @@
 # MockNest Serverless
-
-**⚠️ EXPERIMENTAL RELEASE** - This is an early release of MockNest Serverless. We welcome feedback and bug reports via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
-
 MockNest Serverless is a serverless WireMock runtime that enables realistic integration testing without relying on live external services. Deploy it directly into your AWS account for secure, cost-effective API mocking.
 
+**⚠️ EXPERIMENTAL RELEASE** - This is an early release of MockNest Serverless. We welcome feedback and bug reports via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
 ## Architecture Overview
 
 MockNest Serverless runs entirely within your AWS account using Lambda functions for compute, API Gateway for HTTP routing, and S3 for persistent mock storage. AI features leverage Amazon Bedrock for intelligent mock generation when called.
