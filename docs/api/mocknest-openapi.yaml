@@ -4,7 +4,7 @@ info:
   description: |
     MockNest Serverless provides a comprehensive WireMock runtime with AI-assisted mock generation capabilities.
     
-    **Current Serverless Architecture (v0.2.0):**
+    **Current Serverless Architecture (v0.2.1):**
     - **Mock mappings are persistent**: Stored in S3 and survive Lambda cold starts
     - **Response files are persistent**: Stored in S3 and survive cold starts
     - **Request data is transient**: Only available during current Lambda instance lifecycle (lost after ~15 minutes of inactivity)
@@ -24,7 +24,7 @@ info:
     - **Experimental**: Available but not fully tested in serverless environment
     
     All endpoints require API key authentication via the `x-api-key` header.
-  version: 0.2.0
+  version: 0.2.1
   contact:
     name: MockNest Serverless
     url: https://github.com/elenavanengelenmaslova/mocknest-serverless
