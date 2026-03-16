@@ -11,15 +11,6 @@ on:
       - 'docs/**'
       - '.github/workflows/sar-*.yml'
       - '.github/workflows/workflow-sar-*.yml'
-  pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - '**.md'
-      - '.kiro/**'
-      - 'docs/**'
-      - '.github/workflows/sar-*.yml'
-      - '.github/workflows/workflow-sar-*.yml'
 
 permissions:
   id-token: write
@@ -31,6 +22,9 @@ jobs:
 
   deploy:
     needs: test
+    if: |
+      contains(github.event.head_commit.modified, 'software/') ||
+      contains(github.event.head_commit.modified, 'deployment/')
     uses: ./.github/workflows/workflow-deploy-aws.yml
     with:
       environment: default

@@ -27,9 +27,9 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 - **Encryption**: [Server-side encryption at rest default](https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-encryption-faq.html) (included)
 
 **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**
-- **Dead Letter Queue**: For failed Lambda invocations
+- **Dead Letter Queue**: For failed Lambda invocations only
 - **Retention**: [14 days message retention default](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html)
-- **Usage**: Only receives messages on Lambda failures (minimal cost)
+- **Usage**: Only receives messages on Lambda failures (minimal cost, not a core service)
 
 **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)**
 - **Log Groups**: 2 log groups (Runtime and Generation functions)

@@ -114,52 +114,56 @@ All parameters must have clear descriptions for the SAR UI:
 
 ## Publishing Process
 
-### 1. Prepare Release
+MockNest uses **automated GitHub Actions workflows** for SAR publishing. Manual publishing is no longer recommended.
+
+### Automated Publishing (Recommended)
+
+#### 1. Beta Testing (Private SAR)
+
+Before public release, test the SAR deployment across multiple regions:
+
 ```bash
-# Ensure all tests pass
-./gradlew test
-
-# Build the application
-./gradlew build
-
-# Validate SAM template
-sam validate --template deployment/aws/sam/template.yaml
-
-# Test deployment locally
-sam build
-sam deploy --guided
+# Via GitHub Actions UI:
+# 1. Go to Actions → "SAR Beta Test (Private)"
+# 2. Click "Run workflow"
+# 3. Enter:
+#    - Version: 0.2.0-beta.1 (beta version format)
+#    - Test Account IDs: comma-separated AWS account IDs
+#    - Role Name: GitHubOIDCAdmin (your OIDC role)
 ```
 
-### 2. Create Release Package
+**What it does**:
+- Builds and packages the application
+- Publishes to private SAR
+- Shares with specified test accounts
+- Deploys and validates in multiple regions (us-east-1, eu-west-1)
+- Runs comprehensive functionality tests
+- Cleans up test resources
+
+#### 2. Public Release
+
+After beta testing passes, publish to public SAR:
+
 ```bash
-# Package for SAR
-sam package \
-  --template-file deployment/aws/sam/template.yaml \
-  --s3-bucket your-sar-artifacts-bucket \
-  --s3-prefix mocknest-serverless \
-  --output-template-file packaged-template.yaml
+# Via GitHub Actions UI:
+# 1. Go to Actions → "SAR Release (Public)"
+# 2. Click "Run workflow"
+# 3. Enter:
+#    - Version: 0.2.1 (public version format)
+#    - Region: eu-west-1 (or your preferred region)
 ```
 
-### 3. Publish to SAR
-```bash
-# Publish to SAR
-sam publish \
-  --template packaged-template.yaml \
-  --region us-east-1  # SAR requires us-east-1 for global apps
-```
+**What it does**:
+- Builds and packages the application
+- Publishes to public SAR
+- Makes application available in AWS Serverless Application Repository
+- Creates GitHub release (optional)
 
-### 4. Update Application
-For subsequent releases:
-```bash
-# Update semantic version in template.yaml metadata
-# Then republish
-sam publish --template packaged-template.yaml --region us-east-1
-```
 
 ## Regional Considerations
 
 ### Global vs Regional Applications
-- **Global Application**: Published in us-east-1, available in all regions
+- **Global Application**: Published in eu-west-1, available in all regions
 - **Regional Application**: Published per region, only available in that region
 
 **Recommendation**: Publish as Global Application for maximum reach.
