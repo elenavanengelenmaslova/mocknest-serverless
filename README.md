@@ -1,5 +1,10 @@
 # MockNest Serverless
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
+[![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)
+[![Build Status](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/main-aws.yml/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions)
+
 MockNest Serverless is a serverless WireMock compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-powered mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
 Demo: https://youtu.be/Rvip8rtULww
 
@@ -15,14 +20,24 @@ Demo: https://youtu.be/Rvip8rtULww
 
 MockNest Serverless consists of AWS Lambda functions that serve both the WireMock admin API and mocked endpoints, with persistent storage in Amazon S3. AI features use Amazon Bedrock for intelligent mock generation when called.
 
+**Current Implementation**: The system currently provides AI-assisted mock generation and a serverless WireMock runtime.
+
+**Planned Enhancement**: Future versions will include AI-powered traffic analysis capabilities to analyze recorded API traffic and suggest mock improvements.
+
 ## Features
 
+### Current Features
 - **Serverless WireMock Runtime**: Full WireMock API running on AWS Lambda
 - **Persistent Mock Storage**: Mock definitions stored in Amazon S3
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
 - **AI-Assisted Mock Generation**: Intelligent mock creation from API specifications using Amazon Nova Pro
 - **AWS Free Tier Compatible**: Designed to operate within AWS Free Tier limits
 - **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR)
+
+### Planned Features
+- **AI-Powered Traffic Analysis**: Analyze recorded API traffic to identify mock coverage gaps (planned)
+- **Mock Evolution**: Automatically update mocks based on API specification changes (planned)
+- **Coverage Analysis**: Analyze existing mocks against API contracts (planned)
 
 ## Quick Start for SAR Users
 
