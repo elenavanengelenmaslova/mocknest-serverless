@@ -31,6 +31,9 @@ jobs:
 
   deploy:
     needs: test
+    if: |
+      contains(github.event.head_commit.modified, 'software/') ||
+      contains(github.event.head_commit.modified, 'deployment/')
     uses: ./.github/workflows/workflow-deploy-aws.yml
     with:
       environment: default

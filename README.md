@@ -4,6 +4,7 @@
 [![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)
 [![Build Status](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/sar-beta-test.yml/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions)
+[![codecov](https://codecov.io/gh/elenavanengelenmaslova/mocknest-serverless/graph/badge.svg)](https://codecov.io/gh/elenavanengelenmaslova/mocknest-serverless)
 
 MockNest Serverless is a serverless WireMock compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
 Demo: https://youtu.be/Rvip8rtULww
