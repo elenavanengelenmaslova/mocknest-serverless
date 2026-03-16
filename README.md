@@ -3,9 +3,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)
-[![Build Status](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/main-aws.yml/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions)
+[![Build Status](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/sar-beta-test.yml/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions)
 
-MockNest Serverless is a serverless WireMock compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-powered mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
+MockNest Serverless is a serverless WireMock compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
 Demo: https://youtu.be/Rvip8rtULww
 
 <p align="center">
@@ -20,10 +20,6 @@ Demo: https://youtu.be/Rvip8rtULww
 
 MockNest Serverless consists of AWS Lambda functions that serve both the WireMock admin API and mocked endpoints, with persistent storage in Amazon S3. AI features use Amazon Bedrock for intelligent mock generation when called.
 
-**Current Implementation**: The system currently provides AI-assisted mock generation and a serverless WireMock runtime.
-
-**Planned Enhancement**: Future versions will include AI-powered traffic analysis capabilities to analyze recorded API traffic and suggest mock improvements.
-
 ## Features
 
 ### Current Features
@@ -32,12 +28,10 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
 - **AI-Assisted Mock Generation**: Intelligent mock creation from API specifications using Amazon Nova Pro
 - **AWS Free Tier Compatible**: Designed to operate within AWS Free Tier limits
-- **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR)
+- **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR) or deploy via SAM
 
 ### Planned Features
-- **AI-Powered Traffic Analysis**: Analyze recorded API traffic to identify mock coverage gaps (planned)
-- **Mock Evolution**: Automatically update mocks based on API specification changes (planned)
-- **Coverage Analysis**: Analyze existing mocks against API contracts (planned)
+See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslova/projects/3) 
 
 ## Quick Start for SAR Users
 
@@ -127,17 +121,13 @@ The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock infer
 MockNest Serverless has been thoroughly tested in the following configurations:
 
 ### Officially Supported Regions
-### Officially Supported Regions
 - **us-east-1** (N. Virginia)
 - **Works in any AWS region** with Lambda, API Gateway, and S3 support
 - **Deployment to other regions** is possible but not officially supported
 
 ### AI Features Support
-- **Officially supported**: Amazon Nova Pro model in the three tested regions above
-### AI Features Support
-- **Officially supported**: Amazon Nova Pro model in us-east-1
 - **Other Bedrock models**: May work but are experimental and not officially supported
-- **Officially supported**: Amazon Nova Pro model in us-east-1
+- **Officially supported**: Amazon Nova Pro model in `us-east-1` and `eu-west-1`
 The following WireMock capabilities have been validated in the serverless environment:
 - Request matching (URL, headers, body, query parameters)
 - Response templating and transformation
@@ -409,7 +399,7 @@ For detailed architecture information, see [Architecture Documentation](.kiro/st
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `MOCKNEST_APP_REGION` | AWS region for application routing | `eu-west-1` |
-| `BEDROCK_INFERENCE_PREFIX` | Bedrock inference profile prefix | `eu` |
+| `BEDROCK_INFERENCE_MODE` | Bedrock inference profile selection (AUTO, GLOBAL_ONLY, GEO_ONLY) | `AUTO` |
 | `BEDROCK_MODEL_NAME` | Bedrock model name (Amazon Nova Pro is officially supported) | `AmazonNovaPro` |
 | `MOCKNEST_S3_BUCKET_NAME` | S3 bucket for mock storage | Auto-generated |
 
@@ -418,7 +408,7 @@ For detailed architecture information, see [Architecture Documentation](.kiro/st
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `AppRegion` | AWS region for deployment | `eu-west-1` |
-| `BedrockInferencePrefix` | Bedrock inference profile prefix | `eu` |
+| `BedrockInferenceMode` | Inference profile selection (AUTO, GLOBAL_ONLY, GEO_ONLY) | `AUTO` |
 | `BedrockModelName` | Bedrock model name (Amazon Nova Pro is officially supported) | `AmazonNovaPro` |
 | `BucketName` | S3 bucket name | Auto-generated |
 
@@ -461,8 +451,8 @@ MockNest Serverless provides comprehensive logging through CloudWatch:
 
 **Log Groups Created:**
 - `/aws/lambda/{stack-name}-runtime` - WireMock runtime and mock serving
-- `/aws/lambda/{stack-name}-generation` - AI-powered mock generation
-- **Retention**: 30 days (configurable in SAM template)
+- `/aws/lambda/{stack-name}-generation` - AI-assisted mock generation
+- **Retention**: 7 days (configurable in SAM template)
 
 **View logs via SAM CLI:**
 ```bash
