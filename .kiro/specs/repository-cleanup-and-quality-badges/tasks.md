@@ -70,14 +70,14 @@ This implementation plan ensures documentation consistency across the MockNest S
   - Clarify any unclear items before proceeding
 
 - [ ] 3. Phase 2: Codecov Integration and Badge Setup
-  - [ ] 3.1 Sign up for Codecov
+  - [x] 3.1 Sign up for Codecov
     - Go to https://codecov.io
     - Sign in with GitHub account
     - Authorize Codecov for the mocknest-serverless repository
     - Note the repository token (if needed for private repos)
     - _Requirements: 3.4_
 
-  - [ ] 3.2 Update GitHub Actions workflow for Codecov
+  - [x] 3.2 Update GitHub Actions workflow for Codecov
     - Identify the main build workflow (likely `.github/workflows/main-aws.yml`)
     - Add Codecov upload step after test execution
     - Configure to upload Kover XML coverage report
