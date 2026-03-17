@@ -505,3 +505,9 @@ MockNest Serverless is an open-source project that provides AWS-native serverles
 - **Documentation**: Additional documentation in the `docs/` directory
 - **Architecture**: Design decisions documented in `.kiro/steering/`
 - **Community**: Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## Learn more
+
+A detailed explanation of the problem and approach: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)  
+
+For additional context and background: AIdeas: [MockNest Serverless – AI-Powered API Mocking for Cloud-Native Testing](https://builder.aws.com/content/2zkFqqTTTB259ZesLX6l9ZbAqjD/aideas-mocknest-serverless-ai-powered-api-mocking-for-cloud-native-testing)

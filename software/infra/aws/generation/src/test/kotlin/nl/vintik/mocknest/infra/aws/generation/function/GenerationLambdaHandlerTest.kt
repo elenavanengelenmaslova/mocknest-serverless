@@ -47,7 +47,7 @@ class GenerationLambdaHandlerTest {
                 LinkedMultiValueMap<String, String>().apply {
                     add("Content-Type", "application/json")
                 },
-                """{"status": "healthy", "version": "0.2.1"}"""
+                """{"status": "healthy", "version": "test-version"}"""
             )
             
             every { mockGetAIHealth.invoke() } returns expectedResponse
