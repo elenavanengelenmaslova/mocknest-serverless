@@ -1,10 +1,15 @@
 # MockNest Serverless
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+[![GitHub release](https://img.shields.io/github/v/release/elenavanengelenmaslova/mocknest-serverless)](https://github.com/elenavanengelenmaslova/mocknest-serverless/releases/latest)
+[![AWS SAR](https://img.shields.io/badge/AWS-SAR-FF9900?logo=amazon-aws&logoColor=white)](https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless)
+[![Build Status](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/main-aws.yml/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions)
+[![codecov](https://codecov.io/gh/elenavanengelenmaslova/mocknest-serverless/graph/badge.svg)](https://codecov.io/gh/elenavanengelenmaslova/mocknest-serverless)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/elenavanengelenmaslova/mocknest-serverless/badge)](https://scorecard.dev/viewer/?uri=github.com/elenavanengelenmaslova/mocknest-serverless)
+[![OpenAPI](https://img.shields.io/swagger/valid/3.0?specUrl=https%3A%2F%2Fraw.githubusercontent.com%2Felenavanengelenmaslova%2Fmocknest-serverless%2Fmain%2Fdocs%2Fapi%2Fmocknest-openapi.yaml&label=OpenAPI)](https://raw.githubusercontent.com/elenavanengelenmaslova/mocknest-serverless/main/docs/api/mocknest-openapi.yaml)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)
-[![Build Status](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/sar-beta-test.yml/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions)
-[![codecov](https://codecov.io/gh/elenavanengelenmaslova/mocknest-serverless/graph/badge.svg)](https://codecov.io/gh/elenavanengelenmaslova/mocknest-serverless)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 MockNest Serverless is a serverless WireMock compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
 Demo: https://youtu.be/Rvip8rtULww
