@@ -7,7 +7,7 @@ plugins {
     id("org.springframework.boot") version "4.0.2" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("com.gradleup.shadow") version "8.3.10" apply false
-    id("org.jetbrains.kotlinx.kover") version "0.9.4"
+    id("org.jetbrains.kotlinx.kover") version "0.9.7"
 }
 
 allprojects {
@@ -65,7 +65,7 @@ subprojects {
             dependency("com.amazonaws:aws-lambda-java-events:3.14.0")
             
             // Kotlinx Serialization for JSON
-            dependency("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+            dependency("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
             // TestContainers
             val testContainersVersion = "2.0.3"
             val testContainersExtensions = "1.21.4"
@@ -94,7 +94,7 @@ subprojects {
         testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
         testImplementation("io.mockk:mockk:1.13.13")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
-        testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+        testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     }
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
