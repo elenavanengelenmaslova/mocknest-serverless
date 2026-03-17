@@ -4,7 +4,7 @@ plugins {
     kotlin("jvm") version "2.3.0" apply false
     kotlin("plugin.spring") version "2.3.0" apply false
     kotlin("plugin.serialization") version "2.3.0" apply false
-    id("org.springframework.boot") version "4.0.2" apply false
+    id("org.springframework.boot") version "4.0.3" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("com.gradleup.shadow") version "8.3.10" apply false
     id("org.jetbrains.kotlinx.kover") version "0.9.7"
@@ -34,8 +34,8 @@ subprojects {
     // Global dependency management for all modules
     configure<DependencyManagementExtension> {
         imports {
-            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.2")
-            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
+            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.3")
+            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.1.1")
         }
         dependencies {
             dependency("org.wiremock:wiremock:3.13.2")
