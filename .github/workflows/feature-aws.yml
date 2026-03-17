@@ -5,12 +5,20 @@ on:
     branches:
       - 'feature/*'
       - 'bugfix/*'
+      - 'dependabot/**'
     paths-ignore:
       - '**.md'
       - '.kiro/**'
       - 'docs/**'
       - '.github/workflows/sar-*.yml'
       - '.github/workflows/workflow-sar-*.yml'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.kiro/**'
+      - 'docs/**'
 
 permissions:
   id-token: write
