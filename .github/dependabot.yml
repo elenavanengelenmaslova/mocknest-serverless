@@ -1,0 +1,46 @@
+version: 2
+updates:
+  # GitHub Actions dependency updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # Gradle dependency updates
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "gradle"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Group dependency updates to reduce PR noise
+    groups:
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+      spring:
+        patterns:
+          - "org.springframework*"
+      aws-sdk:
+        patterns:
+          - "aws.sdk.kotlin*"
+          - "aws.smithy.kotlin*"
+      testing:
+        patterns:
+          - "*junit*"
+          - "io.mockk*"
+          - "org.testcontainers*"
