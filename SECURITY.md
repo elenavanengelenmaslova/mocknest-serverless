@@ -61,7 +61,6 @@ MockNest Serverless includes:
 - API key authentication for all endpoints
 - S3 server-side encryption for stored mocks
 - IAM role-based access control for AWS resources
-- No persistent storage of sensitive request data
 
 ## Important Security Guidance
 

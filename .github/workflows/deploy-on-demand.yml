@@ -3,14 +3,6 @@ name: Deploy On Demand
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'default'
-        type: choice
-        options:
-          - default
-          - staging
       aws-region:
         description: 'AWS region for deployment'
         required: false
@@ -19,7 +11,7 @@ on:
       github-actions-role-name:
         description: 'GitHub Actions OIDC role name'
         required: false
-        default: 'GitHubActionsRole'
+        default: 'GitHubOIDCAdmin'
         type: string
 
 permissions:
@@ -34,7 +26,7 @@ jobs:
     needs: test
     uses: ./.github/workflows/workflow-deploy-aws.yml
     with:
-      environment: ${{ inputs.environment }}
+      environment: default
       aws-region: ${{ inputs.aws-region }}
       github-actions-role-name: ${{ inputs.github-actions-role-name }}
     secrets:
