@@ -62,7 +62,7 @@ subprojects {
             
             // AWS Lambda Java
             dependency("com.amazonaws:aws-lambda-java-core:1.2.3")
-            dependency("com.amazonaws:aws-lambda-java-events:3.14.0")
+            dependency("com.amazonaws:aws-lambda-java-events:3.16.1")
             
             // Kotlinx Serialization for JSON
             dependency("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
