@@ -22,7 +22,7 @@ dependencies {
     api("aws.sdk.kotlin:bedrockruntime")
     
     // HTTP client for AWS SDK
-    val smithyKotlinVersion = "1.3.31"
+    val smithyKotlinVersion = "1.6.6"
     api("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
     api("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
 
