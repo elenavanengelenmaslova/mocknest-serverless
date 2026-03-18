@@ -125,9 +125,6 @@ kover {
             filters {
                 excludes {
                     classes(
-                        // interfaces
-                        "nl.vintik.mocknest.*.interfaces.*",
-
                         // entry points
                         "*ApplicationKt"
                     )
