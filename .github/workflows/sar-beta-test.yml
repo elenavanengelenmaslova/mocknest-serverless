@@ -30,7 +30,7 @@ jobs:
     with:
       version: ${{ inputs.version || github.event.release.tag_name }}
       aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
-      github-actions-role-name: ${{ inputs.github-actions-role-name }}
+      github-actions-role-name: ${{ inputs.github-actions-role-name || 'GitHubOIDCAdmin' }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   
