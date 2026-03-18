@@ -6,6 +6,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
+import nl.vintik.mocknest.application.generation.interfaces.MockValidationResult
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
@@ -460,6 +461,246 @@ class MockGenerationFunctionalAgentTest {
             // Then
             assertFalse(result.success)
             assertNotNull(result.error)
+        }
+    }
+
+    @Nested
+    inner class `Strategy Node Integration Tests` {
+
+        @Test
+        fun `Given spec content When executing strategy Then should parse specification and generate mocks`() = runBlocking {
+            // Given
+            val specContent = """
+                openapi: 3.0.0
+                info:
+                  title: Test API
+                  version: 1.0.0
+            """.trimIndent()
+
+            val request = SpecWithDescriptionRequest(
+                jobId = "job-node-1",
+                namespace = testNamespace,
+                specificationContent = specContent,
+                format = SpecificationFormat.OPENAPI_3,
+                description = "test description",
+                options = GenerationOptions(enableValidation = false)
+            )
+
+            coEvery { specificationParser.parse(specContent, SpecificationFormat.OPENAPI_3) } returns testSpecification
+            coEvery { promptBuilder.buildSpecWithDescriptionPrompt(testSpecification, "test description", testNamespace) } returns "test prompt"
+            coEvery { aiModelService.parseModelResponse(any(), testNamespace, SourceType.SPEC_WITH_DESCRIPTION, any()) } returns listOf(testMock)
+
+            // Mock the strategy execution
+            coEvery {
+                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
+            } coAnswers {
+                val strategy = firstArg<Any>()
+                GenerationResult.success("job-node-1", listOf(testMock))
+            }
+
+            // When
+            val result = agent.generateFromSpecWithDescription(request)
+
+            // Then
+            assertTrue(result.success)
+            assertEquals(1, result.mocks.size)
+
+            coVerify(exactly = 1) { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) }
+        }
+
+        @Test
+        fun `Given spec URL When executing strategy Then should fetch and parse from URL`() = runBlocking {
+            // Given
+            val request = SpecWithDescriptionRequest(
+                jobId = "job-node-2",
+                namespace = testNamespace,
+                specificationUrl = "https://example.com/spec.yaml",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "test description",
+                options = GenerationOptions(enableValidation = false)
+            )
+
+            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns
+                GenerationResult.success("job-node-2", listOf(testMock))
+
+            // When
+            val result = agent.generateFromSpecWithDescription(request)
+
+            // Then
+            assertTrue(result.success)
+            assertEquals(1, result.mocks.size)
+        }
+
+        @Test
+        fun `Given validation enabled with all valid mocks When executing Then should return all mocks`() = runBlocking {
+            // Given
+            val request = SpecWithDescriptionRequest(
+                jobId = "job-node-3",
+                namespace = testNamespace,
+                specificationContent = "spec content",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "test description",
+                options = GenerationOptions(enableValidation = true)
+            )
+
+            val validationResult = MockValidationResult(isValid = true, errors = emptyList())
+
+            coEvery { specificationParser.parse(any(), any()) } returns testSpecification
+            coEvery { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any()) } returns "prompt"
+            coEvery { aiModelService.parseModelResponse(any(), any(), any(), any()) } returns listOf(testMock)
+            coEvery { mockValidator.validate(any(), any()) } returns validationResult
+
+            coEvery {
+                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
+            } returns GenerationResult.success("job-node-3", listOf(testMock))
+
+            // When
+            val result = agent.generateFromSpecWithDescription(request)
+
+            // Then
+            assertTrue(result.success)
+            assertEquals(1, result.mocks.size)
+        }
+
+        @Test
+        fun `Given validation enabled with invalid mocks When executing Then should attempt correction once`() = runBlocking {
+            // Given
+            val request = SpecWithDescriptionRequest(
+                jobId = "job-node-4",
+                namespace = testNamespace,
+                specificationContent = "spec content",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "test description",
+                options = GenerationOptions(enableValidation = true)
+            )
+
+            val invalidResult = MockValidationResult(isValid = false, errors = listOf("error1"))
+            val correctedMock = testMock.copy(id = UUID.randomUUID().toString())
+
+            coEvery { specificationParser.parse(any(), any()) } returns testSpecification
+            coEvery { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any()) } returns "prompt"
+            coEvery { promptBuilder.buildCorrectionPrompt(any(), any(), any()) } returns "correction prompt"
+            coEvery { aiModelService.parseModelResponse(any(), any(), SourceType.SPEC_WITH_DESCRIPTION, any()) } returns listOf(testMock)
+            coEvery { aiModelService.parseModelResponse(any(), any(), SourceType.REFINEMENT, any()) } returns listOf(correctedMock)
+            coEvery { mockValidator.validate(testMock, any()) } returns invalidResult
+            coEvery { mockValidator.validate(correctedMock, any()) } returns MockValidationResult(isValid = true, errors = emptyList())
+
+            coEvery {
+                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
+            } returns GenerationResult.success("job-node-4", listOf(correctedMock))
+
+            // When
+            val result = agent.generateFromSpecWithDescription(request)
+
+            // Then
+            assertTrue(result.success)
+            assertNotNull(result.mocks)
+        }
+
+        @Test
+        fun `Given validation with max retries exceeded When executing Then should return best effort mocks`() = runBlocking {
+            // Given
+            val agentWithRetries = MockGenerationFunctionalAgent(
+                aiModelService,
+                specificationParser,
+                mockValidator,
+                promptBuilder,
+                maxRetries = 2
+            )
+
+            val request = SpecWithDescriptionRequest(
+                jobId = "job-node-5",
+                namespace = testNamespace,
+                specificationContent = "spec content",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "test description",
+                options = GenerationOptions(enableValidation = true)
+            )
+
+            val invalidResult = MockValidationResult(isValid = false, errors = listOf("persistent error"))
+
+            coEvery { specificationParser.parse(any(), any()) } returns testSpecification
+            coEvery { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any()) } returns "prompt"
+            coEvery { promptBuilder.buildCorrectionPrompt(any(), any(), any()) } returns "correction prompt"
+            coEvery { aiModelService.parseModelResponse(any(), any(), any(), any()) } returns listOf(testMock)
+            coEvery { mockValidator.validate(any(), any()) } returns invalidResult
+
+            coEvery {
+                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
+            } returns GenerationResult.success("job-node-5", emptyList())
+
+            // When
+            val result = agentWithRetries.generateFromSpecWithDescription(request)
+
+            // Then
+            assertTrue(result.success)
+        }
+
+        @Test
+        fun `Given validation with fatal errors When executing Then should filter out fatal mocks`() = runBlocking {
+            // Given
+            val request = SpecWithDescriptionRequest(
+                jobId = "job-node-6",
+                namespace = testNamespace,
+                specificationContent = "spec content",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "test description",
+                options = GenerationOptions(enableValidation = true)
+            )
+
+            val fatalResult = MockValidationResult(isValid = false, errors = listOf("fatal error"), isFatal = true)
+
+            coEvery { specificationParser.parse(any(), any()) } returns testSpecification
+            coEvery { mockValidator.validate(any(), any()) } returns fatalResult
+
+            coEvery {
+                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
+            } returns GenerationResult.success("job-node-6", emptyList())
+
+            // When
+            val result = agent.generateFromSpecWithDescription(request)
+
+            // Then
+            assertTrue(result.success)
+        }
+
+        @Test
+        fun `Given multiple mocks with mixed validation When executing Then should separate valid and invalid`() = runBlocking {
+            // Given
+            val request = SpecWithDescriptionRequest(
+                jobId = "job-node-7",
+                namespace = testNamespace,
+                specificationContent = "spec content",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "test description",
+                options = GenerationOptions(enableValidation = true)
+            )
+
+            val validMock = testMock.copy(id = "valid-1")
+            val invalidMock = testMock.copy(id = "invalid-1")
+            val correctedMock = testMock.copy(id = "corrected-1")
+
+            val validResult = MockValidationResult(isValid = true, errors = emptyList())
+            val invalidResult = MockValidationResult(isValid = false, errors = listOf("error"))
+
+            coEvery { specificationParser.parse(any(), any()) } returns testSpecification
+            coEvery { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any()) } returns "prompt"
+            coEvery { promptBuilder.buildCorrectionPrompt(any(), any(), any()) } returns "correction prompt"
+            coEvery { aiModelService.parseModelResponse(any(), any(), SourceType.SPEC_WITH_DESCRIPTION, any()) } returns listOf(validMock, invalidMock)
+            coEvery { aiModelService.parseModelResponse(any(), any(), SourceType.REFINEMENT, any()) } returns listOf(correctedMock)
+            coEvery { mockValidator.validate(validMock, any()) } returns validResult
+            coEvery { mockValidator.validate(invalidMock, any()) } returns invalidResult
+            coEvery { mockValidator.validate(correctedMock, any()) } returns validResult
+
+            coEvery {
+                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
+            } returns GenerationResult.success("job-node-7", listOf(validMock, correctedMock))
+
+            // When
+            val result = agent.generateFromSpecWithDescription(request)
+
+            // Then
+            assertTrue(result.success)
         }
     }
 
