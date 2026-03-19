@@ -31,23 +31,14 @@ reviews:
     - path: "software/domain/**"
       instructions: "Ensure no infrastructure dependencies. Domain models should be pure Kotlin with no framework dependencies."
     
-    - path: "software/application/**"
-      instructions:
-        - "Use cases should depend only on domain and application interfaces"
-        - "No direct AWS SDK usage - use interfaces instead"
+    -     - path: "software/application/**"
+      instructions: "Use cases should depend only on domain and application interfaces. No direct AWS SDK usage - use interfaces instead."
     
     - path: "software/infra/aws/**"
-      instructions:
-        - "AWS-specific code only in this layer"
-        - "Use Kotlin AWS SDK, not Java SDK"
-        - "Ensure proper IAM permissions are documented"
+      instructions: "AWS-specific code only in this layer. Use Kotlin AWS SDK, not Java SDK. Ensure proper IAM permissions are documented."
     
     - path: "**/test/**"
-      instructions:
-        - "Follow unit testing standards from steering documents"
-        - "Use MockK with relaxed mocks"
-        - "Ensure Given-When-Then test naming"
-        - "Use suspend test functions where appropriate"
+      instructions: "Follow unit testing standards from steering documents. Use MockK with relaxed mocks. Ensure Given-When-Then test naming. Use suspend test functions where appropriate."
 
 # Chat settings
 chat:
