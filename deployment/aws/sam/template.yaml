@@ -238,7 +238,7 @@ Resources:
         - ApiId: !Ref MockNestApi
           Stage: !Ref DeploymentName
       Throttle:
-        BurstLimit: 1    # Prevent Lambda scaling to preserve in-memory data
+        BurstLimit: 1    # Limit concurrent requests to reduce Lambda scaling
         RateLimit: 100   # Allow 100 requests/second sequential - mocks are very fast
       Tags:
         - Key: Application

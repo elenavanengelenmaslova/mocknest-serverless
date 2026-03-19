@@ -136,7 +136,7 @@ MockNest Serverless runs on AWS Lambda with:
 - **API Gateway**: HTTP routing with API key authentication
 - **Amazon Bedrock**: AI-powered mock generation (optional)
 
-**API Gateway Throttling**: BurstLimit: 1 prevents Lambda scaling (preserving in-memory request data) while allowing 100 requests/second sequential throughput.
+**API Gateway Throttling**: BurstLimit: 1 limits concurrent requests to reduce Lambda scaling, allowing 100 requests/second sequential throughput.
 
 For detailed architecture information, see the [main README](https://github.com/elenavanengelenmaslova/mocknest-serverless#architecture-overview).
 
