@@ -3,11 +3,6 @@
 
 # Language and frameworks
 language: en
-frameworks:
-  - spring-boot
-  - aws-lambda
-  - gradle
-  - koog
 
 # Review settings
 reviews:
@@ -34,9 +29,7 @@ reviews:
   # Path-specific instructions (nested under reviews)
   path_instructions:
     - path: "software/domain/**"
-      instructions:
-        - "Ensure no infrastructure dependencies"
-        - "Domain models should be pure Kotlin with no framework dependencies"
+      instructions: "Ensure no infrastructure dependencies. Domain models should be pure Kotlin with no framework dependencies."
     
     - path: "software/application/**"
       instructions:
@@ -63,21 +56,10 @@ chat:
 
 # Knowledge base settings
 knowledge_base:
-  # Enable learning from your codebase
-  learnings: true
+  learnings:
+    scope: local
 
-# Custom instructions for CodeRabbit
-instructions:
-  - "Follow Kotlin coding conventions and idiomatic patterns"
-  - "Ensure clean architecture boundaries are maintained (domain -> application -> infrastructure)"
-  - "Check for proper error handling using runCatching and kotlin-logging"
-  - "Verify AWS SDK usage follows best practices"
-  - "Ensure tests follow Given-When-Then naming convention"
-  - "Check for proper resource management with .use { } blocks"
-  - "Verify null safety and avoid !! operator"
-  - "Ensure logging includes proper context information"
-  - "Check that new code has appropriate test coverage"
-  - "Verify SAM template changes are valid CloudFormation"
+
 
 # Tone and style
 tone_instructions: |
