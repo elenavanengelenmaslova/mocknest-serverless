@@ -21,6 +21,8 @@ ignore:
   - "**/*Test.kt"
   - "**/build/**/*"
   - "deployment/**/*"
+  - "**/*Interface.kt"
+  - "**/interfaces/**/*"
 
 # Ensure only the root aggregated report is used
 parsers:
