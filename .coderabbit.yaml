@@ -31,7 +31,7 @@ reviews:
     - path: "software/domain/**"
       instructions: "Ensure no infrastructure dependencies. Domain models should be pure Kotlin with no framework dependencies."
     
-    -     - path: "software/application/**"
+      - path: "software/application/**"
       instructions: "Use cases should depend only on domain and application interfaces. No direct AWS SDK usage - use interfaces instead."
     
     - path: "software/infra/aws/**"
