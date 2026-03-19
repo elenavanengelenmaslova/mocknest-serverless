@@ -69,46 +69,19 @@ See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslov
 
 **Choose Your Deployment Region**: When deploying from SAR, you select the deployment region in the AWS Console. MockNest automatically configures itself for that region.
 
-**Bedrock Model Availability**: Amazon Bedrock model availability varies by region. Before deploying with AI features:
+**Bedrock Model Availability**: Verify Amazon Nova Pro is available in your chosen region using the [AWS Bedrock model availability documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html). Amazon Nova Pro is ready to use immediately in supported regions.
 
-1. **Check Model Availability**: Verify Amazon Nova Pro is available in your chosen region using the [AWS Bedrock model availability documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html)
-2. **Enable Model Access**: In the Amazon Bedrock console, go to "Model access" and enable access for Amazon Nova Pro
-3. **Wait for Approval**: Model access requests may take a few minutes to be approved
+**Note**: If using third-party models (like Anthropic Claude), you may need to enable model access and accept terms in the Amazon Bedrock console.
 
 #### BedrockInferenceMode Configuration
 
 The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock inference profiles:
 
-- **AUTO** (recommended): Tries cross-region inference profile first, then falls back to region-specific profile
-  - **Best for**: Most users who want automatic optimization
-  - **Behavior**: Maximizes model availability and performance
+- **AUTO** (recommended): Tries cross-region inference profile first, then falls back to region-specific profile. Best for most users who want automatic optimization and maximum availability.
   
-- **GLOBAL_ONLY**: Forces use of cross-region inference profile only
-  - **Best for**: Users who need consistent global model behavior
-  - **Behavior**: Uses shared cross-region capacity (may have higher latency but better availability)
+- **GLOBAL_ONLY**: Forces use of cross-region inference profile only. Use when you need consistent model behavior across all regions and data residency is not a concern.
   
-- **GEO_ONLY**: Forces use of region-specific inference profile only
-  - **Best for**: Users with data residency requirements
-  - **Behavior**: Uses geo-specific profile (e.g., "eu" for eu-west-1, "us" for us-east-1)
-
-**Recommendation**: Use AUTO mode for most use cases as it provides the best balance of availability and performance.
-
-#### When to Use Each Mode
-
-**Use GLOBAL_ONLY when**:
-- You need consistent model behavior across all regions
-- Your application requires the latest model capabilities
-- Data residency is not a concern (uses cross-region capacity)
-
-**Use GEO_ONLY when**:
-- You have strict data residency requirements
-- You want to ensure data stays within a specific geographic region
-- Compliance requires regional data processing
-
-**Use AUTO when** (recommended):
-- You want the best availability and performance
-- You're not sure which mode to choose
-- You want automatic fallback behavior
+- **GEO_ONLY**: Forces use of region-specific inference profile only (e.g., "eu" for eu-west-1, "us" for us-east-1). Use when you have strict data residency or compliance requirements.
 
 #### Support and Troubleshooting
 
@@ -400,38 +373,19 @@ For detailed architecture information, see [Architecture Documentation](.kiro/st
 
 ## Configuration Reference
 
-### Environment Variables
+MockNest Serverless can be configured through SAM deployment parameters or environment variables. The table below shows all configuration options and when to use each approach:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MOCKNEST_APP_REGION` | AWS region for application routing | `eu-west-1` |
-| `BEDROCK_INFERENCE_MODE` | Bedrock inference profile selection (AUTO, GLOBAL_ONLY, GEO_ONLY) | `AUTO` |
-| `BEDROCK_MODEL_NAME` | Bedrock model name (Amazon Nova Pro is officially supported) | `AmazonNovaPro` |
-| `MOCKNEST_S3_BUCKET_NAME` | S3 bucket for mock storage | Auto-generated |
+| Configuration | SAM Parameter | Environment Variable | Possible Values | Default | When to Use |
+|---------------|---------------|---------------------|-----------------|---------|-------------|
+| **AWS Region** | `AppRegion` | `MOCKNEST_APP_REGION` | Any AWS region | `eu-west-1` | SAM parameter for deployment; environment variable for runtime override |
+| **Bedrock Inference Mode** | `BedrockInferenceMode` | `BEDROCK_INFERENCE_MODE` | `AUTO`, `GLOBAL_ONLY`, `GEO_ONLY` | `AUTO` | SAM parameter for deployment; environment variable for runtime override. Use `AUTO` for best availability, `GLOBAL_ONLY` for cross-region consistency, `GEO_ONLY` for data residency |
+| **Bedrock Model** | `BedrockModelName` | `BEDROCK_MODEL_NAME` | Any Bedrock model ID | `AmazonNovaPro` | SAM parameter for deployment; environment variable for runtime override. Amazon Nova Pro is officially supported |
+| **S3 Bucket** | `BucketName` | `MOCKNEST_S3_BUCKET_NAME` | Valid S3 bucket name | Auto-generated | SAM parameter for deployment; environment variable for runtime override |
+| **Lambda Memory** | `LambdaMemorySize` | N/A | 128-10240 MB | `1024` | SAM parameter only - set during deployment based on workload requirements |
+| **Lambda Timeout** | `LambdaTimeout` | N/A | 1-900 seconds | `120` | SAM parameter only - set during deployment based on expected processing time |
+| **Deployment Name** | `DeploymentName` | N/A | Alphanumeric string | `mocks` | SAM parameter only - used for resource naming and identification |
 
-### SAM Parameters
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `AppRegion` | AWS region for deployment | `eu-west-1` |
-| `BedrockInferenceMode` | Inference profile selection (AUTO, GLOBAL_ONLY, GEO_ONLY) | `AUTO` |
-| `BedrockModelName` | Bedrock model name (Amazon Nova Pro is officially supported) | `AmazonNovaPro` |
-| `BucketName` | S3 bucket name | Auto-generated |
-
-### Application Properties
-
-```properties
-# AWS Configuration
-aws.region=${MOCKNEST_APP_REGION:${AWS_REGION:eu-west-1}}
-bedrock.inference.prefix=${BEDROCK_INFERENCE_PREFIX:eu}
-bedrock.model.name=${BEDROCK_MODEL_NAME:AmazonNovaPro}
-
-# S3 Configuration
-storage.bucket.name=${MOCKNEST_S3_BUCKET_NAME:mocknest-serverless-storage}
-
-# Application Configuration
-spring.application.name=mocknest-serverless
-```
+**Configuration Precedence**: Environment variables override SAM parameters at runtime. Use SAM parameters for initial deployment configuration and environment variables for runtime adjustments without redeployment.
 
 ## Cost Information
 
