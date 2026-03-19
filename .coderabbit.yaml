@@ -2,64 +2,69 @@
 # Documentation: https://docs.coderabbit.ai/guides/configure-coderabbit
 
 # Language and frameworks
-language: kotlin
+language: en
 frameworks:
   - spring-boot
   - aws-lambda
   - gradle
+  - koog
 
 # Review settings
 reviews:
-  # Enable automatic reviews on PRs
-  auto_review:
-    enabled: true
-    # Review draft PRs
-    drafts: true
-  
-  # Enable inline comments
-  inline_comments: true
+  # Use chill profile for balanced, friendly reviews
+  profile: chill
   
   # Request changes for critical issues
   request_changes_workflow: true
   
-  # Auto-approve PRs that meet criteria
-  auto_approve:
-    enabled: true
-    # Conditions for auto-approval
-    conditions:
-      # Approve if no critical or high severity issues found
-      - no_critical_issues: true
-      # Approve if all tests pass
-      - all_checks_pass: true
-      # Approve documentation-only changes
-      - documentation_only: true
-      # Approve dependency updates from trusted sources
-      - dependency_updates: true
-  
-  # Review scope
-  scope:
+  # Path filters (include patterns and exclude with ! prefix)
+  path_filters:
     - "software/**/*.kt"
     - "software/**/*.kts"
     - "deployment/**/*.yaml"
     - "deployment/**/*.sh"
     - "*.gradle.kts"
     - "*.md"
+    - "!build/**"
+    - "!.gradle/**"
+    - "!**/build/**"
+    - "!**/*.jar"
+    - "!**/*.class"
   
-  # Exclude patterns
-  exclude:
-    - "build/**"
-    - ".gradle/**"
-    - "**/build/**"
-    - "**/*.jar"
-    - "**/*.class"
+  # Path-specific instructions (nested under reviews)
+  path_instructions:
+    - path: "software/domain/**"
+      instructions:
+        - "Ensure no infrastructure dependencies"
+        - "Domain models should be pure Kotlin with no framework dependencies"
+    
+    - path: "software/application/**"
+      instructions:
+        - "Use cases should depend only on domain and application interfaces"
+        - "No direct AWS SDK usage - use interfaces instead"
+    
+    - path: "software/infra/aws/**"
+      instructions:
+        - "AWS-specific code only in this layer"
+        - "Use Kotlin AWS SDK, not Java SDK"
+        - "Ensure proper IAM permissions are documented"
+    
+    - path: "**/test/**"
+      instructions:
+        - "Follow unit testing standards from steering documents"
+        - "Use MockK with relaxed mocks"
+        - "Ensure Given-When-Then test naming"
+        - "Use suspend test functions where appropriate"
 
-# Enable automatic PR creation for suggested fixes
-auto_reply:
-  enabled: true
-  
-# Enable learning from your codebase
-learning:
-  enabled: true
+# Chat settings
+chat:
+  # Enable automatic replies in chat
+  auto_reply: true
+
+# Knowledge base settings
+knowledge_base:
+  # Enable learning from your codebase
+  learnings: true
 
 # Custom instructions for CodeRabbit
 instructions:
@@ -74,36 +79,6 @@ instructions:
   - "Check that new code has appropriate test coverage"
   - "Verify SAM template changes are valid CloudFormation"
 
-# Path-specific instructions
-path_instructions:
-  - path: "software/domain/**"
-    instructions:
-      - "Ensure no infrastructure dependencies"
-      - "Domain models should be pure Kotlin with no framework dependencies"
-  
-  - path: "software/application/**"
-    instructions:
-      - "Use cases should depend only on domain and application interfaces"
-      - "No direct AWS SDK usage - use interfaces instead"
-  
-  - path: "software/infra/aws/**"
-    instructions:
-      - "AWS-specific code only in this layer"
-      - "Use Kotlin AWS SDK, not Java SDK"
-      - "Ensure proper IAM permissions are documented"
-  
-  - path: "**/test/**"
-    instructions:
-      - "Follow unit testing standards from steering documents"
-      - "Use MockK with relaxed mocks"
-      - "Ensure Given-When-Then test naming"
-      - "Use suspend test functions where appropriate"
-
-# Chat settings
-chat:
-  # Enable chat for questions about the codebase
-  enabled: true
-  
 # Tone and style
 tone_instructions: |
   Be concise and technical. Focus on code quality, maintainability, and adherence to 

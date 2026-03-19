@@ -43,12 +43,13 @@ Requirements:
   - Never output multiple mappings that would all match the same request unless they differ by `priority` and are intended as fallback.
 
 - Return only a JSON array of WireMock mappings. 
-- Each item MUST be a valid WireMock stub mapping object with this structure:
-{
-"request": { ... },
-"response": { ... },
-"persistent": true
-}
+- Each item MUST be a valid WireMock stub mapping object and MUST include these required top-level fields:
+ {
+ "request": { ... },
+ "response": { ... },
+ "persistent": true
+ }
+- Optional WireMock top-level fields are allowed when needed (e.g., "priority").
 - "persistent": true MUST be placed at the top level of the mapping object
 - NEVER place "persistent" inside "response" or "request"
 - NEVER include unknown fields inside "response" (WireMock will reject them)
