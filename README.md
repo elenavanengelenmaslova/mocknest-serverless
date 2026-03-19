@@ -432,23 +432,13 @@ sam logs -n MockNestGenerationFunction --stack-name mocknest-serverless --tail
 
 ## Contributing
 
-We welcome contributions to MockNest Serverless! Whether you're fixing bugs, adding features, or improving documentation, your help makes the project better.
+We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation, your help makes the project better.
 
-### How to Contribute
-
-1. **Report Issues**: Use [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues) to report bugs or request features
-2. **Submit Pull Requests**: Fork the repository, make your changes, and submit a pull request
-3. **Improve Documentation**: Help us keep documentation accurate and helpful
-4. **Share Use Cases**: Tell us how you're using MockNest Serverless
-
-### Development Guidelines
-
-- Follow the clean architecture principles outlined in our [Architecture Documentation](.kiro/steering/02-architecture.md)
-- Ensure all tests pass before submitting PRs
-- Add tests for new functionality
-- Update documentation for user-facing changes
-
-For detailed development guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+- Reporting bugs and requesting features
+- Submitting pull requests
+- Development setup and standards
+- CI/CD pipelines and testing requirements
 
 ## License
 

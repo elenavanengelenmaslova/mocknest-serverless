@@ -52,6 +52,85 @@ Feature requests are welcome! Please:
 
 For complete development setup instructions, see our [Development Guide](docs/DEVELOPMENT.md) and [Building Guide](docs/BUILDING.md).
 
+## CI/CD Pipelines
+
+MockNest Serverless uses GitHub Actions for automated testing, deployment, and publishing. Understanding these pipelines helps you know what checks your contributions will go through.
+
+### Pipeline Overview
+
+| Pipeline | Trigger | Purpose | What It Does |
+|----------|---------|---------|--------------|
+| **Feature Branch - AWS Build and Deploy** | Push to `feature/*`, `bugfix/*`, `dependabot/**` branches or PR to `main` | Validate feature branches | Runs tests, verifies coverage, optionally deploys to AWS for testing |
+| **Main Branch AWS Deployment** | Push to `main` | Deploy to staging | Runs tests, verifies coverage, deploys to staging environment in AWS |
+| **SAR Publish** | Release published or manual trigger | Publish to AWS SAR | Builds application, packages with SAM, publishes to AWS Serverless Application Repository |
+| **OpenSSF Scorecard** | Weekly schedule, push to `main`, or manual | Security analysis | Runs OpenSSF security scorecard analysis and uploads results to GitHub Security |
+| **Validate Gradle Wrapper** | Push to `main` or PR | Security check | Validates Gradle wrapper JAR hasn't been tampered with |
+
+### Reusable Workflows
+
+These workflows are called by the main pipelines above:
+
+| Workflow | Purpose | Used By |
+|----------|---------|---------|
+| **workflow-build.yml** | Build and test all modules, verify 90% coverage, upload to Codecov | Feature and Main branch pipelines |
+| **workflow-deploy-aws.yml** | Deploy to AWS using SAM | Feature and Main branch pipelines |
+| **workflow-sar-publish.yml** | Package and publish to AWS Serverless Application Repository | SAR Publish pipeline |
+
+### What Happens When You Submit a PR
+
+1. **Gradle Wrapper Validation** - Ensures wrapper hasn't been tampered with
+2. **Build & Test** - Compiles all modules and runs unit + integration tests
+3. **Coverage Check** - Verifies 90% code coverage threshold is met
+4. **Optional AWS Deploy** - If code changes affect `software/` or `deployment/`, deploys to test environment
+
+### What Happens When Code Merges to Main
+
+1. **Build & Test** - Same as PR checks
+2. **Coverage Upload** - Uploads coverage reports to Codecov
+3. **Deploy to Staging** - If code changes affect `software/` or `deployment/`, deploys to staging AWS environment
+
+### SAR Publishing Process
+
+For maintainers publishing to AWS Serverless Application Repository:
+
+1. **Trigger**: Create a GitHub release or manually trigger the workflow
+2. **Build**: Compiles application and creates unified JAR
+3. **Package**: Uses SAM to package application and upload to S3
+4. **Publish**: Publishes to SAR with semantic version
+5. **Verify**: Check SAR console to confirm application is available
+
+See [SAR Publishing Guide](docs/SAR_PUBLISHING.md) for detailed instructions.
+
+### Pipeline Configuration
+
+All pipelines use:
+- **Java 25** (Temurin distribution)
+- **Gradle 9.0.0** (via wrapper)
+- **AWS OIDC authentication** (no long-lived credentials)
+- **Kover** for code coverage reporting
+
+### Troubleshooting Pipeline Failures
+
+**Build Failures**:
+- Check Java version compatibility
+- Verify all dependencies are available
+- Review build logs for compilation errors
+
+**Test Failures**:
+- Run tests locally: `./gradlew test`
+- Check for environment-specific issues (Docker required for integration tests)
+- Review test logs in GitHub Actions artifacts
+
+**Coverage Failures**:
+- Generate local coverage report: `./gradlew koverHtmlReport`
+- Identify modules below 90% threshold
+- Add tests to increase coverage
+
+**Deployment Failures**:
+- Verify AWS credentials and permissions
+- Check SAM template syntax
+- Review CloudFormation events in AWS Console
+
 ## Code Standards
 
 ### Kotlin Conventions
