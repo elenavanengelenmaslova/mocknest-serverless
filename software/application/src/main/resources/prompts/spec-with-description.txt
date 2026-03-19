@@ -42,5 +42,14 @@ Requirements:
     - Use `priority` to ensure deterministic selection.
   - Never output multiple mappings that would all match the same request unless they differ by `priority` and are intended as fallback.
 
-- Return only a JSON array of WireMock mappings. Each mapping should be a complete, valid WireMock JSON object with `"persistent": true`.
+- Return only a JSON array of WireMock mappings. 
+- Each item MUST be a valid WireMock stub mapping object with this structure:
+{
+"request": { ... },
+"response": { ... },
+"persistent": true
+}
+- "persistent": true MUST be placed at the top level of the mapping object
+- NEVER place "persistent" inside "response" or "request"
+- NEVER include unknown fields inside "response" (WireMock will reject them)
 - Do not include any explanatory text, only the JSON array.
