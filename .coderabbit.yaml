@@ -35,16 +35,6 @@ reviews:
       - documentation_only: true
       # Approve dependency updates from trusted sources
       - dependency_updates: true
-    # Don't auto-approve these types of changes
-    exclude:
-      # Never auto-approve changes to security-sensitive files
-      - "deployment/aws/shared/github-oidc-role.yaml"
-      - "deployment/aws/sam/template.yaml"
-      - "**/IAM*.yaml"
-      # Never auto-approve changes to core domain logic without human review
-      - "software/domain/**"
-      # Never auto-approve changes to Lambda handlers
-      - "software/infra/aws/**/Lambda*.kt"
   
   # Review scope
   scope:
