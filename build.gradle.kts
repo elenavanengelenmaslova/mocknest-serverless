@@ -55,7 +55,7 @@ subprojects {
             dependency("aws.smithy.kotlin:http-client-engine-okhttp:$smithyKotlinVersion")
             dependency("aws.smithy.kotlin:http-client-engine-crt:$smithyKotlinVersion")
             
-            val okhttpVersion = "5.0.0-alpha.14"
+            val okhttpVersion = "5.3.2"
             ext["okhttp.version"] = okhttpVersion
             dependency("com.squareup.okhttp3:okhttp:$okhttpVersion")
             dependency("com.squareup.okhttp3:okhttp-coroutines:$okhttpVersion")
