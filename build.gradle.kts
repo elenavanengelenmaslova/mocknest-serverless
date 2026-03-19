@@ -61,7 +61,7 @@ subprojects {
             dependency("com.squareup.okhttp3:okhttp-coroutines:$okhttpVersion")
             
             // AWS Lambda Java
-            dependency("com.amazonaws:aws-lambda-java-core:1.2.3")
+            dependency("com.amazonaws:aws-lambda-java-core:1.4.0")
             dependency("com.amazonaws:aws-lambda-java-events:3.16.1")
             
             // Kotlinx Serialization for JSON
