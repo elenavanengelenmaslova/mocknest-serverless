@@ -80,7 +80,7 @@ These tools are visible as badges in the README and provide public dashboards fo
 - **Maintenance**: Automated with manual review of fix PRs
 
 #### CII Best Practices Certification
-- **Purpose**: Demonstrates adherence to open source security and quality standards
+- **Purpose**: Demonstrates adherence to open-source security and quality standards
 - **Visibility**: Badge in README linking to public criteria compliance page
 - **Certification Level**: Passing (required criteria met)
 - **Project Page**: https://www.bestpractices.dev/projects/12218
