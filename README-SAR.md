@@ -4,16 +4,11 @@ MockNest Serverless is a serverless WireMock runtime that enables realistic inte
 
 **⚠️ EXPERIMENTAL RELEASE** - This is an early release of MockNest Serverless. We welcome feedback and bug reports via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
 
-## Quick Deployment from SAR
+## Deployment
 
-1. **Navigate to SAR**: Open the [AWS Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications) and search for "MockNest-Serverless"
-2. **Select Region**: Choose your preferred deployment region (us-east-1, eu-west-1, or eu-central-1 recommended for full AI support)
-3. **Review Application**: Click the application to view details
-4. **Deploy**: Click "Deploy" and configure the parameters below
-5. **Acknowledge**: Check the box to acknowledge that the app will create custom IAM roles
-6. **Deploy**: Click "Deploy" to start the deployment
+Click "Deploy" and configure the parameters below. Deployment typically takes 2-3 minutes. You can monitor progress in the CloudFormation console.
 
-Deployment typically takes 2-3 minutes. You can monitor progress in the CloudFormation console.
+**Region Selection**: Choose us-east-1, eu-west-1, or eu-central-1 for full AI support with Amazon Bedrock.
 
 ## Input Parameters
 
@@ -196,7 +191,7 @@ For detailed cost analysis and optimization tips, see the [Cost Guide](https://g
 
 **AWS Security**: Least-privilege IAM permissions, encryption in transit (HTTPS) and at rest (S3), isolated S3 buckets per deployment.
 
-For security issues, use [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues) with the "security" label.
+For detailed security information and vulnerability reporting, see [SECURITY.md](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/SECURITY.md).
 
 ## Additional Resources
 

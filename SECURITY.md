@@ -18,7 +18,7 @@ We take the security of MockNest Serverless seriously. If you discover a securit
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
 Instead, please report them via:
-- **Email**: Create an issue at https://github.com/elenavanengelenmaslova/mocknest-serverless/issues and mark it as "Security" OR
+- **GitHub Issues**: Create an issue at https://github.com/elenavanengelenmaslova/mocknest-serverless/issues and mark it as "Security" OR
 - **GitHub Security Advisories**: Use the [Security tab](https://github.com/elenavanengelenmaslova/mocknest-serverless/security/advisories/new) to privately report vulnerabilities
 
 ### What to Include
