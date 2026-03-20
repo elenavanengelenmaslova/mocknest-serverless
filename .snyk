@@ -1,0 +1,10 @@
+# Snyk configuration file
+# https://docs.snyk.io/snyk-cli/test-for-vulnerabilities/the-.snyk-file
+
+# Scan all Gradle submodules
+gradle:
+  allProjects: true
+
+# Exclude test dependencies from vulnerability reporting (optional)
+exclude:
+  development: true
