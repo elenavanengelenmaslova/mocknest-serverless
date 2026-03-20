@@ -7,7 +7,7 @@
 [![CodeQL](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/security/code-scanning)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/elenavanengelenmaslova/mocknest-serverless/badge)](https://securityscorecards.dev/viewer/?uri=github.com/elenavanengelenmaslova/mocknest-serverless)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12218/badge)](https://www.bestpractices.dev/projects/12218)
-[![Snyk Security](https://snyk.io/test/github/elenavanengelenmaslova/mocknest-serverless/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/SECURITY.md)
+[![Snyk Security](https://snyk.io/test/github/elenavanengelenmaslova/mocknest-serverless/badge.svg)](https://app.snyk.io/org/elenavanengelenmaslova/)
 [![OpenAPI](https://img.shields.io/swagger/valid/3.0?specUrl=https%3A%2F%2Fraw.githubusercontent.com%2Felenavanengelenmaslova%2Fmocknest-serverless%2Fmain%2Fdocs%2Fapi%2Fmocknest-openapi.yaml&label=OpenAPI)](https://raw.githubusercontent.com/elenavanengelenmaslova/mocknest-serverless/main/docs/api/mocknest-openapi.yaml)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)

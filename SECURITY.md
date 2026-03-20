@@ -77,7 +77,26 @@ These tools are visible as badges in the README and provide public dashboards fo
   - Scans on every pull request
   - Weekly scheduled scans
   - Automatic fix PRs for vulnerabilities
+- **Dashboard**: https://app.snyk.io/org/elenavanengelenmaslova/
 - **Maintenance**: Automated with manual review of fix PRs
+
+**Local CLI Usage:**
+```bash
+# Test for dependency vulnerabilities
+snyk test --all-projects
+
+# Test for code vulnerabilities (SAST)
+snyk code test
+
+# Monitor project in Snyk dashboard
+snyk monitor --all-projects
+```
+
+**Why you might see findings locally but not in portal:**
+- Portal shows only monitored snapshots (use `snyk monitor` to sync)
+- Portal may filter out low-severity issues by default
+- Local CLI shows real-time results, portal shows last scan results
+- Check that your local branch matches what's in the portal
 
 #### CII Best Practices Certification
 - **Purpose**: Demonstrates adherence to open-source security and quality standards

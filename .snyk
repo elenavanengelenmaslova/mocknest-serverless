@@ -8,3 +8,11 @@ gradle:
 # Exclude test dependencies from vulnerability reporting (optional)
 exclude:
   development: true
+
+# Enable Snyk Code (SAST) scanning
+code:
+  enabled: true
+
+# Enable Infrastructure as Code (IaC) scanning
+iac:
+  enabled: true
