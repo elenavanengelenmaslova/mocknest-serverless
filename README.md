@@ -448,10 +448,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
 
 This project is open source and available under the [MIT License](LICENSE).
 
-## About
-
-MockNest Serverless is an open-source project that provides AWS-native serverless mock runtime for integration testing. It will be available through the AWS Serverless Application Repository (SAR) for easy one-click deployment while remaining fully open source.
-
 ## Support
 
 - **Issues**: Report bugs and feature requests via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
