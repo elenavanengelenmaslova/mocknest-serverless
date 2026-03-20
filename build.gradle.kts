@@ -4,7 +4,7 @@ plugins {
     kotlin("jvm") version "2.3.0" apply false
     kotlin("plugin.spring") version "2.3.0" apply false
     kotlin("plugin.serialization") version "2.3.0" apply false
-    id("org.springframework.boot") version "4.0.3" apply false
+    id("org.springframework.boot") version "4.0.4" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("com.gradleup.shadow") version "8.3.10" apply false
     id("org.jetbrains.kotlinx.kover") version "0.9.7"
@@ -34,11 +34,14 @@ subprojects {
     // Global dependency management for all modules
     configure<DependencyManagementExtension> {
         imports {
-            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.3")
+            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.4")
             mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.1.1")
         }
         dependencies {
             dependency("org.wiremock:wiremock:3.13.2")
+            
+            // Security: Override vulnerable Rhino version from swagger-parser transitive dependency
+            dependency("org.mozilla:rhino:1.7.15.1")
             
             // Koog Framework for AI Agents
             val koogVersion = "0.6.2"
