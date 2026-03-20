@@ -77,7 +77,6 @@ These tools are visible as badges in the README and provide public dashboards fo
   - Scans on every pull request
   - Weekly scheduled scans
   - Automatic fix PRs for vulnerabilities
-- **Dashboard**: https://snyk.io/test/github/elenavanengelenmaslova/mocknest-serverless
 - **Maintenance**: Automated with manual review of fix PRs
 
 #### CII Best Practices Certification
@@ -92,7 +91,6 @@ These tools are visible as badges in the README and provide public dashboards fo
 - **Visibility**: Badge in README linking to security scanning results
 - **Automation**: Runs on every push and pull request
 - **Dashboard**: GitHub Security tab
-- **Configuration**: `.github/workflows/github-code-scanning/codeql`
 
 #### OpenSSF Scorecard
 - **Purpose**: Automated security health metrics for open source projects
@@ -133,7 +131,6 @@ These tools operate automatically without visible badges but are essential for s
 
 - **Dependabot**: `.github/dependabot.yml`
 - **CodeRabbit**: `.coderabbit.yaml`
-- **CodeQL**: `.github/workflows/github-code-scanning/codeql`
 - **Codecov**: `codecov.yml`
 - **Kover (Coverage)**: Applied via Gradle plugin in `build.gradle.kts`
 
