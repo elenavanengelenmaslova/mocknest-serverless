@@ -123,6 +123,6 @@ Key AWS limits that may impact MockNest Serverless:
   - Regional availability varies by model
 
 ## Regional Considerations
-- **Primary Region**: eu-west-1 (closest region to development team)
+- **Primary Regions**: eu-west-1 (Ireland), eu-central-1 (Frankfurt) - closest regions to development team
 - **Bedrock Availability**: Ensure chosen region supports required foundation models
 - **Multi-region Support**: Not in scope for Phase 1, but architecture supports future expansion

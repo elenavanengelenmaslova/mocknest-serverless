@@ -1,0 +1,17 @@
+# Gradle cache and build artifacts
+.gradle/
+build/
+.kotlin/
+
+# Git index and internal files
+.git/
+
+# IDE and editor files
+.vscode/
+.idea/
+
+# Other common exclusions
+*.class
+*.jar
+*.war
+*.log

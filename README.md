@@ -4,6 +4,7 @@
 [![AWS SAR](https://img.shields.io/badge/AWS-SAR-FF9900?logo=amazon-aws&logoColor=white)](https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless)
 [![Build Status](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/main-aws.yml/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions)
 [![codecov](https://codecov.io/gh/elenavanengelenmaslova/mocknest-serverless/graph/badge.svg)](https://codecov.io/gh/elenavanengelenmaslova/mocknest-serverless)
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/elenavanengelenmaslova/mocknest-serverless?utm_source=oss&utm_medium=github&utm_campaign=elenavanengelenmaslova%2Fmocknest-serverless&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 [![CodeQL](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/security/code-scanning)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/elenavanengelenmaslova/mocknest-serverless/badge)](https://securityscorecards.dev/viewer/?uri=github.com/elenavanengelenmaslova/mocknest-serverless)
 [![OpenAPI](https://img.shields.io/swagger/valid/3.0?specUrl=https%3A%2F%2Fraw.githubusercontent.com%2Felenavanengelenmaslova%2Fmocknest-serverless%2Fmain%2Fdocs%2Fapi%2Fmocknest-openapi.yaml&label=OpenAPI)](https://raw.githubusercontent.com/elenavanengelenmaslova/mocknest-serverless/main/docs/api/mocknest-openapi.yaml)
@@ -51,7 +52,7 @@ See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslov
 ### Deployment from AWS Serverless Application Repository
 
 1. **Navigate to SAR**: Go to the [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home) in your AWS Console
-2. **Select Region**: Choose your preferred deployment region (us-east-1 or eu-west-1 recommended)
+2. **Select Region**: Choose your preferred deployment region (us-east-1, eu-west-1, or eu-central-1 recommended)
 4. **Deploy**: Click "Deploy" and configure parameters:
    - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
@@ -101,12 +102,14 @@ MockNest Serverless has been thoroughly tested in the following configurations:
 
 ### Officially Supported Regions
 - **us-east-1** (N. Virginia)
+- **eu-west-1** (Ireland)
+- **eu-central-1** (Frankfurt)
 - **Works in any AWS region** with Lambda, API Gateway, and S3 support
 - **Deployment to other regions** is possible but not officially supported
 
 ### AI Features Support
 - **Other Bedrock models**: May work but are experimental and not officially supported
-- **Officially supported**: Amazon Nova Pro model in `us-east-1` and `eu-west-1`
+- **Officially supported**: Amazon Nova Pro model in `us-east-1`, `eu-west-1`, and `eu-central-1`
 The following WireMock capabilities have been validated in the serverless environment:
 - Request matching (URL, headers, body, query parameters)
 - Response templating and transformation

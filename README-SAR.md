@@ -7,7 +7,7 @@ MockNest Serverless is a serverless WireMock runtime that enables realistic inte
 ## Quick Deployment from SAR
 
 1. **Navigate to SAR**: Open the [AWS Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications) and search for "MockNest-Serverless"
-2. **Select Region**: Choose your preferred deployment region (us-east-1 or eu-west-1 recommended for full AI support)
+2. **Select Region**: Choose your preferred deployment region (us-east-1, eu-west-1, or eu-central-1 recommended for full AI support)
 3. **Review Application**: Click the application to view details
 4. **Deploy**: Click "Deploy" and configure the parameters below
 5. **Acknowledge**: Check the box to acknowledge that the app will create custom IAM roles

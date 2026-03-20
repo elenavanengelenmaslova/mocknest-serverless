@@ -1,0 +1,59 @@
+# CodeRabbit Configuration for MockNest Serverless
+# Documentation: https://docs.coderabbit.ai/guides/configure-coderabbit
+
+# Language and frameworks
+language: en
+
+# Review settings
+reviews:
+  # Use chill profile for balanced, friendly reviews
+  profile: chill
+  
+  # Request changes for critical issues
+  request_changes_workflow: true
+  
+  # Path filters (include patterns and exclude with ! prefix)
+  path_filters:
+    - "software/**/*.kt"
+    - "software/**/*.kts"
+    - "deployment/**/*.yaml"
+    - "deployment/**/*.sh"
+    - "*.gradle.kts"
+    - "*.md"
+    - "!build/**"
+    - "!.gradle/**"
+    - "!**/build/**"
+    - "!**/*.jar"
+    - "!**/*.class"
+  
+  # Path-specific instructions (nested under reviews)
+  path_instructions:
+    - path: "software/domain/**"
+      instructions: "Ensure no infrastructure dependencies. Domain models should be pure Kotlin with no framework dependencies."
+    
+    - path: "software/application/**"
+      instructions: "Use cases should depend only on domain and application interfaces. No direct AWS SDK usage - use interfaces instead."
+    
+    - path: "software/infra/aws/**"
+      instructions: "AWS-specific code only in this layer. Use Kotlin AWS SDK, not Java SDK. Ensure proper IAM permissions are documented."
+    
+    - path: "**/test/**"
+      instructions: "Follow unit testing standards from steering documents. Use MockK with relaxed mocks. Ensure Given-When-Then test naming. Use suspend test functions where appropriate."
+
+# Chat settings
+chat:
+  # Enable automatic replies in chat
+  auto_reply: true
+
+# Knowledge base settings
+knowledge_base:
+  learnings:
+    scope: local
+
+
+
+# Tone and style
+tone_instructions: |
+  Be concise and technical. Focus on code quality, maintainability, and adherence to 
+  clean architecture principles. Highlight security issues and AWS best practices.
+  Use a collaborative tone and explain the reasoning behind suggestions.
