@@ -16,7 +16,7 @@ This is primarily a documentation and configuration feature involving external s
   - Verify passing status (zero critical and high-severity vulnerabilities)
   - _Requirements: 1.1, 1.2, 5.1, 5.2, 5.4_
 
-- [ ] 2. Set up CII Best Practices certification and achieve passing level
+- [x] 2. Set up CII Best Practices certification and achieve passing level
   - Register project on CII Best Practices website using GitHub OAuth
   - Complete self-certification questionnaire for all required criteria categories (Basics, Change Control, Reporting, Quality, Security, Analysis)
   - Provide evidence for each criterion (links to documentation, CI/CD workflows, tool configurations)
@@ -32,7 +32,7 @@ This is primarily a documentation and configuration feature involving external s
   - Ensure all existing badges remain intact and properly formatted
   - _Requirements: 1.3, 1.4, 2.3, 2.4, 3.1, 3.2, 3.3, 3.4, 3.5, 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 4. Create Security and Quality Tooling section in SECURITY.md
+- [x] 4. Create Security and Quality Tooling section in SECURITY.md
   - Add new "Security and Quality Tooling" section after "Security Features" section
   - Document badge-based security tools (Snyk, CII Best Practices, CodeQL, OpenSSF Scorecard, Codecov)
   - Document background automation tools (Dependabot, CodeRabbit)
