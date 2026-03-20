@@ -862,7 +862,7 @@ Integration tests validate end-to-end behavior in AWS environment:
 - Verify Bedrock client configuration (using LocalStack Bedrock emulation)
 
 **Multi-Region Validation**:
-- Test deployment to us-east-1, eu-west-1
+- Test deployment to us-east-1, eu-west-1, eu-central-1
 - Verify automatic region detection works in each region
 - Verify geo prefix derivation is correct for each region
 - Verify Bedrock model access works (or fails gracefully)
@@ -1053,6 +1053,7 @@ Metadata:
 #### Tested Regions
 - **us-east-1** (N. Virginia): Primary testing region, Bedrock widely available
 - **eu-west-1** (Ireland): European testing region, Bedrock available
+- **eu-central-1** (Frankfurt): European testing region, Bedrock available
 - **ap-southeast-1** (Singapore): Asia-Pacific testing region, Bedrock available
 
 #### Untested Regions
@@ -1061,7 +1062,7 @@ Metadata:
 - Users deploying to untested regions should verify Bedrock model access first
 
 #### Model Availability
-- Amazon Nova Pro: Available in us-east-1, us-west-2, eu-west-1, ap-southeast-1
+- Amazon Nova Pro: Available in us-east-1, us-west-2, eu-west-1, eu-central-1, ap-southeast-1
 - Other models: Availability varies by region
 - Users should check AWS Bedrock documentation for current availability
 

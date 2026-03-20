@@ -28,7 +28,7 @@ The primary goal is to make MockNest Serverless production-ready for public SAR 
 - **InferencePrefixResolver**: Component that automatically determines the correct inference profile prefix based on deploy region and model capabilities
 - **Core_Runtime**: The base WireMock functionality (mock serving, S3 persistence, admin API) that works without AI features
 - **AI_Features**: Optional AI-powered mock generation capabilities that require Amazon Bedrock access
-- **Tested_Regions**: AWS regions where MockNest has been thoroughly tested (us-east-1, eu-west-1, ap-southeast-1)
+- **Tested_Regions**: AWS regions where MockNest has been thoroughly tested (us-east-1, eu-west-1, eu-central-1, ap-southeast-1)
 - **Officially_Supported**: Features and configurations that are tested, documented, and supported by the maintainers
 - **Experimental**: Features and configurations that may work but are not officially tested or supported
 - **Soft_Restriction**: Documentation-based guidance on supported configurations without technical enforcement
@@ -214,9 +214,9 @@ The primary goal is to make MockNest Serverless production-ready for public SAR 
 
 1. THE Application SHALL be published as a private SAR application before public release
 2. THE Private_SAR_Application SHALL be tested by deploying from a fresh AWS account (not the publisher account)
-3. THE Testing SHALL cover deployment to us-east-1, eu-west-1, and ap-southeast-1 regions
-4. THE Testing SHALL verify core runtime functionality (mock creation, serving, persistence) in all three regions
-5. THE Testing SHALL verify AI features (if enabled) work correctly in all three regions with Amazon Nova Pro
+3. THE Testing SHALL cover deployment to us-east-1, eu-west-1, eu-central-1, and ap-southeast-1 regions
+4. THE Testing SHALL verify core runtime functionality (mock creation, serving, persistence) in all tested regions
+5. THE Testing SHALL verify AI features (if enabled) work correctly in all tested regions with Amazon Nova Pro
 6. THE Testing SHALL verify the health check endpoint returns correct configuration information
 7. THE Testing SHALL verify all CloudFormation outputs are correct and accessible
 8. THE Testing SHALL verify API Gateway endpoints are accessible with the generated API key
@@ -229,9 +229,9 @@ The primary goal is to make MockNest Serverless production-ready for public SAR 
 #### Acceptance Criteria
 
 1. THE README SHALL contain a "Tested Configuration" section listing officially tested regions
-2. THE Tested_Regions SHALL include: us-east-1 (N. Virginia), eu-west-1 (Ireland), ap-southeast-1 (Singapore)
+2. THE Tested_Regions SHALL include: us-east-1 (N. Virginia), eu-west-1 (Ireland), eu-central-1 (Frankfurt), ap-southeast-1 (Singapore)
 3. THE README SHALL state that core runtime works in any AWS region with Lambda, API Gateway, and S3
-4. THE README SHALL state that AI features are tested only with Amazon Nova Pro in the three tested regions
+4. THE README SHALL state that AI features are tested only with Amazon Nova Pro in the tested regions
 5. THE README SHALL indicate that deployment to other regions is possible but not officially supported
 6. THE README SHALL indicate that other Bedrock models may work but are not officially supported
 7. THE README SHALL list which WireMock features have been tested in the serverless environment
