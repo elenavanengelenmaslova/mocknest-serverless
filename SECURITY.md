@@ -84,7 +84,7 @@ These tools are visible as badges in the README and provide public dashboards fo
 - **Purpose**: Demonstrates adherence to open source security and quality standards
 - **Visibility**: Badge in README linking to public criteria compliance page
 - **Certification Level**: Passing (required criteria met)
-- **Project Page**: https://bestpractices.coreinfrastructure.org/projects/{project-id}
+- **Project Page**: https://www.bestpractices.dev/projects/12218
 - **Maintenance**: Quarterly review and re-certification as needed
 
 #### CodeQL Code Scanning
