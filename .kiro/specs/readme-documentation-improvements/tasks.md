@@ -6,7 +6,7 @@ This plan implements comprehensive documentation improvements for MockNest Serve
 
 ## Tasks
 
-- [ ] 1. Define canonical example data reference
+- [x] 1. Define canonical example data reference
   - Create internal reference document with exact example data matching Postman collection
   - Document SOAP calculator example (5+3=42, mapping ID: 76ada7b0-55ae-4229-91c4-396a36f18123)
   - Document GraphQL pet example (Buddy, Golden Retriever, id: 123)
@@ -15,40 +15,40 @@ This plan implements comprehensive documentation improvements for MockNest Serve
   - **IMPORTANT**: Only include examples that exist in Postman collection - this is the source of truth
   - _Requirements: 6.1, 6.2, 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 2. Create comprehensive cURL usage guide (docs/USAGE.md)
-  - [ ] 2.1 Create USAGE.md file structure with table of contents
+- [x] 2. Create comprehensive cURL usage guide (docs/USAGE.md)
+  - [x] 2.1 Create USAGE.md file structure with table of contents
     - Add document title and introduction
     - Create table of contents with links to all major sections
     - Add prerequisites section explaining API URL and key requirements
     - _Requirements: 9.1, 9.2, 9.3, 9.4_
 
-  - [ ] 2.2 Add setup and environment variable section
+  - [x] 2.2 Add setup and environment variable section
     - Document how to set MOCKNEST_URL environment variable
     - Document how to set API_KEY environment variable
     - Include examples for bash/zsh shell configuration
     - _Requirements: 9.5, 10.3_
 
-  - [ ] 2.3 Add health check examples
+  - [x] 2.3 Add health check examples
     - Add Admin Health check cURL example with description and expected response
     - Add AI Generation Health check cURL example with description and expected response
     - Include parameter explanations for each example
     - _Requirements: 4.2, 4.3, 4.15_
 
-  - [ ] 2.4 Add SOAP mock management examples
+  - [x] 2.4 Add SOAP mock management examples
     - Add SOAP mapping creation example (calculator 5+3=42)
     - Add SOAP mock testing example
     - Include XML request/response formatting
     - Include parameter explanations
     - _Requirements: 4.4, 4.5, 4.15, 7.1_
 
-  - [ ] 2.5 Add GraphQL mock management examples
+  - [x] 2.5 Add GraphQL mock management examples
     - Add GraphQL mapping creation example (Buddy pet)
     - Add GraphQL mock testing example
     - Include JSON request/response formatting
     - Include parameter explanations
     - _Requirements: 4.6, 4.7, 4.15, 7.2_
 
-  - [ ] 2.6 Add AI-assisted mock generation examples
+  - [x] 2.6 Add AI-assisted mock generation examples
     - Add AI generation from OpenAPI spec example (petstore with 3 pets)
     - Add import generated mappings example
     - Add calling generated pet API by status example
@@ -57,14 +57,14 @@ This plan implements comprehensive documentation improvements for MockNest Serve
     - **IMPORTANT**: Only include endpoints that exist in Postman collection
     - _Requirements: 4.8, 4.9, 4.10, 4.11, 4.15, 7.3, 7.4_
 
-  - [ ] 2.7 Add administrative operations examples
+  - [x] 2.7 Add administrative operations examples
     - Add get all mappings example
     - Add get file content example
     - Add delete all mappings example
     - Include parameter explanations
     - _Requirements: 4.12, 4.13, 4.14, 4.15_
 
-  - [ ] 2.8 Add next steps and references section
+  - [x] 2.8 Add next steps and references section
     - Link to OpenAPI specification
     - Link to Postman collection
     - Link to main README
@@ -72,7 +72,7 @@ This plan implements comprehensive documentation improvements for MockNest Serve
     - Add version/last updated information
     - _Requirements: 9.7, 10.1, 10.2, 10.4_
 
-  - [ ] 2.9 Ensure proper markdown formatting throughout USAGE.md
+  - [x] 2.9 Ensure proper markdown formatting throughout USAGE.md
     - Use ```bash for cURL commands
     - Use ```json for JSON responses
     - Use ```xml for XML responses

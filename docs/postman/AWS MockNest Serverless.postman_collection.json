@@ -249,6 +249,242 @@
       ]
     },
     {
+      "name": "Create mapping Bored API",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"76ada7b0-55ae-4229-91c4-396a36f18347\",\n  \"priority\": 2,\n  \"request\": {\n    \"method\": \"GET\",\n    \"urlPath\": \"/bored/api/activity\",\n    \"queryParameters\": {\n      \"type\": { \"equalTo\": \"social\" }\n    }\n  },\n  \"response\": {\n    \"status\": 200,\n    \"headers\": {\n      \"Content-Type\": \"application/json\"\n    },\n    \"jsonBody\": {\n      \"activity\": \"Escape the nulls of daily life — nerd out over MockNest on AWS Lambda\",\n      \"type\": \"social\",\n      \"participants\": 1,\n      \"link\": \"https://awscommunityday.nl/\",\n      \"price\": 0.3,\n      \"accessibility\": 0.4\n    }\n  },\n  \"persistent\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/__admin/mappings",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "__admin",
+            "mappings"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Create mapping Bored API",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "AWS API Key",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"76ada7b0-55ae-4229-91c4-396a36f18347\",\n  \"priority\": 2,\n  \"request\": {\n    \"method\": \"GET\",\n    \"urlPath\": \"/bored/api/activity\",\n    \"queryParameters\": {\n      \"type\": { \"equalTo\": \"social\" }\n    }\n  },\n  \"response\": {\n    \"status\": 200,\n    \"headers\": {\n      \"Content-Type\": \"application/json\"\n    },\n    \"jsonBody\": {\n      \"activity\": \"Escape the nulls of daily life — nerd out over MockNest on AWS Lambda\",\n      \"type\": \"social\",\n      \"participants\": 1,\n      \"link\": \"https://awscommunityday.nl/\",\n      \"price\": 0.3,\n      \"accessibility\": 0.4\n    }\n  },\n  \"persistent\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/__admin/mappings",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "__admin",
+                "mappings"
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": ":status",
+              "value": 201
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            },
+            {
+              "key": "content-length",
+              "value": "485"
+            },
+            {
+              "key": "date",
+              "value": "Sat, 21 Mar 2026 08:00:11 GMT"
+            },
+            {
+              "key": "x-amzn-trace-id",
+              "value": "Root=1-69be5000-3364e3410b0c7ba71ac384ee"
+            },
+            {
+              "key": "x-amzn-requestid",
+              "value": "1dc10c36-271d-4af6-b974-fff97e25954f"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "akFwJEAZjoEEhJQ="
+            },
+            {
+              "key": "x-cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "via",
+              "value": "1.1 e17e486f5137ccbbae8ed277a66b7e02.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "x-amz-cf-pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "x-amz-cf-id",
+              "value": "O_8DaFqlrcF6FQGZQW7haoDDKKUR7W51PS_FXj9T7a_qkszfC2x-EA=="
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"id\": \"76ada7b0-55ae-4229-91c4-396a36f18347\",\n    \"request\": {\n        \"urlPath\": \"/bored/api/activity\",\n        \"method\": \"GET\",\n        \"queryParameters\": {\n            \"type\": {\n                \"equalTo\": \"social\"\n            }\n        }\n    },\n    \"response\": {\n        \"status\": 200,\n        \"bodyFileName\": \"76ada7b0-55ae-4229-91c4-396a36f18347.json\",\n        \"headers\": {\n            \"Content-Type\": \"application/json\"\n        }\n    },\n    \"uuid\": \"76ada7b0-55ae-4229-91c4-396a36f18347\",\n    \"persistent\": true,\n    \"priority\": 2\n}"
+        }
+      ]
+    },
+    {
+      "name": "Call mock Bored API",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{AWS_URL}}/mocknest/bored/api/activity?type=social",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "mocknest",
+            "bored",
+            "api",
+            "activity"
+          ],
+          "query": [
+            {
+              "key": "type",
+              "value": "social"
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Call mock Bored API",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "AWS API Key",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{AWS_URL}}/mocknest/bored/api/activity?type=social",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "mocknest",
+                "bored",
+                "api",
+                "activity"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "social"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": ":status",
+              "value": 200
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            },
+            {
+              "key": "content-length",
+              "value": "188"
+            },
+            {
+              "key": "date",
+              "value": "Sat, 21 Mar 2026 08:00:23 GMT"
+            },
+            {
+              "key": "x-amzn-trace-id",
+              "value": "Root=1-69be5016-090ab29a4b8380e44431ac82"
+            },
+            {
+              "key": "x-amzn-requestid",
+              "value": "0c1c458a-afb5-414a-a01f-873061dbd5e8"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "akFzpGA8joEEh7w="
+            },
+            {
+              "key": "x-cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "via",
+              "value": "1.1 e17e486f5137ccbbae8ed277a66b7e02.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "x-amz-cf-pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "x-amz-cf-id",
+              "value": "LBNX2i1XGR966Tov-_2AaEqE0rVd8xP2XD80rNbC3q-X6aboZFvOuQ=="
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"activity\": \"Escape the nulls of daily life — nerd out over MockNest on AWS Lambda\",\n    \"type\": \"social\",\n    \"participants\": 1,\n    \"link\": \"https://awscommunityday.nl/\",\n    \"price\": 0.3,\n    \"accessibility\": 0.4\n}"
+        }
+      ]
+    },
+    {
       "name": "Create mapping Add Soap 5+3",
       "request": {
         "method": "POST",
