@@ -79,8 +79,8 @@ This plan implements comprehensive documentation improvements for MockNest Serve
     - Verify consistent section heading levels
     - _Requirements: 4.16, 6.3, 6.6_
 
-- [ ] 3. Update README.md with quick start and restructured getting started
-  - [ ] 3.1 Add "Getting Started in 5 Minutes" section at top
+- [x] 3. Update README.md with quick start and restructured getting started
+  - [x] 3.1 Add "Getting Started in 5 Minutes" section at top
     - Add section before existing getting started content
     - Include step-by-step API Gateway URL retrieval instructions
     - Include step-by-step API key retrieval instructions
@@ -91,14 +91,14 @@ This plan implements comprehensive documentation improvements for MockNest Serve
     - Include explanatory text for each step
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8_
 
-  - [ ] 3.2 Restructure existing getting started section
+  - [x] 3.2 Restructure existing getting started section
     - Create "Quick Start (5 Minutes)" subsection linking to new section
     - Create "Deployment Options" subsection (SAR vs building from source)
     - Create "After Deployment" subsection with API access instructions
     - Create "Usage Options" subsection (Postman vs cURL)
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-  - [ ] 3.3 Add cross-reference links in README.md
+  - [x] 3.3 Add cross-reference links in README.md
     - Link to Postman collection in docs/postman/
     - Link to USAGE.md for comprehensive cURL examples
     - Link to README-SAR.md for SAR-specific instructions
