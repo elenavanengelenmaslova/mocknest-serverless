@@ -205,7 +205,7 @@ MockNest Serverless provides multiple ways to interact with the API:
 ### Deployment from AWS Serverless Application Repository
 
 1. **Navigate to SAR**: Go to the [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home) in your AWS Console
-2. **Select Region**: Choose your preferred deployment region (us-east-1, eu-west-1, or eu-central-1 recommended)
+2. **Select Region**: Choose your preferred deployment region (see [supported regions](docs/REGIONS.md))
 4. **Deploy**: Click "Deploy" and configure parameters:
    - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
@@ -254,15 +254,14 @@ The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock infer
 MockNest Serverless has been thoroughly tested in the following configurations:
 
 ### Officially Supported Regions
-- **us-east-1** (N. Virginia)
-- **eu-west-1** (Ireland)
-- **eu-central-1** (Frankfurt)
+- **Tested regions**: us-east-1 (N. Virginia), eu-west-1 (Ireland), eu-central-1 (Frankfurt)
 - **Works in any AWS region** with Lambda, API Gateway, and S3 support
 - **Deployment to other regions** is possible but not tested yet
+- See [docs/REGIONS.md](docs/REGIONS.md) for detailed regional information
 
 ### AI Features Support
-- **Other Bedrock models**: May work but are experimental and not officially supported
-- **Officially supported**: Amazon Nova Pro model in `us-east-1`, `eu-west-1`, and `eu-central-1`
+- **Officially supported**: Amazon Nova Pro model in [tested regions](docs/REGIONS.md)
+- **Other Bedrock models**: Are experimental and have not been tested
 The following WireMock capabilities have been validated in the serverless environment:
 - Request matching (URL, headers, body, query parameters)
 - Response templating and transformation
