@@ -13,12 +13,20 @@
 [![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+*AI-powered API mocking for cloud-native testing on AWS*
+
 MockNest Serverless is a serverless WireMock compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
 Demo: https://youtu.be/Rvip8rtULww
 
 <p align="center">
   <img src="docs/images/MockNestServerlessLogo.png" alt="MockNest Serverless Logo" width="400">
 </p>
+
+## Used for
+
+- **CI/CD integration testing in the cloud** - Run automated integration tests in your CI/CD pipeline without depending on external APIs
+- **Mocking third-party APIs** - Mock Salesforce, payment gateways, SOAP services, REST APIs, GraphQL APIs and other external dependencies
+- **Testing in restricted environments** - Run exploratory and integration tests in cloud environments where external APIs are unavailable, unreliable, or have difficult-to-setup test data
 
 ## Architecture Overview
 
