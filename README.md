@@ -214,7 +214,7 @@ MockNest Serverless provides multiple ways to interact with the API:
 
 1. **Navigate to SAR**: Go to the [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home) in your AWS Console
 2. **Select Region**: Choose your preferred deployment region (see [supported regions](docs/REGIONS.md))
-4. **Deploy**: Click "Deploy" and configure parameters:
+3. **Deploy**: Click "Deploy" and configure parameters:
    - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
    - **BedrockInferenceMode**: Inference profile selection (default: "AUTO" - recommended)
