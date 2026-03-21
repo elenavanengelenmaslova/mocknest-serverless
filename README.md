@@ -423,6 +423,8 @@ Most development and testing scenarios stay within free tier limits, resulting i
 
 For detailed cost analysis, service breakdowns, and optimization tips, see our comprehensive [Cost Guide](docs/COST.md).
 
+For a comparison with alternative mocking solutions and competitive analysis, see [Market Analysis](docs/market_analysis.md).
+
 ## Troubleshooting
 ### Common Issues
 
