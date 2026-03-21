@@ -8,7 +8,7 @@ MockNest Serverless is a serverless WireMock runtime that enables realistic inte
 
 Click "Deploy" and configure the parameters below. Deployment typically takes 2-3 minutes. You can monitor progress in the CloudFormation console.
 
-**Region Selection**: Choose us-east-1, eu-west-1, or eu-central-1 for full AI support with Amazon Bedrock.
+**Region Selection**: See [supported regions](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/REGIONS.md) for AI feature availability.
 
 ## Input Parameters
 

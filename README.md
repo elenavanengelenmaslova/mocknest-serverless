@@ -34,12 +34,164 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 - **Serverless WireMock Runtime**: Full WireMock API running on AWS Lambda
 - **Persistent Mock Storage**: Mock definitions stored in Amazon S3
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
-- **AI-Assisted Mock Generation**: Intelligent mock creation from API specifications using Amazon Nova Pro
-- **AWS Free Tier Compatible**: Designed to operate within AWS Free Tier limits
+- **AI-Assisted Mock Generation**: Intelligent mock creation from API specifications using Bedrock with a configurable model, defaulted to Amazon Nova Pro
 - **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR) or deploy via SAM
 
 ### Planned Features
 See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslova/projects/3) 
+
+## Getting Started
+
+### Quick Start (5 Minutes)
+
+Try out MockNest Serverless quickly - deploy from SAR and test your first mocks.
+
+### Step 1: Deploy from AWS Serverless Application Repository
+
+1. Go to the [AWS Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless)
+2. Select your deployment region (see [supported regions](docs/REGIONS.md) for AI feature availability)
+3. Click "Deploy" and accept the default parameters
+4. Wait for deployment to complete (typically 2-3 minutes)
+
+> For parameter details and customization options, see the [SAR User Guide](README-SAR.md).
+
+### Step 2: Get Your API Details
+
+After deployment completes, retrieve your API Gateway URL and API key from the AWS Console.
+
+Set environment variables:
+```bash
+export MOCKNEST_URL="https://your-api-id.execute-api.eu-west-1.amazonaws.com/mocks"
+export API_KEY="your-api-key-value-here"
+```
+
+> See the [SAR User Guide](README-SAR.md) for detailed instructions on retrieving these values.
+
+### Step 3: Verify Health
+
+Check runtime health:
+```bash
+curl "${MOCKNEST_URL}/__admin/health" -H "x-api-key: ${API_KEY}"
+```
+
+Check AI generation health:
+```bash
+curl "${MOCKNEST_URL}/ai/generation/health" -H "x-api-key: ${API_KEY}"
+```
+
+### Step 4: Create and Test a Mock
+
+Create a simple mock:
+```bash
+curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request": {"method": "GET", "urlPath": "/hello"},
+    "response": {
+      "status": 200,
+      "jsonBody": {"message": "Hello from MockNest!"}
+    },
+    "persistent": true
+  }'
+```
+
+Test the mock:
+```bash
+curl "${MOCKNEST_URL}/hello" -H "x-api-key: ${API_KEY}"
+```
+
+### Step 5: Try AI-Assisted Generation
+
+Generate mocks from an OpenAPI spec:
+```bash
+curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": {
+        "apiName": "petstore",
+        "client": null
+    },
+    "specification": null,
+    "specificationUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
+    "format": "OPENAPI_3",
+    "description": "Generate mocks for 3 pets from the Petstore OpenAPI specification, pets enpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets accross endpoints, 1 pet is a dog with this image: https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg, this dog is available and a new pet and should have a tag with id=1 and name=new, we need to have api call to get all new pets and its that dog, the other two pets are available also but are not new",
+    "options": {
+        "enableValidation": true
+    }
+}'
+```
+
+Import the generated mappings (copy the `mappings` array from the response):
+```bash
+curl -X POST "${MOCKNEST_URL}/__admin/mappings/import" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"mappings": [...]}'
+```
+
+Test the imported mock:
+```bash
+curl "${MOCKNEST_URL}/petstore/pet/findByStatus?status=available" \
+  -H "x-api-key: ${API_KEY}"
+```
+
+### What's Next?
+
+**Configure Your Client App**
+To use MockNest with your application:
+1. Create mocks for the third-party APIs your app depends on (using manual creation or AI generation)
+2. Update your app's configuration to point at MockNest instead of the real API:
+   - Change the API base URL to `${MOCKNEST_URL}` (plus any path prefix like `/petstore`)
+   - Add the API key header to your requests: `x-api-key: ${API_KEY}`
+3. Your app will now call mocks instead of real services
+
+**Learn More**
+- **More Examples**: See [docs/USAGE.md](docs/USAGE.md) for SOAP, GraphQL, and advanced AI generation
+- **Postman Collection**: Import from [docs/postman/](docs/postman/) for ready-to-use examples
+- **OpenAPI Specification**: Full API reference at [docs/api/mocknest-openapi.yaml](docs/api/mocknest-openapi.yaml)
+- **SAR Guide**: Read [README-SAR.md](README-SAR.md) for detailed deployment and configuration options
+
+### Deployment Options
+
+MockNest Serverless offers two deployment methods:
+
+**AWS Serverless Application Repository (SAR) - Recommended for Most Users**
+- One-click deployment from AWS Console
+- Pre-built and tested application package
+- Automatic updates available
+- See [Quick Start for SAR Users](#quick-start-for-sar-users) below
+
+**Build from Source - For Developers and Contributors**
+- Full control over build and deployment
+- Ability to customize and contribute
+- Requires AWS SAM CLI and development tools
+- See [Deployment for Developers](#deployment-for-developers) below
+
+### After Deployment
+
+Once deployed, retrieve your API Gateway URL and API key from the AWS Console. See the [Quick Start (5 Minutes)](#quick-start-5-minutes) guide above for step-by-step instructions, or refer to the [SAR User Guide](README-SAR.md) for detailed guidance.
+
+### Usage Options
+
+MockNest Serverless provides multiple ways to interact with the API:
+
+**Postman Collections (Easiest)**
+- Pre-configured requests for all API operations
+- Import from [docs/postman/](docs/postman/)
+- Includes examples for REST, SOAP, GraphQL, and AI generation
+- Ready to use with environment variables
+
+**cURL Commands (Automation-Friendly)**
+- Command-line access for CI/CD integration
+- Comprehensive examples in [docs/USAGE.md](docs/USAGE.md)
+- Suitable for scripts and automated testing
+- Works in any terminal or shell script
+
+**Direct HTTP Clients**
+- Use any HTTP client library in your preferred language
+- Standard REST API with JSON request/response
 
 ## Quick Start for SAR Users
 
@@ -106,7 +258,7 @@ MockNest Serverless has been thoroughly tested in the following configurations:
 - **eu-west-1** (Ireland)
 - **eu-central-1** (Frankfurt)
 - **Works in any AWS region** with Lambda, API Gateway, and S3 support
-- **Deployment to other regions** is possible but not officially supported
+- **Deployment to other regions** is possible but not tested yet
 
 ### AI Features Support
 - **Other Bedrock models**: May work but are experimental and not officially supported
@@ -122,169 +274,31 @@ The following WireMock capabilities have been validated in the serverless enviro
 
 **Note**: MockNest does not claim support for WireMock features that have not been explicitly tested in serverless environments.
 
-## Usage
+## Known Limitations and Best Practices
 
-### Basic Mock Management
+### Performance Considerations
 
-Once deployed, MockNest Serverless exposes the standard WireMock admin API:
+**Cold Start Impact**: Mock definitions are loaded into memory at Lambda startup. With very large numbers of persistent mocks (thousands), cold start times may increase. For typical development and testing scenarios with hundreds of mocks, this is not a concern.
 
-```bash
-# Get your API Gateway endpoint from SAM output
-export MOCKNEST_URL="https://your-api-id.execute-api.eu-west-1.amazonaws.com/prod"
-export API_KEY="your-api-key"
+**Scaling Strategy**: For large-scale deployments or when managing many APIs, consider these approaches:
 
-# Create a mock for Petstore API
-curl -X POST "$MOCKNEST_URL/__admin/mappings" \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "request": {
-      "method": "GET",
-      "urlPath": "/petstore/pet/123"
-    },
-    "response": {
-      "status": 200,
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "jsonBody": {
-        "id": 123,
-        "name": "Buddy",
-        "status": "available",
-        "photoUrls": ["https://example.com/buddy.jpg"],
-        "category": {"id": 1, "name": "dog"},
-        "tags": [{"id": 1, "name": "friendly"}, {"id": 2, "name": "new"}]
-      }
-    }
-  }'
+- **Multiple Deployments**: Deploy separate MockNest instances for different API groups or teams
+  - Provides better isolation and independent scaling
+  - Reduces cold start times by keeping mock sets smaller per deployment
+  - Allows separate access control and security configurations
+  - Example: `mocknest-payment-apis`, `mocknest-user-apis`, `mocknest-notification-apis`
 
-# Test the mock
-curl "$MOCKNEST_URL/petstore/pet/123" \
-  -H "x-api-key: $API_KEY"
-```
+- **Namespace Organization**: Within a single deployment, use namespaces to logically group mocks
+  - Simple API: `/petstore/`
+  - Client-specific: `/client-a/petstore/`
+  - Multi-tenant: `/tenant-b/petstore/`
+  - Allows multiple teams and APIs to coexist without conflicts
 
-### AI-Assisted Mock Generation
+**Recommendation**: Use namespaces for logical grouping within a deployment, and use multiple deployments when you need isolation, separate access control, or independent scaling.
 
-MockNest provides intelligent mock generation capabilities using Amazon Bedrock:
+### Usage Examples
 
-**Supported Formats**:
-- OpenAPI 3.x (fully tested)
-- Swagger 2.0 (experimental - supported but not extensively tested)
-
-**Current Limitations**: AI generation currently supports REST APIs only. GraphQL and SOAP API generation is not yet supported.
-
-#### Generate from API Specification with Description
-
-Generate WireMock mappings from an OpenAPI 3.x specification enhanced with natural language instructions.
-
-```bash
-# Generate mocks from OpenAPI specification + natural language description
-curl -X POST "$MOCKNEST_URL/ai/generation/from-spec" \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "namespace": {
-      "apiName": "petstore",
-      "client": "demo"
-    },
-    "specification": "openapi: 3.0.0\ninfo:\n  title: Pet Store API\n  version: 1.0.0\npaths:\n  /pets:\n    get:\n      responses:\n        \"200\":\n          description: Success",
-    "format": "OPENAPI_3",
-    "description": "Generate 5 realistic pets, include error cases for invalid IDs",
-    "options": {
-      "enableValidation": true
-    }
-  }'
-```
-
-The response contains an array of generated WireMock mappings:
-
-```json
-{
-  "mappings": [
-    {
-      "request": {
-        "method": "GET",
-        "urlPath": "/petstore/pet/findByStatus",
-        "queryParameters": {
-          "status": {"equalTo": "available"}
-        }
-      },
-      "response": {
-        "status": 200,
-        "jsonBody": [
-          {
-            "id": 1,
-            "name": "Buddy",
-            "status": "available",
-            "photoUrls": ["https://example.com/buddy.jpg"],
-            "category": {"id": 1, "name": "dog"},
-            "tags": [{"id": 1, "name": "friendly"}, {"id": 2, "name": "new"}]
-          },
-          {
-            "id": 2,
-            "name": "Max",
-            "status": "available",
-            "photoUrls": ["https://example.com/max.jpg"],
-            "category": {"id": 1, "name": "dog"},
-            "tags": [{"id": 1, "name": "friendly"}]
-          }
-        ],
-        "headers": {
-          "Content-Type": "application/json"
-        }
-      }
-    }
-  ]
-}
-```
-
-Mocks are automatically organized using namespaces (e.g., `/petstore/`). You can then import these mocks using the standard WireMock `/__admin/mappings/import` endpoint.
-
-#### Generate from Natural Language
-
-```bash
-# Generate mocks from description
-curl -X POST "$MOCKNEST_URL/ai/generation/from-description" \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "namespace": {
-      "apiName": "petstore",
-      "client": "demo"
-    },
-    "description": "Create a REST API for managing pets with endpoints to get all pets, get pet by ID, create new pet, update pet, and delete pet. Include proper error responses for not found (404) and validation errors (400). Use realistic pet data with dogs and cats.",
-    "useExistingSpec": false,
-    "options": {
-      "includeExamples": true,
-      "generateErrorCases": true,
-      "realisticData": true
-    }
-  }'
-```
-
-#### Retrieve Generated Mocks
-
-```bash
-# Get generated mocks (use jobId from generation response)
-curl "$MOCKNEST_URL/ai/generation/jobs/{jobId}/mocks" \
-  -H "x-api-key: $API_KEY"
-
-# Create selected mocks in WireMock (copy wireMockMapping from response)
-curl -X POST "$MOCKNEST_URL/__admin/mappings" \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{...wireMockMapping from AI response...}'
-```
-
-#### Namespace Organization
-
-AI-generated mocks are organized using namespaces for better management:
-
-- **Simple API**: `petstore/` 
-- **Client-specific**: `client-a/petstore/`
-- **Multi-tenant**: `tenant-b/petstore/`
-
-This allows multiple teams and APIs to coexist without conflicts.
+For comprehensive usage examples including SOAP, GraphQL, and advanced AI generation scenarios, see [docs/USAGE.md](docs/USAGE.md).
 
 ## Deployment for Developers
 
