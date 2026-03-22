@@ -12,6 +12,28 @@ You can manage mocks in two ways:
 - **Manual Management**: Use the admin API (`/__admin/*` endpoints) to create, update, and delete mocks manually with full control over request matching and response behavior
 - **AI-Assisted Generation**: Use the AI generation API (`/ai/*` endpoints) to automatically generate comprehensive mock suites from API specifications, leveraging Amazon Bedrock to create realistic, consistent mock data
 
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Health Checks](#health-checks)
+  - [Admin Health Check](#admin-health-check)
+  - [AI Generation Health Check](#ai-generation-health-check)
+- [Manual Mock Management](#manual-mock-management)
+  - [REST API Mock Management](#rest-api-mock-management)
+  - [SOAP Mock Management](#soap-mock-management)
+  - [GraphQL Mock Management](#graphql-mock-management)
+- [AI-Assisted Mock Generation](#ai-assisted-mock-generation)
+  - [Generate Mocks from OpenAPI Specification](#generate-mocks-from-openapi-specification)
+  - [Import Generated Mappings](#import-generated-mappings)
+  - [Call Generated Pet API by Status](#call-generated-pet-api-by-status)
+  - [Call Generated Pet API by Tags](#call-generated-pet-api-by-tags)
+- [Administrative Operations](#administrative-operations)
+  - [Get All Mappings](#get-all-mappings)
+  - [Get File Content](#get-file-content)
+  - [Delete All Mappings](#delete-all-mappings)
+- [Next Steps](#next-steps)
+
 ## Prerequisites
 
 Before using MockNest Serverless, you need:
