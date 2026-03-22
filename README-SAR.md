@@ -79,46 +79,67 @@ export MOCKNEST_URL="https://your-api-id.execute-api.region.amazonaws.com/prod"
 export API_KEY="your-api-key-from-outputs"
 
 # Verify deployment
-curl "$MOCKNEST_URL/__admin/health" -H "x-api-key: $API_KEY"
+curl -X GET "${MOCKNEST_URL}/__admin/health" \
+  -H "x-api-key: ${API_KEY}"
 
-# Create a simple mock
-curl -X POST "$MOCKNEST_URL/__admin/mappings" \
-  -H "x-api-key: $API_KEY" \
+# Create a simple REST API mock
+curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
+  -H "x-api-key: ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
-    "request": {
-      "method": "GET",
-      "url": "/api/users/123"
-    },
-    "response": {
-      "status": 200,
-      "headers": {"Content-Type": "application/json"},
-      "jsonBody": {
-        "id": 123,
-        "name": "John Doe",
-        "email": "john@example.com"
-      }
+  "id": "76ada7b0-55ae-4229-91c4-396a36f18347",
+  "priority": 2,
+  "request": {
+    "method": "GET",
+    "urlPath": "/bored/api/activity",
+    "queryParameters": {
+      "type": { "equalTo": "social" }
     }
-  }'
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "activity": "Escape the nulls of daily life — nerd out over MockNest on AWS Lambda",
+      "type": "social",
+      "participants": 1,
+      "link": "https://awscommunityday.nl/",
+      "price": 0.3,
+      "accessibility": 0.4
+    }
+  },
+  "persistent": true
+}'
 
 # Test your mock
-curl "$MOCKNEST_URL/api/users/123" -H "x-api-key: $API_KEY"
+curl -X GET "${MOCKNEST_URL}/bored/api/activity?type=social" \
+  -H "x-api-key: ${API_KEY}"
 ```
+
+For more extensive examples including SOAP, GraphQL, and AI-assisted generation, see the [complete cURL usage guide](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/USAGE.md).
 
 ## AI-Assisted Mock Generation
 
 Generate mocks from OpenAPI specifications:
 
 ```bash
-curl -X POST "$MOCKNEST_URL/ai/generation/from-spec" \
-  -H "x-api-key: $API_KEY" \
+curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
+  -H "x-api-key: ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
-    "namespace": {"apiName": "petstore", "client": null},
-    "specificationUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
-    "format": "OPENAPI_3",
-    "description": "Generate mocks for pet endpoints, return realistic data"
-  }'
+  "namespace": {
+    "apiName": "petstore",
+    "client": null
+  },
+  "specificationUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
+  "format": "OPENAPI_3",
+  "description": "Generate mocks for 3 pets from the Petstore OpenAPI specification, pets endpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets across endpoints",
+  "options": {
+    "enableValidation": true
+  }
+}'
 ```
 
 **Supported Formats**:
@@ -126,6 +147,8 @@ curl -X POST "$MOCKNEST_URL/ai/generation/from-spec" \
 - Swagger 2.0 (experimental)
 
 **Current Limitations**: AI generation supports REST APIs only. GraphQL and SOAP API generation not yet supported.
+
+For more extensive examples including SOAP, GraphQL, and AI-assisted generation workflows, see the [complete cURL usage guide](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/USAGE.md).
 
 ## Architecture and Data Persistence
 
@@ -209,4 +232,5 @@ For detailed security information and vulnerability reporting, see [SECURITY.md]
 ## Learn More
 
 **Article**: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)
+
 **AWS Builder**: [MockNest Serverless – AI-Powered API Mocking](https://builder.aws.com/content/2zkFqqTTTB259ZesLX6l9ZbAqjD/aideas-mocknest-serverless-ai-powered-api-mocking-for-cloud-native-testing)
