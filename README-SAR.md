@@ -32,7 +32,7 @@ When deploying from SAR, you can configure these parameters:
   - Automatically adapts to regional model availability
 
 - **GLOBAL_ONLY**: Forces use of cross-region inference profile only
-  - Use when model is only available globally
+  - Use when model is available globally
   - Provides consistent global model behavior
   - Data may cross region boundaries
 
