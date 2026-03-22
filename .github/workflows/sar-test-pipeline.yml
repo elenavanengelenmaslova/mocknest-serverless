@@ -89,7 +89,7 @@ jobs:
           021259937026:applications/MockNest-Serverless \
             --stack-name "$STACK_NAME" \
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
-            --parameter-overrides DeploymentName=sar-test-${{ github.run_id }} \
+            --parameter-overrides Name=DeploymentName,Value=sar-test-${{ github.run_id }} \
             --region ${{ inputs.aws-region }} \
             --query 'ChangeSetId' \
             --output text 2>&1) || {
@@ -117,12 +117,17 @@ jobs:
             echo "❌ Change set creation failed"
             echo ""
             echo "Retrieving change set status and error details..."
-            aws cloudformation describe-change-set \
+            CHANGE_SET_STATUS=$(aws cloudformation describe-change-set \
               --stack-name "$STACK_NAME" \
               --change-set-name "$CHANGE_SET_NAME" \
-              --region ${{ inputs.aws-region }} \
-              --query '{Status:Status,StatusReason:StatusReason,Changes:Changes}' \
-              --output json || echo "Failed to retrieve change set details"
+              --region ${{ inputs.aws-region }} 2>&1)
+            
+            echo "$CHANGE_SET_STATUS"
+            echo ""
+            echo "Common causes:"
+            echo "1. SAR application is not public - check sharing settings in SAR console"
+            echo "2. Missing required parameters"
+            echo "3. IAM permissions issue"
             exit 1
           }
 
