@@ -34,9 +34,19 @@ jobs:
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   
-  summary:
+  test:
     needs: publish
+    uses: ./.github/workflows/sar-test-pipeline.yml
+    with:
+      aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
+      version: ${{ inputs.version || github.event.release.tag_name }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  
+  summary:
+    needs: [publish, test]
     runs-on: ubuntu-latest
+    if: always()
     steps:
       - name: Create deployment summary
         run: |
@@ -46,6 +56,23 @@ jobs:
           echo "**Region:** ${{ inputs.aws-region || 'eu-west-1' }}" >> $GITHUB_STEP_SUMMARY
           echo "**Application ID:** ${{ needs.publish.outputs.application_id }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Include test pipeline status
+          echo "### 🧪 Test Pipeline Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.test.result }}" = "success" ]; then
+            echo "**Status:** ✅ All tests passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test.result }}" = "failure" ]; then
+            echo "**Status:** ❌ Tests failed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test.result }}" = "cancelled" ]; then
+            echo "**Status:** ⏭️ Tests cancelled" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** ⚠️ Tests skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 [View detailed test results](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
           echo "### 🎯 Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "1. Go to [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home)" >> $GITHUB_STEP_SUMMARY
           echo "2. Find 'MockNest-Serverless' in your applications" >> $GITHUB_STEP_SUMMARY
