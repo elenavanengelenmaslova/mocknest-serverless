@@ -67,8 +67,7 @@ jobs:
           echo "STACK_NAME=$STACK_NAME" >> $GITHUB_ENV
 
           # Set SAR application URL (always from eu-west-1 where it's published)
-          SAR_APP_URL="https://serverlessrepo.aws.amazon.com/applications/\
-          eu-west-1/021259937026/MockNest-Serverless"
+          SAR_APP_URL="https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless"
           echo "SAR_APP_URL=$SAR_APP_URL" >> $GITHUB_ENV
 
           # Capture deployment start timestamp
@@ -81,6 +80,7 @@ jobs:
           echo "Target Region: ${{ inputs.aws-region }}"
 
           # Create CloudFormation change set from SAR
+          # Create CloudFormation change set from SAR
           # Note: application-id uses source region (eu-west-1), but --region specifies target
           echo "Creating change set from SAR application..."
           CHANGE_SET_ID=$(aws serverlessrepo \
@@ -89,7 +89,7 @@ jobs:
           021259937026:applications/MockNest-Serverless \
             --stack-name "$STACK_NAME" \
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
-            --parameter-overrides Name=DeploymentName,Value=sar-test-${{ github.run_id }} \
+            --parameter-overrides Name=DeploymentName,Value=sartest${{ github.run_id }} \
             --region ${{ inputs.aws-region }} \
             --query 'ChangeSetId' \
             --output text 2>&1) || {
@@ -102,7 +102,6 @@ jobs:
             echo "3. Insufficient permissions to access SAR application"
             exit 1
           }
-
           echo "Change Set ID: $CHANGE_SET_ID"
 
           # Extract change set name from the full ARN
