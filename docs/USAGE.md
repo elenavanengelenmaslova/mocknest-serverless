@@ -12,6 +12,28 @@ You can manage mocks in two ways:
 - **Manual Management**: Use the admin API (`/__admin/*` endpoints) to create, update, and delete mocks manually with full control over request matching and response behavior
 - **AI-Assisted Generation**: Use the AI generation API (`/ai/*` endpoints) to automatically generate comprehensive mock suites from API specifications, leveraging Amazon Bedrock to create realistic, consistent mock data
 
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Health Checks](#health-checks)
+  - [Admin Health Check](#admin-health-check)
+  - [AI Generation Health Check](#ai-generation-health-check)
+- [Manual Mock Management](#manual-mock-management)
+  - [REST API Mock Management](#rest-api-mock-management)
+  - [SOAP Mock Management](#soap-mock-management)
+  - [GraphQL Mock Management](#graphql-mock-management)
+- [AI-Assisted Mock Generation](#ai-assisted-mock-generation)
+  - [Generate Mocks from OpenAPI Specification](#generate-mocks-from-openapi-specification)
+  - [Import Generated Mappings](#import-generated-mappings)
+  - [Call Generated Pet API by Status](#call-generated-pet-api-by-status)
+  - [Call Generated Pet API by Tags](#call-generated-pet-api-by-tags)
+- [Administrative Operations](#administrative-operations)
+  - [Get All Mappings](#get-all-mappings)
+  - [Get File Content](#get-file-content)
+  - [Delete All Mappings](#delete-all-mappings)
+- [Next Steps](#next-steps)
+
 ## Prerequisites
 
 Before using MockNest Serverless, you need:
@@ -756,8 +778,8 @@ curl -X GET "${MOCKNEST_URL}/__admin/mappings" \
     {
       "id": "76ada7b0-55ae-4229-91c4-396a36f18123",
       "request": {
-        "method": "POST",
         "url": "/dneonline/calculator.asmx",
+        "method": "POST",
         "bodyPatterns": [
           {
             "matchesXPath": "//*[local-name()='intA' and text()='5']"
@@ -769,13 +791,14 @@ curl -X GET "${MOCKNEST_URL}/__admin/mappings" \
       },
       "response": {
         "status": 200,
+        "bodyFileName": "76ada7b0-55ae-4229-91c4-396a36f18123.json",
         "headers": {
           "Content-Type": "text/xml; charset=utf-8"
-        },
-        "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soap:Body>\n    <AddResponse xmlns=\"http://tempuri.org/\">\n      <AddResult>42</AddResult>\n    </AddResponse>\n  </soap:Body>\n</soap:Envelope>"
+        }
       },
       "uuid": "76ada7b0-55ae-4229-91c4-396a36f18123",
-      "persistent": true
+      "persistent": true,
+      "priority": 1
     }
   ],
   "meta": {
@@ -787,11 +810,14 @@ curl -X GET "${MOCKNEST_URL}/__admin/mappings" \
 **Key Parameters**:
 - `x-api-key` header: Your API key for authentication
 - Response `mappings`: Array of all configured mock mappings
+- Response `response.bodyFileName`: The filename to use when retrieving file content (see "Get File Content" section below)
 - Response `meta.total`: Total count of mappings
 
 ### Get File Content
 
 **Description**: Retrieves the content of a specific file stored in MockNest (e.g., externalized response bodies).
+
+**Note**: Use the filename from the "Get All Mappings" response above. Look for the `response.bodyFileName` field in the mapping output (e.g., `"bodyFileName": "76ada7b0-55ae-4229-91c4-396a36f18123.json"`).
 
 **Command**:
 ```bash
@@ -803,7 +829,7 @@ curl -X GET "${MOCKNEST_URL}/__admin/files/76ada7b0-55ae-4229-91c4-396a36f18123.
 Returns the file content (format depends on the file type - JSON, XML, plain text, etc.).
 
 **Key Parameters**:
-- File path: The path to the file in the format `{mapping-id}.{extension}`
+- File path: The filename from `response.bodyFileName` in the "Get All Mappings" output
 - `x-api-key` header: Your API key for authentication
 - Response: Raw file content
 

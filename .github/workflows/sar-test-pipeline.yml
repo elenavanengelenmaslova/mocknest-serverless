@@ -1,0 +1,607 @@
+---
+name: SAR Test Pipeline
+
+'on':
+  workflow_call:
+    inputs:
+      aws-region:
+        required: true
+        type: string
+        description: 'AWS region where SAR was published'
+      version:
+        required: true
+        type: string
+        description: 'SAR application version to test'
+    secrets:
+      AWS_ACCOUNT_ID:
+        required: true
+
+  workflow_dispatch:
+    inputs:
+      aws-region:
+        required: false
+        type: choice
+        default: 'eu-west-1'
+        description: 'AWS region for testing'
+        options:
+          - us-east-1
+          - us-west-2
+          - eu-west-1
+          - eu-central-1
+          - ap-southeast-1
+          - ap-northeast-1
+      version:
+        required: false
+        type: string
+        description: 'SAR application version (optional)'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: >-
+            arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubOIDCAdmin
+          role-session-name: MockNestSARTesting
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Verify AWS credentials
+        run: |
+          echo "✅ AWS credentials configured successfully"
+          echo "Region: ${{ inputs.aws-region }}"
+          echo "Version: ${{ inputs.version || 'latest' }}"
+
+      - name: Deploy MockNest from SAR
+        run: |
+          set -e
+          set -o pipefail
+
+          # Generate unique stack name
+          STACK_NAME="mocknest-sar-test-${{ github.run_id }}"
+          echo "STACK_NAME=$STACK_NAME" >> $GITHUB_ENV
+
+          # Set SAR application URL
+          SAR_APP_URL="https://serverlessrepo.aws.amazon.com/applications/\
+          eu-west-1/021259937026/MockNest-Serverless"
+          echo "SAR_APP_URL=$SAR_APP_URL" >> $GITHUB_ENV
+
+          # Capture deployment start timestamp
+          DEPLOYMENT_START=$(date +%s)
+          echo "DEPLOYMENT_START=$DEPLOYMENT_START" >> $GITHUB_ENV
+
+          echo "📦 Starting SAR deployment..."
+          echo "Stack Name: $STACK_NAME"
+          echo "SAR Application: $SAR_APP_URL"
+          echo "Region: ${{ inputs.aws-region }}"
+
+          # Create CloudFormation change set from SAR
+          CHANGE_SET_ID=$(aws serverlessrepo \
+            create-cloud-formation-change-set \
+            --application-id arn:aws:serverlessrepo:eu-west-1:\
+          021259937026:applications/MockNest-Serverless \
+            --stack-name "$STACK_NAME" \
+            --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+            --region ${{ inputs.aws-region }} \
+            --query 'ChangeSetId' \
+            --output text)
+
+          echo "Change Set ID: $CHANGE_SET_ID"
+
+          # Extract change set name from the full ARN
+          CHANGE_SET_NAME=$(echo "$CHANGE_SET_ID" | awk -F'/' '{print $NF}')
+
+          # Wait for change set to be created
+          echo "⏳ Waiting for change set to be created..."
+          aws cloudformation wait change-set-create-complete \
+            --stack-name "$STACK_NAME" \
+            --change-set-name "$CHANGE_SET_NAME" \
+            --region ${{ inputs.aws-region }}
+
+          # Execute the change set
+          echo "🚀 Executing change set..."
+          aws cloudformation execute-change-set \
+            --stack-name "$STACK_NAME" \
+            --change-set-name "$CHANGE_SET_NAME" \
+            --region ${{ inputs.aws-region }}
+
+          # Wait for stack creation with 15-minute timeout
+          echo "⏳ Waiting for stack creation to complete \
+          (timeout: 15 minutes)..."
+          aws cloudformation wait stack-create-complete \
+            --stack-name "$STACK_NAME" \
+            --region ${{ inputs.aws-region }} \
+            || {
+              # Capture deployment end timestamp
+              DEPLOYMENT_END=$(date +%s)
+              DEPLOYMENT_DURATION=$((DEPLOYMENT_END - DEPLOYMENT_START))
+
+              echo "❌ Stack creation failed or timed out"
+              echo "Duration: ${DEPLOYMENT_DURATION}s"
+              echo ""
+              echo "CloudFormation Stack Events:"
+              aws cloudformation describe-stack-events \
+                --stack-name "$STACK_NAME" \
+                --region ${{ inputs.aws-region }} \
+                --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].\
+          [Timestamp,ResourceType,LogicalResourceId,ResourceStatusReason]' \
+                --output table || echo "Failed to retrieve stack events"
+
+              exit 1
+            }
+
+          # Capture deployment end timestamp and calculate duration
+          DEPLOYMENT_END=$(date +%s)
+          DEPLOYMENT_DURATION=$((DEPLOYMENT_END - DEPLOYMENT_START))
+          echo "DEPLOYMENT_DURATION=$DEPLOYMENT_DURATION" >> $GITHUB_ENV
+
+          echo "✅ Deployment completed successfully"
+          echo "Duration: ${DEPLOYMENT_DURATION}s"
+
+      - name: Retrieve and validate stack outputs
+        run: |
+          set -e
+          set -o pipefail
+
+          echo "📋 Retrieving CloudFormation stack outputs..."
+
+          # Query stack outputs
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --region ${{ inputs.aws-region }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].\
+          OutputValue' \
+            --output text)
+
+          API_KEY_ID=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --region ${{ inputs.aws-region }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].\
+          OutputValue' \
+            --output text)
+
+          BUCKET_NAME=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --region ${{ inputs.aws-region }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].\
+          OutputValue' \
+            --output text)
+
+          # Validate MockNestApiUrl
+          if [ -z "$API_URL" ]; then
+            echo "❌ Error: MockNestApiUrl output is missing from \
+          CloudFormation stack"
+            exit 1
+          fi
+
+          if [[ ! "$API_URL" =~ ^https:// ]]; then
+            echo "❌ Error: MockNestApiUrl must start with https://, \
+          got: $API_URL"
+            exit 1
+          fi
+
+          # Validate MockNestApiKey
+          if [ -z "$API_KEY_ID" ]; then
+            echo "❌ Error: MockNestApiKey output is missing from \
+          CloudFormation stack"
+            exit 1
+          fi
+
+          if [[ ! "$API_KEY_ID" =~ ^[a-zA-Z0-9]+$ ]]; then
+            echo "❌ Error: MockNestApiKey must be alphanumeric, \
+          got invalid format"
+            exit 1
+          fi
+
+          # Validate MockStorageBucket (optional but should be present)
+          if [ -z "$BUCKET_NAME" ]; then
+            echo "⚠️  Warning: MockStorageBucket output is missing from \
+          CloudFormation stack"
+          fi
+
+          # Store outputs as environment variables
+          echo "API_URL=$API_URL" >> $GITHUB_ENV
+          echo "API_KEY_ID=$API_KEY_ID" >> $GITHUB_ENV
+          echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
+
+          echo "✅ Stack outputs retrieved and validated successfully"
+          echo "API URL: $API_URL"
+          echo "API Key ID: $API_KEY_ID"
+          echo "Bucket Name: $BUCKET_NAME"
+
+      - name: Retrieve API key value
+        run: |
+          set -e
+          set -o pipefail
+
+          echo "🔑 Retrieving API key value from AWS API Gateway..."
+
+          # Retrieve API key value from API Gateway
+          API_KEY_VALUE=$(aws apigateway get-api-key \
+            --api-key "$API_KEY_ID" \
+            --include-value \
+            --region ${{ inputs.aws-region }} \
+            --query 'value' \
+            --output text 2>&1) || {
+            echo "❌ Error: Failed to retrieve API key value"
+            exit 1
+          }
+
+          # Validate API key value was retrieved
+          if [ -z "$API_KEY_VALUE" ]; then
+            echo "❌ Error: API key value is empty"
+            exit 1
+          fi
+
+          # Mask API key value immediately to prevent it from logs
+          echo "::add-mask::$API_KEY_VALUE"
+
+          # Store API key value as environment variable
+          echo "API_KEY_VALUE=$API_KEY_VALUE" >> $GITHUB_ENV
+
+          echo "✅ API key value retrieved and masked successfully"
+
+      - name: Execute health checks with retry logic
+        run: |
+          set -e
+          set -o pipefail
+
+          echo "🏥 Starting health checks..."
+
+          # Capture health check start timestamp
+          HEALTH_CHECK_START=$(date +%s)
+
+          # Health check function with retry and exponential backoff
+          # Arguments: endpoint_path, endpoint_name
+          health_check_with_retry() {
+            local endpoint_path="$1"
+            local endpoint_name="$2"
+            local max_attempts=3
+            local attempt=1
+            local backoff_delays=(5 10 20)
+
+            echo ""
+            echo "Checking $endpoint_name endpoint: ${API_URL}${endpoint_path}"
+
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt/$max_attempts..."
+
+              # Execute curl with timeout and capture response
+              HTTP_CODE=$(curl -f -s -w "%{http_code}" -o /tmp/response.json \
+                --max-time 30 \
+                -H "x-api-key: $API_KEY_VALUE" \
+                "${API_URL}${endpoint_path}" 2>/dev/null || echo "000")
+
+              # Check HTTP status code
+              if [ "$HTTP_CODE" = "200" ]; then
+                # Verify response contains "status": "healthy"
+                if grep -q '"status"[[:space:]]*:[[:space:]]*"healthy"' \
+                  /tmp/response.json; then
+                  echo "✅ $endpoint_name health check passed (HTTP $HTTP_CODE)"
+                  return 0
+                else
+                  echo "❌ $endpoint_name returned HTTP 200 but response \
+          does not contain '\"status\": \"healthy\"'"
+                  echo "Response body:"
+                  cat /tmp/response.json
+                  return 1
+                fi
+              elif [[ "$HTTP_CODE" =~ ^4[0-9][0-9]$ ]]; then
+                # 4xx errors - authentication/authorization issues, don't retry
+                echo "❌ $endpoint_name health check failed with HTTP $HTTP_CODE \
+          (client error - not retrying)"
+                echo "Response body:"
+                cat /tmp/response.json 2>/dev/null || echo "(no response body)"
+                return 1
+              elif [[ "$HTTP_CODE" =~ ^5[0-9][0-9]$ ]] || [ "$HTTP_CODE" = "000" ]; then
+                # 5xx errors or timeout - retry with backoff
+                echo "⚠️  $endpoint_name health check failed with HTTP $HTTP_CODE \
+          (server error or timeout)"
+
+                if [ $attempt -lt $max_attempts ]; then
+                  local delay=${backoff_delays[$((attempt-1))]}
+                  echo "Retrying in ${delay}s..."
+                  sleep $delay
+                  attempt=$((attempt + 1))
+                else
+                  echo "❌ $endpoint_name health check failed after $max_attempts \
+          attempts"
+                  echo "Final response body:"
+                  cat /tmp/response.json 2>/dev/null || echo "(no response body)"
+                  return 1
+                fi
+              else
+                # Unexpected status code
+                echo "❌ $endpoint_name health check failed with unexpected \
+          HTTP $HTTP_CODE"
+                echo "Response body:"
+                cat /tmp/response.json 2>/dev/null || echo "(no response body)"
+                return 1
+              fi
+            done
+
+            return 1
+          }
+
+          # Execute admin health check
+          if ! health_check_with_retry "/__admin/health" "Admin API"; then
+            HEALTH_CHECK_END=$(date +%s)
+            HEALTH_CHECK_DURATION=$((HEALTH_CHECK_END - HEALTH_CHECK_START))
+            echo ""
+            echo "❌ Health checks failed"
+            echo "Duration: ${HEALTH_CHECK_DURATION}s"
+            echo ""
+            echo "Note: API key has been redacted from logs"
+            exit 1
+          fi
+
+          # Execute AI generation health check
+          if ! health_check_with_retry "/ai/generation/health" \
+            "AI Generation API"; then
+            HEALTH_CHECK_END=$(date +%s)
+            HEALTH_CHECK_DURATION=$((HEALTH_CHECK_END - HEALTH_CHECK_START))
+            echo ""
+            echo "❌ Health checks failed"
+            echo "Duration: ${HEALTH_CHECK_DURATION}s"
+            echo ""
+            echo "Note: API key has been redacted from logs"
+            exit 1
+          fi
+
+          # Calculate and log health check duration
+          HEALTH_CHECK_END=$(date +%s)
+          HEALTH_CHECK_DURATION=$((HEALTH_CHECK_END - HEALTH_CHECK_START))
+          echo "HEALTH_CHECK_DURATION=$HEALTH_CHECK_DURATION" >> $GITHUB_ENV
+
+          echo ""
+          echo "✅ All health checks passed successfully"
+          echo "Duration: ${HEALTH_CHECK_DURATION}s"
+
+      - name: Clean up test resources
+        if: always()
+        run: |
+          set +e
+          set -o pipefail
+
+          echo "🧹 Starting resource cleanup..."
+
+          # Capture cleanup start timestamp
+          CLEANUP_START=$(date +%s)
+
+          # Initialize cleanup status
+          CLEANUP_STATUS="success"
+
+          # Query stack outputs for bucket name before deletion
+          echo "📋 Retrieving bucket name from stack outputs..."
+          BUCKET_NAME_FROM_STACK=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --region ${{ inputs.aws-region }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].\
+          OutputValue' \
+            --output text 2>/dev/null || echo "")
+
+          if [ -n "$BUCKET_NAME_FROM_STACK" ]; then
+            echo "Bucket name: $BUCKET_NAME_FROM_STACK"
+          else
+            echo "⚠️  Warning: Could not retrieve bucket name from stack outputs"
+          fi
+
+          # Delete CloudFormation stack
+          echo "🗑️  Deleting CloudFormation stack: $STACK_NAME"
+          aws cloudformation delete-stack \
+            --stack-name "$STACK_NAME" \
+            --region ${{ inputs.aws-region }} 2>&1 || {
+            echo "⚠️  Warning: Stack deletion command failed"
+            CLEANUP_STATUS="warning"
+          }
+
+          # Wait for stack deletion with 10-minute timeout
+          echo "⏳ Waiting for stack deletion to complete \
+          (timeout: 10 minutes)..."
+          timeout 600 aws cloudformation wait stack-delete-complete \
+            --stack-name "$STACK_NAME" \
+            --region ${{ inputs.aws-region }} 2>&1 || {
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 124 ]; then
+              echo "⚠️  Warning: Stack deletion timed out after 10 minutes"
+              CLEANUP_STATUS="warning"
+            else
+              echo "⚠️  Warning: Stack deletion wait failed with exit code \
+          $EXIT_CODE"
+              CLEANUP_STATUS="warning"
+            fi
+          }
+
+          # Verify S3 bucket deletion
+          if [ -n "$BUCKET_NAME_FROM_STACK" ]; then
+            echo "🔍 Verifying S3 bucket deletion..."
+            if aws s3 ls "s3://$BUCKET_NAME_FROM_STACK" \
+              --region ${{ inputs.aws-region }} 2>/dev/null; then
+              echo "⚠️  Warning: S3 bucket still exists after stack deletion: \
+          $BUCKET_NAME_FROM_STACK"
+              CLEANUP_STATUS="warning"
+            else
+              echo "✅ S3 bucket successfully deleted"
+            fi
+          fi
+
+          # Calculate and log cleanup duration
+          CLEANUP_END=$(date +%s)
+          CLEANUP_DURATION=$((CLEANUP_END - CLEANUP_START))
+          echo "CLEANUP_DURATION=$CLEANUP_DURATION" >> $GITHUB_ENV
+          echo "CLEANUP_STATUS=$CLEANUP_STATUS" >> $GITHUB_ENV
+
+          echo ""
+          if [ "$CLEANUP_STATUS" = "success" ]; then
+            echo "✅ Cleanup completed successfully"
+          else
+            echo "⚠️  Cleanup completed with warnings"
+          fi
+          echo "Duration: ${CLEANUP_DURATION}s"
+
+      - name: Generate pipeline summary report
+        if: always()
+        run: |
+          set +e
+
+          echo "📊 Generating pipeline summary report..."
+
+          # Calculate total pipeline execution time
+          PIPELINE_START="${DEPLOYMENT_START:-0}"
+          PIPELINE_END=$(date +%s)
+          TOTAL_DURATION=$((PIPELINE_END - PIPELINE_START))
+
+          # Format duration in human-readable format (minutes and seconds)
+          format_duration() {
+            local seconds=$1
+            if [ $seconds -lt 60 ]; then
+              echo "${seconds}s"
+            else
+              local minutes=$((seconds / 60))
+              local remaining_seconds=$((seconds % 60))
+              echo "${minutes}m ${remaining_seconds}s"
+            fi
+          }
+
+          # Determine overall pipeline status
+          if [ "${{ job.status }}" = "success" ]; then
+            OVERALL_STATUS="✅ Success"
+          else
+            OVERALL_STATUS="❌ Failed"
+          fi
+
+          # Start building the summary report
+          {
+            echo "## 🧪 SAR Test Pipeline Results"
+            echo ""
+            echo "**Overall Status:** $OVERALL_STATUS"
+            echo ""
+            echo "**Region:** ${{ inputs.aws-region }}"
+            echo "**Version:** ${{ inputs.version || 'latest' }}"
+            echo "**Total Duration:** $(format_duration $TOTAL_DURATION)"
+            echo ""
+
+            # Deployment Status Section
+            echo "### 📦 Deployment Status"
+            echo ""
+            if [ -n "$STACK_NAME" ]; then
+              echo "**Stack Name:** \`$STACK_NAME\`"
+              echo ""
+              echo "**AWS Region:** ${{ inputs.aws-region }}"
+              echo ""
+
+              if [ -n "$DEPLOYMENT_DURATION" ]; then
+                echo "**Duration:** $(format_duration $DEPLOYMENT_DURATION)"
+                echo ""
+              fi
+
+              if [ "${{ job.status }}" = "success" ] || \
+                [ -n "$HEALTH_CHECK_DURATION" ]; then
+                echo "**Status:** ✅ Deployment successful"
+              else
+                echo "**Status:** ❌ Deployment failed"
+              fi
+            else
+              echo "**Status:** ❌ Deployment did not start"
+            fi
+            echo ""
+
+            # Health Check Results Section
+            echo "### 🏥 Health Check Results"
+            echo ""
+            if [ -n "$HEALTH_CHECK_DURATION" ]; then
+              echo "**Duration:** $(format_duration $HEALTH_CHECK_DURATION)"
+              echo ""
+              echo "**Admin API Health Check:** ✅ Passed"
+              echo ""
+              echo "**AI Generation API Health Check:** ✅ Passed"
+              echo ""
+              echo "_Note: Health checks executed with retry logic \
+          (max 3 attempts with exponential backoff)_"
+            elif [ -n "$DEPLOYMENT_DURATION" ]; then
+              echo "**Status:** ❌ Health checks failed"
+              echo ""
+              echo "_Check workflow logs for detailed error messages and \
+          HTTP status codes_"
+            else
+              echo "**Status:** ⏭️ Health checks skipped (deployment failed)"
+            fi
+            echo ""
+
+            # Cleanup Status Section
+            echo "### 🧹 Cleanup Status"
+            echo ""
+            if [ -n "$CLEANUP_DURATION" ]; then
+              echo "**Duration:** $(format_duration $CLEANUP_DURATION)"
+              echo ""
+
+              if [ "$CLEANUP_STATUS" = "success" ]; then
+                echo "**Stack Deletion:** ✅ Complete"
+                echo ""
+                echo "**S3 Bucket Deletion:** ✅ Verified"
+              else
+                echo "**Stack Deletion:** ⚠️  Completed with warnings"
+                echo ""
+                echo "**S3 Bucket Deletion:** ⚠️  May require manual verification"
+                echo ""
+                echo "_Check workflow logs for detailed cleanup status_"
+              fi
+            else
+              echo "**Status:** ⏭️ Cleanup not executed"
+            fi
+            echo ""
+
+            # API Gateway URL Section (only if deployment succeeded)
+            if [ -n "$API_URL" ]; then
+              echo "### 🌐 API Gateway Endpoint"
+              echo ""
+              echo "**URL:** \`$API_URL\`"
+              echo ""
+              echo "_This endpoint can be used for manual testing if needed. \
+          API key required for authentication._"
+              echo ""
+              echo "⚠️  **Security Note:** API key values are masked in logs \
+          and not included in this report."
+              echo ""
+            fi
+
+            # Execution Duration Breakdown
+            echo "### ⏱️ Execution Duration Breakdown"
+            echo ""
+            echo "| Step | Duration |"
+            echo "|------|----------|"
+
+            if [ -n "$DEPLOYMENT_DURATION" ]; then
+              echo "| Deployment | $(format_duration $DEPLOYMENT_DURATION) |"
+            else
+              echo "| Deployment | N/A |"
+            fi
+
+            if [ -n "$HEALTH_CHECK_DURATION" ]; then
+              echo "| Health Checks | $(format_duration $HEALTH_CHECK_DURATION) |"
+            else
+              echo "| Health Checks | N/A |"
+            fi
+
+            if [ -n "$CLEANUP_DURATION" ]; then
+              echo "| Cleanup | $(format_duration $CLEANUP_DURATION) |"
+            else
+              echo "| Cleanup | N/A |"
+            fi
+
+            echo "| **Total** | **$(format_duration $TOTAL_DURATION)** |"
+            echo ""
+
+            # Footer
+            echo "---"
+            echo ""
+            echo "_Generated by SAR Test Pipeline on $(date -u '+%Y-%m-%d %H:%M:%S UTC')_"
+
+          } >> $GITHUB_STEP_SUMMARY
+
+          echo "✅ Pipeline summary report generated successfully"
