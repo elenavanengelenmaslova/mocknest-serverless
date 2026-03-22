@@ -206,22 +206,19 @@ jobs:
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
             --region ${{ inputs.aws-region }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].\
-          OutputValue' \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
             --output text)
 
           API_KEY_ID=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
             --region ${{ inputs.aws-region }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].\
-          OutputValue' \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
             --output text)
 
           BUCKET_NAME=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
             --region ${{ inputs.aws-region }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].\
-          OutputValue' \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' \
             --output text)
 
           # Validate MockNestApiUrl
