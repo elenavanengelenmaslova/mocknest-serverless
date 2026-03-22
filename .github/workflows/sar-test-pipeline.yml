@@ -80,10 +80,11 @@ jobs:
           echo "Target Region: ${{ inputs.aws-region }}"
 
           # Create CloudFormation change set from SAR
-          # Create CloudFormation change set from SAR
           # Note: application-id uses source region (eu-west-1), but --region specifies target
           echo "Creating change set from SAR application..."
-          CHANGE_SET_ID=$(aws serverlessrepo \
+          
+          # Create change set and capture full JSON response
+          CHANGE_SET_RESPONSE=$(aws serverlessrepo \
             create-cloud-formation-change-set \
             --application-id arn:aws:serverlessrepo:eu-west-1:\
           021259937026:applications/MockNest-Serverless \
@@ -91,28 +92,23 @@ jobs:
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
             --parameter-overrides Name=DeploymentName,Value=sartest${{ github.run_id }} \
             --region ${{ inputs.aws-region }} \
-            --query 'ChangeSetId' \
-            --output text 2>&1) || {
+            --output json 2>&1) || {
             echo "❌ Failed to create change set from SAR"
-            echo "Error: $CHANGE_SET_ID"
-            echo ""
-            echo "Possible causes:"
-            echo "1. SAR application may not be public or shared with this account"
-            echo "2. Application may not support deployment to ${{ inputs.aws-region }}"
-            echo "3. Insufficient permissions to access SAR application"
+            echo "Error: $CHANGE_SET_RESPONSE"
             exit 1
           }
-          echo "Change Set ID: $CHANGE_SET_ID"
 
-          # Extract stack name from the change set ARN
-          # SAR prepends "serverlessrepo-" to the stack name
-          ACTUAL_STACK_NAME=$(echo "$CHANGE_SET_ID" | awk -F':stack/' '{print $2}' | awk -F'/' '{print $1}')
+          # Extract values from JSON response
+          CHANGE_SET_ID=$(echo "$CHANGE_SET_RESPONSE" | jq -r '.ChangeSetId')
+          ACTUAL_STACK_NAME=$(echo "$CHANGE_SET_RESPONSE" | jq -r '.StackId' | awk -F'/' '{print $2}')
+          
+          echo "Change Set ID: $CHANGE_SET_ID"
           echo "Actual Stack Name: $ACTUAL_STACK_NAME"
           
-          # Update STACK_NAME environment variable with the actual name
+          # Update STACK_NAME environment variable
           echo "STACK_NAME=$ACTUAL_STACK_NAME" >> $GITHUB_ENV
 
-          # Extract change set name from the full ARN
+          # Extract change set name from ARN
           CHANGE_SET_NAME=$(echo "$CHANGE_SET_ID" | awk -F'/' '{print $NF}')
 
           # Wait for change set to be created
