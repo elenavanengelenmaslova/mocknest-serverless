@@ -778,8 +778,8 @@ curl -X GET "${MOCKNEST_URL}/__admin/mappings" \
     {
       "id": "76ada7b0-55ae-4229-91c4-396a36f18123",
       "request": {
-        "method": "POST",
         "url": "/dneonline/calculator.asmx",
+        "method": "POST",
         "bodyPatterns": [
           {
             "matchesXPath": "//*[local-name()='intA' and text()='5']"
@@ -791,13 +791,14 @@ curl -X GET "${MOCKNEST_URL}/__admin/mappings" \
       },
       "response": {
         "status": 200,
+        "bodyFileName": "76ada7b0-55ae-4229-91c4-396a36f18123.json",
         "headers": {
           "Content-Type": "text/xml; charset=utf-8"
-        },
-        "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soap:Body>\n    <AddResponse xmlns=\"http://tempuri.org/\">\n      <AddResult>42</AddResult>\n    </AddResponse>\n  </soap:Body>\n</soap:Envelope>"
+        }
       },
       "uuid": "76ada7b0-55ae-4229-91c4-396a36f18123",
-      "persistent": true
+      "persistent": true,
+      "priority": 1
     }
   ],
   "meta": {
@@ -809,11 +810,14 @@ curl -X GET "${MOCKNEST_URL}/__admin/mappings" \
 **Key Parameters**:
 - `x-api-key` header: Your API key for authentication
 - Response `mappings`: Array of all configured mock mappings
+- Response `response.bodyFileName`: The filename to use when retrieving file content (see "Get File Content" section below)
 - Response `meta.total`: Total count of mappings
 
 ### Get File Content
 
 **Description**: Retrieves the content of a specific file stored in MockNest (e.g., externalized response bodies).
+
+**Note**: Use the filename from the "Get All Mappings" response above. Look for the `response.bodyFileName` field in the mapping output (e.g., `"bodyFileName": "76ada7b0-55ae-4229-91c4-396a36f18123.json"`).
 
 **Command**:
 ```bash
@@ -825,7 +829,7 @@ curl -X GET "${MOCKNEST_URL}/__admin/files/76ada7b0-55ae-4229-91c4-396a36f18123.
 Returns the file content (format depends on the file type - JSON, XML, plain text, etc.).
 
 **Key Parameters**:
-- File path: The path to the file in the format `{mapping-id}.{extension}`
+- File path: The filename from `response.bodyFileName` in the "Get All Mappings" output
 - `x-api-key` header: Your API key for authentication
 - Response: Raw file content
 
