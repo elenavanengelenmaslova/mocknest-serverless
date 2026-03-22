@@ -108,8 +108,9 @@ jobs:
           # Update STACK_NAME environment variable
           echo "STACK_NAME=$ACTUAL_STACK_NAME" >> $GITHUB_ENV
 
-          # Extract change set name from ARN
-          CHANGE_SET_NAME=$(echo "$CHANGE_SET_ID" | awk -F'/' '{print $NF}')
+          # Use the full change set ARN (not just the UUID)
+          # AWS CLI accepts either the full ARN or a name that starts with a letter
+          CHANGE_SET_NAME="$CHANGE_SET_ID"
 
           # Small delay to ensure change set is registered
           sleep 2
