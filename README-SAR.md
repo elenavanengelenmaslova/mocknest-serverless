@@ -178,6 +178,7 @@ MockNest automatically creates CloudWatch log groups:
 MockNest Serverless is designed to run within [AWS Free Tier](https://aws.amazon.com/free/) limits for typical development/testing. You only pay for AWS resources you use in your own account.
 
 **Core Services**: AWS Lambda, API Gateway, S3, SQS, CloudWatch, IAM
+
 **AI Services**: Amazon Bedrock (pay-per-use when generating mocks)
 
 Most development scenarios stay within free tier, resulting in $0 monthly cost for core functionality.
