@@ -66,7 +66,7 @@ jobs:
           STACK_NAME="mocknest-sar-test-${{ github.run_id }}"
           echo "STACK_NAME=$STACK_NAME" >> $GITHUB_ENV
 
-          # Set SAR application URL
+          # Set SAR application URL (always from eu-west-1 where it's published)
           SAR_APP_URL="https://serverlessrepo.aws.amazon.com/applications/\
           eu-west-1/021259937026/MockNest-Serverless"
           echo "SAR_APP_URL=$SAR_APP_URL" >> $GITHUB_ENV
@@ -78,18 +78,30 @@ jobs:
           echo "📦 Starting SAR deployment..."
           echo "Stack Name: $STACK_NAME"
           echo "SAR Application: $SAR_APP_URL"
-          echo "Region: ${{ inputs.aws-region }}"
+          echo "Target Region: ${{ inputs.aws-region }}"
 
           # Create CloudFormation change set from SAR
+          # Note: application-id uses source region (eu-west-1), but --region specifies target
+          echo "Creating change set from SAR application..."
           CHANGE_SET_ID=$(aws serverlessrepo \
             create-cloud-formation-change-set \
             --application-id arn:aws:serverlessrepo:eu-west-1:\
           021259937026:applications/MockNest-Serverless \
             --stack-name "$STACK_NAME" \
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+            --parameter-overrides DeploymentName=sar-test-${{ github.run_id }} \
             --region ${{ inputs.aws-region }} \
             --query 'ChangeSetId' \
-            --output text)
+            --output text 2>&1) || {
+            echo "❌ Failed to create change set from SAR"
+            echo "Error: $CHANGE_SET_ID"
+            echo ""
+            echo "Possible causes:"
+            echo "1. SAR application may not be public or shared with this account"
+            echo "2. Application may not support deployment to ${{ inputs.aws-region }}"
+            echo "3. Insufficient permissions to access SAR application"
+            exit 1
+          }
 
           echo "Change Set ID: $CHANGE_SET_ID"
 
@@ -101,7 +113,18 @@ jobs:
           aws cloudformation wait change-set-create-complete \
             --stack-name "$STACK_NAME" \
             --change-set-name "$CHANGE_SET_NAME" \
-            --region ${{ inputs.aws-region }}
+            --region ${{ inputs.aws-region }} 2>&1 || {
+            echo "❌ Change set creation failed"
+            echo ""
+            echo "Retrieving change set status and error details..."
+            aws cloudformation describe-change-set \
+              --stack-name "$STACK_NAME" \
+              --change-set-name "$CHANGE_SET_NAME" \
+              --region ${{ inputs.aws-region }} \
+              --query '{Status:Status,StatusReason:StatusReason,Changes:Changes}' \
+              --output json || echo "Failed to retrieve change set details"
+            exit 1
+          }
 
           # Execute the change set
           echo "🚀 Executing change set..."
