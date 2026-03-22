@@ -111,8 +111,23 @@ jobs:
           # Extract change set name from ARN
           CHANGE_SET_NAME=$(echo "$CHANGE_SET_ID" | awk -F'/' '{print $NF}')
 
+          # Small delay to ensure change set is registered
+          sleep 2
+          
+          # Check change set status immediately
+          echo "Checking change set status..."
+          aws cloudformation describe-change-set \
+            --stack-name "$ACTUAL_STACK_NAME" \
+            --change-set-name "$CHANGE_SET_NAME" \
+            --region ${{ inputs.aws-region }} \
+            --query '{Status:Status,StatusReason:StatusReason,ExecutionStatus:ExecutionStatus}' \
+            --output json || echo "Change set not found immediately after creation"
+
           # Wait for change set to be created
           echo "⏳ Waiting for change set to be created..."
+          echo "Using stack: $ACTUAL_STACK_NAME"
+          echo "Using change set: $CHANGE_SET_NAME"
+          
           if ! aws cloudformation wait change-set-create-complete \
             --stack-name "$ACTUAL_STACK_NAME" \
             --change-set-name "$CHANGE_SET_NAME" \
