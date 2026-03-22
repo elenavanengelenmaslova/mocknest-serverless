@@ -13,12 +13,20 @@
 [![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-MockNest Serverless is a serverless WireMock compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
+*AI-powered API mocking for cloud-native testing on AWS*
+
+MockNest Serverless is a serverless WireMock-compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
 Demo: https://youtu.be/Rvip8rtULww
 
 <p align="center">
   <img src="docs/images/MockNestServerlessLogo.png" alt="MockNest Serverless Logo" width="400">
 </p>
+
+## Used for
+
+- **CI/CD integration testing in the cloud** - Run automated integration tests in your CI/CD pipeline without depending on external APIs
+- **Mocking third-party APIs** - Mock Salesforce, payment gateways, SOAP services, REST APIs, GraphQL APIs and other external dependencies
+- **Testing in restricted environments** - Run exploratory and integration tests in cloud environments where external APIs are unavailable, unreliable, or have difficult-to-setup test data
 
 ## Architecture Overview
 
@@ -205,8 +213,8 @@ MockNest Serverless provides multiple ways to interact with the API:
 ### Deployment from AWS Serverless Application Repository
 
 1. **Navigate to SAR**: Go to the [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home) in your AWS Console
-2. **Select Region**: Choose your preferred deployment region (us-east-1, eu-west-1, or eu-central-1 recommended)
-4. **Deploy**: Click "Deploy" and configure parameters:
+2. **Select Region**: Choose your preferred deployment region (see [supported regions](docs/REGIONS.md))
+3. **Deploy**: Click "Deploy" and configure parameters:
    - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
    - **BedrockInferenceMode**: Inference profile selection (default: "AUTO" - recommended)
@@ -254,15 +262,14 @@ The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock infer
 MockNest Serverless has been thoroughly tested in the following configurations:
 
 ### Officially Supported Regions
-- **us-east-1** (N. Virginia)
-- **eu-west-1** (Ireland)
-- **eu-central-1** (Frankfurt)
+- **Tested regions**: us-east-1 (N. Virginia), eu-west-1 (Ireland), eu-central-1 (Frankfurt)
 - **Works in any AWS region** with Lambda, API Gateway, and S3 support
 - **Deployment to other regions** is possible but not tested yet
+- See [docs/REGIONS.md](docs/REGIONS.md) for detailed regional information
 
 ### AI Features Support
-- **Other Bedrock models**: May work but are experimental and not officially supported
-- **Officially supported**: Amazon Nova Pro model in `us-east-1`, `eu-west-1`, and `eu-central-1`
+- **Officially supported**: Amazon Nova Pro model in [tested regions](docs/REGIONS.md)
+- **Other Bedrock models**: Are experimental and have not been tested
 The following WireMock capabilities have been validated in the serverless environment:
 - Request matching (URL, headers, body, query parameters)
 - Response templating and transformation
@@ -415,6 +422,8 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 Most development and testing scenarios stay within free tier limits, resulting in $0 monthly cost for core functionality.
 
 For detailed cost analysis, service breakdowns, and optimization tips, see our comprehensive [Cost Guide](docs/COST.md).
+
+For a comparison with alternative mocking solutions and competitive analysis, see [Market Analysis](docs/market_analysis.md).
 
 ## Troubleshooting
 ### Common Issues
