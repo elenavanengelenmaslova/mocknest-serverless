@@ -140,9 +140,9 @@ All pipelines use:
 
 ### Project-Specific Standards
 For detailed MockNest Serverless guidelines, see our steering documentation:
-- **Architecture**: [System Architecture](.kiro/steering/02-architecture.md) and [AWS Services](.kiro/steering/03-aws-services.md)
-- **Code Quality & Standards**: [Code Generation Standards](.kiro/steering/05-kiro-usage.md#code-generation-standards)
-- **Testing Strategy**: [Testing Strategy](.kiro/steering/05-kiro-usage.md#testing-strategy)
+- **Architecture**: [System Architecture](.kiro/steering/structure.md)
+- **Code Quality & Standards**: [Code Generation Standards](.kiro/steering/tech.md#code-generation-standards)
+- **Testing Strategy**: [Testing Strategy](.kiro/steering/tech.md#testing-strategy)
 - **Development Workflow**: [Development Workflow](.kiro/steering/05-kiro-usage.md#development-workflow)
 - **Project Structure**: [Project Structure](.kiro/steering/05-kiro-usage.md#project-structure)
 

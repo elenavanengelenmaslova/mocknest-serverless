@@ -393,7 +393,7 @@ mocknest-serverless/
 └── .kiro/steering/            # Architecture and design decisions
 ```
 
-For detailed architecture information, see [Architecture Documentation](.kiro/steering/02-architecture.md).
+For detailed architecture information, see [Architecture Documentation](.kiro/steering/structure.md).
 
 ## Configuration Reference
 
