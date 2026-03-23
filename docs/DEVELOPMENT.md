@@ -5,8 +5,8 @@ This guide covers the development workflow and practices for MockNest Serverless
 ## Quick Start
 
 1. **Setup**: See [BUILDING.md](BUILDING.md) for build prerequisites and instructions
-2. **Architecture**: Review our [System Architecture](../.kiro/steering/02-architecture.md) and [AWS Services](../.kiro/steering/03-aws-services.md)
-3. **Standards**: Follow our [Code Generation Standards](../.kiro/steering/05-kiro-usage.md#code-generation-standards)
+2. **Architecture**: Review our [System Architecture](../.kiro/steering/structure.md)
+3. **Standards**: Follow our [Code Generation Standards](../.kiro/steering/tech.md#code-generation-standards)
 
 ## Development Workflow
 
@@ -37,9 +37,8 @@ When making changes that affect architecture or behavior:
 ## Reference Documentation
 
 For comprehensive development information, see our steering documents:
-- [System Architecture](../.kiro/steering/02-architecture.md) - Clean architecture principles and system design
-- [AWS Services](../.kiro/steering/03-aws-services.md) - AWS-specific architecture and services
-- [Kiro Usage Guidelines](../.kiro/steering/05-kiro-usage.md) - Complete development workflow, standards, and practices
+- [System Architecture](../.kiro/steering/structure.md) - Clean architecture principles, system design, and AWS services
+- [Development Practices](../.kiro/steering/tech.md) - Complete development workflow, standards, and practices
 
 For build instructions, see [BUILDING.md](BUILDING.md).
 For contribution guidelines, see [CONTRIBUTING.md](../CONTRIBUTING.md).
