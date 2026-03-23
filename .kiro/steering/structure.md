@@ -38,7 +38,6 @@ The AI intelligence system provides intelligent mock generation and maintenance 
   - Identifies mock coverage gaps (e.g., only happy flows tested, missing error scenarios)
   - Detects unused mocks that are never invoked
   - Analyzes request patterns to suggest missing test scenarios
-  - Compares traffic against API specifications to identify contract coverage gaps
   - Returns detailed analysis report with recommendations
 - All requests recorded by WireMock's built-in logging for analysis
 

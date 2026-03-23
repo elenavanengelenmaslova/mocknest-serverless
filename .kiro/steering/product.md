@@ -40,10 +40,10 @@ MockNest Serverless provides an AWS-native serverless mock runtime with AI-power
 - Enables realistic integration and exploratory testing without relying on live external services
 
 **AI-Powered Mock Intelligence:**
-- **Traffic-Driven Insights**: Analyzes real API traffic patterns to identify mock coverage gaps and missing edge cases
+- **Specification-Based Generation**: Generates comprehensive mock suites from API specifications (OpenAPI, SOAP/WSDL, GraphQL, MCP, SSE) with optional customization instructions
+- **Lenient Mock Mode**: Automatically generates mocks on-demand for unmatched requests based on API specifications, eliminating manual mock creation for exploratory testing
 - **Automated Mock Evolution**: Keeps mocks synchronized with evolving third-party APIs through spec updates and traffic analysis
-- **Contract Coverage Analysis**: Provides visibility into which parts of API contracts are covered by existing mocks
-- **Proactive Suggestions**: Recommends new mocks based on near-misses, traffic patterns, and contract changes
+- **Traffic-Driven Insights**: Analyzes real API traffic patterns to identify mock coverage gaps and missing edge cases
 
 This helps teams improve test coverage, maintain mock accuracy over time, and develop with confidence knowing their mocks reflect real-world API behavior.
 
@@ -102,8 +102,7 @@ The long-term goal is to eliminate the cognitive overhead of mock management by 
 **Priority 4: Traffic Analysis (Future Enhancement)**
 - Traffic recording and analysis capabilities leveraging WireMock's built-in request logging
 - On-demand traffic analysis for user-specified timeframes to identify mock coverage gaps
-- Mock suggestion engine that analyzes traffic patterns, near-misses, and unmatched requests
-- Consumer-side contract coverage analysis with configurable scope
+- Identifies which mocks are unused and which request patterns are missing coverage
 
 **Traditional Mock Management:**
 - Manual mock creation and management through standard WireMock admin API
