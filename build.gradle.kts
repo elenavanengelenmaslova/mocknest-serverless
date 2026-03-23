@@ -89,7 +89,7 @@ subprojects {
         implementation("org.jetbrains.kotlin:kotlin-reflect")
 
         // Logging
-        implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
+        implementation("io.github.oshai:kotlin-logging-jvm:8.0.01")
 
         runtimeOnly("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
 
