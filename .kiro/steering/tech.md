@@ -8,23 +8,30 @@ This document contains development workflows, coding standards, testing practice
 
 MockNest Serverless follows a strict incremental development approach where each major feature must be fully completed, tested, and deployed before moving to the next:
 
-**Current Phase: Serverless WireMock Runtime**
-- Complete comprehensive testing of existing WireMock runtime implementation
-- Fix GitHub Actions build pipeline
-- Implement SAM template for AWS deployment
+**Current Phase: AI Mock Generation from Specifications (Priority 1)**
+- Implement mock generation from API specifications (OpenAPI/REST, SOAP/WSDL, GraphQL, MCP, SSE)
+- Support optional generation instructions
+- Complete comprehensive testing of implementation
 - Deploy and validate in AWS environment
-- Achieve 90%+ test coverage across all modules
-- **Take small steps and get full feature deployed and tested in AWS before moving to new features**
-- **No AI capabilities development until this phase is complete**
+- Achieve 90%+ test coverage
+- **Take small steps and get full feature deployed and tested in AWS before moving to next priority**
 
-**Future Phase: AI Traffic Analysis**
-- Only begin after serverless runtime is fully deployed and validated
-- Implement traffic analysis capabilities
+**Future Phase: AI Mock Evolution (Priority 2)**
+- Only begin after Priority 1 is complete and deployed
+- Implement mock updates for changed API specifications
+- Preserve custom configurations while applying spec updates
 - Complete testing and deployment before moving to next phase
 
-**Future Phase: AI Mock Generation**
-- Only begin after traffic analysis is complete and deployed
-- Implement mock generation from specifications
+**Future Phase: AI Lenient Mock Mode (Priority 3)**
+- Only begin after Priority 2 is complete and deployed
+- Implement configuration endpoint for spec and instructions
+- Implement auto-generation for unmatched requests
+- Complete testing and deployment before moving to next phase
+
+**Future Phase: AI Traffic Analysis (Priority 4)**
+- Only begin after Priority 3 is complete and deployed
+- Implement traffic analysis and coverage reporting
+- Identify gaps, unused mocks, and missing scenarios
 - Complete testing and deployment
 
 ## Module Development Order
@@ -498,17 +505,21 @@ Kiro is used to systematically develop feature specifications through a structur
 
 **Critical Rule: Complete one feature fully before starting the next**
 
-**Current Priority: Serverless WireMock Runtime**
+**Current Priority: AI Mock Generation from Specifications (Priority 1)**
 - Focus exclusively on completing comprehensive testing of existing implementation
+- Ensure support for all target protocols (OpenAPI/REST, SOAP/WSDL, GraphQL, MCP, SSE)
 - Fix GitHub Actions build issues
 - Implement SAM template for AWS deployment
 - Deploy and validate in AWS environment
 - Achieve target test coverage (90%+)
-- **Do not begin AI feature development until this is complete**
+- **Do not begin Priority 2 development until Priority 1 is complete and deployed**
 
-**Future Features (AI Traffic Analysis, AI Mock Generation)**
-- Only proceed to design and implementation phases after current feature is fully deployed
-- Each AI feature must be completed and deployed before moving to the next
+**Future AI Priorities (2-4)**
+- Only proceed to design and implementation phases after Priority 1 is fully deployed
+- Each AI priority must be completed and deployed before moving to the next:
+  - Priority 2: Mock Evolution for Updated Specifications
+  - Priority 3: Lenient Mock Mode (Auto-Generation on Demand)
+  - Priority 4: Traffic Analysis
 - Maintain the same rigorous testing and deployment standards
 
 ## Iterative Review Process
@@ -570,15 +581,16 @@ Recommended patterns for effective AI-assisted development.
 
 ## Current Development Focus
 
-**Priority: Complete Serverless WireMock Runtime**
-- Focus all development effort on comprehensive testing of existing WireMock implementation
-- Ensure GitHub Actions build pipeline is working correctly
-- Complete SAM template implementation for AWS deployment
-- Validate deployment and functionality in AWS environment
-- Achieve 90%+ test coverage before considering any new features
+**Current Priority: AI Mock Generation from Specifications (Priority 1)**
+- Focus exclusively on completing comprehensive testing of mock generation implementation
+- Ensure support for all target protocols (OpenAPI/REST, SOAP/WSDL, GraphQL, MCP, SSE)
+- Fix any remaining issues in GitHub Actions build pipeline
+- Deploy and validate in AWS environment
+- Achieve target test coverage (90%+)
+- **Do not begin Priority 2 development until Priority 1 is complete and deployed**
 
 ## Technical Implementation Guidelines
 
 - Keep persistent mapping bodies externalized to files via the normalization filter, and always set sensible default content types when bodies are moved into storage
 - Use bounded-concurrency flows and batch operations for storage access (as already done in the storage adapters) to minimize cold-start and latency impact in serverless environments
-- **No AI feature development until serverless runtime is fully complete and deployed**
+- **Focus on Priority 1 (Mock Generation from Specifications) until fully complete and deployed**

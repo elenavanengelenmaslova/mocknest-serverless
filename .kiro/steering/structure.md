@@ -7,30 +7,40 @@ MockNest Serverless consists of three main capabilities:
 3) **Persistent Storage**: Stores mock definitions, response payloads, traffic logs, and analysis results outside the runtime so they remain available across executions
 
 ## AI-Powered Mock Intelligence Flow
-The AI intelligence system operates as a comprehensive mock maintenance engine through dedicated admin endpoints and on-demand analysis:
+The AI intelligence system provides intelligent mock generation and maintenance through dedicated admin endpoints:
 
-**Traffic Analysis Endpoints:**
-- `POST /ai/analyze-traffic` - Analyze traffic for specified timeframe and generate mock suggestions
-- `GET /ai/coverage-analysis` - Analyze contract coverage against API specifications
-- `POST /ai/suggest-mocks` - Generate mock suggestions based on traffic gaps and near-misses
-- `GET /ai/analysis-status` - Check analysis job status and retrieve results
+**Priority 1: Mock Generation from API Specifications**
+- `POST /ai/generation/from-spec` - Generate WireMock mappings from API specifications with optional instructions
+  - Supports OpenAPI/REST, SOAP (WSDL), GraphQL schemas, MCP (Model Context Protocol), and SSE (Server-Sent Events)
+  - Accepts specification file and optional generation instructions
+  - Returns WireMock-compatible mapping JSON
 
-**Mock Generation and Evolution Endpoints:**
-- `POST /ai/generate-from-spec` - Generate comprehensive mock suites from API specifications
-- `POST /ai/detect-spec-changes` - Compare API specification versions and identify changes
-- `POST /ai/evolve-mocks` - Update existing mocks based on specification changes and traffic patterns
-- `POST /ai/bulk-generate` - Generate multiple mocks in batch from specifications or descriptions
+**Priority 2: Mock Evolution for Updated Specifications**
+- `POST /ai/generation/update-from-spec` - Update existing mocks when API specifications change
+  - Compares new specification version against existing mocks
+  - Identifies changes (new endpoints, modified schemas, removed operations)
+  - Updates affected mocks while preserving custom configurations
+  - Returns updated WireMock mappings
 
-**AI-Assisted Enhancement Endpoints (when Bedrock enabled):**
-- `POST /ai/generate-from-description` - Generate WireMock mappings from natural language descriptions
-- `POST /ai/refine-mocks` - Enhance existing mocks with AI-powered improvements
-- `POST /ai/enhance-responses` - Improve mock response realism using AI
+**Priority 3: Lenient Mock Mode (Auto-Generation on Demand)**
+- `POST /ai/lenient/configure` - Configure lenient mock behavior with API specification and generation instructions
+  - Stores specification and instructions for on-demand mock generation
+  - Configures fallback behavior when no mock matches incoming requests
+- `ANY /ai/lenient/mocknest/{path}` - Lenient request handling endpoint
+  - Attempts to match existing mocks first
+  - On no match: generates new mock based on stored specification and instructions
+  - Saves generated mock to avoid repeated AI calls for same request pattern
+  - Returns generated response immediately
+  - Supports all HTTP methods and arbitrary paths under `/ai/lenient/mocknest/`
 
-**Mock Maintenance Operations:**
-- All requests are recorded by WireMock's built-in logging (can be cleared via admin API)
-- Traffic data and specification versions are stored in persistent storage for analysis
-- Analysis and generation are triggered on-demand by users for specified timeframes or specifications
-- Mock evolution combines traffic insights with specification changes for comprehensive updates
+**Priority 4: Traffic Analysis (Future Enhancement)**
+- `POST /ai/analyze-traffic` - Analyze traffic patterns and generate comprehensive coverage report
+  - Identifies mock coverage gaps (e.g., only happy flows tested, missing error scenarios)
+  - Detects unused mocks that are never invoked
+  - Analyzes request patterns to suggest missing test scenarios
+  - Compares traffic against API specifications to identify contract coverage gaps
+  - Returns detailed analysis report with recommendations
+- All requests recorded by WireMock's built-in logging for analysis
 
 ## System Architecture Diagram
 
@@ -313,9 +323,10 @@ mocknest-serverless/
 
 - **WireMock Admin API** - Standard WireMock endpoints for managing mappings and inspecting requests
 - **AI Admin API** (when enabled) - Separate endpoints for AI-assisted mock generation:
-  - `POST /ai/generate-mappings` - Generate mappings from API specs and descriptions
-  - `POST /ai/bulk-generate` - Batch generation of multiple mappings
-  - `GET /ai/status` - Health check and generation status
+  - Priority 1: `POST /ai/generation/from-spec` - Generate mappings from API specifications with optional instructions
+  - Priority 2: `POST /ai/generation/update-from-spec` - Update existing mocks when specifications change
+  - Priority 3: `POST /ai/lenient/configure` and `ANY /ai/lenient/mocknest/{path}` - Lenient mock mode with auto-generation
+  - Priority 4: `POST /ai/analyze-traffic` - Traffic analysis and coverage reporting (future)
 - **Mocked Endpoints** - Standard HTTP routes serving the actual mocks
 - Supports REST, SOAP, and GraphQL as HTTP-based APIs:
   - SOAP requests are handled as HTTP POST requests with XML payload matching

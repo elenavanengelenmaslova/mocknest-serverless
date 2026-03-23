@@ -81,17 +81,29 @@ The long-term goal is to eliminate the cognitive overhead of mock management by 
 - Support for HTTP-based APIs, specifically REST, SOAP, and GraphQL-over-HTTP
 - Supporting callback-based and webhook-style interactions to better model real-world integration flows
 
-**AI-Powered Mock Intelligence (Core Features):**
+**AI-Powered Mock Intelligence (Prioritized Features):**
+
+**Priority 1: Mock Generation from API Specifications**
+- AI-powered mock generation from API specifications (OpenAPI/REST, SOAP/WSDL, GraphQL schemas, MCP, SSE)
+- Support for optional generation instructions to customize mock behavior
+- Returns WireMock-compatible mapping JSON
+
+**Priority 2: Mock Evolution for Updated Specifications**
+- Automated mock updates when API specifications change
+- Identifies specification changes and updates affected mocks
+- Preserves custom configurations while applying specification updates
+
+**Priority 3: Lenient Mock Mode (Auto-Generation on Demand)**
+- Configure lenient mock behavior with API specification and generation instructions
+- Automatically generates mocks for unmatched requests based on stored specifications
+- Caches generated mocks to avoid repeated AI calls for same request patterns
+- Seamless fallback from existing mocks to on-demand generation
+
+**Priority 4: Traffic Analysis (Future Enhancement)**
 - Traffic recording and analysis capabilities leveraging WireMock's built-in request logging
 - On-demand traffic analysis for user-specified timeframes to identify mock coverage gaps
 - Mock suggestion engine that analyzes traffic patterns, near-misses, and unmatched requests
-- Consumer-side contract coverage analysis with configurable scope (defaults to full API specification)
-- Automated mock evolution through API specification updates and traffic pattern analysis
-- Mock optimization recommendations based on real usage patterns
-
-**AI-Assisted Mock Generation:**
-- AI-powered mock generation from API specifications and natural language descriptions 
-- Intelligent mock refinement and enhancement suggestions
+- Consumer-side contract coverage analysis with configurable scope
 
 **Traditional Mock Management:**
 - Manual mock creation and management through standard WireMock admin API
@@ -109,17 +121,17 @@ The following items are explicitly out of scope for the first phases of the proj
 ## Phase 1 Goals
 The initial release focuses on validating the core idea with a working, deployable solution that demonstrates intelligent mock management:
 
-**Core Runtime:**
+**Core Runtime (Complete):**
 - A serverless WireMock runtime running on AWS Lambda
 - Persistent availability of mocks between cold starts
 - Supporting callback-based and webhook-style interactions to better model real-world integration flows
 - Deployment using AWS SAM with a path toward publishing in the AWS Serverless Application Repository (SAR)
 
-**AI-Powered Intelligence:**
-- Traffic recording and basic analysis capabilities
-- On-demand mock gap analysis for specified timeframes
-- Mock suggestion engine based on unmatched requests and traffic patterns
-- AI-assisted mock generation from API specifications 
+**AI-Powered Intelligence (Current: Priority 1):**
+- **Priority 1 (Current)**: AI-assisted mock generation from API specifications (OpenAPI/REST, SOAP/WSDL, GraphQL, MCP, SSE)
+- **Priority 2 (Future)**: Mock evolution for updated API specifications
+- **Priority 3 (Future)**: Lenient mock mode with auto-generation on demand
+- **Priority 4 (Future)**: Traffic analysis and mock gap detection
 
 **User Experience:**
 - Intuitive admin API for triggering analysis and retrieving suggestions
@@ -128,9 +140,12 @@ The initial release focuses on validating the core idea with a working, deployab
 ## Future Phases
 Planned future enhancements include:
 
+### AI Intelligence Priorities (2-4)
+- **Priority 2**: Mock evolution for updated API specifications
+- **Priority 3**: Lenient mock mode with auto-generation on demand
+- **Priority 4**: Traffic analysis and mock gap detection capabilities
+
 ### Core Enhancements
-- Improving AI-assisted mock generation with additional input sources and refinement options
-- AI-assisted contract coverage analysis
 - Storage retention policies and automated cleanup for request logs and mock definitions
 - Exploring optimizations for startup time and large mock sets
 - Implementing on-demand mapping loading to reduce cold start times (currently all mappings are loaded at startup)
