@@ -65,7 +65,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
           
       - name: Configure AWS credentials using OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           role-session-name: MockNestServerlessDeployment

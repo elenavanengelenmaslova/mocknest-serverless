@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Configure AWS credentials using OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: >-
             arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubOIDCAdmin
