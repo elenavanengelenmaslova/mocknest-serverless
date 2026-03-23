@@ -324,10 +324,16 @@ jobs:
               echo "Attempt $attempt/$max_attempts..."
 
               # Execute curl with timeout and capture response
-              HTTP_CODE=$(curl -f -s -w "%{http_code}" -o /tmp/response.json \
+              # Note: -f flag removed to capture HTTP code even on errors
+              HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/response.json \
                 --max-time 30 \
                 -H "x-api-key: $API_KEY_VALUE" \
-                "${API_URL}${endpoint_path}" 2>/dev/null || echo "000")
+                "${API_URL}${endpoint_path}" 2>/dev/null)
+              
+              # If curl completely failed (no HTTP code), set to 000
+              if [ -z "$HTTP_CODE" ]; then
+                HTTP_CODE="000"
+              fi
 
               # Check HTTP status code
               if [ "$HTTP_CODE" = "200" ]; then
