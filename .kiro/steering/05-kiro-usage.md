@@ -214,6 +214,7 @@ Follow clean architecture principles by developing in this sequence:
     // Bad: Only exception message logged
     logger.error { "Operation failed: ${exception.message}" }
     ```
+    - Avoid logging sensitive data such as API URLs, bucket names, api key information, including in pipelines
 - **Exception Handling Standards**:
   - **Never swallow exceptions silently** - Always log exceptions at minimum WARNING level before handling them
   - **Prefer `runCatching` as a scope function** when it improves readability:

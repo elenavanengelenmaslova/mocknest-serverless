@@ -301,33 +301,9 @@ jobs:
 
           echo "🏥 Starting health checks..."
           
-          # Wait for API Gateway to be fully ready with usage plan association
-          echo "⏳ Waiting for API Gateway to be fully ready..."
-          echo "Verifying API key is associated with usage plan..."
-          
-          # Check if API key is properly associated (retry up to 6 times = 60 seconds)
-          for i in {1..6}; do
-            echo "Verification attempt $i/6..."
-            
-            # Check if the API key exists and is enabled
-            KEY_STATUS=$(aws apigateway get-api-key \
-              --api-key "$API_KEY_ID" \
-              --region ${{ inputs.aws-region }} \
-              --query 'enabled' \
-              --output text 2>/dev/null || echo "false")
-            
-            if [ "$KEY_STATUS" = "True" ]; then
-              echo "✅ API key is enabled"
-              break
-            else
-              echo "⏳ API key not ready yet, waiting 10 seconds..."
-              sleep 10
-            fi
-          done
-          
-          # Additional delay to ensure usage plan association is propagated
-          echo "⏳ Waiting additional 15 seconds for usage plan propagation..."
-          sleep 15
+          # Brief initial wait for API Gateway deployment
+          echo "⏳ Waiting 10 seconds for API Gateway to initialize..."
+          sleep 10
 
           # Capture health check start timestamp
           HEALTH_CHECK_START=$(date +%s)
@@ -337,9 +313,9 @@ jobs:
           health_check_with_retry() {
             local endpoint_path="$1"
             local endpoint_name="$2"
-            local max_attempts=3
+            local max_attempts=5
             local attempt=1
-            local backoff_delays=(5 10 20)
+            local backoff_delays=(10 20 30 45 60)
 
             echo ""
             echo "Checking $endpoint_name endpoint..."
@@ -367,8 +343,24 @@ jobs:
                   cat /tmp/response.json
                   return 1
                 fi
+              elif [ "$HTTP_CODE" = "403" ]; then
+                # 403 Forbidden - likely usage plan not yet propagated, retry with backoff
+                echo "⚠️  $endpoint_name health check failed with HTTP 403 \
+          (usage plan may still be propagating)"
+
+                if [ $attempt -lt $max_attempts ]; then
+                  local delay=${backoff_delays[$((attempt-1))]}
+                  echo "Retrying in ${delay}s..."
+                  sleep $delay
+                  attempt=$((attempt + 1))
+                else
+                  echo "❌ $endpoint_name health check failed after $max_attempts \
+          attempts"
+                  echo "This may indicate API key is not properly associated with usage plan"
+                  return 1
+                fi
               elif [[ "$HTTP_CODE" =~ ^4[0-9][0-9]$ ]]; then
-                # 4xx errors - authentication/authorization issues, don't retry
+                # Other 4xx errors - authentication/authorization issues, don't retry
                 echo "❌ $endpoint_name health check failed with HTTP $HTTP_CODE \
           (client error - not retrying)"
                 echo "Response body:"
