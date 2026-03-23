@@ -1,4 +1,4 @@
-name: SAR Publish
+name: CD - SAR Publish
 
 on:
   release:

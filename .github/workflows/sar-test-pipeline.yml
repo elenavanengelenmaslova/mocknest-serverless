@@ -1,5 +1,5 @@
 ---
-name: SAR Test Pipeline
+name: Integration Test - SAR Deployment
 
 'on':
   workflow_call:
@@ -66,9 +66,8 @@ jobs:
           STACK_NAME="mocknest-sar-test-${{ github.run_id }}"
           echo "STACK_NAME=$STACK_NAME" >> $GITHUB_ENV
 
-          # Set SAR application URL
-          SAR_APP_URL="https://serverlessrepo.aws.amazon.com/applications/\
-          eu-west-1/021259937026/MockNest-Serverless"
+          # Set SAR application URL (always from eu-west-1 where it's published)
+          SAR_APP_URL="https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless"
           echo "SAR_APP_URL=$SAR_APP_URL" >> $GITHUB_ENV
 
           # Capture deployment start timestamp
@@ -78,35 +77,88 @@ jobs:
           echo "📦 Starting SAR deployment..."
           echo "Stack Name: $STACK_NAME"
           echo "SAR Application: $SAR_APP_URL"
-          echo "Region: ${{ inputs.aws-region }}"
+          echo "Target Region: ${{ inputs.aws-region }}"
 
           # Create CloudFormation change set from SAR
-          CHANGE_SET_ID=$(aws serverlessrepo \
+          # Note: application-id uses source region (eu-west-1), but --region specifies target
+          echo "Creating change set from SAR application..."
+          
+          # Create change set and capture full JSON response
+          CHANGE_SET_RESPONSE=$(aws serverlessrepo \
             create-cloud-formation-change-set \
             --application-id arn:aws:serverlessrepo:eu-west-1:\
           021259937026:applications/MockNest-Serverless \
             --stack-name "$STACK_NAME" \
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+            --parameter-overrides Name=DeploymentName,Value=sartest${{ github.run_id }} \
             --region ${{ inputs.aws-region }} \
-            --query 'ChangeSetId' \
-            --output text)
+            --output json 2>&1) || {
+            echo "❌ Failed to create change set from SAR"
+            echo "Error: $CHANGE_SET_RESPONSE"
+            exit 1
+          }
 
+          # Extract values from JSON response
+          CHANGE_SET_ID=$(echo "$CHANGE_SET_RESPONSE" | jq -r '.ChangeSetId')
+          ACTUAL_STACK_NAME=$(echo "$CHANGE_SET_RESPONSE" | jq -r '.StackId' | awk -F'/' '{print $2}')
+          
           echo "Change Set ID: $CHANGE_SET_ID"
+          echo "Actual Stack Name: $ACTUAL_STACK_NAME"
+          
+          # Update STACK_NAME environment variable
+          echo "STACK_NAME=$ACTUAL_STACK_NAME" >> $GITHUB_ENV
 
-          # Extract change set name from the full ARN
-          CHANGE_SET_NAME=$(echo "$CHANGE_SET_ID" | awk -F'/' '{print $NF}')
+          # Use the full change set ARN (not just the UUID)
+          # AWS CLI accepts either the full ARN or a name that starts with a letter
+          CHANGE_SET_NAME="$CHANGE_SET_ID"
+
+          # Small delay to ensure change set is registered
+          sleep 2
+          
+          # Check change set status immediately
+          echo "Checking change set status..."
+          aws cloudformation describe-change-set \
+            --stack-name "$ACTUAL_STACK_NAME" \
+            --change-set-name "$CHANGE_SET_NAME" \
+            --region ${{ inputs.aws-region }} \
+            --query '{Status:Status,StatusReason:StatusReason,ExecutionStatus:ExecutionStatus}' \
+            --output json || echo "Change set not found immediately after creation"
 
           # Wait for change set to be created
           echo "⏳ Waiting for change set to be created..."
-          aws cloudformation wait change-set-create-complete \
-            --stack-name "$STACK_NAME" \
+          echo "Using stack: $ACTUAL_STACK_NAME"
+          echo "Using change set: $CHANGE_SET_NAME"
+          
+          if ! aws cloudformation wait change-set-create-complete \
+            --stack-name "$ACTUAL_STACK_NAME" \
             --change-set-name "$CHANGE_SET_NAME" \
-            --region ${{ inputs.aws-region }}
+            --region ${{ inputs.aws-region }} 2>&1; then
+            
+            echo "❌ Change set creation failed"
+            echo ""
+            echo "Retrieving change set details..."
+            
+            # Get change set status and reason
+            aws cloudformation describe-change-set \
+              --stack-name "$ACTUAL_STACK_NAME" \
+              --change-set-name "$CHANGE_SET_NAME" \
+              --region ${{ inputs.aws-region }} \
+              --output json 2>&1 || echo "Failed to retrieve change set details"
+            
+            echo ""
+            echo "Common causes:"
+            echo "1. SAR application template has validation errors"
+            echo "2. Missing required parameters or invalid parameter values"
+            echo "3. IAM permissions issue"
+            echo "4. Resource naming conflicts"
+            
+            exit 1
+          fi
 
           # Execute the change set
           echo "🚀 Executing change set..."
           aws cloudformation execute-change-set \
-            --stack-name "$STACK_NAME" \
+            --stack-name "$ACTUAL_STACK_NAME" \
             --change-set-name "$CHANGE_SET_NAME" \
             --region ${{ inputs.aws-region }}
 
@@ -114,7 +166,7 @@ jobs:
           echo "⏳ Waiting for stack creation to complete \
           (timeout: 15 minutes)..."
           aws cloudformation wait stack-create-complete \
-            --stack-name "$STACK_NAME" \
+            --stack-name "$ACTUAL_STACK_NAME" \
             --region ${{ inputs.aws-region }} \
             || {
               # Capture deployment end timestamp
@@ -126,7 +178,7 @@ jobs:
               echo ""
               echo "CloudFormation Stack Events:"
               aws cloudformation describe-stack-events \
-                --stack-name "$STACK_NAME" \
+                --stack-name "$ACTUAL_STACK_NAME" \
                 --region ${{ inputs.aws-region }} \
                 --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].\
           [Timestamp,ResourceType,LogicalResourceId,ResourceStatusReason]' \
@@ -154,23 +206,20 @@ jobs:
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
             --region ${{ inputs.aws-region }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].\
-          OutputValue' \
-            --output text)
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
+            --output text | tr -d '[:space:]')
 
           API_KEY_ID=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
             --region ${{ inputs.aws-region }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].\
-          OutputValue' \
-            --output text)
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
+            --output text | tr -d '[:space:]')
 
           BUCKET_NAME=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
             --region ${{ inputs.aws-region }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].\
-          OutputValue' \
-            --output text)
+            --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' \
+            --output text | tr -d '[:space:]')
 
           # Validate MockNestApiUrl
           if [ -z "$API_URL" ]; then
@@ -184,6 +233,9 @@ jobs:
           got: $API_URL"
             exit 1
           fi
+          
+          # Remove trailing slash from API_URL if present
+          API_URL="${API_URL%/}"
 
           # Validate MockNestApiKey
           if [ -z "$API_KEY_ID" ]; then
@@ -210,9 +262,6 @@ jobs:
           echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
 
           echo "✅ Stack outputs retrieved and validated successfully"
-          echo "API URL: $API_URL"
-          echo "API Key ID: $API_KEY_ID"
-          echo "Bucket Name: $BUCKET_NAME"
 
       - name: Retrieve API key value
         run: |
@@ -237,7 +286,6 @@ jobs:
             echo "❌ Error: API key value is empty"
             exit 1
           fi
-
           # Mask API key value immediately to prevent it from logs
           echo "::add-mask::$API_KEY_VALUE"
 
@@ -252,6 +300,10 @@ jobs:
           set -o pipefail
 
           echo "🏥 Starting health checks..."
+          
+          # Brief initial wait for API Gateway deployment
+          echo "⏳ Waiting 10 seconds for API Gateway to initialize..."
+          sleep 10
 
           # Capture health check start timestamp
           HEALTH_CHECK_START=$(date +%s)
@@ -261,21 +313,27 @@ jobs:
           health_check_with_retry() {
             local endpoint_path="$1"
             local endpoint_name="$2"
-            local max_attempts=3
+            local max_attempts=5
             local attempt=1
-            local backoff_delays=(5 10 20)
+            local backoff_delays=(10 20 30 45 60)
 
             echo ""
-            echo "Checking $endpoint_name endpoint: ${API_URL}${endpoint_path}"
+            echo "Checking $endpoint_name endpoint..."
 
             while [ $attempt -le $max_attempts ]; do
               echo "Attempt $attempt/$max_attempts..."
 
               # Execute curl with timeout and capture response
-              HTTP_CODE=$(curl -f -s -w "%{http_code}" -o /tmp/response.json \
+              # Note: -f flag removed to capture HTTP code even on errors
+              HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/response.json \
                 --max-time 30 \
                 -H "x-api-key: $API_KEY_VALUE" \
-                "${API_URL}${endpoint_path}" 2>/dev/null || echo "000")
+                "${API_URL}${endpoint_path}" 2>/dev/null)
+              
+              # If curl completely failed (no HTTP code), set to 000
+              if [ -z "$HTTP_CODE" ]; then
+                HTTP_CODE="000"
+              fi
 
               # Check HTTP status code
               if [ "$HTTP_CODE" = "200" ]; then
@@ -291,8 +349,24 @@ jobs:
                   cat /tmp/response.json
                   return 1
                 fi
+              elif [ "$HTTP_CODE" = "403" ]; then
+                # 403 Forbidden - likely usage plan not yet propagated, retry with backoff
+                echo "⚠️  $endpoint_name health check failed with HTTP 403 \
+          (usage plan may still be propagating)"
+
+                if [ $attempt -lt $max_attempts ]; then
+                  local delay=${backoff_delays[$((attempt-1))]}
+                  echo "Retrying in ${delay}s..."
+                  sleep $delay
+                  attempt=$((attempt + 1))
+                else
+                  echo "❌ $endpoint_name health check failed after $max_attempts \
+          attempts"
+                  echo "This may indicate API key is not properly associated with usage plan"
+                  return 1
+                fi
               elif [[ "$HTTP_CODE" =~ ^4[0-9][0-9]$ ]]; then
-                # 4xx errors - authentication/authorization issues, don't retry
+                # Other 4xx errors - authentication/authorization issues, don't retry
                 echo "❌ $endpoint_name health check failed with HTTP $HTTP_CODE \
           (client error - not retrying)"
                 echo "Response body:"
@@ -336,7 +410,7 @@ jobs:
             echo "❌ Health checks failed"
             echo "Duration: ${HEALTH_CHECK_DURATION}s"
             echo ""
-            echo "Note: API key has been redacted from logs"
+            echo "Note: Diagnostic details have been omitted for security"
             exit 1
           fi
 

@@ -1,4 +1,4 @@
-name: Main Branch AWS Deployment
+name: CICD - Main Branch AWS
 
 on:
   push:

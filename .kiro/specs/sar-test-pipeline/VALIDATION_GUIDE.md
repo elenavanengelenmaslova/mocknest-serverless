@@ -15,6 +15,9 @@ gh auth login
 
 # Configure AWS credentials (for cleanup validation)
 aws configure
+
+# IMPORTANT: Ensure SAR application is public or shared with your AWS account
+# The test pipeline deploys from eu-west-1 to any target region (cross-region deployment)
 ```
 
 ### Run Automated Validation
@@ -209,6 +212,44 @@ Use this checklist to track validation progress:
 ---
 
 ## Common Issues and Solutions
+
+### Issue: ValidationError - Waiter ChangeSetCreateComplete failed
+**Symptoms:**
+```
+ERROR]: Waiter ChangeSetCreateComplete failed: Waiter encountered a terminal failure state: 
+Matched expected service error code: ValidationError
+```
+
+**Root Cause:** Missing required parameters when creating CloudFormation change set from SAR.
+
+**Solution:** 
+The fix has been implemented in the workflow. The pipeline now passes the `DeploymentName` parameter explicitly:
+```bash
+--parameter-overrides DeploymentName=sar-test-${{ github.run_id }}
+```
+
+This ensures each test deployment has a unique identifier and all required parameters are provided.
+
+**If you still encounter this error:**
+1. **Check SAR application is public or shared**
+   ```bash
+   aws serverlessrepo get-application \
+     --application-id arn:aws:serverlessrepo:eu-west-1:021259937026:applications/MockNest-Serverless \
+     --region ${{ inputs.aws-region }}
+   ```
+
+2. **Verify IAM permissions**
+   ```bash
+   aws iam get-role --role-name GitHubOIDCAdmin
+   ```
+
+3. **Check CloudFormation change set details**
+   ```bash
+   aws cloudformation describe-change-set \
+     --stack-name mocknest-sar-test-<run-id> \
+     --change-set-name <change-set-name> \
+     --region <region>
+   ```
 
 ### Issue: Workflow doesn't trigger
 **Solution:** 

@@ -401,9 +401,11 @@ Use this checklist when manually validating the pipeline:
 ## Known Issues and Limitations
 
 ### Current Limitations
-1. **SAR Application Availability**: Pipeline requires SAR application to be published in target region
+1. **SAR Application Sharing**: Pipeline requires SAR application to be public or shared with the AWS account
+   - The application must be accessible from the target AWS account
+   - Cross-region deployment is supported (application in eu-west-1 can deploy to any region)
 2. **OIDC Role**: Requires pre-configured GitHub OIDC role with correct permissions
-3. **Region Support**: Limited to 6 Nova Pro supported regions
+3. **Region Support**: Limited to 6 Nova Pro supported regions for AI features
 4. **Timeout Values**: Fixed timeouts (15min deployment, 10min cleanup)
 
 ### Future Enhancements

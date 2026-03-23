@@ -1,4 +1,4 @@
-name: Feature Branch - AWS Build and Deploy
+name: CICD - Feature Branch AWS
 
 on:
   push:
