@@ -1,4 +1,4 @@
-name: Main Branch AWS Deployment
+name: CICD - Main Branch AWS
 
 on:
   push:
@@ -17,14 +17,14 @@ permissions:
 
 jobs:
   test:
-    uses: ./.github/workflows/workflow-build.yml
+    uses: ./.github/workflows/Reusable - Build.yml
 
   deploy:
     needs: test
     if: |
       contains(github.event.head_commit.modified, 'software/') ||
       contains(github.event.head_commit.modified, 'deployment/')
-    uses: ./.github/workflows/workflow-deploy-aws.yml
+    uses: ./.github/workflows/Reusable - Deploy AWS.yml
     with:
       environment: staging
       aws-region: 'eu-west-1'

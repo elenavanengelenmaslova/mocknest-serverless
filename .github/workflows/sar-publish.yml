@@ -1,4 +1,4 @@
-name: SAR Publish
+name: CD - SAR Publish
 
 on:
   release:
@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   publish:
-    uses: ./.github/workflows/workflow-sar-publish.yml
+    uses: ./.github/workflows/Reusable - SAR Publish.yml
     with:
       version: ${{ inputs.version || github.event.release.tag_name }}
       aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
@@ -36,7 +36,7 @@ jobs:
   
   test:
     needs: publish
-    uses: ./.github/workflows/sar-test-pipeline.yml
+    uses: ./.github/workflows/Integration Test - SAR Deployment.yml
     with:
       aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
       version: ${{ inputs.version || github.event.release.tag_name }}

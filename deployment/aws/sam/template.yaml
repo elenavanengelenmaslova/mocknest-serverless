@@ -6,7 +6,7 @@ Metadata:
   AWS::ServerlessRepo::Application:
     Name: MockNest-Serverless
     Description: "AWS-native serverless mock runtime with WireMock, S3 persistence, AI-powered generation via Bedrock, and support for REST, SOAP, and GraphQL APIs. Early release - feedback welcome!"
-    Author: Vintik
+    Author: Elena van Engelen - Maslova
     SemanticVersion: ${version}
     LicenseUrl: ../../../LICENSE
     ReadmeUrl: ../../../README-SAR.md
