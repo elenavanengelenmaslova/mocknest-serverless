@@ -51,20 +51,26 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 
 ## AWS Free Tier Alignment
 
-MockNest Serverless is specifically architected to maximize AWS Free Tier usage:
+MockNest Serverless is specifically architected to maximize [AWS Free Tier](https://aws.amazon.com/free/) usage for core runtime functionality.
 
-### Free Tier Limits (Monthly)
+### Core Services and Free Tier
 
-MockNest Serverless is specifically architected to maximize [AWS Free Tier](https://aws.amazon.com/free/) usage. The free tier includes generous limits for all core services used by MockNest:
+The following AWS services are used by MockNest, with links to current pricing and free tier details:
 
-- **[AWS Lambda Free Tier](https://aws.amazon.com/lambda/pricing/)**: 1M requests and 400,000 GB-seconds of compute time monthly
-- **[Amazon API Gateway Free Tier](https://aws.amazon.com/api-gateway/pricing/)**: 1M API calls monthly  
-- **[Amazon S3 Free Tier](https://aws.amazon.com/s3/pricing/)**: 5 GB storage, 20,000 GET requests, and 2,000 PUT requests monthly
-- **[Amazon SQS Free Tier](https://aws.amazon.com/sqs/pricing/)**: 1M requests monthly
-- **[Amazon CloudWatch Free Tier](https://aws.amazon.com/cloudwatch/pricing/)**: 5 GB log ingestion monthly
-- **[Amazon Bedrock Free Tier](https://aws.amazon.com/bedrock/pricing/)**: Pay-per-use only when calling AI endpoints (no base cost)
+- **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)**: Compute runtime for serving mocks
+- **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)**: HTTP routing and API key authentication
+- **[Amazon S3](https://aws.amazon.com/s3/pricing/)**: Persistent storage for mock definitions and response payloads
+- **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**: Message queuing for AI generation requests
+- **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)**: Logging and monitoring
 
-**Typical Development Usage**: Most development and testing scenarios stay well within these free tier limits.
+**Typical Development Usage**: Most development and testing scenarios stay well within AWS Free Tier limits for these core services.
+
+### AI Services (Optional, Pay-Per-Use)
+
+- **[Amazon Bedrock](https://aws.amazon.com/bedrock/pricing/)**: AI-powered mock generation (no free tier)
+  - **Pay only when you use it**: Bedrock charges are incurred only when you call AI generation endpoints
+  - **No charges for core runtime**: If you don't use AI features, you pay nothing for Bedrock
+  - **Cost control**: AI generation is optional and can be disabled entirely
 
 ## Cost Optimization Features
 

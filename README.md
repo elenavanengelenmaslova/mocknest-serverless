@@ -259,13 +259,12 @@ The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock infer
 
 ## Tested Configuration
 
-MockNest Serverless has been thoroughly tested in the following configurations:
+MockNest Serverless has been thoroughly tested in multiple AWS regions:
 
-### Officially Supported Regions
-- **Tested regions**: us-east-1 (N. Virginia), eu-west-1 (Ireland), eu-central-1 (Frankfurt)
-- **Works in any AWS region** with Lambda, API Gateway, and S3 support
-- **Deployment to other regions** is possible but not tested yet
-- See [docs/REGIONS.md](docs/REGIONS.md) for detailed regional information
+### Regional Support
+- **Core Runtime**: Works in any AWS region with Lambda, API Gateway, and S3 support
+- **AI Features**: Availability varies by region based on Amazon Bedrock model support
+- **Tested Regions**: See [docs/REGIONS.md](docs/REGIONS.md) for the complete list of tested regions and AI feature availability
 
 ### AI Features Support
 - **Officially supported**: Amazon Nova Pro model in [tested regions](docs/REGIONS.md)
