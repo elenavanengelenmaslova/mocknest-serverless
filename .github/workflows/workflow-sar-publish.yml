@@ -1,4 +1,4 @@
-name: Reusable SAR Package and Publish
+name: Reusable - SAR Package and Publish
 
 on:
   workflow_call:

@@ -1,5 +1,5 @@
 ---
-name: SAR Test Pipeline
+name: Integration Test - SAR Deployment
 
 'on':
   workflow_call:

@@ -1,4 +1,4 @@
-name: Deploy On Demand
+name: CD - Deploy On Demand
 
 on:
   workflow_dispatch:
@@ -20,11 +20,11 @@ permissions:
 
 jobs:
   test:
-    uses: ./.github/workflows/workflow-build.yml
+    uses: ./.github/workflows/Reusable - Build.yml
 
   deploy-on-demand:
     needs: test
-    uses: ./.github/workflows/workflow-deploy-aws.yml
+    uses: ./.github/workflows/Reusable - Deploy AWS.yml
     with:
       environment: default
       aws-region: ${{ inputs.aws-region }}
