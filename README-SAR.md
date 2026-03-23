@@ -2,13 +2,11 @@
 
 MockNest Serverless is a serverless WireMock runtime that enables realistic integration testing without relying on live external services. Deploy it directly into your AWS account for secure, cost-effective API mocking with AI-powered mock generation.
 
-**⚠️ EXPERIMENTAL RELEASE** - This is an early release of MockNest Serverless. We welcome feedback and bug reports via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
-
 ## Deployment
 
 Click "Deploy" and configure the parameters below. Deployment typically takes 2-3 minutes. You can monitor progress in the CloudFormation console.
 
-**Region Selection**: See [supported regions](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/REGIONS.md) for AI feature availability.
+**Region Selection**: MockNest works in any AWS region with Lambda, API Gateway, and S3. For AI feature availability by region, see [supported regions](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/REGIONS.md).
 
 ## Input Parameters
 
@@ -118,7 +116,7 @@ curl -X GET "${MOCKNEST_URL}/bored/api/activity?type=social" \
   -H "x-api-key: ${API_KEY}"
 ```
 
-For more extensive examples including SOAP, GraphQL, and AI-assisted generation, see the [complete cURL usage guide](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/USAGE.md).
+**More Examples**: For extensive examples including SOAP, GraphQL, AI-assisted generation, and advanced scenarios, see the [complete usage guide](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/USAGE.md).
 
 ## AI-Assisted Mock Generation
 
@@ -147,8 +145,6 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 - Swagger 2.0 (experimental)
 
 **Current Limitations**: AI generation supports REST APIs only. GraphQL and SOAP API generation not yet supported.
-
-For more extensive examples including SOAP, GraphQL, and AI-assisted generation workflows, see the [complete cURL usage guide](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/USAGE.md).
 
 ## Architecture and Data Persistence
 
@@ -231,6 +227,9 @@ For detailed security information and vulnerability reporting, see [SECURITY.md]
 
 ## Learn More
 
-**Article**: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)
+- **Article**: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)
+- **AWS Builder**: [MockNest Serverless – AI-Powered API Mocking](https://builder.aws.com/content/2zkFqqTTTB259ZesLX6l9ZbAqjD/aideas-mocknest-serverless-ai-powered-api-mocking-for-cloud-native-testing)
 
-**AWS Builder**: [MockNest Serverless – AI-Powered API Mocking](https://builder.aws.com/content/2zkFqqTTTB259ZesLX6l9ZbAqjD/aideas-mocknest-serverless-ai-powered-api-mocking-for-cloud-native-testing)
+---
+
+**⚠️ EXPERIMENTAL RELEASE** - This is an early release of MockNest Serverless. We welcome feedback and bug reports via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
