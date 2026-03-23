@@ -41,7 +41,7 @@ subprojects {
             dependency("org.wiremock:wiremock:3.13.2")
             
             // Security: Override vulnerable Rhino version from swagger-parser transitive dependency
-            dependency("org.mozilla:rhino:1.7.15.1")
+            dependency("org.mozilla:rhino:1.9.1")
             
             // Koog Framework for AI Agents
             val koogVersion = "0.6.2"
