@@ -4,11 +4,16 @@ MockNest Serverless can be deployed to any AWS region that supports Lambda, API 
 
 ## Tested Regions
 
-The following regions have been fully tested with MockNest Serverless, including AI features:
+The following regions have been fully tested with MockNest Serverless, including AI features using **Amazon Nova Pro**:
 
-- **us-east-1** (N. Virginia)
 - **eu-west-1** (Ireland)
 - **eu-central-1** (Frankfurt)
+- **us-east-1** (N. Virginia)
+- **us-west-2** (Oregon)
+- **ap-southeast-1** (Singapore)
+- **ap-northeast-1** (Tokyo)
+
+If you need support for a specific region, please open a feature request in [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
 
 ## AI Features and Regional Availability
 
@@ -61,16 +66,6 @@ If you want to use AI-assisted mock generation in a region not listed above:
 2. **Test Thoroughly**: AI features have not been tested in regions outside the three listed above
 3. **Report Issues**: If you encounter problems, please report them via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
 
-## Future Plans
-
-We plan to expand testing to additional regions based on user demand and AWS service availability. Regions under consideration include:
-
-- **us-west-2** (Oregon)
-- **ap-southeast-1** (Singapore)
-- **ap-northeast-1** (Tokyo)
-- Additional EU regions
-
-If you need support for a specific region, please open a feature request in [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
 
 ## Region Selection Best Practices
 

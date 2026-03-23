@@ -207,19 +207,19 @@ jobs:
             --stack-name "$STACK_NAME" \
             --region ${{ inputs.aws-region }} \
             --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
-            --output text)
+            --output text | tr -d '[:space:]')
 
           API_KEY_ID=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
             --region ${{ inputs.aws-region }} \
             --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
-            --output text)
+            --output text | tr -d '[:space:]')
 
           BUCKET_NAME=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
             --region ${{ inputs.aws-region }} \
             --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' \
-            --output text)
+            --output text | tr -d '[:space:]')
 
           # Validate MockNestApiUrl
           if [ -z "$API_URL" ]; then
@@ -233,6 +233,16 @@ jobs:
           got: $API_URL"
             exit 1
           fi
+          
+          echo "DEBUG: API_URL before trailing slash removal: '$API_URL'"
+          echo "DEBUG: API_URL length: ${#API_URL}"
+          echo "DEBUG: Last character: '${API_URL: -1}'"
+          
+          # Remove trailing slash from API_URL if present
+          API_URL="${API_URL%/}"
+          
+          echo "DEBUG: API_URL after trailing slash removal: '$API_URL'"
+          echo "DEBUG: API_URL length: ${#API_URL}"
 
           # Validate MockNestApiKey
           if [ -z "$API_KEY_ID" ]; then
@@ -301,6 +311,10 @@ jobs:
           set -o pipefail
 
           echo "🏥 Starting health checks..."
+          
+          # Small delay to ensure API Gateway is fully ready
+          echo "⏳ Waiting 10 seconds for API Gateway to be fully ready..."
+          sleep 10
 
           # Capture health check start timestamp
           HEALTH_CHECK_START=$(date +%s)
