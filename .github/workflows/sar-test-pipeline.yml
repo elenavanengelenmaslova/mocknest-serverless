@@ -234,15 +234,8 @@ jobs:
             exit 1
           fi
           
-          echo "DEBUG: API_URL before trailing slash removal: '$API_URL'"
-          echo "DEBUG: API_URL length: ${#API_URL}"
-          echo "DEBUG: Last character: '${API_URL: -1}'"
-          
           # Remove trailing slash from API_URL if present
           API_URL="${API_URL%/}"
-          
-          echo "DEBUG: API_URL after trailing slash removal: '$API_URL'"
-          echo "DEBUG: API_URL length: ${#API_URL}"
 
           # Validate MockNestApiKey
           if [ -z "$API_KEY_ID" ]; then
@@ -269,9 +262,6 @@ jobs:
           echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
 
           echo "✅ Stack outputs retrieved and validated successfully"
-          echo "API URL: $API_URL"
-          echo "API Key ID: $API_KEY_ID"
-          echo "Bucket Name: $BUCKET_NAME"
 
       - name: Retrieve API key value
         run: |
@@ -352,7 +342,7 @@ jobs:
             local backoff_delays=(5 10 20)
 
             echo ""
-            echo "Checking $endpoint_name endpoint: ${API_URL}${endpoint_path}"
+            echo "Checking $endpoint_name endpoint..."
 
             while [ $attempt -le $max_attempts ]; do
               echo "Attempt $attempt/$max_attempts..."
@@ -422,36 +412,7 @@ jobs:
             echo "❌ Health checks failed"
             echo "Duration: ${HEALTH_CHECK_DURATION}s"
             echo ""
-            echo "🔍 Diagnostic Information:"
-            echo "API URL: ${API_URL}"
-            echo "API Key ID: ${API_KEY_ID}"
-            echo "Region: ${{ inputs.aws-region }}"
-            echo ""
-            echo "Checking API Gateway configuration..."
-            
-            # Check if API exists
-            aws apigateway get-rest-api \
-              --rest-api-id "${API_URL#*//}" \
-              --rest-api-id "$(echo $API_URL | cut -d'.' -f1 | cut -d'/' -f3)" \
-              --region ${{ inputs.aws-region }} \
-              --output json 2>&1 | head -20 || echo "Failed to get API details"
-            
-            echo ""
-            echo "Checking API key status..."
-            aws apigateway get-api-key \
-              --api-key "$API_KEY_ID" \
-              --region ${{ inputs.aws-region }} \
-              --output json 2>&1 || echo "Failed to get API key details"
-            
-            echo ""
-            echo "Checking usage plans..."
-            aws apigateway get-usage-plans \
-              --region ${{ inputs.aws-region }} \
-              --query "items[?contains(name, 'mocknest') || contains(name, 'MockNest')]" \
-              --output json 2>&1 | head -30 || echo "Failed to get usage plans"
-            
-            echo ""
-            echo "Note: API key has been redacted from logs"
+            echo "Note: Diagnostic details have been omitted for security"
             exit 1
           fi
 
