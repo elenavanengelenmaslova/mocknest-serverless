@@ -17,14 +17,14 @@ permissions:
 
 jobs:
   test:
-    uses: ./.github/workflows/Reusable - Build.yml
+    uses: ./.github/workflows/workflow-build.yml
 
   deploy:
     needs: test
     if: |
       contains(github.event.head_commit.modified, 'software/') ||
       contains(github.event.head_commit.modified, 'deployment/')
-    uses: ./.github/workflows/Reusable - Deploy AWS.yml
+    uses: ./.github/workflows/workflow-deploy-aws.yml
     with:
       environment: staging
       aws-region: 'eu-west-1'
