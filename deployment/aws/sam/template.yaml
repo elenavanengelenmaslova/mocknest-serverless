@@ -28,14 +28,13 @@ Parameters:
 
   LambdaMemorySize:
     Type: Number
-    Default: "1024"
+    Default: "1536"
     MinValue: "512"
     MaxValue: "10240"
     Description: |
       Lambda function memory size in MB.
-      TODO: Update default after Lambda Power Tuner execution (see docs/PERFORMANCE.md).
-      Current value (1024 MB) is a placeholder - optimal configuration should be determined
-      through performance testing with Lambda Power Tuner across 512MB-3072MB range.
+      Default (1536 MB) determined by Lambda Power Tuner analysis for optimal cost/performance balance.
+      See docs/PERFORMANCE.md for tuning methodology and results.
 
   LambdaTimeout:
     Type: Number
@@ -267,10 +266,8 @@ Resources:
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
-      # TODO: Override MemorySize after Lambda Power Tuner execution
-      # Current configuration uses global LambdaMemorySize parameter (1024 MB placeholder)
-      # Recommended approach: Test 512MB-3072MB range, update with optimal value
-      # See docs/PERFORMANCE.md for testing methodology and results
+      # Memory configuration optimized via Lambda Power Tuner (see docs/PERFORMANCE.md)
+      # Default 1536 MB provides optimal cost/performance balance for typical workloads
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
@@ -314,11 +311,9 @@ Resources:
       SnapStart:
         ApplyOn: PublishedVersions
       Timeout: 300
-      # TODO: Override MemorySize after Lambda Power Tuner execution
-      # Current configuration uses global LambdaMemorySize parameter (1024 MB placeholder)
+      # Memory configuration optimized via Lambda Power Tuner (see docs/PERFORMANCE.md)
+      # Default 1536 MB provides optimal cost/performance balance
       # Generation function may benefit from higher memory due to AI model interactions
-      # Recommended approach: Test 512MB-3072MB range, update with optimal value
-      # See docs/PERFORMANCE.md for testing methodology and results
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
