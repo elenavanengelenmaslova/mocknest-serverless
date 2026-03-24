@@ -27,7 +27,7 @@ private val logger = KotlinLogging.logger {}
  * - Uses graceful degradation for non-critical failures
  */
 @Component
-class GenerationPrimingHook(
+open class GenerationPrimingHook(
     private val aiHealthUseCase: GetAIHealth,
     private val s3Client: S3Client,
     private val bedrockClient: BedrockRuntimeClient,
@@ -105,7 +105,7 @@ class GenerationPrimingHook(
      * 
      * @return true if running in SnapStart environment, false otherwise
      */
-    private fun isSnapStartEnvironment(): Boolean {
+    protected open fun isSnapStartEnvironment(): Boolean {
         val initType = System.getenv("AWS_LAMBDA_INITIALIZATION_TYPE")
         logger.debug { "AWS_LAMBDA_INITIALIZATION_TYPE: $initType" }
         return initType == "snap-start"
