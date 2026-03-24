@@ -31,7 +31,11 @@ Parameters:
     Default: "1024"
     MinValue: "512"
     MaxValue: "10240"
-    Description: Lambda function memory size in MB
+    Description: |
+      Lambda function memory size in MB.
+      TODO: Update default after Lambda Power Tuner execution (see docs/PERFORMANCE.md).
+      Current value (1024 MB) is a placeholder - optimal configuration should be determined
+      through performance testing with Lambda Power Tuner across 512MB-3072MB range.
 
   LambdaTimeout:
     Type: Number
@@ -260,6 +264,13 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
+      AutoPublishAlias: live
+      SnapStart:
+        ApplyOn: PublishedVersions
+      # TODO: Override MemorySize after Lambda Power Tuner execution
+      # Current configuration uses global LambdaMemorySize parameter (1024 MB placeholder)
+      # Recommended approach: Test 512MB-3072MB range, update with optimal value
+      # See docs/PERFORMANCE.md for testing methodology and results
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
@@ -299,7 +310,15 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
+      AutoPublishAlias: live
+      SnapStart:
+        ApplyOn: PublishedVersions
       Timeout: 300
+      # TODO: Override MemorySize after Lambda Power Tuner execution
+      # Current configuration uses global LambdaMemorySize parameter (1024 MB placeholder)
+      # Generation function may benefit from higher memory due to AI model interactions
+      # Recommended approach: Test 512MB-3072MB range, update with optimal value
+      # See docs/PERFORMANCE.md for testing methodology and results
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
@@ -400,3 +419,33 @@ Outputs:
     Value: !GetAtt MockNestApiKey.APIKeyId
     Export:
       Name: !Sub "${AWS::StackName}-api-key"
+
+  RuntimeFunctionVersion:
+    Description: "Published version of Runtime function with SnapStart"
+    Value: !Ref MockNestRuntimeFunction.Version
+    Export:
+      Name: !Sub "${AWS::StackName}-runtime-version"
+
+  RuntimeFunctionAlias:
+    Description: "Alias pointing to latest published Runtime function version"
+    Value: !Ref MockNestRuntimeFunctionAliaslive
+    Export:
+      Name: !Sub "${AWS::StackName}-runtime-alias"
+
+  GenerationFunctionVersion:
+    Description: "Published version of Generation function with SnapStart"
+    Value: !Ref MockNestGenerationFunction.Version
+    Export:
+      Name: !Sub "${AWS::StackName}-generation-version"
+
+  GenerationFunctionAlias:
+    Description: "Alias pointing to latest published Generation function version"
+    Value: !Ref MockNestGenerationFunctionAliaslive
+    Export:
+      Name: !Sub "${AWS::StackName}-generation-alias"
+
+  SnapStartEnabled:
+    Description: "Indicates whether SnapStart is enabled for Lambda functions"
+    Value: "true"
+    Export:
+      Name: !Sub "${AWS::StackName}-snapstart-enabled"
