@@ -2,11 +2,25 @@
 
 ## Memory Configuration
 
-Both Runtime and Generation functions default to **1536 MB** based on AWS Lambda Power Tuner analysis.
+Both Runtime and Generation functions default to **512 MB** based on AWS Lambda Power Tuner analysis using the `balanced` strategy.
 
-![Lambda Power Tuner Results](images/PowerTuning.png)
+### Runtime Function Results
 
-The Power Tuner analysis shows 1536 MB provides the best balance between execution speed and cost efficiency.
+| Metric | Value |
+|---|---|
+| Optimal power | 512 MB |
+| Duration at 512 MB | 3.30 ms |
+| Visualization | [View chart](https://lambda-power-tuning.show/#AAIABAAGAAgADA==;Hz5TQIlBWEB56W5AfM1VQIAjVEA=;b6XpMm+laTMYC9szb6XpMxM8LzQ=) |
+
+### Generation Function Results
+
+| Metric | Value |
+|---|---|
+| Optimal power | 512 MB |
+| Duration at 512 MB | 3.21 ms |
+| Visualization | [View chart](https://lambda-power-tuning.show/#AAIABAAGAAgADA==;309NQMI8UUAZvVVAjlBWQD98TkA=;b6XpMm+laTMTPK8zb6XpMxM8LzQ=) |
+
+> At 512 MB and ~3.3 ms average duration, both functions fit comfortably within the [AWS Lambda free tier](https://aws.amazon.com/lambda/pricing/) (1M requests and 400,000 GB-seconds per month).
 
 ## Tuning Your Deployment
 
@@ -35,7 +49,7 @@ To optimize memory for your workload, use [AWS Lambda Power Tuner](https://serve
       "stage": "mocks"
     }
   },
-  "parallelInvocation": true,
+  "parallelInvocation": false,
   "onlyColdStarts": false
 }
 ```
@@ -59,13 +73,13 @@ To optimize memory for your workload, use [AWS Lambda Power Tuner](https://serve
       "stage": "mocks"
     }
   },
-  "parallelInvocation": true,
+  "parallelInvocation": false,
   "onlyColdStarts": false
 }
 ```
 
 4. Review the visualization URL in the output to see cost vs. performance tradeoffs
-5. Update your deployment: `sam deploy --parameter-overrides LambdaMemorySize=1536`
+5. Update your deployment: `sam deploy --parameter-overrides LambdaMemorySize=512`
 
 ## Measuring Cold Start Times
 

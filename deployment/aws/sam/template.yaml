@@ -28,12 +28,12 @@ Parameters:
 
   LambdaMemorySize:
     Type: Number
-    Default: "1536"
+    Default: "512"
     MinValue: "512"
     MaxValue: "10240"
     Description: |
       Lambda function memory size in MB.
-      Default (1536 MB) determined by Lambda Power Tuner analysis for optimal cost/performance balance.
+      Default (512 MB) determined by Lambda Power Tuner analysis for optimal cost/performance balance.
       See docs/PERFORMANCE.md for tuning methodology and results.
 
   LambdaTimeout:
@@ -267,7 +267,7 @@ Resources:
       SnapStart:
         ApplyOn: PublishedVersions
       # Memory configuration optimized via Lambda Power Tuner (see docs/PERFORMANCE.md)
-      # Default 1536 MB provides optimal cost/performance balance for typical workloads
+      # Default 512 MB provides optimal cost/performance balance for typical workloads
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
@@ -312,7 +312,7 @@ Resources:
         ApplyOn: PublishedVersions
       Timeout: 300
       # Memory configuration optimized via Lambda Power Tuner (see docs/PERFORMANCE.md)
-      # Default 1536 MB provides optimal cost/performance balance
+      # Default 512 MB provides optimal cost/performance balance
       # Generation function may benefit from higher memory due to AI model interactions
       Environment:
         Variables:
