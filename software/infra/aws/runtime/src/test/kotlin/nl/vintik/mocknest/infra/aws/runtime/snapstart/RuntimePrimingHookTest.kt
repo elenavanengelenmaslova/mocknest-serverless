@@ -10,19 +10,26 @@ import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.domain.core.HttpResponse
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.parallel.Isolated
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import java.util.stream.Stream
 import org.springframework.http.HttpStatus
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables
+import uk.org.webcompere.systemstubs.jupiter.SystemStub
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension
 import java.util.*
+import java.util.stream.Stream
 
 @Isolated
+@ExtendWith(SystemStubsExtension::class)
 class RuntimePrimingHookTest {
+
+    @SystemStub
+    private val environmentVariables = EnvironmentVariables()
 
     private val mockHealthCheckUseCase: GetRuntimeHealth = mockk(relaxed = true)
     private val mockS3Client: S3Client = mockk(relaxed = true)
@@ -307,26 +314,15 @@ class RuntimePrimingHookTest {
     @Nested
     inner class SnapStartEnvironmentDetection {
         private val envVarName = "AWS_LAMBDA_INITIALIZATION_TYPE"
-        private var savedValue: String? = null
-
-        @BeforeEach
-        fun saveEnv() {
-            savedValue = System.getenv(envVarName)
-        }
-
-        @AfterEach
-        fun restoreEnv() {
-            setEnv(envVarName, savedValue)
-        }
 
         @ParameterizedTest(name = "initType={0} -> shouldPrime={1}")
         @MethodSource("nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimePrimingHookTest#snapStartInitTypes")
         fun `Given AWS_LAMBDA_INITIALIZATION_TYPE When onApplicationReady is called Then should invoke priming accordingly`(
             initType: String?,
             shouldPrime: Boolean
-        ) = runTest {
+        ) {
             // Given
-            setEnv(envVarName, initType)
+            environmentVariables.set(envVarName, initType)
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
 
@@ -351,14 +347,5 @@ class RuntimePrimingHookTest {
             Arguments.of("on-demand", false),
             Arguments.of(null, false),
         )
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun setEnv(name: String, value: String?) {
-        val processEnvironment = Class.forName("java.lang.ProcessEnvironment")
-        val field = processEnvironment.getDeclaredField("theEnvironment")
-        field.isAccessible = true
-        val env = field.get(null) as MutableMap<String, String>
-        if (value != null) env[name] = value else env.remove(name)
     }
 }
