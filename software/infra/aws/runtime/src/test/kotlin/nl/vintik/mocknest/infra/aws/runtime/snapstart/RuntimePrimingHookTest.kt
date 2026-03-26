@@ -10,9 +10,14 @@ import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.domain.core.HttpResponse
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.parallel.Isolated
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
+import java.util.stream.Stream
 import org.springframework.http.HttpStatus
 import java.util.*
 
@@ -301,35 +306,59 @@ class RuntimePrimingHookTest {
 
     @Nested
     inner class SnapStartEnvironmentDetection {
+        private val envVarName = "AWS_LAMBDA_INITIALIZATION_TYPE"
+        private var savedValue: String? = null
 
-        @Test
-        fun `Given AWS_LAMBDA_INITIALIZATION_TYPE is snap-start When checking environment Then should return true`() =
-            runTest {
-                // Given
-                val primingHookSpy = spyk(primingHook, recordPrivateCalls = true)
-                every { primingHookSpy["isSnapStartEnvironment"]() as Boolean } returns true
-                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-                coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
+        @BeforeEach
+        fun saveEnv() {
+            savedValue = System.getenv(envVarName)
+        }
 
-                // When
-                primingHookSpy.onApplicationReady()
+        @AfterEach
+        fun restoreEnv() {
+            setEnv(envVarName, savedValue)
+        }
 
-                // Then - prime() should be called (verify by checking if dependencies were invoked)
-                verify { mockHealthCheckUseCase.invoke() }
-            }
-
-        @Test
-        fun `Given AWS_LAMBDA_INITIALIZATION_TYPE is not snap-start When checking environment Then should skip priming`() {
+        @ParameterizedTest(name = "initType={0} -> shouldPrime={1}")
+        @MethodSource("nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimePrimingHookTest#snapStartInitTypes")
+        fun `Given AWS_LAMBDA_INITIALIZATION_TYPE When onApplicationReady is called Then should invoke priming accordingly`(
+            initType: String?,
+            shouldPrime: Boolean
+        ) = runTest {
             // Given
-            val primingHookSpy = spyk(primingHook, recordPrivateCalls = true)
-            every { primingHookSpy["isSnapStartEnvironment"]() as Boolean } returns false
+            setEnv(envVarName, initType)
+            every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
 
             // When
-            primingHookSpy.onApplicationReady()
+            primingHook.onApplicationReady()
 
-            // Then - prime() should not be called
-            verify(exactly = 0) { mockHealthCheckUseCase.invoke() }
-            coVerify(exactly = 0) { mockS3Client.headBucket(any()) }
+            // Then
+            if (shouldPrime) {
+                verify { mockHealthCheckUseCase.invoke() }
+                coVerify { mockS3Client.headBucket(any()) }
+            } else {
+                verify(exactly = 0) { mockHealthCheckUseCase.invoke() }
+                coVerify(exactly = 0) { mockS3Client.headBucket(any()) }
+            }
         }
+    }
+
+    companion object {
+        @JvmStatic
+        fun snapStartInitTypes(): Stream<Arguments> = Stream.of(
+            Arguments.of("snap-start", true),
+            Arguments.of("on-demand", false),
+            Arguments.of(null, false),
+        )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun setEnv(name: String, value: String?) {
+        val processEnvironment = Class.forName("java.lang.ProcessEnvironment")
+        val field = processEnvironment.getDeclaredField("theEnvironment")
+        field.isAccessible = true
+        val env = field.get(null) as MutableMap<String, String>
+        if (value != null) env[name] = value else env.remove(name)
     }
 }
