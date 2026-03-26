@@ -23,6 +23,10 @@ Requirements:
   - If an endpoint filters by query parameters (e.g. `status=available`), the response MUST only contain items with that status.
   - If an endpoint uses path parameters (e.g. `/pet/1`), the response data MUST match that ID.
   - Ensure you use the correct response format (Object vs Array) as defined in the specification for each endpoint.
+  - When the description defines specific entities with properties (e.g., a pet with a specific name, status, or image),
+    those entities MUST appear consistently across ALL relevant endpoints — list endpoints, detail endpoints, and filtered endpoints.
+    For example, if pet ID=1 is a bird with status "available", then GET /pet/1, GET /pets, and GET /pets?status=available must all return consistent data for that bird.
+  - If entities have tags or other filterable properties, ensure that filter/search endpoints return exactly the correct subset of entities matching that filter.
 - Generate comprehensive mappings that cover the described scenarios
 - Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
 - WireMock URL matching rules (IMPORTANT):
