@@ -9,6 +9,7 @@ import com.github.tomakehurst.wiremock.http.Request
 import com.github.tomakehurst.wiremock.http.RequestMethod
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
@@ -73,11 +74,13 @@ open class RuntimePrimingHook(
             logger.warn(exception) { "Health check priming failed - continuing with snapshot creation" }
         }
         
-        // Initialize S3 client connections
+        // Initialize S3 client connections with timeout protection
         runCatching {
-            s3Client.headBucket(HeadBucketRequest {
-                bucket = bucketName
-            })
+            withTimeout(5000) { // 5 second timeout to prevent hanging snapshot creation
+                s3Client.headBucket(HeadBucketRequest {
+                    bucket = bucketName
+                })
+            }
             logger.info { "S3 client primed successfully for bucket: $bucketName" }
         }.onFailure { exception ->
             logger.warn(exception) { "S3 client priming failed for bucket: $bucketName - continuing with snapshot creation" }
