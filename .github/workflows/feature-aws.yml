@@ -28,11 +28,23 @@ jobs:
   test:
     uses: ./.github/workflows/workflow-build.yml
 
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy-relevant: ${{ steps.filter.outputs.deploy-relevant }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            deploy-relevant:
+              - 'software/**'
+              - 'deployment/**'
+
   deploy:
-    needs: test
-    if: |
-      contains(github.event.head_commit.modified, 'software/') ||
-      contains(github.event.head_commit.modified, 'deployment/')
+    needs: [test, detect-changes]
+    if: needs.detect-changes.outputs.deploy-relevant == 'true'
     uses: ./.github/workflows/workflow-deploy-aws.yml
     with:
       environment: default
