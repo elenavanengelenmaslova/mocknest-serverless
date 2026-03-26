@@ -46,7 +46,7 @@ private val logger = KotlinLogging.logger {}
 open class GenerationPrimingHook(
     private val aiHealthUseCase: GetAIHealth,
     private val s3Client: S3Client,
-    @param:Value("\${storage.bucket.name}") private val bucketName: String,
+    @param:Value($$"${storage.bucket.name}") private val bucketName: String,
     private val bedrockClient: BedrockRuntimeClient,
     private val modelConfig: ModelConfiguration,
     private val specificationParser: OpenAPISpecificationParser,

@@ -35,7 +35,7 @@ private val logger = KotlinLogging.logger {}
 open class RuntimePrimingHook(
     private val healthCheckUseCase: GetRuntimeHealth,
     private val s3Client: S3Client,
-    @param:Value("\${storage.bucket.name}") private val bucketName: String,
+    @param:Value($$"${storage.bucket.name}") private val bucketName: String,
     private val wireMockServer: WireMockServer,
     private val directCallHttpServer: DirectCallHttpServer
 ) {

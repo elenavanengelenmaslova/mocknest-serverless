@@ -15,6 +15,8 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.parallel.Isolated
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.http.HttpStatus
 import java.util.UUID
@@ -325,36 +327,9 @@ class RuntimePrimingHookTest {
             coVerify(exactly = 0) { mockS3Client.headBucket(any()) }
         }
         
-        @Test
-        fun `Given AWS_LAMBDA_INITIALIZATION_TYPE is null When checking environment Then should skip priming`() {
-            // Given
-            val primingHookSpy = spyk(primingHook, recordPrivateCalls = true)
-            every { primingHookSpy["isSnapStartEnvironment"]() as Boolean } returns false
-            
-            // When
-            primingHookSpy.onApplicationReady()
-            
-            // Then - prime() should not be called
-            verify(exactly = 0) { mockHealthCheckUseCase.invoke() }
-            coVerify(exactly = 0) { mockS3Client.headBucket(any()) }
-        }
-        
-        @Test
-        fun `Given AWS_LAMBDA_INITIALIZATION_TYPE is empty string When checking environment Then should skip priming`() {
-            // Given
-            val primingHookSpy = spyk(primingHook, recordPrivateCalls = true)
-            every { primingHookSpy["isSnapStartEnvironment"]() as Boolean } returns false
-            
-            // When
-            primingHookSpy.onApplicationReady()
-            
-            // Then - prime() should not be called
-            verify(exactly = 0) { mockHealthCheckUseCase.invoke() }
-            coVerify(exactly = 0) { mockS3Client.headBucket(any()) }
-        }
-        
-        @Test
-        fun `Given AWS_LAMBDA_INITIALIZATION_TYPE is provisioned-concurrency When checking environment Then should skip priming`() {
+        @ParameterizedTest
+        @ValueSource(strings = ["null", "", "provisioned-concurrency"])
+        fun `Given non-snap-start AWS_LAMBDA_INITIALIZATION_TYPE When onApplicationReady Then should skip priming`(initType: String) {
             // Given
             val primingHookSpy = spyk(primingHook, recordPrivateCalls = true)
             every { primingHookSpy["isSnapStartEnvironment"]() as Boolean } returns false
