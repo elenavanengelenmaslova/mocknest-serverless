@@ -140,7 +140,9 @@ All pipelines use:
 
 ### Project-Specific Standards
 For detailed MockNest Serverless guidelines, see our steering documentation:
-- **Architecture**: [System Architecture](.kiro/steering/structure.md)
+- **Architecture**: The project follows [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) adapted for serverless — Domain, Application, and Infrastructure layers with dependencies pointing inward. See [System Architecture](.kiro/steering/structure.md) for the full deep-dive.
+
+  <img src="docs/images/CleanArchitecture.jpg" alt="Clean Architecture" width="350">
 - **Code Quality & Standards**: [Code Generation Standards](.kiro/steering/tech.md#code-generation-standards)
 - **Testing Strategy**: [Testing Strategy](.kiro/steering/tech.md#testing-strategy)
 - **Development Workflow**: [Development Workflow](.kiro/steering/05-kiro-usage.md#development-workflow)
@@ -177,7 +179,7 @@ Releases are managed by maintainers:
 
 ## Questions?
 
-- Check our [documentation](.kiro/steering/) for architecture and design decisions
+- Check our [steering documents](.kiro/steering/) for architecture and design decisions
 - Open an issue for questions about contributing
 - Review existing issues and discussions
 
