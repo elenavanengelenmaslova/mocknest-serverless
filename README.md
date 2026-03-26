@@ -16,8 +16,8 @@
 *AI-powered API mocking for cloud-native testing on AWS*
 
 MockNest Serverless is a serverless WireMock-compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
-- Concept article:  
-- Demo: https://youtu.be/Rvip8rtULww
+- [Concept article](https://builder.aws.com/content/2zkFqqTTTB259ZesLX6l9ZbAqjD/aideas-mocknest-serverless-ai-powered-api-mocking-for-cloud-native-testing)
+- [Demo](https://youtu.be/Rvip8rtULww)
 
 <p align="center">
   <img src="docs/images/MockNestServerlessLogo.png" alt="MockNest Serverless Logo" width="400">
@@ -482,4 +482,4 @@ This project is open source and available under the [MIT License](LICENSE).
 
 A detailed explanation of the problem and approach: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)  
 
-For additional context and background: AIdeas: [MockNest Serverless – AI-Powered API Mocking for Cloud-Native Testing](https://builder.aws.com/content/2zkFqqTTTB259ZesLX6l9ZbAqjD/aideas-mocknest-serverless-ai-powered-api-mocking-for-cloud-native-testing)
+For additional context and background: [AIdeas: MockNest Serverless – AI-Powered API Mocking for Cloud-Native Testing](https://builder.aws.com/content/2zkFqqTTTB259ZesLX6l9ZbAqjD/aideas-mocknest-serverless-ai-powered-api-mocking-for-cloud-native-testing)
