@@ -28,10 +28,13 @@ Parameters:
 
   LambdaMemorySize:
     Type: Number
-    Default: "1024"
+    Default: "512"
     MinValue: "512"
     MaxValue: "10240"
-    Description: Lambda function memory size in MB
+    Description: |
+      Lambda function memory size in MB.
+      Default (512 MB) determined by Lambda Power Tuner analysis for optimal cost/performance balance.
+      See docs/PERFORMANCE.md for tuning methodology and results.
 
   LambdaTimeout:
     Type: Number
@@ -260,6 +263,11 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
+      AutoPublishAlias: live
+      SnapStart:
+        ApplyOn: PublishedVersions
+      # Memory configuration optimized via Lambda Power Tuner (see docs/PERFORMANCE.md)
+      # Default 512 MB provides optimal cost/performance balance for typical workloads
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
@@ -299,7 +307,13 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
+      AutoPublishAlias: live
+      SnapStart:
+        ApplyOn: PublishedVersions
       Timeout: 300
+      # Memory configuration optimized via Lambda Power Tuner (see docs/PERFORMANCE.md)
+      # Default 512 MB provides optimal cost/performance balance
+      # Generation function may benefit from higher memory due to AI model interactions
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
@@ -400,3 +414,33 @@ Outputs:
     Value: !GetAtt MockNestApiKey.APIKeyId
     Export:
       Name: !Sub "${AWS::StackName}-api-key"
+
+  RuntimeFunctionVersion:
+    Description: "Published version of Runtime function with SnapStart"
+    Value: !Ref MockNestRuntimeFunction.Version
+    Export:
+      Name: !Sub "${AWS::StackName}-runtime-version"
+
+  RuntimeFunctionAlias:
+    Description: "Alias pointing to latest published Runtime function version"
+    Value: !Ref MockNestRuntimeFunctionAliaslive
+    Export:
+      Name: !Sub "${AWS::StackName}-runtime-alias"
+
+  GenerationFunctionVersion:
+    Description: "Published version of Generation function with SnapStart"
+    Value: !Ref MockNestGenerationFunction.Version
+    Export:
+      Name: !Sub "${AWS::StackName}-generation-version"
+
+  GenerationFunctionAlias:
+    Description: "Alias pointing to latest published Generation function version"
+    Value: !Ref MockNestGenerationFunctionAliaslive
+    Export:
+      Name: !Sub "${AWS::StackName}-generation-alias"
+
+  SnapStartEnabled:
+    Description: "Indicates whether SnapStart is enabled for Lambda functions"
+    Value: "true"
+    Export:
+      Name: !Sub "${AWS::StackName}-snapstart-enabled"
