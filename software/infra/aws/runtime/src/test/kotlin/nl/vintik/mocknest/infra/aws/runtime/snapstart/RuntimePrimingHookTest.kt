@@ -220,6 +220,22 @@ class RuntimePrimingHookTest {
         }
         
         @Test
+        fun `Given DirectCallHttpServer stubRequest fails When priming executes Then should still attempt cleanup`() = runTest {
+            // Given
+            every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
+            every { mockDirectCallHttpServer.stubRequest(any()) } throws RuntimeException("Request failed")
+            every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
+            
+            // When / Then - should not throw
+            primingHook.prime()
+            
+            // Verify cleanup was still attempted despite stubRequest failure
+            verify { mockWireMockServer.stubFor(any()) }
+            verify { mockWireMockServer.removeStubMapping(any<UUID>()) }
+        }
+        
+        @Test
         fun `Given WireMock removeStubMapping fails When priming executes Then should log warning and continue`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")

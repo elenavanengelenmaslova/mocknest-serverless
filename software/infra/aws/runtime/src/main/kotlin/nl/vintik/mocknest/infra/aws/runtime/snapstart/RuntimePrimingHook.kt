@@ -98,10 +98,10 @@ open class RuntimePrimingHook(
      * Exercise WireMock engine comprehensively to warm up all critical components.
      * 
      * This method:
-     * 1. Creates a test mock with JSON body and query parameters
+     * 1. Creates a test mock with JSON body and query parameters (unique path per run)
      * 2. Verifies the mock was persisted to S3
      * 3. Calls the mock endpoint to verify request matching and response generation
-     * 4. Removes the test mock to exercise deletion logic
+     * 4. Removes the test mock to exercise deletion logic (guaranteed via finally block)
      * 
      * Exercises:
      * - NormalizeMappingBodyFilter (body extraction, S3 storage, mapping modification)
@@ -110,12 +110,16 @@ open class RuntimePrimingHook(
      * - DeleteAllMappingsAndFilesFilter (deletion logic)
      * - Request matching with query parameters
      * - Response body retrieval from storage
+     * 
+     * @throws Exception if any step fails (caught by caller's runCatching)
      */
     private fun exerciseWireMock() {
         val testMappingId = UUID.randomUUID()
-        val testPath = "/__snapstart_priming_test"
+        // Use unique path per run to avoid conflicts between concurrent priming attempts
+        val testPath = "/__snapstart_priming_test/$testMappingId"
+        var mappingCreated = false
         
-        runCatching {
+        try {
             // 1. Create a test mock mapping with a JSON body via WireMock admin API
             // This exercises:
             // - NormalizeMappingBodyFilter (body extraction, S3 storage, mapping modification)
@@ -132,6 +136,7 @@ open class RuntimePrimingHook(
                             .withBody("""{"status":"priming","timestamp":${System.currentTimeMillis()}}""")
                     )
             )
+            mappingCreated = true
             logger.debug { "Created test mapping with JSON body: $testMappingId" }
             
             // 2. Verify the mock was stored by retrieving it
@@ -159,22 +164,20 @@ open class RuntimePrimingHook(
                 logger.debug { "Invoked test mapping successfully, status: ${response.status}" }
             }
             
-            // 4. Remove the test mock mapping
+        } finally {
+            // 4. Always attempt cleanup, even if earlier steps failed
             // This exercises:
             // - DeleteAllMappingsAndFilesFilter deletion logic
             // - ObjectStorageBlobStore file deletion
             // - ObjectStorageMappingsSource mapping removal
-            wireMockServer.removeStubMapping(testMappingId)
-            logger.debug { "Removed test mapping: $testMappingId" }
-            
-            // 5. Verify cleanup by checking mapping no longer exists
-            val mappingAfterDelete = wireMockServer.getStubMapping(testMappingId)
-            if (mappingAfterDelete == null) {
-                logger.debug { "Verified test mapping was fully cleaned up from S3" }
+            if (mappingCreated) {
+                runCatching {
+                    wireMockServer.removeStubMapping(testMappingId)
+                    logger.debug { "Removed test mapping: $testMappingId" }
+                }.onFailure { cleanupException ->
+                    logger.warn(cleanupException) { "Failed to remove test mapping: $testMappingId" }
+                }
             }
-            
-        }.onFailure { exception ->
-            logger.warn(exception) { "WireMock exercise encountered error - continuing with snapshot creation" }
         }
     }
     
