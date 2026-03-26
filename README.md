@@ -19,7 +19,7 @@ MockNest Serverless is a serverless WireMock-compatible runtime for AWS that ena
 - [Concept article](https://builder.aws.com/content/2zkFqqTTTB259ZesLX6l9ZbAqjD/aideas-mocknest-serverless-ai-powered-api-mocking-for-cloud-native-testing)
 - [Demo](https://youtu.be/Rvip8rtULww)
 
-<p align="center">
+<p>
   <img src="docs/images/MockNestServerlessLogo.png" alt="MockNest Serverless Logo" width="400">
 </p>
 
@@ -45,6 +45,7 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
 - **AI-Assisted Mock Generation**: Intelligent mock creation from API specifications using Bedrock with a configurable model, defaulted to Amazon Nova Pro
 - **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR) or deploy via SAM
+- **Performance Optimized**: Lambda SnapStart with priming for reduced cold start latency
 
 ### Planned Features
 See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslova/projects/3) 
@@ -70,7 +71,7 @@ After deployment completes, retrieve your API Gateway URL and API key from the A
 
 Set environment variables:
 ```bash
-export MOCKNEST_URL="https://your-api-id.execute-api.eu-west-1.amazonaws.com/mocks"
+export MOCKNEST_URL="https://your-api-id.execute-api.your-region.amazonaws.com/mocks"
 export API_KEY="your-api-key-value-here"
 ```
 
@@ -131,6 +132,8 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
     }
 }'
 ```
+
+When `enableValidation` is enabled, generated mocks are automatically validated. If invalid mocks are detected, the system retries generation with AI self-correction (up to `BedrockGenerationMaxRetries` attempts) and only returns mocks that pass validation.
 
 Import the generated mappings (copy the `mappings` array from the response):
 ```bash
@@ -303,6 +306,8 @@ The following WireMock capabilities have been validated in the serverless enviro
 
 **Recommendation**: Use namespaces for logical grouping within a deployment, and use multiple deployments when you need isolation, separate access control, or independent scaling.
 
+For detailed memory sizing, cold start measurements, and tuning guidance, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
+
 ### Usage Examples
 
 For comprehensive usage examples including SOAP, GraphQL, and advanced AI generation scenarios, see [docs/USAGE.md](docs/USAGE.md).
@@ -423,7 +428,7 @@ Most development and testing scenarios stay within free tier limits, resulting i
 
 For detailed cost analysis, service breakdowns, and optimization tips, see our comprehensive [Cost Guide](docs/COST.md).
 
-For a comparison with alternative mocking solutions and competitive analysis, see [Market Analysis](docs/market_analysis.md).
+For a comparison with alternative mocking solutions and competitive analysis, see [Market Analysis](docs/MARKET_ANALYSIS.md).
 
 ## Troubleshooting
 ### Common Issues

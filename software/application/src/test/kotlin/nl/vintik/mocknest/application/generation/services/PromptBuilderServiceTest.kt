@@ -131,6 +131,7 @@ class PromptBuilderServiceTest {
             assertFalse(prompt.contains("{{API_NAME}}"))
             assertFalse(prompt.contains("{{DESCRIPTION}}"))
             assertFalse(prompt.contains("{{NAMESPACE}}"))
+            assertFalse(prompt.contains("{{WIREMOCK_SCHEMA}}"))
         }
     }
 

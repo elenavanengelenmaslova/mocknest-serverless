@@ -41,6 +41,8 @@ class PromptBuilderService {
         
         val clientSection = namespace.client?.let { "\n- Client: $it" } ?: ""
         
+        val wireMockSchema = loadTemplate("/prompts/wiremock-stub-schema.yaml")
+
         return template
             .replace("{{SPEC_TITLE}}", specification.title)
             .replace("{{SPEC_VERSION}}", specification.version)
@@ -50,6 +52,7 @@ class PromptBuilderService {
             .replace("{{CLIENT_SECTION}}", clientSection)
             .replace("{{DESCRIPTION}}", description)
             .replace("{{NAMESPACE}}", namespace.displayName())
+            .replace("{{WIREMOCK_SCHEMA}}", wireMockSchema)
     }
 
     /**

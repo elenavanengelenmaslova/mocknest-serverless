@@ -1,6 +1,6 @@
 # MockNest Serverless - cURL Usage Guide
 
-> **Note**: This guide should be kept in sync with the [Postman collection](postman/AWS MockNest Serverless.postman_collection.json). The Postman collection is the authoritative source of truth for API examples.
+> **Note**: This guide should be kept in sync with the [Postman collection](postman/). The Postman collection is the authoritative source of truth for API examples.
 
 ## Introduction
 
@@ -58,7 +58,7 @@ To simplify the examples in this guide, set environment variables for your API U
 
 ```bash
 # Set the MockNest API URL (replace with your actual API Gateway URL)
-export MOCKNEST_URL="https://your-api-id.execute-api.eu-west-1.amazonaws.com/mocks"
+export MOCKNEST_URL="https://your-api-id.execute-api.your-region.amazonaws.com/mocks"
 
 # Set the API key (replace with your actual API key value from API Gateway console)
 export API_KEY="your-api-key-value-here"
@@ -860,7 +860,7 @@ Now that you're familiar with the basic cURL operations, here are some resources
 ### Additional Resources
 
 - **[OpenAPI Specification](api/mocknest-openapi.yaml)** - Complete API reference with all available endpoints and parameters
-- **[Postman Collection](postman/AWS MockNest Serverless.postman_collection.json)** - Pre-configured API requests for testing with Postman
+- **[Postman Collection](postman/)** - Pre-configured API requests for testing with Postman
 - **[Main README](../README.md)** - Project overview, deployment instructions, and architecture details
 
 ### Keep Documentation in Sync
