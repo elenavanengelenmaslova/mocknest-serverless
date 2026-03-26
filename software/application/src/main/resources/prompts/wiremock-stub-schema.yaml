@@ -1,0 +1,161 @@
+# WireMock Stub Mapping JSON Schema
+# Only use fields defined here. Any unknown field will be rejected by WireMock.
+
+StubMapping:
+  type: object
+  required: [request, response]
+  properties:
+    id:
+      type: string
+      format: uuid
+    name:
+      type: string
+    request:
+      $ref: RequestPattern
+    response:
+      $ref: ResponseDefinition
+    priority:
+      type: integer
+      minimum: 1
+    persistent:
+      type: boolean
+    metadata:
+      type: object
+
+RequestPattern:
+  type: object
+  properties:
+    method:
+      type: string
+      # e.g. GET, POST, PUT, DELETE, PATCH
+    # Use exactly ONE of the following URL matchers:
+    url:
+      type: string
+      # Exact full URL match (path + query)
+    urlPath:
+      type: string
+      # Exact path match (ignores query)
+    urlPattern:
+      type: string
+      # Regex full URL match
+    urlPathPattern:
+      type: string
+      # Regex path match
+    queryParameters:
+      type: object
+      additionalProperties:
+        $ref: StringValuePattern
+    headers:
+      type: object
+      additionalProperties:
+        $ref: StringValuePattern
+    cookies:
+      type: object
+      additionalProperties:
+        $ref: StringValuePattern
+    bodyPatterns:
+      type: array
+      items:
+        $ref: ContentPattern
+    pathParameters:
+      type: object
+      additionalProperties:
+        $ref: ContentPattern
+    formParameters:
+      type: object
+      additionalProperties:
+        $ref: ContentPattern
+    basicAuthCredentials:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required: [username, password]
+    multipartPatterns:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+          matchingType:
+            type: string
+            enum: [ALL, ANY]
+          headers:
+            type: object
+          bodyPatterns:
+            type: array
+
+ResponseDefinition:
+  type: object
+  required: [status]
+  properties:
+    status:
+      type: integer
+      minimum: 100
+      maximum: 599
+    statusMessage:
+      type: string
+    headers:
+      type: object
+      additionalProperties:
+        type: string
+    body:
+      type: string
+    jsonBody:
+      oneOf:
+        - type: object
+        - type: array
+    base64Body:
+      type: string
+      format: byte
+    bodyFileName:
+      type: string
+    fault:
+      type: string
+      enum: [CONNECTION_RESET_BY_PEER, EMPTY_RESPONSE, MALFORMED_RESPONSE_CHUNK, RANDOM_DATA_THEN_CLOSE]
+    fixedDelayMilliseconds:
+      type: integer
+      minimum: 0
+    delayDistribution:
+      type: object
+      # oneOf: {type: fixed, milliseconds}, {type: uniform, lower, upper}, {type: lognormal, median, sigma}
+    chunkedDribbleDelay:
+      type: object
+      properties:
+        numberOfChunks:
+          type: integer
+        totalDuration:
+          type: integer
+    transformers:
+      type: array
+      items:
+        type: string
+    transformerParameters:
+      type: object
+
+StringValuePattern:
+  # Use exactly ONE of these matchers per pattern:
+  oneOf:
+    - equalTo: string
+    - matches: string (regex)
+    - contains: string
+    - doesNotMatch: string (regex)
+    - doesNotContain: string
+    - absent: boolean
+
+ContentPattern:
+  # Use exactly ONE of these matchers per pattern:
+  oneOf:
+    - equalTo: string
+    - matches: string (regex)
+    - contains: string
+    - doesNotMatch: string
+    - doesNotContain: string
+    - equalToJson: string
+    - equalToXml: string
+    - matchesJsonPath: string or {expression, equalTo/matches/contains}
+    - matchesXPath: string or {expression, equalTo/matches}
+    - absent: boolean

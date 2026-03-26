@@ -45,6 +45,7 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
 - **AI-Assisted Mock Generation**: Intelligent mock creation from API specifications using Bedrock with a configurable model, defaulted to Amazon Nova Pro
 - **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR) or deploy via SAM
+- **Performance Optimized**: Lambda SnapStart with priming for reduced cold start latency
 
 ### Planned Features
 See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslova/projects/3) 
@@ -131,6 +132,8 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
     }
 }'
 ```
+
+When `enableValidation` is enabled, generated mocks are automatically validated. If invalid mocks are detected, the system retries generation with AI self-correction (up to `BedrockGenerationMaxRetries` attempts) and only returns mocks that pass validation.
 
 Import the generated mappings (copy the `mappings` array from the response):
 ```bash

@@ -53,4 +53,8 @@ Requirements:
 - "persistent": true MUST be placed at the top level of the mapping object
 - NEVER place "persistent" inside "response" or "request"
 - NEVER include unknown fields inside "response" (WireMock will reject them)
+- Only use fields defined in the WireMock stub mapping schema below. Any field not in this schema will be rejected.
+
+{{WIREMOCK_SCHEMA}}
+
 - Do not include any explanatory text, only the JSON array.
