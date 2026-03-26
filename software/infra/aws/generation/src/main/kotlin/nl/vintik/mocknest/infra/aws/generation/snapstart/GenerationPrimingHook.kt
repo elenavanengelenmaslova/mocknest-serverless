@@ -2,6 +2,7 @@ package nl.vintik.mocknest.infra.aws.generation.snapstart
 
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import aws.sdk.kotlin.services.s3.S3Client
+import aws.sdk.kotlin.services.s3.model.HeadBucketRequest
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
@@ -15,6 +16,7 @@ import nl.vintik.mocknest.domain.generation.MockNamespace
 import nl.vintik.mocknest.domain.generation.SourceType
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
 import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.http.HttpMethod
@@ -33,7 +35,7 @@ private val logger = KotlinLogging.logger {}
  * - Detects SnapStart environment using AWS_LAMBDA_INITIALIZATION_TYPE
  * - Warms up AI health check endpoint
  * - Initializes S3 client connections
- * - Initializes Bedrock client
+ * - Initializes Bedrock client reference (no model invocation to avoid costs)
  * - Validates AI model configuration
  * - Exercises OpenAPI specification parser
  * - Exercises prompt builder service (loads templates)
@@ -44,6 +46,7 @@ private val logger = KotlinLogging.logger {}
 open class GenerationPrimingHook(
     private val aiHealthUseCase: GetAIHealth,
     private val s3Client: S3Client,
+    @param:Value("\${storage.bucket.name}") private val bucketName: String,
     private val bedrockClient: BedrockRuntimeClient,
     private val modelConfig: ModelConfiguration,
     private val specificationParser: OpenAPISpecificationParser,
@@ -86,17 +89,19 @@ open class GenerationPrimingHook(
         
         // Initialize S3 client connections
         runCatching {
-            s3Client.listBuckets()
-            logger.info { "S3 client primed successfully" }
+            s3Client.headBucket(HeadBucketRequest {
+                bucket = bucketName
+            })
+            logger.info { "S3 client primed successfully for bucket: $bucketName" }
         }.onFailure { exception ->
-            logger.warn(exception) { "S3 client priming failed - continuing with snapshot creation" }
+            logger.warn(exception) { "S3 client priming failed for bucket: $bucketName - continuing with snapshot creation" }
         }
         
-        // Initialize Bedrock client (just log initialization, don't invoke model)
+        // Initialize Bedrock client reference (no model invocation to avoid costs during snapshot creation)
         runCatching {
-            logger.info { "Bedrock client initialized for model: ${modelConfig.getModelName()}" }
+            logger.info { "Bedrock client reference initialized for model: ${modelConfig.getModelName()}" }
         }.onFailure { exception ->
-            logger.warn(exception) { "Bedrock client initialization logging failed - continuing with snapshot creation" }
+            logger.warn(exception) { "Bedrock client reference initialization failed - continuing with snapshot creation" }
         }
         
         // Validate AI model configuration

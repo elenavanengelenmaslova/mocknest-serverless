@@ -1,7 +1,8 @@
 package nl.vintik.mocknest.infra.aws.runtime.snapstart
 
 import aws.sdk.kotlin.services.s3.S3Client
-import aws.sdk.kotlin.services.s3.model.ListBucketsResponse
+import aws.sdk.kotlin.services.s3.model.HeadBucketRequest
+import aws.sdk.kotlin.services.s3.model.HeadBucketResponse
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.direct.DirectCallHttpServer
 import com.github.tomakehurst.wiremock.http.Response
@@ -23,11 +24,13 @@ class RuntimePrimingHookTest {
     
     private val mockHealthCheckUseCase: GetRuntimeHealth = mockk(relaxed = true)
     private val mockS3Client: S3Client = mockk(relaxed = true)
+    private val testBucketName = "test-bucket"
     private val mockWireMockServer: WireMockServer = mockk(relaxed = true)
     private val mockDirectCallHttpServer: DirectCallHttpServer = mockk(relaxed = true)
     private val primingHook = RuntimePrimingHook(
         mockHealthCheckUseCase, 
-        mockS3Client, 
+        mockS3Client,
+        testBucketName,
         mockWireMockServer, 
         mockDirectCallHttpServer
     )
@@ -44,7 +47,7 @@ class RuntimePrimingHookTest {
         fun `Given SnapStart environment When priming executes Then should initialize all components`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-            coEvery { mockS3Client.listBuckets() } returns ListBucketsResponse { }
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
                 every { status } returns 200
             }
@@ -55,7 +58,7 @@ class RuntimePrimingHookTest {
             
             // Then
             verify { mockHealthCheckUseCase.invoke() }
-            coVerify { mockS3Client.listBuckets() }
+            coVerify { mockS3Client.headBucket(any()) }
             verify { mockWireMockServer.stubFor(any()) }
             verify { mockWireMockServer.getStubMapping(any<UUID>()) }
             verify { mockDirectCallHttpServer.stubRequest(any()) }
@@ -66,7 +69,7 @@ class RuntimePrimingHookTest {
         fun `Given SnapStart environment When priming executes Then should complete without throwing exceptions`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-            coEvery { mockS3Client.listBuckets() } returns ListBucketsResponse { }
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
                 every { status } returns 200
             }
@@ -84,34 +87,34 @@ class RuntimePrimingHookTest {
         fun `Given health check fails When priming executes Then should log warning and continue`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } throws RuntimeException("Health check unavailable")
-            coEvery { mockS3Client.listBuckets() } returns ListBucketsResponse { }
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             
             // When / Then - should not throw
             primingHook.prime()
             
             // Verify S3 initialization still attempted
-            coVerify { mockS3Client.listBuckets() }
+            coVerify { mockS3Client.headBucket(any()) }
         }
         
         @Test
         fun `Given health check returns error status When priming executes Then should continue with S3 initialization`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.SERVICE_UNAVAILABLE)
-            coEvery { mockS3Client.listBuckets() } returns ListBucketsResponse { }
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             
             // When
             primingHook.prime()
             
             // Then
             verify { mockHealthCheckUseCase.invoke() }
-            coVerify { mockS3Client.listBuckets() }
+            coVerify { mockS3Client.headBucket(any()) }
         }
         
         @Test
         fun `Given health check throws exception When priming executes Then should not fail snapshot creation`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } throws IllegalStateException("Service not ready")
-            coEvery { mockS3Client.listBuckets() } returns ListBucketsResponse { }
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             
             // When / Then - should complete without throwing
             primingHook.prime()
@@ -125,7 +128,7 @@ class RuntimePrimingHookTest {
         fun `Given S3 client initialization fails When priming executes Then should log warning and continue`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-            coEvery { mockS3Client.listBuckets() } throws RuntimeException("S3 connection failed")
+            coEvery { mockS3Client.headBucket(any()) } throws RuntimeException("S3 connection failed")
             every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
                 every { status } returns 200
             }
@@ -143,7 +146,7 @@ class RuntimePrimingHookTest {
         fun `Given S3 client throws exception When priming executes Then should not fail snapshot creation`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-            coEvery { mockS3Client.listBuckets() } throws IllegalArgumentException("Invalid bucket configuration")
+            coEvery { mockS3Client.headBucket(any()) } throws IllegalArgumentException("Invalid bucket configuration")
             every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
                 every { status } returns 200
             }
@@ -157,7 +160,7 @@ class RuntimePrimingHookTest {
         fun `Given S3 client timeout When priming executes Then should handle gracefully`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-            coEvery { mockS3Client.listBuckets() } throws RuntimeException("S3 timeout")
+            coEvery { mockS3Client.headBucket(any()) } throws RuntimeException("S3 timeout")
             every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
                 every { status } returns 200
             }
@@ -175,7 +178,7 @@ class RuntimePrimingHookTest {
         fun `Given WireMock stubFor fails When priming executes Then should log warning and continue`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-            coEvery { mockS3Client.listBuckets() } returns ListBucketsResponse { }
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockWireMockServer.stubFor(any()) } throws RuntimeException("WireMock unavailable")
             
             // When / Then - should not throw
@@ -183,14 +186,14 @@ class RuntimePrimingHookTest {
             
             // Verify other components were still attempted
             verify { mockHealthCheckUseCase.invoke() }
-            coVerify { mockS3Client.listBuckets() }
+            coVerify { mockS3Client.headBucket(any()) }
         }
         
         @Test
         fun `Given WireMock getStubMapping fails When priming executes Then should log warning and continue`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-            coEvery { mockS3Client.listBuckets() } returns ListBucketsResponse { }
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockWireMockServer.getStubMapping(any<UUID>()) } throws RuntimeException("Failed to retrieve mapping")
             
             // When / Then - should not throw
@@ -198,14 +201,14 @@ class RuntimePrimingHookTest {
             
             // Verify other components were still attempted
             verify { mockHealthCheckUseCase.invoke() }
-            coVerify { mockS3Client.listBuckets() }
+            coVerify { mockS3Client.headBucket(any()) }
         }
         
         @Test
         fun `Given DirectCallHttpServer stubRequest fails When priming executes Then should log warning and continue`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-            coEvery { mockS3Client.listBuckets() } returns ListBucketsResponse { }
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockDirectCallHttpServer.stubRequest(any()) } throws RuntimeException("Request failed")
             
             // When / Then - should not throw
@@ -213,14 +216,14 @@ class RuntimePrimingHookTest {
             
             // Verify other components were still attempted
             verify { mockHealthCheckUseCase.invoke() }
-            coVerify { mockS3Client.listBuckets() }
+            coVerify { mockS3Client.headBucket(any()) }
         }
         
         @Test
         fun `Given WireMock removeStubMapping fails When priming executes Then should log warning and continue`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-            coEvery { mockS3Client.listBuckets() } returns ListBucketsResponse { }
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
                 every { status } returns 200
             }
@@ -231,7 +234,7 @@ class RuntimePrimingHookTest {
             
             // Verify other components were still attempted
             verify { mockHealthCheckUseCase.invoke() }
-            coVerify { mockS3Client.listBuckets() }
+            coVerify { mockS3Client.headBucket(any()) }
         }
     }
     
@@ -242,7 +245,7 @@ class RuntimePrimingHookTest {
         fun `Given both health check and S3 fail When priming executes Then should handle gracefully`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } throws RuntimeException("Health check failed")
-            coEvery { mockS3Client.listBuckets() } throws RuntimeException("S3 failed")
+            coEvery { mockS3Client.headBucket(any()) } throws RuntimeException("S3 failed")
             every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
                 every { status } returns 200
             }
@@ -253,7 +256,7 @@ class RuntimePrimingHookTest {
             
             // Verify all operations were attempted
             verify { mockHealthCheckUseCase.invoke() }
-            coVerify { mockS3Client.listBuckets() }
+            coVerify { mockS3Client.headBucket(any()) }
             verify { mockWireMockServer.stubFor(any()) }
         }
         
@@ -261,7 +264,7 @@ class RuntimePrimingHookTest {
         fun `Given all components fail When priming executes Then should handle gracefully`() = runTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } throws RuntimeException("Health check failed")
-            coEvery { mockS3Client.listBuckets() } throws RuntimeException("S3 failed")
+            coEvery { mockS3Client.headBucket(any()) } throws RuntimeException("S3 failed")
             every { mockWireMockServer.stubFor(any()) } throws RuntimeException("WireMock failed")
             
             // When / Then - should not throw
@@ -269,7 +272,7 @@ class RuntimePrimingHookTest {
             
             // Verify all operations were attempted
             verify { mockHealthCheckUseCase.invoke() }
-            coVerify { mockS3Client.listBuckets() }
+            coVerify { mockS3Client.headBucket(any()) }
             verify { mockWireMockServer.stubFor(any()) }
         }
     }
@@ -283,7 +286,7 @@ class RuntimePrimingHookTest {
             val primingHookSpy = spyk(primingHook, recordPrivateCalls = true)
             every { primingHookSpy["isSnapStartEnvironment"]() as Boolean } returns true
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-            coEvery { mockS3Client.listBuckets() } returns ListBucketsResponse { }
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             
             // When
             primingHookSpy.onApplicationReady()
@@ -303,7 +306,7 @@ class RuntimePrimingHookTest {
             
             // Then - prime() should not be called
             verify(exactly = 0) { mockHealthCheckUseCase.invoke() }
-            coVerify(exactly = 0) { mockS3Client.listBuckets() }
+            coVerify(exactly = 0) { mockS3Client.headBucket(any()) }
         }
         
         @Test
@@ -317,7 +320,7 @@ class RuntimePrimingHookTest {
             
             // Then - prime() should not be called
             verify(exactly = 0) { mockHealthCheckUseCase.invoke() }
-            coVerify(exactly = 0) { mockS3Client.listBuckets() }
+            coVerify(exactly = 0) { mockS3Client.headBucket(any()) }
         }
         
         @Test
@@ -331,7 +334,7 @@ class RuntimePrimingHookTest {
             
             // Then - prime() should not be called
             verify(exactly = 0) { mockHealthCheckUseCase.invoke() }
-            coVerify(exactly = 0) { mockS3Client.listBuckets() }
+            coVerify(exactly = 0) { mockS3Client.headBucket(any()) }
         }
         
         @Test
@@ -345,7 +348,7 @@ class RuntimePrimingHookTest {
             
             // Then - prime() should not be called
             verify(exactly = 0) { mockHealthCheckUseCase.invoke() }
-            coVerify(exactly = 0) { mockS3Client.listBuckets() }
+            coVerify(exactly = 0) { mockS3Client.headBucket(any()) }
         }
     }
 }

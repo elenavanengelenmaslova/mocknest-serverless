@@ -1,6 +1,7 @@
 package nl.vintik.mocknest.infra.aws.runtime.snapstart
 
 import aws.sdk.kotlin.services.s3.S3Client
+import aws.sdk.kotlin.services.s3.model.HeadBucketRequest
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.direct.DirectCallHttpServer
@@ -9,6 +10,7 @@ import com.github.tomakehurst.wiremock.http.RequestMethod
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
@@ -33,6 +35,7 @@ private val logger = KotlinLogging.logger {}
 open class RuntimePrimingHook(
     private val healthCheckUseCase: GetRuntimeHealth,
     private val s3Client: S3Client,
+    @param:Value("\${storage.bucket.name}") private val bucketName: String,
     private val wireMockServer: WireMockServer,
     private val directCallHttpServer: DirectCallHttpServer
 ) {
@@ -72,10 +75,12 @@ open class RuntimePrimingHook(
         
         // Initialize S3 client connections
         runCatching {
-            s3Client.listBuckets()
-            logger.info { "S3 client primed successfully" }
+            s3Client.headBucket(HeadBucketRequest {
+                bucket = bucketName
+            })
+            logger.info { "S3 client primed successfully for bucket: $bucketName" }
         }.onFailure { exception ->
-            logger.warn(exception) { "S3 client priming failed - continuing with snapshot creation" }
+            logger.warn(exception) { "S3 client priming failed for bucket: $bucketName - continuing with snapshot creation" }
         }
         
         // Exercise WireMock engine comprehensively
