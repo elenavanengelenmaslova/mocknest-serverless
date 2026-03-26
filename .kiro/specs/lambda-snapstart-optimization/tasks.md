@@ -20,7 +20,7 @@ SnapStart creates pre-initialized snapshots of Lambda execution environments, re
   - Verify API Gateway integration invokes alias instead of $LATEST
   - _Requirements: 2.6, 2.7, 2.9_
 
-- [-] 2. Implement Runtime function priming hook
+- [x] 2. Implement Runtime function priming hook
   - [x] 2.1 Create RuntimePrimingHook component with Spring ApplicationReadyEvent listener
     - Implement SnapStart environment detection using AWS_LAMBDA_INITIALIZATION_TYPE
     - Add comprehensive logging for priming execution
@@ -36,21 +36,31 @@ SnapStart creates pre-initialized snapshots of Lambda execution environments, re
     - Wrap in runCatching for graceful degradation
     - _Requirements: 3.4, 3.7_
   
-  - [x] 2.4 Write unit tests for RuntimePrimingHook
+  - [x] 2.4 Implement comprehensive WireMock engine exercise in priming hook
+    - Create test mock with JSON body and query parameters via WireMock admin API
+    - Verify mock was persisted to S3 (exercises ObjectStorageMappingsSource read path)
+    - Call mock endpoint with query parameters to verify request matching
+    - Remove test mock to exercise deletion logic
+    - Exercises: NormalizeMappingBodyFilter (body extraction, S3 storage), ObjectStorageBlobStore (Base64 encoding, file storage), ObjectStorageMappingsSource (save/retrieve/delete), request matching with query parameters, response body retrieval from storage
+    - Wrap in runCatching for graceful degradation
+    - _Requirements: 3.4, 3.7_
+  
+  - [x] 2.5 Write unit tests for RuntimePrimingHook
     - Test successful priming execution with all components
     - Test graceful degradation when health check fails
     - Test graceful degradation when S3 client initialization fails
+    - Test graceful degradation when WireMock exercise fails
     - Test SnapStart environment detection logic
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.7_
   
-  - [ ]* 2.5 Write property test for priming initialization timeout
+  - [ ]* 2.6 Write property test for priming initialization timeout
     - **Property 1: Priming Initialization Timeout**
     - **Validates: Requirements 3.5**
     - Test that priming completes within 10 second Lambda initialization timeout
     - Use Kotest property testing with 100 iterations
     - _Requirements: 3.5_
   
-  - [ ]* 2.6 Write property test for priming resilience
+  - [ ]* 2.7 Write property test for priming resilience
     - **Property 2: Priming Resilience to Non-Critical Failures**
     - **Validates: Requirements 3.7**
     - Test that non-critical resource failures don't prevent snapshot creation
@@ -63,31 +73,57 @@ SnapStart creates pre-initialized snapshots of Lambda execution environments, re
     - Add comprehensive logging for priming execution
     - _Requirements: 4.1, 4.2, 4.7_
   
-  - [x] 3.2 Implement health check warmup in priming hook
-    - Invoke AI health check use case during priming
-    - Wrap in runCatching for graceful degradation
-    - _Requirements: 4.3, 4.8_
-  
-  - [x] 3.3 Implement S3 client initialization in priming hook
+  - [x] 3.2 Implement S3 client initialization in priming hook
     - Execute S3 listBuckets operation to warm up client connections
     - Wrap in runCatching for graceful degradation
     - _Requirements: 4.4, 4.8_
   
-  - [x] 3.4 Write unit tests for GenerationPrimingHook
-    - Test successful priming execution with all components
-    - Test graceful degradation when health check fails
-    - Test graceful degradation when S3 client initialization fails
-    - Test SnapStart environment detection logic
-    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.8_
+  - [x] 3.3 Initialize Bedrock client without invoking model in priming hook
+    - Initialize BedrockRuntimeClient to warm up client connections
+    - Do not invoke model to avoid costs during snapshot creation
+    - Wrap in runCatching for graceful degradation
+    - _Requirements: 4.5, 4.8_
   
-  - [ ]* 3.5 Write property test for priming initialization timeout
+  - [x] 3.4 Load and validate AI model configuration in priming hook
+    - Load BedrockModelConfig and validate configuration
+    - Wrap in runCatching for graceful degradation
+    - _Requirements: 4.5, 4.8_
+  
+  - [x] 3.5 Exercise OpenAPISpecificationParser in priming hook
+    - Parse minimal test OpenAPI specification to warm up parser
+    - Exercises expensive parsing operation without Bedrock invocation
+    - Wrap in runCatching for graceful degradation
+    - _Requirements: 4.3, 4.8_
+  
+  - [x] 3.6 Exercise PromptBuilderService in priming hook
+    - Load prompt templates from classpath to warm up template loading
+    - Wrap in runCatching for graceful degradation
+    - _Requirements: 4.3, 4.8_
+  
+  - [x] 3.7 Exercise OpenAPIMockValidator in priming hook
+    - Validate test mock against test specification to warm up validator
+    - Exercises JSON parsing, schema validation, consistency checking
+    - Wrap in runCatching for graceful degradation
+    - _Requirements: 4.3, 4.8_
+  
+  - [x] 3.8 Write unit tests for GenerationPrimingHook
+    - Test successful priming execution with all components
+    - Test graceful degradation when S3 client initialization fails
+    - Test graceful degradation when Bedrock client initialization fails
+    - Test graceful degradation when specification parser fails
+    - Test graceful degradation when prompt builder fails
+    - Test graceful degradation when mock validator fails
+    - Test SnapStart environment detection logic
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.8_
+  
+  - [ ]* 3.9 Write property test for priming initialization timeout
     - **Property 1: Priming Initialization Timeout**
     - **Validates: Requirements 4.6**
     - Test that priming completes within 10 second Lambda initialization timeout
     - Use Kotest property testing with 100 iterations
     - _Requirements: 4.6_
   
-  - [ ]* 3.6 Write property test for priming resilience
+  - [ ]* 3.10 Write property test for priming resilience
     - **Property 2: Priming Resilience to Non-Critical Failures**
     - **Validates: Requirements 4.8**
     - Test that non-critical resource failures don't prevent snapshot creation

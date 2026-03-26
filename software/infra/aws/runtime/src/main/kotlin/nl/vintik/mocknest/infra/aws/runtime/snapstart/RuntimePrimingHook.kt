@@ -1,12 +1,18 @@
 package nl.vintik.mocknest.infra.aws.runtime.snapstart
 
 import aws.sdk.kotlin.services.s3.S3Client
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.direct.DirectCallHttpServer
+import com.github.tomakehurst.wiremock.http.Request
+import com.github.tomakehurst.wiremock.http.RequestMethod
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
+import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
 
@@ -20,12 +26,15 @@ private val logger = KotlinLogging.logger {}
  * - Detects SnapStart environment using AWS_LAMBDA_INITIALIZATION_TYPE
  * - Warms up health check endpoint
  * - Initializes S3 client connections
+ * - Exercises WireMock engine comprehensively (create/call/remove mock)
  * - Uses graceful degradation for non-critical failures
  */
 @Component
 open class RuntimePrimingHook(
     private val healthCheckUseCase: GetRuntimeHealth,
-    private val s3Client: S3Client
+    private val s3Client: S3Client,
+    private val wireMockServer: WireMockServer,
+    private val directCallHttpServer: DirectCallHttpServer
 ) {
     
     /**
@@ -69,7 +78,99 @@ open class RuntimePrimingHook(
             logger.warn(exception) { "S3 client priming failed - continuing with snapshot creation" }
         }
         
+        // Exercise WireMock engine comprehensively
+        runCatching {
+            exerciseWireMock()
+            logger.info { "WireMock engine primed successfully" }
+        }.onFailure { exception ->
+            logger.warn(exception) { "WireMock engine priming failed - continuing with snapshot creation" }
+        }
+        
         logger.info { "Runtime function priming completed" }
+    }
+    
+    /**
+     * Exercise WireMock engine comprehensively to warm up all critical components.
+     * 
+     * This method:
+     * 1. Creates a test mock with JSON body and query parameters
+     * 2. Verifies the mock was persisted to S3
+     * 3. Calls the mock endpoint to verify request matching and response generation
+     * 4. Removes the test mock to exercise deletion logic
+     * 
+     * Exercises:
+     * - NormalizeMappingBodyFilter (body extraction, S3 storage, mapping modification)
+     * - ObjectStorageBlobStore (file storage with Base64 encoding/decoding)
+     * - ObjectStorageMappingsSource (save/retrieve/delete operations)
+     * - DeleteAllMappingsAndFilesFilter (deletion logic)
+     * - Request matching with query parameters
+     * - Response body retrieval from storage
+     */
+    private fun exerciseWireMock() {
+        val testMappingId = UUID.randomUUID()
+        val testPath = "/__snapstart_priming_test"
+        
+        runCatching {
+            // 1. Create a test mock mapping with a JSON body via WireMock admin API
+            // This exercises:
+            // - NormalizeMappingBodyFilter (body extraction, S3 storage, mapping modification)
+            // - ObjectStorageBlobStore (file storage with Base64 encoding/decoding)
+            // - ObjectStorageMappingsSource (mapping persistence to S3)
+            wireMockServer.stubFor(
+                WireMock.get(WireMock.urlPathEqualTo(testPath))
+                    .withId(testMappingId)
+                    .withQueryParam("test", WireMock.equalTo("snapstart"))
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("""{"status":"priming","timestamp":${System.currentTimeMillis()}}""")
+                    )
+            )
+            logger.debug { "Created test mapping with JSON body: $testMappingId" }
+            
+            // 2. Verify the mock was stored by retrieving it
+            // This exercises:
+            // - ObjectStorageMappingsSource read path (prefix-based listing, concurrent streaming)
+            // - S3 listPrefix operation with filtering
+            // - JSON deserialization of StubMapping objects
+            val retrievedMapping = wireMockServer.getStubMapping(testMappingId)
+            if (retrievedMapping != null) {
+                logger.debug { "Verified test mapping was persisted to S3" }
+            }
+            
+            // 3. Call the mock endpoint to verify request matching and response generation
+            // This exercises:
+            // - Request matching with query parameters
+            // - Response body retrieval from ObjectStorageBlobStore
+            // - File extension detection and content-type handling
+            val testRequest = com.github.tomakehurst.wiremock.http.ImmutableRequest.create()
+                .withMethod(com.github.tomakehurst.wiremock.http.RequestMethod.GET)
+                .withAbsoluteUrl("http://localhost$testPath?test=snapstart")
+                .build()
+            
+            val response = directCallHttpServer.stubRequest(testRequest)
+            if (response.status == 200) {
+                logger.debug { "Invoked test mapping successfully, status: ${response.status}" }
+            }
+            
+            // 4. Remove the test mock mapping
+            // This exercises:
+            // - DeleteAllMappingsAndFilesFilter deletion logic
+            // - ObjectStorageBlobStore file deletion
+            // - ObjectStorageMappingsSource mapping removal
+            wireMockServer.removeStubMapping(testMappingId)
+            logger.debug { "Removed test mapping: $testMappingId" }
+            
+            // 5. Verify cleanup by checking mapping no longer exists
+            val mappingAfterDelete = wireMockServer.getStubMapping(testMappingId)
+            if (mappingAfterDelete == null) {
+                logger.debug { "Verified test mapping was fully cleaned up from S3" }
+            }
+            
+        }.onFailure { exception ->
+            logger.warn(exception) { "WireMock exercise encountered error - continuing with snapshot creation" }
+        }
     }
     
     /**

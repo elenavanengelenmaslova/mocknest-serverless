@@ -4,11 +4,22 @@ import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import aws.sdk.kotlin.services.s3.S3Client
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
+import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
+import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.application.generation.usecases.GetAIHealth
+import nl.vintik.mocknest.application.generation.validators.OpenAPIMockValidator
+import nl.vintik.mocknest.domain.generation.EndpointInfo
+import nl.vintik.mocknest.domain.generation.GeneratedMock
+import nl.vintik.mocknest.domain.generation.MockMetadata
+import nl.vintik.mocknest.domain.generation.MockNamespace
+import nl.vintik.mocknest.domain.generation.SourceType
+import nl.vintik.mocknest.domain.generation.SpecificationFormat
 import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
+import org.springframework.http.HttpMethod
 import org.springframework.stereotype.Component
+import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
 
@@ -24,6 +35,9 @@ private val logger = KotlinLogging.logger {}
  * - Initializes S3 client connections
  * - Initializes Bedrock client
  * - Validates AI model configuration
+ * - Exercises OpenAPI specification parser
+ * - Exercises prompt builder service (loads templates)
+ * - Exercises mock validator
  * - Uses graceful degradation for non-critical failures
  */
 @Component
@@ -31,7 +45,10 @@ open class GenerationPrimingHook(
     private val aiHealthUseCase: GetAIHealth,
     private val s3Client: S3Client,
     private val bedrockClient: BedrockRuntimeClient,
-    private val modelConfig: ModelConfiguration
+    private val modelConfig: ModelConfiguration,
+    private val specificationParser: OpenAPISpecificationParser,
+    private val promptBuilderService: PromptBuilderService,
+    private val mockValidator: OpenAPIMockValidator
 ) {
     
     /**
@@ -95,7 +112,162 @@ open class GenerationPrimingHook(
             logger.warn(exception) { "Model configuration validation failed - continuing with snapshot creation" }
         }
         
+        // Exercise OpenAPI specification parser
+        runCatching {
+            exerciseSpecificationParser()
+            logger.info { "OpenAPI specification parser primed successfully" }
+        }.onFailure { exception ->
+            logger.warn(exception) { "Specification parser priming failed - continuing with snapshot creation" }
+        }
+        
+        // Exercise prompt builder service
+        runCatching {
+            exercisePromptBuilder()
+            logger.info { "Prompt builder service primed successfully" }
+        }.onFailure { exception ->
+            logger.warn(exception) { "Prompt builder priming failed - continuing with snapshot creation" }
+        }
+        
+        // Exercise mock validator
+        runCatching {
+            exerciseMockValidator()
+            logger.info { "Mock validator primed successfully" }
+        }.onFailure { exception ->
+            logger.warn(exception) { "Mock validator priming failed - continuing with snapshot creation" }
+        }
+        
         logger.info { "Generation function priming completed" }
+    }
+    
+    /**
+     * Exercise OpenAPI specification parser to warm up parsing logic.
+     * Parses a minimal test OpenAPI specification.
+     */
+    private suspend fun exerciseSpecificationParser() {
+        val minimalSpec = """
+        {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "SnapStart Priming Test API",
+            "version": "1.0.0"
+          },
+          "paths": {
+            "/test": {
+              "get": {
+                "responses": {
+                  "200": {
+                    "description": "Success",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "message": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """.trimIndent()
+        
+        // Parse the specification to warm up the parser
+        specificationParser.parse(minimalSpec, SpecificationFormat.OPENAPI_3)
+        logger.debug { "Parsed test OpenAPI specification" }
+    }
+    
+    /**
+     * Exercise prompt builder service to warm up template loading.
+     * Loads prompt templates from classpath resources.
+     */
+    private fun exercisePromptBuilder() {
+        // Load system prompt template to warm up template loading
+        promptBuilderService.loadSystemPrompt()
+        logger.debug { "Loaded system prompt template" }
+    }
+    
+    /**
+     * Exercise mock validator to warm up validation logic.
+     * Validates a test mock against a test specification.
+     */
+    private suspend fun exerciseMockValidator() {
+        // Create a minimal test specification
+        val testSpec = specificationParser.parse(
+            """
+            {
+              "openapi": "3.0.0",
+              "info": {
+                "title": "Test API",
+                "version": "1.0.0"
+              },
+              "paths": {
+                "/test": {
+                  "get": {
+                    "responses": {
+                      "200": {
+                        "description": "Success",
+                        "content": {
+                          "application/json": {
+                            "schema": {
+                              "type": "object",
+                              "properties": {
+                                "status": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """.trimIndent(),
+            SpecificationFormat.OPENAPI_3
+        )
+        
+        // Create a test mock
+        val testMock = GeneratedMock(
+            id = "snapstart-test-${UUID.randomUUID()}",
+            name = "SnapStart Priming Test Mock",
+            namespace = MockNamespace(apiName = "test-api", client = null),
+            wireMockMapping = """
+            {
+              "request": {
+                "method": "GET",
+                "url": "/test"
+              },
+              "response": {
+                "status": 200,
+                "jsonBody": {
+                  "status": "ok"
+                }
+              }
+            }
+            """.trimIndent(),
+            metadata = MockMetadata(
+                sourceType = SourceType.SPEC_WITH_DESCRIPTION,
+                sourceReference = "SnapStart priming test",
+                endpoint = EndpointInfo(
+                    method = HttpMethod.GET,
+                    path = "/test",
+                    statusCode = 200,
+                    contentType = "application/json"
+                )
+            )
+        )
+        
+        // Validate the test mock to warm up the validator
+        mockValidator.validate(testMock, testSpec)
+        logger.debug { "Validated test mock against specification" }
     }
     
     /**

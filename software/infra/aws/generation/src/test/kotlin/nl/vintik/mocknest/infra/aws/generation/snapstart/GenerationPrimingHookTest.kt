@@ -5,7 +5,10 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.ListBucketsResponse
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
+import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
+import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.application.generation.usecases.GetAIHealth
+import nl.vintik.mocknest.application.generation.validators.OpenAPIMockValidator
 import nl.vintik.mocknest.domain.core.HttpResponse
 import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
 import org.junit.jupiter.api.AfterEach
@@ -22,11 +25,17 @@ class GenerationPrimingHookTest {
     private val mockS3Client: S3Client = mockk(relaxed = true)
     private val mockBedrockClient: BedrockRuntimeClient = mockk(relaxed = true)
     private val mockModelConfig: ModelConfiguration = mockk(relaxed = true)
+    private val mockSpecificationParser: OpenAPISpecificationParser = mockk(relaxed = true)
+    private val mockPromptBuilderService: PromptBuilderService = mockk(relaxed = true)
+    private val mockMockValidator: OpenAPIMockValidator = mockk(relaxed = true)
     private val primingHook = GenerationPrimingHook(
         mockAIHealthUseCase,
         mockS3Client,
         mockBedrockClient,
-        mockModelConfig
+        mockModelConfig,
+        mockSpecificationParser,
+        mockPromptBuilderService,
+        mockMockValidator
     )
     
     @AfterEach
