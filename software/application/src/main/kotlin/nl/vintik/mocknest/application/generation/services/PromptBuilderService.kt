@@ -30,7 +30,7 @@ class PromptBuilderService {
         description: String,
         namespace: MockNamespace
     ): String {
-        val template = loadTemplate("/prompts/spec-with-description.txt")
+        val template = loadTemplate("/prompts/rest/spec-with-description.txt")
         
         val keyEndpoints = specification.endpoints
             .joinToString("\n") { endpoint ->
@@ -63,7 +63,7 @@ class PromptBuilderService {
         namespace: MockNamespace,
         specification: APISpecification?
     ): String {
-        val template = loadTemplate("/prompts/correction.txt")
+        val template = loadTemplate("/prompts/rest/correction.txt")
         
         val specContext = specification?.let {
             """

@@ -127,14 +127,14 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify validation errors are reported correctly
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-10")`
 
-  - [ ] 2.9 Reorganize existing REST prompts into subdirectory
+  - [x] 2.9 Reorganize existing REST prompts into subdirectory
     - Create directory `software/application/src/main/resources/prompts/rest/`
     - Move `spec-with-description.txt` to `prompts/rest/spec-with-description.txt`
     - Move `correction.txt` to `prompts/rest/correction.txt`
     - Keep `system-prompt.txt` and `wiremock-stub-schema.yaml` at `prompts/` root (shared)
     - _Note: This organizes prompts by API type for clarity_
 
-  - [ ] 2.10 Create GraphQL-specific generation prompt
+  - [x] 2.10 Create GraphQL-specific generation prompt
     - Create `software/application/src/main/resources/prompts/graphql/spec-with-description.txt`
     - Adapt from REST prompt but focus on GraphQL-specific requirements:
       - Single POST endpoint pattern (no URL path parameters)

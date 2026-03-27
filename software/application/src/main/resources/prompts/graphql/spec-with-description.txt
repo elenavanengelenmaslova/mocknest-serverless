@@ -1,0 +1,64 @@
+You are an expert API mock generator. Generate WireMock JSON mappings based on this GraphQL API specification and enhancement description:
+
+API Specification Summary:
+- Title: {{SPEC_TITLE}}
+- Version: {{SPEC_VERSION}}
+- Operations: {{ENDPOINT_COUNT}}
+- Key operations: {{KEY_ENDPOINTS}}
+
+Namespace:
+- API Name: {{API_NAME}}{{CLIENT_SECTION}}
+
+Enhancement Description: {{DESCRIPTION}}
+
+Requirements:
+- Generate WireMock mappings that follow the GraphQL API specification structure
+- IMPORTANT: All GraphQL mocks MUST use POST method and target the /{{NAMESPACE}}/graphql endpoint (GraphQL-over-HTTP pattern)
+- CRITICAL: Every mapping MUST include `"persistent": true` to ensure mocks survive Lambda cold starts and are stored in S3
+- Enhance the mappings based on the description (add error cases, specific data, behaviors, etc.)
+- Include realistic response data that matches both the schema and description
+
+GraphQL request matching rules (IMPORTANT):
+- GraphQL requests are always POST requests with a JSON body containing `query` or `mutation` fields
+- Use `bodyPatterns` with `matchesJsonPath` to match specific GraphQL operations by operation name:
+  - Example: `{ "matchesJsonPath": "$..[?(@.operationName == 'GetUser')]" }`
+  - Or match by query content: `{ "matchesJsonPath": "$[?(@.query =~ /.*GetUser.*/)]" }`
+- Do NOT use `urlPath`, `urlPattern`, or path parameters — GraphQL has a single endpoint
+- Do NOT use query parameters for operation routing — use `bodyPatterns` instead
+- If you return multiple mappings for the same GraphQL endpoint, they MUST be non-overlapping:
+  - Each mapping MUST match a different operation name via `bodyPatterns`
+  - Use `priority` to ensure deterministic selection when patterns could overlap
+
+GraphQL response format rules (IMPORTANT):
+- ALL GraphQL responses MUST follow the GraphQL response specification:
+  - Success: `{ "data": { "<operationName>": { ... } } }`
+  - Error: `{ "errors": [{ "message": "...", "locations": [...], "path": [...] }] }`
+  - Partial: `{ "data": { ... }, "errors": [...] }` (both fields allowed together)
+- NEVER return a bare JSON object or array as the response body — always wrap in `data` or `errors`
+- Response HTTP status code is always 200 for GraphQL (even for errors — errors go in the `errors` field)
+- Include `Content-Type: application/json` header in all responses
+
+Schema-based field validation rules (IMPORTANT):
+- Response data MUST include all required fields as defined in the schema for the return type
+- Scalar types must use compatible values (String → string, Int → number, Boolean → boolean, Float → decimal)
+- Enum values in responses MUST be one of the valid values defined in the schema
+- List fields must return arrays; object fields must return objects
+- Nested types must include their required fields recursively
+- If the description defines specific entities (e.g., a user with a specific name or ID), those entities MUST appear consistently across ALL relevant operations
+
+- Return only a JSON array of WireMock mappings.
+- Each item MUST be a valid WireMock stub mapping object and MUST include these required top-level fields:
+ {
+ "request": { ... },
+ "response": { ... },
+ "persistent": true
+ }
+- Optional WireMock top-level fields are allowed when needed (e.g., "priority").
+- "persistent": true MUST be placed at the top level of the mapping object
+- NEVER place "persistent" inside "response" or "request"
+- NEVER include unknown fields inside "response" (WireMock will reject them)
+- Only use fields defined in the WireMock stub mapping schema below. Any field not in this schema will be rejected.
+
+{{WIREMOCK_SCHEMA}}
+
+- Do not include any explanatory text, only the JSON array.
