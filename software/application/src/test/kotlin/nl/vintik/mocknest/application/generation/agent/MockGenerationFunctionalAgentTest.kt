@@ -821,13 +821,30 @@ class MockGenerationFunctionalAgentTest {
         }
 
         @Test
-        fun `Given non-GraphQL format with URL When resolving content Then should attempt to fetch URL`() {
-            // Given
+        fun `Given OpenAPI format with URL When resolving content Then should return URL string directly`() {
+            // Given - OpenAPI also handles own URL resolution via readLocation()
             val request = SpecWithDescriptionRequest(
                 namespace = testNamespace,
-                specificationUrl = "https://invalid.test/spec.yaml",
+                specificationUrl = "https://example.com/openapi.yaml",
                 format = SpecificationFormat.OPENAPI_3,
                 description = "test openapi"
+            )
+
+            // When
+            val result = agent.resolveContent(request)
+
+            // Then
+            assertEquals("https://example.com/openapi.yaml", result)
+        }
+
+        @Test
+        fun `Given format without own URL resolution with URL When resolving content Then should attempt to fetch URL`() {
+            // Given - WSDL does not handle own URL resolution
+            val request = SpecWithDescriptionRequest(
+                namespace = testNamespace,
+                specificationUrl = "https://invalid.test/service.wsdl",
+                format = SpecificationFormat.WSDL,
+                description = "test wsdl"
             )
 
             // When / Then - should throw because it actually tries to fetch the URL
@@ -837,7 +854,7 @@ class MockGenerationFunctionalAgentTest {
         }
 
         @Test
-        fun `Given non-GraphQL format with content When resolving content Then should return content string`() {
+        fun `Given format with content When resolving content Then should return content string`() {
             // Given
             val content = "openapi: 3.0.0"
             val request = SpecWithDescriptionRequest(

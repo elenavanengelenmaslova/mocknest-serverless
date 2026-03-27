@@ -11,6 +11,7 @@ import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.responses.ApiResponse
 import io.swagger.v3.parser.OpenAPIV3Parser
+import java.net.URI
 
 private val logger = KotlinLogging.logger {}
 /**
@@ -19,7 +20,7 @@ private val logger = KotlinLogging.logger {}
 class OpenAPISpecificationParser : SpecificationParserInterface {
 
     override suspend fun parse(content: String, format: SpecificationFormat): APISpecification {
-        val parseResult = OpenAPIV3Parser().readContents(content)
+        val parseResult = resolveParseResult(content)
 
         val openAPI = requireNotNull(parseResult.openAPI) { "Failed to parse OpenAPI specification" }
 
@@ -34,7 +35,7 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
         format in listOf(SpecificationFormat.OPENAPI_3, SpecificationFormat.SWAGGER_2)
 
     override suspend fun validate(content: String, format: SpecificationFormat): ValidationResult = runCatching {
-        val parseResult = OpenAPIV3Parser().readContents(content)
+        val parseResult = resolveParseResult(content)
 
         if (parseResult.openAPI == null) {
             ValidationResult.invalid(
@@ -61,7 +62,7 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
     }
 
     override suspend fun extractMetadata(content: String, format: SpecificationFormat): SpecificationMetadata {
-        val parseResult = OpenAPIV3Parser().readContents(content)
+        val parseResult = resolveParseResult(content)
         val openAPI = requireNotNull(parseResult.openAPI) { "Failed to parse OpenAPI specification" }
         
         val endpointCount = openAPI.paths?.values?.sumOf { pathItem ->
@@ -236,5 +237,21 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
             pattern = schema.pattern,
             additionalProperties = schema.additionalProperties != false
         )
+    }
+
+    private fun resolveParseResult(content: String): io.swagger.v3.parser.core.models.SwaggerParseResult {
+        return if (isHttpUrl(content)) {
+            logger.info { "Detected URL input, fetching specification" }
+            OpenAPIV3Parser().readLocation(content, null, null)
+        } else {
+            OpenAPIV3Parser().readContents(content)
+        }
+    }
+
+    private fun isHttpUrl(content: String): Boolean {
+        return runCatching {
+            val uri = URI(content.trim())
+            uri.scheme?.lowercase() in listOf("http", "https") && uri.host != null
+        }.getOrDefault(false)
     }
 }

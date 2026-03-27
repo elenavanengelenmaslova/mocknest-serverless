@@ -1,13 +1,21 @@
 package nl.vintik.mocknest.application.generation.parsers
 
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.domain.generation.JsonSchemaType
 import nl.vintik.mocknest.domain.generation.ParameterLocation
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -883,6 +891,83 @@ class OpenAPISpecificationParserTest {
             // Then
             assertEquals(1, spec.endpoints.size)
             assertEquals("/test", spec.endpoints.first().path)
+        }
+    }
+
+    @Nested
+    inner class UrlBasedParsing {
+
+        private lateinit var wireMockServer: WireMockServer
+
+        @BeforeEach
+        fun setUp() {
+            wireMockServer = WireMockServer(wireMockConfig().dynamicPort())
+            wireMockServer.start()
+        }
+
+        @AfterEach
+        fun tearDown() {
+            wireMockServer.stop()
+        }
+
+        @Test
+        fun `Given URL serving OpenAPI spec When parsing Then should fetch and parse from URL`() = runTest {
+            // Given
+            val specContent = """
+                openapi: 3.0.0
+                info:
+                  title: Remote API
+                  version: 1.0
+                paths:
+                  /users:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+            """.trimIndent()
+
+            wireMockServer.stubFor(
+                get(urlEqualTo("/openapi.yaml"))
+                    .willReturn(
+                        aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/yaml")
+                            .withBody(specContent)
+                    )
+            )
+
+            val url = "http://localhost:${wireMockServer.port()}/openapi.yaml"
+
+            // When
+            val spec = parser.parse(url, SpecificationFormat.OPENAPI_3)
+
+            // Then
+            assertEquals("Remote API", spec.title)
+            assertEquals(1, spec.endpoints.size)
+            assertEquals("/users", spec.endpoints.first().path)
+        }
+
+        @Test
+        fun `Given raw content When parsing Then should still work with readContents`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Test API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+
+            // Then
+            assertEquals(1, spec.endpoints.size)
         }
     }
 }

@@ -28,8 +28,8 @@ data class SpecWithDescriptionRequest(
  * Supported API specification formats.
  */
 enum class SpecificationFormat(val handlesOwnUrlResolution: Boolean) {
-    OPENAPI_3(handlesOwnUrlResolution = false),
-    SWAGGER_2(handlesOwnUrlResolution = false),
+    OPENAPI_3(handlesOwnUrlResolution = true),
+    SWAGGER_2(handlesOwnUrlResolution = true),
     GRAPHQL(handlesOwnUrlResolution = true),
     WSDL(handlesOwnUrlResolution = false)
 }
