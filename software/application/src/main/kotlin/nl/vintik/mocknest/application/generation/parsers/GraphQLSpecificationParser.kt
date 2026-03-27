@@ -212,7 +212,10 @@ class GraphQLSpecificationParser(
         return JsonSchema(
             type = JsonSchemaType.OBJECT,
             properties = mapOf(
-                "data" to dataSchema,
+                "data" to JsonSchema(
+                    type = JsonSchemaType.OBJECT,
+                    properties = mapOf(operation.name to dataSchema)
+                ),
                 "errors" to JsonSchema(
                     type = JsonSchemaType.ARRAY,
                     items = JsonSchema(
