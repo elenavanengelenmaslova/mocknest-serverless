@@ -117,7 +117,7 @@ class GraphQLSchemaReducer : GraphQLSchemaReducerInterface {
             logger.info { 
                 "Schema reduction complete: ${queries.size} queries, ${mutations.size} mutations, " +
                 "${extractedTypes.size} types, ${extractedEnums.size} enums. " +
-                "Size reduced by $reductionPercent% (${originalSize} -> ${compactSize} bytes)"
+                "Size reduced by $reductionPercent% (${originalSize} -> $compactSize bytes)"
             }
             
             compactSchema

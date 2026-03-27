@@ -7,10 +7,9 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.test.assertFalse
-import kotlin.test.assertContains
 
 class GraphQLSchemaReducerTest {
 
