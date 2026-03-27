@@ -17,7 +17,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Implement `prettyPrint()` function to format schema as GraphQL SDL
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [ ]* 1.2 Write unit tests for CompactGraphQLSchema domain model
+  - [x] 1.2 Write unit tests for CompactGraphQLSchema domain model
     - Create test file in `software/domain/src/test/kotlin/`
     - Test validation rules (empty operations, blank names, empty fields)
     - Test pretty-print output format
@@ -35,8 +35,8 @@ The implementation follows clean architecture principles with strict layer separ
     - Add `GRAPHQL` enum value
     - _Requirements: 1.2_
 
-- [ ] 2. Phase 2: Application Layer - Implement schema reduction, parsing, and validation
-  - [ ] 2.1 Implement GraphQLSchemaReducer with reduction logic
+- [x] 2. Phase 2: Application Layer - Implement schema reduction, parsing, and validation
+  - [x] 2.1 Implement GraphQLSchemaReducer with reduction logic
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/graphql/GraphQLSchemaReducer.kt`
     - Define `GraphQLSchemaReducerInterface` with `reduce(introspectionJson: String): CompactGraphQLSchema` method
     - Implement reduction algorithm: extract queries, mutations, input types, output types, enums
@@ -48,7 +48,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Use kotlin-logging for structured logging
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
 
-  - [ ]* 2.2 Write unit tests for GraphQLSchemaReducer
+  - [x] 2.2 Write unit tests for GraphQLSchemaReducer
     - Create test file with Given-When-Then naming convention
     - Test successful reduction of complete schema
     - Test extraction of queries with arguments and return types
@@ -59,7 +59,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Use test data from `src/test/resources/graphql/introspection/`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.7, 3.8_
 
-  - [ ]* 2.3 Write property test for schema extraction completeness
+  - [ ] 2.3 Write property test for schema extraction completeness
     - **Property 5: Schema Extraction Completeness**
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5**
     - Use Kotest property testing with 100 iterations
@@ -67,7 +67,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify all queries, mutations, types, and enums are extracted
     - Tag test with feature name and property number
 
-  - [ ] 2.4 Implement GraphQLSpecificationParser
+  - [x] 2.4 Implement GraphQLSpecificationParser
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/parsers/GraphQLSpecificationParser.kt`
     - Implement `SpecificationParserInterface` for GraphQL
     - Accept both URL (for introspection) and pre-fetched schema content
@@ -78,7 +78,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Implement `supports(format)`, `validate(content, format)`, `extractMetadata(content, format)` methods
     - _Requirements: 1.1, 1.2, 1.4, 3.1_
 
-  - [ ]* 2.5 Write unit tests for GraphQLSpecificationParser
+  - [ ] 2.5 Write unit tests for GraphQLSpecificationParser
     - Test parsing from pre-fetched schema content
     - Test conversion to APISpecification
     - Test metadata extraction
@@ -92,7 +92,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Test both URL and pre-fetched schema content inputs
     - Verify both produce valid APISpecification
 
-  - [ ] 2.7 Implement GraphQLMockValidator with validation rules
+  - [x] 2.7 Implement GraphQLMockValidator with validation rules
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/validators/GraphQLMockValidator.kt`
     - Implement `MockValidatorInterface` for GraphQL
     - Extract GraphQL operation from WireMock mapping JSON
@@ -106,7 +106,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Return `MockValidationResult` with specific error messages
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8_
 
-  - [ ]* 2.8 Write unit tests for GraphQLMockValidator
+  - [ ] 2.8 Write unit tests for GraphQLMockValidator
     - Test validation of valid mocks
     - Test detection of missing operations
     - Test detection of argument type mismatches
@@ -208,27 +208,27 @@ The implementation follows clean architecture principles with strict layer separ
     - Add invalid schemas for error testing
     - _Requirements: 9.5_
 
-  - [ ]* 4.5 Write end-to-end integration test for GraphQL generation
+  - [ ] 4.5 Write end-to-end integration test for GraphQL generation
     - Test complete flow: introspection → reduction → generation → validation
     - Use fixed mock introspection responses (no external dependencies)
     - Verify generated mocks are valid WireMock mappings
     - Verify mocks pass validation
     - _Requirements: 9.5_
 
-  - [ ]* 4.6 Write integration test for validation-retry loop with correctable errors
+  - [ ] 4.6 Write integration test for validation-retry loop with correctable errors
     - Mock AI service to return invalid mock on first attempt
     - Mock AI service to return valid mock on retry
     - Verify retry coordinator feeds validation errors to AI
     - Verify corrected mock is accepted
     - _Requirements: 6.1, 6.2, 6.5_
 
-  - [ ]* 4.7 Write integration test for validation-retry loop with uncorrectable errors
+  - [ ] 4.7 Write integration test for validation-retry loop with uncorrectable errors
     - Mock AI service to return invalid mocks on all attempts
     - Verify retry coordinator respects max retry limit
     - Verify generation fails with accumulated errors
     - _Requirements: 6.3, 6.6_
 
-  - [ ]* 4.8 Write property test for bounded retry attempts
+  - [ ] 4.8 Write property test for bounded retry attempts
     - **Property 12: Bounded Retry Attempts**
     - **Validates: Requirements 6.3**
     - Verify retry coordinator limits attempts to configured maximum
@@ -246,48 +246,48 @@ The implementation follows clean architecture principles with strict layer separ
     - Generate random valid OpenAPI specs
     - Verify REST generation produces valid mocks
 
-  - [ ]* 4.11 Write property test for GraphQL request acceptance
+  - [ ] 4.11 Write property test for GraphQL request acceptance
     - **Property 1: GraphQL Request Acceptance**
     - **Validates: Requirements 1.1**
     - Generate random valid GraphQL endpoints and instructions
     - Verify requests are accepted without format-related errors
 
-  - [ ]* 4.12 Write property test for GraphQL-over-HTTP mock format
+  - [ ] 4.12 Write property test for GraphQL-over-HTTP mock format
     - **Property 8: GraphQL-over-HTTP Mock Format**
     - **Validates: Requirements 4.3**
     - Verify generated mocks specify POST method
     - Verify mocks include JSON body matcher for GraphQL operation
 
-  - [ ]* 4.13 Write property test for GraphQL response format compliance
+  - [ ] 4.13 Write property test for GraphQL response format compliance
     - **Property 9: GraphQL Response Format Compliance**
     - **Validates: Requirements 4.4**
     - Verify response bodies contain data or errors fields
     - Verify compliance with GraphQL response specification
 
-  - [ ]* 4.14 Write property test for validation error reporting
+  - [ ] 4.14 Write property test for validation error reporting
     - **Property 11: Validation Error Reporting**
     - **Validates: Requirements 5.8**
     - Generate invalid mocks
     - Verify validator returns non-empty error list with context
 
-  - [ ]* 4.15 Write property test for WireMock persistence compatibility
+  - [ ] 4.15 Write property test for WireMock persistence compatibility
     - **Property 13: WireMock Persistence Compatibility**
     - **Validates: Requirements 7.1**
     - Verify generated mocks are valid WireMock JSON
     - Verify compatibility with existing persistence model
 
-  - [ ]* 4.16 Write property test for schema round-trip preservation
+  - [ ] 4.16 Write property test for schema round-trip preservation
     - **Property 15: Schema Round-Trip Preservation**
     - **Validates: Requirements 10.3, 10.4, 10.5, 10.6**
     - Parse introspection → pretty-print → parse SDL → compare
     - Verify operations, types, and enums are preserved
 
-  - [ ]* 4.17 Write property test for metadata field exclusion
+  - [ ] 4.17 Write property test for metadata field exclusion
     - **Property 6: Metadata Field Exclusion**
     - **Validates: Requirements 3.7**
     - Verify compact schema excludes `__schema`, `__type`, `__typename`
 
-  - [ ]* 4.18 Write property test for schema size reduction
+  - [ ] 4.18 Write property test for schema size reduction
     - **Property 7: Schema Size Reduction**
     - **Validates: Requirements 3.8**
     - Verify compact schema is at least 40% smaller than raw introspection
