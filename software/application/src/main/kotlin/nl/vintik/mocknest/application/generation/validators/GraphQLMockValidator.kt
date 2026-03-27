@@ -5,7 +5,10 @@ import kotlinx.serialization.json.*
 import nl.vintik.mocknest.application.generation.interfaces.MockValidationResult
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.domain.generation.APISpecification
+import EndpointDefinition
 import nl.vintik.mocknest.domain.generation.GeneratedMock
+import JsonSchema
+import JsonSchemaType
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
 
 private val logger = KotlinLogging.logger {}
@@ -14,13 +17,6 @@ private val logger = KotlinLogging.logger {}
  * Validator for GraphQL mocks.
  * Validates generated GraphQL mocks against the introspected schema.
  */
-import org.springframework.stereotype.Component
-
-/**
- * Validator for GraphQL mocks.
- * Validates generated GraphQL mocks against the introspected schema.
- */
-`@Component`
 class GraphQLMockValidator : MockValidatorInterface {
 
     override suspend fun validate(mock: GeneratedMock, specification: APISpecification): MockValidationResult {
@@ -51,10 +47,10 @@ class GraphQLMockValidator : MockValidatorInterface {
             }
 
             // Validate operation arguments
-            errors.addAll(validateArguments(operation, endpoint, specification))
+            errors.addAll(validateArguments(operation, endpoint))
 
             // Validate response structure
-            errors.addAll(validateResponseBody(wireMockJson, endpoint, specification))
+            errors.addAll(validateResponseBody(wireMockJson, endpoint))
 
             if (errors.isEmpty()) {
                 logger.debug { "GraphQL mock validation passed: ${mock.id}" }
@@ -122,8 +118,7 @@ class GraphQLMockValidator : MockValidatorInterface {
      */
     private fun validateArguments(
         operation: GraphQLOperationInfo,
-        endpoint: nl.vintik.mocknest.domain.generation.EndpointDefinition,
-        specification: APISpecification
+        endpoint: EndpointDefinition
     ): List<String> {
         val errors = mutableListOf<String>()
 
@@ -164,8 +159,7 @@ class GraphQLMockValidator : MockValidatorInterface {
      */
     private fun validateResponseBody(
         wireMockJson: JsonObject,
-        endpoint: nl.vintik.mocknest.domain.generation.EndpointDefinition,
-        specification: APISpecification
+        endpoint: EndpointDefinition
     ): List<String> {
         val errors = mutableListOf<String>()
 
@@ -197,7 +191,7 @@ class GraphQLMockValidator : MockValidatorInterface {
                 if (responseSchema != null) {
                     val dataSchema = responseSchema.properties?.get("data")
                     if (dataSchema != null) {
-                        errors.addAll(validateDataAgainstSchema(dataField, dataSchema, specification, "data"))
+                        errors.addAll(validateDataAgainstSchema(dataField, dataSchema, "data"))
                     }
                 }
             }
@@ -218,14 +212,13 @@ class GraphQLMockValidator : MockValidatorInterface {
      */
     private fun validateDataAgainstSchema(
         data: JsonElement,
-        schema: nl.vintik.mocknest.domain.generation.JsonSchema,
-        specification: APISpecification,
+        schema: JsonSchema,
         path: String
     ): List<String> {
         val errors = mutableListOf<String>()
 
         when (schema.type) {
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.OBJECT -> {
+            JsonSchemaType.OBJECT -> {
                 if (data !is JsonObject) {
                     errors.add("Field '$path' must be an object")
                     return errors
@@ -245,7 +238,6 @@ class GraphQLMockValidator : MockValidatorInterface {
                             validateDataAgainstSchema(
                                 fieldValue,
                                 fieldSchema,
-                                specification,
                                 "$path.$fieldName"
                             )
                         )
@@ -253,7 +245,7 @@ class GraphQLMockValidator : MockValidatorInterface {
                 }
             }
 
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.ARRAY -> {
+            JsonSchemaType.ARRAY -> {
                 if (data !is JsonArray) {
                     errors.add("Field '$path' must be an array")
                     return errors
@@ -266,7 +258,6 @@ class GraphQLMockValidator : MockValidatorInterface {
                             validateDataAgainstSchema(
                                 item,
                                 itemSchema,
-                                specification,
                                 "$path[$index]"
                             )
                         )
@@ -274,7 +265,7 @@ class GraphQLMockValidator : MockValidatorInterface {
                 }
             }
 
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.STRING -> {
+            JsonSchemaType.STRING -> {
                 if (data !is JsonPrimitive || !data.isString) {
                     errors.add("Field '$path' must be a string")
                     return errors
@@ -288,25 +279,25 @@ class GraphQLMockValidator : MockValidatorInterface {
                 }
             }
 
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.INTEGER -> {
+            JsonSchemaType.INTEGER -> {
                 if (data !is JsonPrimitive || data.intOrNull == null) {
                     errors.add("Field '$path' must be an integer")
                 }
             }
 
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.NUMBER -> {
+            JsonSchemaType.NUMBER -> {
                 if (data !is JsonPrimitive || (data.intOrNull == null && data.doubleOrNull == null)) {
                     errors.add("Field '$path' must be a number")
                 }
             }
 
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.BOOLEAN -> {
+            JsonSchemaType.BOOLEAN -> {
                 if (data !is JsonPrimitive || data.booleanOrNull == null) {
                     errors.add("Field '$path' must be a boolean")
                 }
             }
 
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.NULL -> {
+            JsonSchemaType.NULL -> {
                 if (data !is JsonNull) {
                     errors.add("Field '$path' must be null")
                 }
@@ -321,29 +312,29 @@ class GraphQLMockValidator : MockValidatorInterface {
      */
     private fun validateValueAgainstSchema(
         value: Any?,
-        schema: nl.vintik.mocknest.domain.generation.JsonSchema,
+        schema: JsonSchema,
         fieldName: String
     ): String? {
         return when (schema.type) {
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.STRING -> {
+            JsonSchemaType.STRING -> {
                 if (value !is String) "Argument '$fieldName' must be a string" else null
             }
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.INTEGER -> {
+            JsonSchemaType.INTEGER -> {
                 if (value !is Int && value !is Long) "Argument '$fieldName' must be an integer" else null
             }
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.NUMBER -> {
+            JsonSchemaType.NUMBER -> {
                 if (value !is Number) "Argument '$fieldName' must be a number" else null
             }
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.BOOLEAN -> {
+            JsonSchemaType.BOOLEAN -> {
                 if (value !is Boolean) "Argument '$fieldName' must be a boolean" else null
             }
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.OBJECT -> {
+            JsonSchemaType.OBJECT -> {
                 if (value !is Map<*, *>) "Argument '$fieldName' must be an object" else null
             }
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.ARRAY -> {
+            JsonSchemaType.ARRAY -> {
                 if (value !is List<*>) "Argument '$fieldName' must be an array" else null
             }
-            nl.vintik.mocknest.domain.generation.JsonSchemaType.NULL -> {
+            JsonSchemaType.NULL -> {
                 if (value != null) "Argument '$fieldName' must be null" else null
             }
         }

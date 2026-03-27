@@ -1,0 +1,24 @@
+# TruffleHog Configuration for MockNest Serverless
+# Used by CodeRabbit for secret scanning on pull requests
+# Documentation: https://github.com/trufflesecurity/trufflehog
+
+detectors:
+  - AWS
+  - GitHubApp
+  - GitHub
+  - GitLab
+  - Slack
+  - Generic
+
+# Paths to exclude from scanning
+exclude_paths:
+  - build/
+  - .gradle/
+  - "**/build/**"
+  - "**/*.class"
+  - "**/*.jar"
+  - "**/test/resources/**"
+
+# Known false positives / placeholder values
+allow:
+  - trufflehog:ignore

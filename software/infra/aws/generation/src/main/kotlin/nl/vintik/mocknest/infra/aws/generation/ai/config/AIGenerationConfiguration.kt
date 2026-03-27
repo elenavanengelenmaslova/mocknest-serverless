@@ -4,6 +4,9 @@ import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import nl.vintik.mocknest.application.generation.agent.MockGenerationFunctionalAgent
 import nl.vintik.mocknest.application.generation.interfaces.*
 import nl.vintik.mocknest.application.generation.parsers.CompositeSpecificationParserImpl
+import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducer
+import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducerInterface
+import nl.vintik.mocknest.application.generation.parsers.GraphQLSpecificationParser
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.application.generation.usecases.*
@@ -52,6 +55,18 @@ class AIGenerationConfiguration {
     @Bean
     fun openApiSpecificationParser(): SpecificationParserInterface {
         return OpenAPISpecificationParser()
+    }
+
+    @Bean
+    fun graphQLSchemaReducer(): GraphQLSchemaReducerInterface {
+        return GraphQLSchemaReducer()
+    }
+
+    @Bean
+    fun graphQLSpecificationParser(
+        schemaReducer: GraphQLSchemaReducerInterface
+    ): SpecificationParserInterface {
+        return GraphQLSpecificationParser(schemaReducer)
     }
 
     @Bean

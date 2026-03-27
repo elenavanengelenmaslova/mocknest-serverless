@@ -52,6 +52,11 @@ knowledge_base:
 
 
 
+# Tool integrations
+tools:
+  trufflehog:
+    enabled: true
+
 # Tone and style
 tone_instructions: |
   Be concise and technical. Focus on code quality, maintainability, and adherence to 
