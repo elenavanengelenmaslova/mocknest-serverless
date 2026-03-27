@@ -10,7 +10,7 @@ import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
+import kotlin.test.assertFailsWith
 import org.springframework.http.HttpMethod
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -593,7 +593,7 @@ class GraphQLSpecificationParserTest {
             coEvery { mockReducer.reduce(introspectionJson) } throws GraphQLSchemaParsingException("Parsing failed")
 
             // When & Then
-            assertThrows<GraphQLSchemaParsingException> {
+            assertFailsWith<GraphQLSchemaParsingException> {
                 parser.parse(introspectionJson, SpecificationFormat.GRAPHQL)
             }
         }
@@ -605,7 +605,7 @@ class GraphQLSpecificationParserTest {
             coEvery { mockReducer.reduce(introspectionJson) } throws GraphQLSchemaParsingException("Parsing failed")
 
             // When & Then
-            assertThrows<GraphQLSchemaParsingException> {
+            assertFailsWith<GraphQLSchemaParsingException> {
                 parser.extractMetadata(introspectionJson, SpecificationFormat.GRAPHQL)
             }
         }
@@ -644,7 +644,7 @@ class GraphQLSpecificationParserTest {
             val content = "some content"
 
             // When & Then
-            assertThrows<IllegalArgumentException> {
+            assertFailsWith<IllegalArgumentException> {
                 parser.parse(content, SpecificationFormat.OPENAPI_3)
             }
         }
@@ -655,7 +655,7 @@ class GraphQLSpecificationParserTest {
             val content = "some content"
 
             // When & Then
-            assertThrows<IllegalArgumentException> {
+            assertFailsWith<IllegalArgumentException> {
                 parser.validate(content, SpecificationFormat.OPENAPI_3)
             }
         }
@@ -666,7 +666,7 @@ class GraphQLSpecificationParserTest {
             val content = "some content"
 
             // When & Then
-            assertThrows<IllegalArgumentException> {
+            assertFailsWith<IllegalArgumentException> {
                 parser.extractMetadata(content, SpecificationFormat.OPENAPI_3)
             }
         }

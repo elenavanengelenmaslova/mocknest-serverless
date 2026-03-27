@@ -311,68 +311,31 @@ class GraphQLMockValidator : MockValidatorInterface {
      * Validates a JsonElement value against a JSON schema (for arguments extracted from JSON body).
      */
     private fun validateJsonElementAgainstSchema(
-        value: Any?,
-        schema: JsonSchema,
-        fieldName: String
-    ): String? {
-        // Handle JsonElement values (from JsonObject.toMap())
-        if (value is JsonElement) {
-            return when (schema.type) {
-                JsonSchemaType.STRING -> {
-                    if (value !is JsonPrimitive || !value.isString) "Argument '$fieldName' must be a string" else null
-                }
-                JsonSchemaType.INTEGER -> {
-                    if (value !is JsonPrimitive || value.intOrNull == null) "Argument '$fieldName' must be an integer" else null
-                }
-                JsonSchemaType.NUMBER -> {
-                    if (value !is JsonPrimitive || (value.intOrNull == null && value.doubleOrNull == null)) "Argument '$fieldName' must be a number" else null
-                }
-                JsonSchemaType.BOOLEAN -> {
-                    if (value !is JsonPrimitive || value.booleanOrNull == null) "Argument '$fieldName' must be a boolean" else null
-                }
-                JsonSchemaType.OBJECT -> {
-                    if (value !is JsonObject) "Argument '$fieldName' must be an object" else null
-                }
-                JsonSchemaType.ARRAY -> {
-                    if (value !is JsonArray) "Argument '$fieldName' must be an array" else null
-                }
-                JsonSchemaType.NULL -> {
-                    if (value !is JsonNull) "Argument '$fieldName' must be null" else null
-                }
-            }
-        }
-        return validateValueAgainstSchema(value, schema, fieldName)
-    }
-
-    /**
-     * Validates a value against a JSON schema (for arguments).
-     */
-    private fun validateValueAgainstSchema(
-        value: Any?,
+        value: JsonElement,
         schema: JsonSchema,
         fieldName: String
     ): String? {
         return when (schema.type) {
             JsonSchemaType.STRING -> {
-                if (value !is String) "Argument '$fieldName' must be a string" else null
+                if (value !is JsonPrimitive || !value.isString) "Argument '$fieldName' must be a string" else null
             }
             JsonSchemaType.INTEGER -> {
-                if (value !is Int && value !is Long) "Argument '$fieldName' must be an integer" else null
+                if (value !is JsonPrimitive || value.intOrNull == null) "Argument '$fieldName' must be an integer" else null
             }
             JsonSchemaType.NUMBER -> {
-                if (value !is Number) "Argument '$fieldName' must be a number" else null
+                if (value !is JsonPrimitive || (value.intOrNull == null && value.doubleOrNull == null)) "Argument '$fieldName' must be a number" else null
             }
             JsonSchemaType.BOOLEAN -> {
-                if (value !is Boolean) "Argument '$fieldName' must be a boolean" else null
+                if (value !is JsonPrimitive || value.booleanOrNull == null) "Argument '$fieldName' must be a boolean" else null
             }
             JsonSchemaType.OBJECT -> {
-                if (value !is Map<*, *>) "Argument '$fieldName' must be an object" else null
+                if (value !is JsonObject) "Argument '$fieldName' must be an object" else null
             }
             JsonSchemaType.ARRAY -> {
-                if (value !is List<*>) "Argument '$fieldName' must be an array" else null
+                if (value !is JsonArray) "Argument '$fieldName' must be an array" else null
             }
             JsonSchemaType.NULL -> {
-                if (value != null) "Argument '$fieldName' must be null" else null
+                if (value !is JsonNull) "Argument '$fieldName' must be null" else null
             }
         }
     }
@@ -384,5 +347,5 @@ class GraphQLMockValidator : MockValidatorInterface {
 private data class GraphQLOperationInfo(
     val operationName: String,
     val query: String,
-    val variables: Map<String, Any?>
+    val variables: Map<String, JsonElement>
 )

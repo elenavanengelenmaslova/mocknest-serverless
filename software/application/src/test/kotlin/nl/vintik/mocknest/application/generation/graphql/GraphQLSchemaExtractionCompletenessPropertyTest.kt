@@ -289,8 +289,6 @@ class GraphQLSchemaExtractionCompletenessPropertyTest {
             query.arguments.forEach { arg ->
                 assertTrue(arg.name.isNotBlank(), "Query argument name should not be blank")
                 assertTrue(arg.type.isNotBlank(), "Query argument type should not be blank")
-                // Type should include modifiers like ! for NON_NULL and [] for LIST
-                // Examples: "ID!", "String", "[Product]", "[String]!"
             }
         }
 
@@ -300,6 +298,16 @@ class GraphQLSchemaExtractionCompletenessPropertyTest {
                 assertTrue(arg.name.isNotBlank(), "Mutation argument name should not be blank")
                 assertTrue(arg.type.isNotBlank(), "Mutation argument type should not be blank")
             }
+        }
+
+        // Then - Verify modifiers are preserved in arguments (all test schemas have NON_NULL args)
+        val allArgTypes = result.queries.flatMap { it.arguments.map { arg -> arg.type } } +
+            result.mutations.flatMap { it.arguments.map { arg -> arg.type } }
+        if (allArgTypes.isNotEmpty()) {
+            assertTrue(
+                allArgTypes.any { it.contains("!") || it.contains("[") },
+                "At least one argument should have a type modifier (! or []), but got: $allArgTypes"
+            )
         }
     }
 
@@ -317,12 +325,20 @@ class GraphQLSchemaExtractionCompletenessPropertyTest {
         // Then - Verify type fields are complete
         result.types.values.forEach { type ->
             assertTrue(type.fields.isNotEmpty(), "Type ${type.name} should have at least one field")
-            
+
             type.fields.forEach { field ->
                 assertTrue(field.name.isNotBlank(), "Field name in type ${type.name} should not be blank")
                 assertTrue(field.type.isNotBlank(), "Field type in type ${type.name} should not be blank")
-                // Field type should include modifiers like ! for NON_NULL and [] for LIST
             }
+        }
+
+        // Then - Verify modifiers are preserved in type fields
+        val allFieldTypes = result.types.values.flatMap { type -> type.fields.map { it.type } }
+        if (allFieldTypes.isNotEmpty()) {
+            assertTrue(
+                allFieldTypes.any { it.contains("!") || it.contains("[") },
+                "At least one type field should have a modifier (! or []), but got: $allFieldTypes"
+            )
         }
     }
 
@@ -357,8 +373,21 @@ class GraphQLSchemaExtractionCompletenessPropertyTest {
         // Then - Verify type strings are well-formed
         allTypes.forEach { typeStr ->
             assertTrue(typeStr.isNotBlank(), "Type string should not be blank")
-            // Type strings should not contain "Unknown"
             assertTrue(!typeStr.contains("Unknown"), "Type string should not contain 'Unknown': $typeStr")
+        }
+
+        // Then - Verify NON_NULL modifier (!) is present somewhere in the schema
+        assertTrue(
+            allTypes.any { it.contains("!") },
+            "Schema should contain at least one NON_NULL type (with '!'), but got: $allTypes"
+        )
+
+        // Then - Verify LIST modifier ([]) is well-formed when present
+        allTypes.filter { it.contains("[") }.forEach { typeStr ->
+            assertTrue(
+                typeStr.contains("]"),
+                "List type '$typeStr' should have matching closing bracket"
+            )
         }
     }
 }
