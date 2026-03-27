@@ -20,6 +20,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.http.HttpMethod
 import java.time.Instant
+import kotlin.test.assertFailsWith
 import java.util.*
 
 class MockGenerationFunctionalAgentTest {
@@ -778,6 +779,79 @@ class MockGenerationFunctionalAgentTest {
             assertTrue(result.success)
             assertEquals("client-a", result.mocks[0].namespace.client)
             assertEquals("api", result.mocks[0].namespace.apiName)
+        }
+    }
+
+    @Nested
+    inner class ContentResolution {
+
+        @Test
+        fun `Given GraphQL format with URL When resolving content Then should return URL string directly`() {
+            // Given
+            val request = SpecWithDescriptionRequest(
+                namespace = testNamespace,
+                specificationUrl = "https://example.com/graphql",
+                format = SpecificationFormat.GRAPHQL,
+                description = "test graphql"
+            )
+
+            // When
+            val result = agent.resolveContent(request)
+
+            // Then
+            assertEquals("https://example.com/graphql", result)
+        }
+
+        @Test
+        fun `Given GraphQL format with content When resolving content Then should return content string`() {
+            // Given
+            val content = """{"data":{"__schema":{"queryType":{"name":"Query"}}}}"""
+            val request = SpecWithDescriptionRequest(
+                namespace = testNamespace,
+                specificationContent = content,
+                format = SpecificationFormat.GRAPHQL,
+                description = "test graphql"
+            )
+
+            // When
+            val result = agent.resolveContent(request)
+
+            // Then
+            assertEquals(content, result)
+        }
+
+        @Test
+        fun `Given non-GraphQL format with URL When resolving content Then should attempt to fetch URL`() {
+            // Given
+            val request = SpecWithDescriptionRequest(
+                namespace = testNamespace,
+                specificationUrl = "https://invalid.test/spec.yaml",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "test openapi"
+            )
+
+            // When / Then - should throw because it actually tries to fetch the URL
+            assertFailsWith<Exception> {
+                agent.resolveContent(request)
+            }
+        }
+
+        @Test
+        fun `Given non-GraphQL format with content When resolving content Then should return content string`() {
+            // Given
+            val content = "openapi: 3.0.0"
+            val request = SpecWithDescriptionRequest(
+                namespace = testNamespace,
+                specificationContent = content,
+                format = SpecificationFormat.OPENAPI_3,
+                description = "test openapi"
+            )
+
+            // When
+            val result = agent.resolveContent(request)
+
+            // Then
+            assertEquals(content, result)
         }
     }
 }

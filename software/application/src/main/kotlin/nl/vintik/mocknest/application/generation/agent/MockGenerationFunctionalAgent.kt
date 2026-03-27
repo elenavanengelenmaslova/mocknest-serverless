@@ -40,12 +40,7 @@ class MockGenerationFunctionalAgent(
 
         // Node 1: Setup and Parse Specification
         val setupNode by node<SpecWithDescriptionRequest, MockGenerationContext>("setup") { request ->
-            val url = request.specificationUrl
-            val content = if (url != null) {
-                URI(url).toURL().readText()
-            } else {
-                request.specificationContent!!
-            }
+            val content = resolveContent(request)
             val specification = specificationParser.parse(content, request.format)
             MockGenerationContext(request, specification)
         }
@@ -134,6 +129,22 @@ class MockGenerationFunctionalAgent(
 
         edge(validateNode forwardTo correctNode onCondition { ctx -> ctx.errors.isNotEmpty() && ctx.attempt <= maxRetries })
         edge(correctNode forwardTo validateNode)
+    }
+
+    /**
+     * Resolves the specification content from the request.
+     * Formats that handle their own URL resolution (e.g. GraphQL introspection via POST)
+     * receive the URL string directly; other formats have their URL content pre-fetched.
+     */
+    internal fun resolveContent(request: SpecWithDescriptionRequest): String {
+        val url = request.specificationUrl
+        return when {
+            url != null && request.format.handlesOwnUrlResolution -> url
+            url != null -> URI(url).toURL().readText()
+            else -> requireNotNull(request.specificationContent) {
+                "Specification content is required when no URL is provided"
+            }
+        }
     }
 
     /**
