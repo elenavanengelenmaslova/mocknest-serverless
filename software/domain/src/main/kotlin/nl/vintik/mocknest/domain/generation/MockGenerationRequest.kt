@@ -16,7 +16,10 @@ data class SpecWithDescriptionRequest(
  ) {
     init {
         require(jobId.isNotBlank()) { "Job ID cannot be blank" }
-        require(specificationContent?.isNotBlank()?: false || specificationUrl?.isNotBlank()?: false) { "One of Specification content or URL must be present" }
+        val hasContent = specificationContent?.isNotBlank() ?: false
+        val hasUrl = specificationUrl?.isNotBlank() ?: false
+        require(hasContent || hasUrl) { "Either specification content or URL must be provided" }
+        require(!(hasContent && hasUrl)) { "Only one of specification content or URL must be provided, not both" }
         require(description.isNotBlank()) { "Description cannot be blank" }
     }
 }

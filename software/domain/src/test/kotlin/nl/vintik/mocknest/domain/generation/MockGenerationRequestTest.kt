@@ -58,6 +58,19 @@ class MockGenerationRequestTest {
     }
 
     @Test
+    fun `Should fail SpecWithDescriptionRequest when both content and url are present`() {
+        assertThrows<IllegalArgumentException> {
+            SpecWithDescriptionRequest(
+                namespace = MockNamespace("test"),
+                specificationContent = "content",
+                specificationUrl = "https://example.com/spec",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "desc"
+            )
+        }
+    }
+
+    @Test
     fun `Should create default GenerationOptions`() {
         val options = GenerationOptions.default()
         assertEquals(true, options.enableValidation)
