@@ -201,9 +201,16 @@ class GraphQLSpecificationParser(
         schema: CompactGraphQLSchema
     ): JsonSchema {
         // GraphQL response: { "data": {...}, "errors": [...] }
-        val returnTypeName = operation.returnType.removeSuffix("!").removePrefix("[").removeSuffix("]")
-        val dataSchema = schema.types[returnTypeName]?.let { convertTypeToJsonSchema(it, schema) }
-            ?: mapGraphQLTypeToJsonSchema(operation.returnType, "Response data", schema)
+        val strippedType = operation.returnType.removeSuffix("!")
+        val isList = strippedType.startsWith("[") && strippedType.endsWith("]")
+        val baseTypeName = strippedType.removePrefix("[").removeSuffix("]").removeSuffix("!")
+        val baseSchema = schema.types[baseTypeName]?.let { convertTypeToJsonSchema(it, schema) }
+            ?: mapGraphQLTypeToJsonSchema(baseTypeName, "Response data", schema)
+        val dataSchema = if (isList) {
+            JsonSchema(type = JsonSchemaType.ARRAY, items = baseSchema, description = "Response data")
+        } else {
+            baseSchema
+        }
         
         return JsonSchema(
             type = JsonSchemaType.OBJECT,
