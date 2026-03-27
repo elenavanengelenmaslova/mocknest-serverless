@@ -147,7 +147,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Use same template variables: `{{SPEC_TITLE}}`, `{{SPEC_VERSION}}`, `{{ENDPOINT_COUNT}}`, `{{KEY_ENDPOINTS}}`, `{{API_NAME}}`, `{{CLIENT_SECTION}}`, `{{DESCRIPTION}}`, `{{NAMESPACE}}`, `{{WIREMOCK_SCHEMA}}`
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-  - [ ] 2.11 Create GraphQL-specific correction prompt
+  - [x] 2.11 Create GraphQL-specific correction prompt
     - Create `software/application/src/main/resources/prompts/graphql/correction.txt`
     - Adapt from REST correction prompt but focus on GraphQL validation errors:
       - Operation name not found in schema
@@ -159,7 +159,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Use same template variables: `{{SPEC_CONTEXT}}`, `{{API_NAME}}`, `{{CLIENT_SECTION}}`, `{{MOCKS_WITH_ERRORS}}`, `{{NAMESPACE}}`
     - _Requirements: 5.8, 6.1, 6.2_
 
-  - [ ] 2.12 Update PromptBuilderService to support format-specific prompts
+  - [x] 2.12 Update PromptBuilderService to support format-specific prompts
     - Update `buildSpecWithDescriptionPrompt` method to accept `SpecificationFormat` parameter
     - Add logic to select prompt path based on format:
       - `SpecificationFormat.GRAPHQL` → load from `/prompts/graphql/spec-with-description.txt`
@@ -171,7 +171,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Keep `loadSystemPrompt()` unchanged (loads from `/prompts/system-prompt.txt`)
     - _Requirements: 1.2, 4.1_
 
-  - [ ] 2.13 Update PromptBuilderService tests for format-specific prompts
+  - [x] 2.13 Update PromptBuilderService tests for format-specific prompts
     - Update existing tests to pass `SpecificationFormat` parameter
     - Add test for GraphQL prompt loading
     - Add test for REST prompt loading

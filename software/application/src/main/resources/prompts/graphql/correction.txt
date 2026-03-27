@@ -1,0 +1,40 @@
+You are an expert API mock generator. The following WireMock mappings failed validation against the GraphQL schema.
+
+{{SPEC_CONTEXT}}Namespace:
+- API Name: {{API_NAME}}{{CLIENT_SECTION}}
+
+Please correct ALL of the following mocks to fix their respective errors:
+
+{{MOCKS_WITH_ERRORS}}
+
+Requirements:
+- Return only a JSON array containing the corrected WireMock mappings.
+- Each mapping should be a complete, valid WireMock JSON object.
+- Fix all validation errors listed for each mock.
+- IMPORTANT: All GraphQL mocks MUST use POST method and target the /{{NAMESPACE}}/graphql endpoint (GraphQL-over-HTTP pattern)
+- CRITICAL: Every mapping MUST include `"persistent": true` at the top level of the mapping object
+
+GraphQL-specific corrections (IMPORTANT):
+- If the error is "Operation not found in schema": verify the operation name matches exactly (case-sensitive) a query or mutation defined in the schema, and update the `bodyPatterns` matcher accordingly
+- If the error is "Argument type mismatch": correct the argument value in the request body matcher to use the type defined in the schema (String → string, Int → integer, Boolean → boolean, Float → decimal number)
+- If the error is "Missing required response field": add all required fields for the return type as defined in the schema, including nested required fields recursively
+- If the error is "Invalid enum value": replace the enum value with one of the valid values defined in the schema for that enum type
+- If the error is "Response format issue" (missing data/errors fields): wrap the response body in the correct GraphQL response envelope:
+  - Success: `{ "data": { "<operationName>": { ... } } }`
+  - Error: `{ "errors": [{ "message": "...", "locations": [...], "path": [...] }] }`
+- If the error is "Type incompatibility" (list vs object): ensure list fields return arrays and object fields return objects as defined in the schema
+
+GraphQL request matching rules (IMPORTANT):
+- GraphQL requests are always POST requests with a JSON body containing `query` or `mutation` fields
+- Use `bodyPatterns` with `matchesJsonPath` to match specific GraphQL operations by operation name
+- Do NOT use `urlPath`, `urlPattern`, or path parameters — GraphQL has a single endpoint
+- Do NOT use query parameters for operation routing — use `bodyPatterns` instead
+
+GraphQL response format rules (IMPORTANT):
+- ALL GraphQL responses MUST follow the GraphQL response specification with `data` or `errors` fields
+- NEVER return a bare JSON object or array as the response body
+- Response HTTP status code is always 200 for GraphQL (even for errors)
+- Include `Content-Type: application/json` header in all responses
+
+- Maintain the same structure and intent as the original mocks.
+- Do not include any explanatory text, only the JSON array.

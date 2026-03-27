@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.domain.generation.APISpecification
 import nl.vintik.mocknest.domain.generation.GeneratedMock
 import nl.vintik.mocknest.domain.generation.MockNamespace
+import nl.vintik.mocknest.domain.generation.SpecificationFormat
 import org.springframework.stereotype.Service
 
 private val logger = KotlinLogging.logger {}
@@ -28,9 +29,14 @@ class PromptBuilderService {
     fun buildSpecWithDescriptionPrompt(
         specification: APISpecification,
         description: String,
-        namespace: MockNamespace
+        namespace: MockNamespace,
+        format: SpecificationFormat = specification.format
     ): String {
-        val template = loadTemplate("/prompts/rest/spec-with-description.txt")
+        val promptPath = when (format) {
+            SpecificationFormat.GRAPHQL -> "/prompts/graphql/spec-with-description.txt"
+            else -> "/prompts/rest/spec-with-description.txt"
+        }
+        val template = loadTemplate(promptPath)
         
         val keyEndpoints = specification.endpoints
             .joinToString("\n") { endpoint ->
@@ -61,9 +67,14 @@ class PromptBuilderService {
     fun buildCorrectionPrompt(
         invalidMocks: List<Pair<GeneratedMock, List<String>>>,
         namespace: MockNamespace,
-        specification: APISpecification?
+        specification: APISpecification?,
+        format: SpecificationFormat = specification?.format ?: SpecificationFormat.OPENAPI_3
     ): String {
-        val template = loadTemplate("/prompts/rest/correction.txt")
+        val promptPath = when (format) {
+            SpecificationFormat.GRAPHQL -> "/prompts/graphql/correction.txt"
+            else -> "/prompts/rest/correction.txt"
+        }
+        val template = loadTemplate(promptPath)
         
         val specContext = specification?.let {
             """

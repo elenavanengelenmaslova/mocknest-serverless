@@ -44,7 +44,7 @@ class PromptOutputDebugTest {
         val description = "Add realistic error responses"
         val namespace = MockNamespace(apiName = "petstore")
 
-        val actualPrompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, description, namespace)
+        val actualPrompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, description, namespace, SpecificationFormat.OPENAPI_3)
         
         println("=== ACTUAL SPEC PROMPT ===")
         println(actualPrompt)
@@ -72,7 +72,7 @@ class PromptOutputDebugTest {
         val errors = listOf("URL should be prefixed", "Missing Content-Type")
         val invalidMocks = listOf(invalidMock to errors)
 
-        val actualPrompt = promptBuilder.buildCorrectionPrompt(invalidMocks, namespace, null)
+        val actualPrompt = promptBuilder.buildCorrectionPrompt(invalidMocks, namespace, null, SpecificationFormat.OPENAPI_3)
         
         println("=== ACTUAL CORRECTION PROMPT ===")
         println(actualPrompt)

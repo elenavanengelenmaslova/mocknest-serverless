@@ -53,7 +53,7 @@ class MockGenerationFunctionalAgent(
         // Node 2: Initial Mock Generation
         val generateNode by node<MockGenerationContext, MockGenerationContext>("generate") { ctx ->
             val prompt = promptBuilder.buildSpecWithDescriptionPrompt(
-                ctx.specification, ctx.request.description, ctx.request.namespace
+                ctx.specification, ctx.request.description, ctx.request.namespace, ctx.specification.format
             )
             val response = llm.writeSession {
                 appendPrompt { user(prompt) }
@@ -91,7 +91,8 @@ class MockGenerationFunctionalAgent(
             val correctionPrompt = promptBuilder.buildCorrectionPrompt(
                 invalidMocks = invalidInput,
                 namespace = ctx.request.namespace,
-                specification = ctx.specification
+                specification = ctx.specification,
+                format = ctx.specification.format
             )
             val response = llm.writeSession {
                 appendPrompt { user(correctionPrompt) }
