@@ -1,8 +1,8 @@
 package nl.vintik.mocknest.application.generation.agent
 
-import ai.koog.prompt.message.Message
-import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.builder.forwardTo
+import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.prompt.message.Message
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
@@ -21,7 +21,7 @@ data class MockGenerationContext(
     val specification: APISpecification,
     val mocks: List<GeneratedMock> = emptyList(),
     val attempt: Int = 1,
-    val errors: List<String> = emptyList()
+    val errors: List<String> = emptyList(),
 )
 
 /**
@@ -33,16 +33,16 @@ class MockGenerationFunctionalAgent(
     private val specificationParser: SpecificationParserInterface,
     private val mockValidator: MockValidatorInterface,
     private val promptBuilder: PromptBuilderService,
-    private val maxRetries: Int = 1 // Default to 1 retry (2 attempts total)
+    private val maxRetries: Int = 1, // Default to 1 retry (2 attempts total)
 ) {
-    
+
     private val mockGenerationStrategy = strategy<SpecWithDescriptionRequest, GenerationResult>("mock-generation") {
-        
+
         // Node 1: Setup and Parse Specification
         val setupNode by node<SpecWithDescriptionRequest, MockGenerationContext>("setup") { request ->
             val url = request.specificationUrl
             val content = if (url != null) {
-                runCatching { URI(url).toURL().readText() }.getOrThrow()
+                URI(url).toURL().readText()
             } else {
                 request.specificationContent!!
             }
@@ -57,13 +57,13 @@ class MockGenerationFunctionalAgent(
             )
             val response = llm.writeSession {
                 appendPrompt { user(prompt) }
-                requestLLM() 
+                requestLLM()
             }
             val textResponse = (response as? Message.Assistant)?.content ?: ""
             val mocks = aiModelService.parseModelResponse(
-                textResponse, 
-                ctx.request.namespace, 
-                SourceType.SPEC_WITH_DESCRIPTION, 
+                textResponse,
+                ctx.request.namespace,
+                SourceType.SPEC_WITH_DESCRIPTION,
                 "${ctx.specification.title}: ${ctx.request.description}"
             )
             ctx.copy(mocks = mocks)
@@ -87,7 +87,7 @@ class MockGenerationFunctionalAgent(
             val invalidInput = ctx.mocks.map { it to mockValidator.validate(it, ctx.specification) }
                 .filter { !it.second.isValid }
                 .map { it.first to it.second.errors }
-                
+
             val correctionPrompt = promptBuilder.buildCorrectionPrompt(
                 invalidMocks = invalidInput,
                 namespace = ctx.request.namespace,
@@ -100,12 +100,12 @@ class MockGenerationFunctionalAgent(
             }
             val textResponse = (response as? Message.Assistant)?.content ?: ""
             val correctedMocks = aiModelService.parseModelResponse(
-                textResponse, 
-                ctx.request.namespace, 
-                SourceType.REFINEMENT, 
+                textResponse,
+                ctx.request.namespace,
+                SourceType.REFINEMENT,
                 "Correction for ${ctx.request.namespace.displayName()}"
             )
-            
+
             val validMocks = ctx.mocks.filter { mockValidator.validate(it, ctx.specification).isValid }
             ctx.copy(mocks = validMocks + correctedMocks, attempt = ctx.attempt + 1)
         }
@@ -113,20 +113,25 @@ class MockGenerationFunctionalAgent(
         // Transitions
         edge(nodeStart forwardTo setupNode)
         edge(setupNode forwardTo generateNode)
-        
+
         // If validation is disabled, go straight to finish
         edge(generateNode forwardTo nodeFinish onCondition { ctx -> !ctx.request.options.enableValidation }
-            transformed { ctx -> GenerationResult.success(ctx.request.jobId, ctx.mocks) }
+                transformed { ctx -> GenerationResult.success(ctx.request.jobId, ctx.mocks) }
         )
-        
+
         // Otherwise, go to validateNode
         edge(generateNode forwardTo validateNode onCondition { ctx -> ctx.request.options.enableValidation })
-        
-        edge(validateNode forwardTo nodeFinish 
-            onCondition { ctx -> ctx.errors.isEmpty() || ctx.attempt > maxRetries }
-            transformed { ctx -> GenerationResult.success(ctx.request.jobId, ctx.mocks.filter { m -> !mockValidator.validate(m, ctx.specification).isFatal }) }
+
+        edge(
+            validateNode forwardTo nodeFinish
+                onCondition { ctx -> ctx.errors.isEmpty() || ctx.attempt > maxRetries }
+                transformed { ctx ->
+            GenerationResult.success(
+                ctx.request.jobId,
+                ctx.mocks.filter { m -> !mockValidator.validate(m, ctx.specification).isFatal })
+        }
         )
-        
+
         edge(validateNode forwardTo correctNode onCondition { ctx -> ctx.errors.isNotEmpty() && ctx.attempt <= maxRetries })
         edge(correctNode forwardTo validateNode)
     }
