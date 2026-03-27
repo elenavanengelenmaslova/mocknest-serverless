@@ -1,0 +1,38 @@
+{
+  "description": "Invalid mock - operation name does not exist in schema",
+  "expectedValid": false,
+  "expectedErrors": ["Operation 'nonExistentOperation' not found in schema"],
+  "specification": {
+    "operations": [
+      {
+        "operationId": "getUser",
+        "variables": {
+          "id": "STRING"
+        },
+        "requiredVariables": ["id"],
+        "responseFields": {
+          "id": "STRING",
+          "name": "STRING"
+        },
+        "requiredResponseFields": ["id", "name"]
+      }
+    ]
+  },
+  "wireMockMapping": {
+    "request": {
+      "method": "POST",
+      "urlPath": "/graphql",
+      "bodyPatterns": [
+        {
+          "equalToJson": "{\"query\":\"query nonExistentOperation { data }\",\"operationName\":\"nonExistentOperation\",\"variables\":{}}"
+        }
+      ]
+    },
+    "response": {
+      "status": 200,
+      "jsonBody": {
+        "data": {}
+      }
+    }
+  }
+}

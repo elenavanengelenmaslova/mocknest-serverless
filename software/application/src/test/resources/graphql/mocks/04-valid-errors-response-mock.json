@@ -1,0 +1,51 @@
+{
+  "description": "Valid mock with GraphQL errors field in response (error scenario mock)",
+  "expectedValid": true,
+  "expectedErrors": [],
+  "specification": {
+    "operations": [
+      {
+        "operationId": "getUser",
+        "variables": {
+          "id": "STRING"
+        },
+        "requiredVariables": ["id"],
+        "responseFields": {
+          "id": "STRING",
+          "name": "STRING",
+          "email": "STRING",
+          "status": {
+            "type": "STRING",
+            "enum": ["ACTIVE", "INACTIVE", "PENDING"]
+          }
+        },
+        "requiredResponseFields": ["id", "name", "email", "status"]
+      }
+    ]
+  },
+  "wireMockMapping": {
+    "request": {
+      "method": "POST",
+      "urlPath": "/graphql",
+      "bodyPatterns": [
+        {
+          "equalToJson": "{\"query\":\"query getUser($id: String!) { user(id: $id) { id name email status } }\",\"operationName\":\"getUser\",\"variables\":{\"id\":\"not-found\"}}"
+        }
+      ]
+    },
+    "response": {
+      "status": 200,
+      "jsonBody": {
+        "errors": [
+          {
+            "message": "User not found",
+            "path": ["user"],
+            "extensions": {
+              "code": "NOT_FOUND"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "description": "Valid query mock - getUser operation with correct args and response",
+  "expectedValid": true,
+  "expectedErrors": [],
+  "specification": {
+    "operations": [
+      {
+        "operationId": "getUser",
+        "variables": {
+          "id": "STRING"
+        },
+        "requiredVariables": ["id"],
+        "responseFields": {
+          "id": "STRING",
+          "name": "STRING",
+          "email": "STRING"
+        },
+        "requiredResponseFields": ["id", "name", "email"]
+      }
+    ]
+  },
+  "wireMockMapping": {
+    "request": {
+      "method": "POST",
+      "urlPath": "/graphql",
+      "bodyPatterns": [
+        {
+          "equalToJson": "{\"query\":\"query getUser($id: ID!) { user(id: $id) { id name email } }\",\"operationName\":\"getUser\",\"variables\":{\"id\":\"user-123\"}}"
+        }
+      ]
+    },
+    "response": {
+      "status": 200,
+      "jsonBody": {
+        "data": {
+          "id": "user-123",
+          "name": "Alice Smith",
+          "email": "alice@example.com"
+        }
+      }
+    }
+  }
+}

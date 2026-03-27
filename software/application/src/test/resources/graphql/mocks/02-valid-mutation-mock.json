@@ -1,0 +1,45 @@
+{
+  "description": "Valid mutation mock - createUser operation with correct args and response",
+  "expectedValid": true,
+  "expectedErrors": [],
+  "specification": {
+    "operations": [
+      {
+        "operationId": "createUser",
+        "variables": {
+          "name": "STRING",
+          "email": "STRING",
+          "age": "INTEGER"
+        },
+        "requiredVariables": ["name", "email"],
+        "responseFields": {
+          "id": "STRING",
+          "name": "STRING",
+          "email": "STRING"
+        },
+        "requiredResponseFields": ["id", "name", "email"]
+      }
+    ]
+  },
+  "wireMockMapping": {
+    "request": {
+      "method": "POST",
+      "urlPath": "/graphql",
+      "bodyPatterns": [
+        {
+          "equalToJson": "{\"query\":\"mutation createUser($name: String!, $email: String!, $age: Int) { createUser(name: $name, email: $email, age: $age) { id name email } }\",\"operationName\":\"createUser\",\"variables\":{\"name\":\"Bob Jones\",\"email\":\"bob@example.com\",\"age\":30}}"
+        }
+      ]
+    },
+    "response": {
+      "status": 200,
+      "jsonBody": {
+        "data": {
+          "id": "user-456",
+          "name": "Bob Jones",
+          "email": "bob@example.com"
+        }
+      }
+    }
+  }
+}

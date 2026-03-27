@@ -1,0 +1,41 @@
+{
+  "description": "Invalid mock - response missing data/errors fields (wrong GraphQL response format)",
+  "expectedValid": false,
+  "expectedErrors": ["Response must contain 'data' or 'errors' field (GraphQL response format)"],
+  "specification": {
+    "operations": [
+      {
+        "operationId": "getUser",
+        "variables": {
+          "id": "STRING"
+        },
+        "requiredVariables": ["id"],
+        "responseFields": {
+          "id": "STRING",
+          "name": "STRING"
+        },
+        "requiredResponseFields": ["id", "name"]
+      }
+    ]
+  },
+  "wireMockMapping": {
+    "request": {
+      "method": "POST",
+      "urlPath": "/graphql",
+      "bodyPatterns": [
+        {
+          "equalToJson": "{\"query\":\"query getUser($id: String!) { user(id: $id) { id name } }\",\"operationName\":\"getUser\",\"variables\":{\"id\":\"123\"}}"
+        }
+      ]
+    },
+    "response": {
+      "status": 200,
+      "jsonBody": {
+        "result": {
+          "id": "123",
+          "name": "John Doe"
+        }
+      }
+    }
+  }
+}
