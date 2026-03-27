@@ -237,19 +237,27 @@ class GraphQLSchemaReducer : GraphQLSchemaReducerInterface {
     }
     
     private fun extractTypeName(typeObj: JsonObject?): String {
-        if (typeObj == null) return "Unknown"
-        
+        if (typeObj == null) {
+            logger.warn { "Cannot extract type name: typeObj is null" }
+            return "Unknown"
+        }
+
         val kind = typeObj["kind"]?.jsonPrimitive?.content
         val name = typeObj["name"]?.jsonPrimitive?.contentOrNull
         val ofTypeElement = typeObj["ofType"]
-        
+
         // Handle JsonNull case - when ofType is explicitly null in JSON
         val ofType = if (ofTypeElement is JsonNull) null else ofTypeElement?.jsonObject
-        
+
         return when (kind) {
             "NON_NULL" -> "${extractTypeName(ofType)}!"
             "LIST" -> "[${extractTypeName(ofType)}]"
-            else -> name ?: "Unknown"
+            else -> {
+                if (name == null) {
+                    logger.warn { "Cannot resolve type name for kind=$kind, typeObj=$typeObj" }
+                }
+                name ?: "Unknown"
+            }
         }
     }
 }

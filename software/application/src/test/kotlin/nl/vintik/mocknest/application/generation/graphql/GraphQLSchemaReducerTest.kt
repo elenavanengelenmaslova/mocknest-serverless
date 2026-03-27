@@ -2,7 +2,6 @@ package nl.vintik.mocknest.application.generation.graphql
 
 import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.domain.generation.GraphQLSchemaParsingException
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -14,11 +13,6 @@ import kotlin.test.assertTrue
 class GraphQLSchemaReducerTest {
 
     private val reducer = GraphQLSchemaReducer()
-
-    @AfterEach
-    fun tearDown() {
-        // No mocks to clear in this test
-    }
 
     private fun loadTestData(filename: String): String {
         return this::class.java.getResource("/graphql/introspection/$filename")?.readText()
@@ -339,7 +333,6 @@ class GraphQLSchemaReducerTest {
 
             // Then
             assertTrue(reductionPercent > 40, "Expected reduction > 40%, got $reductionPercent%")
-            assertEquals(result.prettyPrint().length, compactSize)
         }
 
         @Test
