@@ -5,10 +5,10 @@ import kotlinx.serialization.json.*
 import nl.vintik.mocknest.application.generation.interfaces.MockValidationResult
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.domain.generation.APISpecification
-import EndpointDefinition
+import nl.vintik.mocknest.domain.generation.EndpointDefinition
 import nl.vintik.mocknest.domain.generation.GeneratedMock
-import JsonSchema
-import JsonSchemaType
+import nl.vintik.mocknest.domain.generation.JsonSchema
+import nl.vintik.mocknest.domain.generation.JsonSchemaType
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
 
 private val logger = KotlinLogging.logger {}
@@ -125,11 +125,11 @@ class GraphQLMockValidator : MockValidatorInterface {
         // Get expected arguments from endpoint request body schema
         val requestBody = endpoint.requestBody ?: return errors
         val requestSchema = requestBody.content["application/json"]?.schema ?: return errors
-        val variablesSchema = requestSchema.properties?.get("variables") ?: return errors
+        val variablesSchema = requestSchema.properties["variables"] ?: return errors
 
         // Get required arguments
-        val requiredArgs = variablesSchema.required ?: emptyList()
-        val expectedArgs = variablesSchema.properties ?: emptyMap()
+        val requiredArgs = variablesSchema.required
+        val expectedArgs = variablesSchema.properties
 
         // Check for missing required arguments
         requiredArgs.forEach { argName ->
@@ -189,7 +189,7 @@ class GraphQLMockValidator : MockValidatorInterface {
             responseBody["data"]?.let { dataField ->
                 val responseSchema = endpoint.responses[200]?.schema
                 if (responseSchema != null) {
-                    val dataSchema = responseSchema.properties?.get("data")
+                    val dataSchema = responseSchema.properties.get("data")
                     if (dataSchema != null) {
                         errors.addAll(validateDataAgainstSchema(dataField, dataSchema, "data"))
                     }
@@ -225,14 +225,14 @@ class GraphQLMockValidator : MockValidatorInterface {
                 }
 
                 // Check required fields
-                schema.required?.forEach { requiredField ->
+                schema.required.forEach { requiredField ->
                     if (!data.containsKey(requiredField)) {
                         errors.add("Missing required field: '$path.$requiredField'")
                     }
                 }
 
                 // Validate each field
-                schema.properties?.forEach { (fieldName, fieldSchema) ->
+                schema.properties.forEach { (fieldName, fieldSchema) ->
                     data[fieldName]?.let { fieldValue ->
                         errors.addAll(
                             validateDataAgainstSchema(
@@ -272,7 +272,7 @@ class GraphQLMockValidator : MockValidatorInterface {
                 }
 
                 // Validate enum values (only when enum list is non-empty)
-                schema.enum?.takeIf { it.isNotEmpty() }?.let { enumValues ->
+                schema.enum.takeIf { it.isNotEmpty() }?.let { enumValues ->
                     if (!enumValues.contains(data.content)) {
                         errors.add("Field '$path' has invalid enum value: '${data.content}'. Valid values: ${enumValues.joinToString(", ")}")
                     }
@@ -312,31 +312,31 @@ class GraphQLMockValidator : MockValidatorInterface {
      */
     private fun validateJsonElementAgainstSchema(
         value: Any?,
-        schema: nl.vintik.mocknest.domain.generation.JsonSchema,
+        schema: JsonSchema,
         fieldName: String
     ): String? {
         // Handle JsonElement values (from JsonObject.toMap())
         if (value is JsonElement) {
             return when (schema.type) {
-                nl.vintik.mocknest.domain.generation.JsonSchemaType.STRING -> {
+                JsonSchemaType.STRING -> {
                     if (value !is JsonPrimitive || !value.isString) "Argument '$fieldName' must be a string" else null
                 }
-                nl.vintik.mocknest.domain.generation.JsonSchemaType.INTEGER -> {
+                JsonSchemaType.INTEGER -> {
                     if (value !is JsonPrimitive || value.intOrNull == null) "Argument '$fieldName' must be an integer" else null
                 }
-                nl.vintik.mocknest.domain.generation.JsonSchemaType.NUMBER -> {
+                JsonSchemaType.NUMBER -> {
                     if (value !is JsonPrimitive || (value.intOrNull == null && value.doubleOrNull == null)) "Argument '$fieldName' must be a number" else null
                 }
-                nl.vintik.mocknest.domain.generation.JsonSchemaType.BOOLEAN -> {
+                JsonSchemaType.BOOLEAN -> {
                     if (value !is JsonPrimitive || value.booleanOrNull == null) "Argument '$fieldName' must be a boolean" else null
                 }
-                nl.vintik.mocknest.domain.generation.JsonSchemaType.OBJECT -> {
+                JsonSchemaType.OBJECT -> {
                     if (value !is JsonObject) "Argument '$fieldName' must be an object" else null
                 }
-                nl.vintik.mocknest.domain.generation.JsonSchemaType.ARRAY -> {
+                JsonSchemaType.ARRAY -> {
                     if (value !is JsonArray) "Argument '$fieldName' must be an array" else null
                 }
-                nl.vintik.mocknest.domain.generation.JsonSchemaType.NULL -> {
+                JsonSchemaType.NULL -> {
                     if (value !is JsonNull) "Argument '$fieldName' must be null" else null
                 }
             }
