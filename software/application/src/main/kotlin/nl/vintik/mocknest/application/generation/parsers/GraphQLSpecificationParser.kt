@@ -104,7 +104,7 @@ class GraphQLSpecificationParser(
         
         // Convert GraphQL types to JSON schemas
         schema.types.forEach { (name, type) ->
-            schemas[name] = convertTypeToJsonSchema(type)
+            schemas[name] = convertTypeToJsonSchema(type, schema)
         }
         
         // Convert GraphQL enums to JSON schemas
@@ -133,7 +133,7 @@ class GraphQLSpecificationParser(
         schema: CompactGraphQLSchema
     ): EndpointDefinition {
         // GraphQL operations are always POST to /graphql endpoint
-        val requestBodySchema = createGraphQLRequestSchema(operation, operationType)
+        val requestBodySchema = createGraphQLRequestSchema(operation, operationType, schema)
         val responseSchema = createGraphQLResponseSchema(operation, schema)
         
         return EndpointDefinition(
@@ -163,14 +163,15 @@ class GraphQLSpecificationParser(
 
     private fun createGraphQLRequestSchema(
         operation: GraphQLOperation,
-        operationType: String
+        operationType: String,
+        compactSchema: CompactGraphQLSchema
     ): JsonSchema {
         // GraphQL request body: { "query": "...", "variables": {...}, "operationName": "..." }
         val variablesSchema = if (operation.arguments.isNotEmpty()) {
             JsonSchema(
                 type = JsonSchemaType.OBJECT,
                 properties = operation.arguments.associate { arg ->
-                    arg.name to mapGraphQLTypeToJsonSchema(arg.type, arg.description)
+                    arg.name to mapGraphQLTypeToJsonSchema(arg.type, arg.description, compactSchema)
                 },
                 required = operation.arguments.filter { it.type.endsWith("!") }.map { it.name }
             )
@@ -201,8 +202,8 @@ class GraphQLSpecificationParser(
     ): JsonSchema {
         // GraphQL response: { "data": {...}, "errors": [...] }
         val returnTypeName = operation.returnType.removeSuffix("!").removePrefix("[").removeSuffix("]")
-        val dataSchema = schema.types[returnTypeName]?.let { convertTypeToJsonSchema(it) }
-            ?: mapGraphQLTypeToJsonSchema(operation.returnType, "Response data")
+        val dataSchema = schema.types[returnTypeName]?.let { convertTypeToJsonSchema(it, schema) }
+            ?: mapGraphQLTypeToJsonSchema(operation.returnType, "Response data", schema)
         
         return JsonSchema(
             type = JsonSchemaType.OBJECT,
@@ -229,11 +230,11 @@ class GraphQLSpecificationParser(
         )
     }
 
-    private fun convertTypeToJsonSchema(type: GraphQLType): JsonSchema {
+    private fun convertTypeToJsonSchema(type: GraphQLType, compactSchema: CompactGraphQLSchema? = null): JsonSchema {
         return JsonSchema(
             type = JsonSchemaType.OBJECT,
             properties = type.fields.associate { field ->
-                field.name to mapGraphQLTypeToJsonSchema(field.type, field.description)
+                field.name to mapGraphQLTypeToJsonSchema(field.type, field.description, compactSchema)
             },
             required = type.fields.filter { it.type.endsWith("!") }.map { it.name },
             description = type.description
@@ -248,16 +249,24 @@ class GraphQLSpecificationParser(
         )
     }
 
-    private fun mapGraphQLTypeToJsonSchema(graphQLType: String, description: String? = null): JsonSchema {
+    private fun mapGraphQLTypeToJsonSchema(
+        graphQLType: String,
+        description: String? = null,
+        schema: CompactGraphQLSchema? = null
+    ): JsonSchema {
         val stripped = graphQLType.removeSuffix("!")
         // Detect list types like [Product], [String]!, [Int!]
         if (stripped.startsWith("[") && stripped.endsWith("]")) {
             val innerType = stripped.removePrefix("[").removeSuffix("]")
             return JsonSchema(
                 type = JsonSchemaType.ARRAY,
-                items = mapGraphQLTypeToJsonSchema(innerType),
+                items = mapGraphQLTypeToJsonSchema(innerType, schema = schema),
                 description = description
             )
+        }
+        // Check if the type is an enum defined in the schema
+        schema?.enums?.get(stripped)?.let { enumType ->
+            return convertEnumToJsonSchema(enumType).copy(description = description)
         }
         val schemaType = when (stripped) {
             "String", "ID" -> JsonSchemaType.STRING
