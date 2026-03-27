@@ -400,11 +400,19 @@ Comprehensive guidelines for unit test creation and maintenance.
 
 AI assistance for test creation, execution, and maintenance:
 
-- Add JUnit 5/Kotlin test coverage alongside new features, following the unit testing standards defined in the Code Generation Standards section above
+- Add JUnit 6/Kotlin test coverage alongside new features, following the unit testing standards defined in the Code Generation Standards section above
 - **Use Kover for code coverage** - Apply `org.jetbrains.kotlinx.kover` plugin for Kotlin-optimized coverage reporting with better support for inline functions and coroutines
 - **Target 90% aggregated code coverage** across the entire project - run `./gradlew koverHtmlReport` to generate coverage reports and `./gradlew koverVerify` to enforce the 90% threshold
 - **Emphasize integration tests over unit tests** - Focus on comprehensive end-to-end testing that validates actual system behavior rather than artificial per-module coverage targets
 - **Aggregated coverage enforcement** - The 90% coverage requirement is enforced at the project level (aggregated across all modules) rather than per-module, allowing flexibility in test strategy while ensuring overall system quality
+
+- **Property-based testing with @ParameterizedTest** - Use JUnit 6's `@ParameterizedTest` to validate universal properties across multiple examples:
+  - Create comprehensive test data files covering edge cases (simple, complex, large, nested, etc.)
+  - Use `@ValueSource`, `@MethodSource`, or `@CsvSource` to provide multiple test cases
+  - Test properties that should hold for ALL valid inputs (e.g., "all operations extracted", "size reduced by 40%+")
+  - Prefer deterministic examples over random generation for easier debugging
+  - Aim for 10-20 diverse examples per property test to catch edge cases
+  - Example: `@ParameterizedTest @ValueSource(strings = ["simple.json", "complex.json", "large.json"])`
 
 - **Integration testing with LocalStack TestContainers** - Use LocalStack TestContainers for infrastructure layer integration tests to validate AWS service interactions:
   - LocalStack container for S3, Lambda, API Gateway, and Bedrock testing

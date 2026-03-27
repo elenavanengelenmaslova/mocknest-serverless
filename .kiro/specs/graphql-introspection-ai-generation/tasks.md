@@ -59,13 +59,21 @@ The implementation follows clean architecture principles with strict layer separ
     - Use test data from `src/test/resources/graphql/introspection/`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.7, 3.8_
 
-  - [ ] 2.3 Write property test for schema extraction completeness
+  - [x] 2.3 Write property test for schema extraction completeness
     - **Property 5: Schema Extraction Completeness**
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5**
-    - Use Kotest property testing with 100 iterations
-    - Generate random valid introspection JSON
-    - Verify all queries, mutations, types, and enums are extracted
-    - Tag test with feature name and property number
+    - Use JUnit 6 `@ParameterizedTest` with `@ValueSource` or `@MethodSource`
+    - Create 10-20 diverse test data files in `src/test/resources/graphql/introspection/`:
+      - `simple-schema.json` (1-5 operations)
+      - `complex-schema.json` (20-50 operations)
+      - `large-schema-100-ops.json` (100+ operations)
+      - `nested-types-schema.json` (deeply nested types)
+      - `with-enums-schema.json` (multiple enum types)
+      - `minimal-schema.json` (absolute minimum valid schema)
+      - `mutations-only-schema.json` (no queries, only mutations)
+      - `queries-only-schema.json` (no mutations, only queries)
+    - For each test file, verify all queries, mutations, types, and enums are extracted
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-5")`
 
   - [x] 2.4 Implement GraphQLSpecificationParser
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/parsers/GraphQLSpecificationParser.kt`
@@ -89,8 +97,11 @@ The implementation follows clean architecture principles with strict layer separ
   - [ ]* 2.6 Write property test for dual input mode support
     - **Property 3: Dual Input Mode Support**
     - **Validates: Requirements 1.4**
-    - Test both URL and pre-fetched schema content inputs
-    - Verify both produce valid APISpecification
+    - Use JUnit 6 `@ParameterizedTest` with both URL and pre-fetched schema inputs
+    - Create test data files for pre-fetched schemas
+    - Mock introspection client for URL-based tests
+    - Verify both input modes produce valid APISpecification
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-3")`
 
   - [x] 2.7 Implement GraphQLMockValidator with validation rules
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/validators/GraphQLMockValidator.kt`
@@ -119,9 +130,63 @@ The implementation follows clean architecture principles with strict layer separ
   - [ ]* 2.9 Write property test for comprehensive mock validation
     - **Property 10: Comprehensive Mock Validation**
     - **Validates: Requirements 5.2, 5.3, 5.4, 5.5, 5.6, 5.7**
-    - Generate random valid mocks and schemas
-    - Verify all validation rules are checked
+    - Use JUnit 6 `@ParameterizedTest` with diverse mock examples
+    - Create 10-15 test data files with valid and invalid mocks
+    - Verify all validation rules are checked for each example
     - Verify validation errors are reported correctly
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-10")`
+
+  - [ ] 2.10 Reorganize existing REST prompts into subdirectory
+    - Create directory `software/application/src/main/resources/prompts/rest/`
+    - Move `spec-with-description.txt` to `prompts/rest/spec-with-description.txt`
+    - Move `correction.txt` to `prompts/rest/correction.txt`
+    - Keep `system-prompt.txt` and `wiremock-stub-schema.yaml` at `prompts/` root (shared)
+    - _Note: This organizes prompts by API type for clarity_
+
+  - [ ] 2.11 Create GraphQL-specific generation prompt
+    - Create `software/application/src/main/resources/prompts/graphql/spec-with-description.txt`
+    - Adapt from REST prompt but focus on GraphQL-specific requirements:
+      - Single POST endpoint pattern (no URL path parameters)
+      - GraphQL operation matching in request body using `bodyPatterns` with `matchesJsonPath`
+      - GraphQL response format with `data` and/or `errors` fields
+      - Schema-based field validation (required fields, types, enums)
+      - Operation name, arguments, and selection set matching
+      - Remove REST-specific URL matching rules (urlPath, urlPattern, path parameters)
+      - Keep WireMock schema reference and persistent flag requirements
+    - Use same template variables: `{{SPEC_TITLE}}`, `{{SPEC_VERSION}}`, `{{ENDPOINT_COUNT}}`, `{{KEY_ENDPOINTS}}`, `{{API_NAME}}`, `{{CLIENT_SECTION}}`, `{{DESCRIPTION}}`, `{{NAMESPACE}}`, `{{WIREMOCK_SCHEMA}}`
+    - _Requirements: 4.1, 4.2, 4.3, 4.4_
+
+  - [ ] 2.12 Create GraphQL-specific correction prompt
+    - Create `software/application/src/main/resources/prompts/graphql/correction.txt`
+    - Adapt from REST correction prompt but focus on GraphQL validation errors:
+      - Operation name not found in schema
+      - Argument type mismatches
+      - Missing required response fields
+      - Invalid enum values
+      - Response format issues (missing data/errors fields)
+      - Remove REST-specific error types (URL path issues, query parameter issues)
+    - Use same template variables: `{{SPEC_CONTEXT}}`, `{{API_NAME}}`, `{{CLIENT_SECTION}}`, `{{MOCKS_WITH_ERRORS}}`, `{{NAMESPACE}}`
+    - _Requirements: 5.8, 6.1, 6.2_
+
+  - [ ] 2.13 Update PromptBuilderService to support format-specific prompts
+    - Update `buildSpecWithDescriptionPrompt` method to accept `SpecificationFormat` parameter
+    - Add logic to select prompt path based on format:
+      - `SpecificationFormat.GRAPHQL` → load from `/prompts/graphql/spec-with-description.txt`
+      - `SpecificationFormat.OPENAPI_3` or `SWAGGER_2` → load from `/prompts/rest/spec-with-description.txt`
+    - Update `buildCorrectionPrompt` method to accept `SpecificationFormat` parameter
+    - Add logic to select correction prompt based on format:
+      - `SpecificationFormat.GRAPHQL` → load from `/prompts/graphql/correction.txt`
+      - `SpecificationFormat.OPENAPI_3` or `SWAGGER_2` → load from `/prompts/rest/correction.txt`
+    - Keep `loadSystemPrompt()` unchanged (loads from `/prompts/system-prompt.txt`)
+    - _Requirements: 1.2, 4.1_
+
+  - [ ] 2.14 Update PromptBuilderService tests for format-specific prompts
+    - Update existing tests to pass `SpecificationFormat` parameter
+    - Add test for GraphQL prompt loading
+    - Add test for REST prompt loading
+    - Verify correct prompt is selected based on format
+    - Verify template variable replacement works for both formats
+    - _Requirements: 1.2_
 
 - [ ] 3. Phase 3: Infrastructure Layer - Implement introspection client and integration
   - [ ] 3.1 Add Kotlin HTTP client dependencies to Gradle
@@ -156,8 +221,10 @@ The implementation follows clean architecture principles with strict layer separ
   - [ ]* 3.4 Write property test for introspection success
     - **Property 4: Introspection Success Returns Valid JSON**
     - **Validates: Requirements 2.6**
-    - Mock successful introspection responses
+    - Use JUnit 6 `@ParameterizedTest` with mock HTTP responses
+    - Create 5-10 example introspection responses
     - Verify returned JSON is valid and contains schema information
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-4")`
 
   - [ ] 3.5 Wire GraphQLIntrospectionClient into GraphQLSpecificationParser
     - Update `GraphQLSpecificationParser` constructor to accept `GraphQLIntrospectionClientInterface`
@@ -191,8 +258,10 @@ The implementation follows clean architecture principles with strict layer separ
   - [ ]* 4.2 Write property test for format-based parser selection
     - **Property 2: Format-Based Parser Selection**
     - **Validates: Requirements 1.2**
+    - Use JUnit 6 `@ParameterizedTest` with `@EnumSource(SpecificationFormat.class)`
     - Test that GRAPHQL format routes to GraphQLSpecificationParser
     - Test that OPENAPI_3/SWAGGER_2 routes to OpenAPISpecificationParser
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-2")`
 
   - [ ] 4.3 Register GraphQLMockValidator in validator registry
     - Locate validator registry in application layer
@@ -231,8 +300,10 @@ The implementation follows clean architecture principles with strict layer separ
   - [ ] 4.8 Write property test for bounded retry attempts
     - **Property 12: Bounded Retry Attempts**
     - **Validates: Requirements 6.3**
+    - Use JUnit 6 `@ParameterizedTest` with various retry configurations (0, 1, 2, 3 retries)
     - Verify retry coordinator limits attempts to configured maximum
-    - Test with various retry configurations
+    - Test with mock AI service that always fails
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-12")`
 
   - [ ]* 4.9 Write REST generation non-regression tests
     - Test OpenAPI specification generation still works
@@ -243,54 +314,100 @@ The implementation follows clean architecture principles with strict layer separ
   - [ ]* 4.10 Write property test for REST generation non-regression
     - **Property 14: REST Generation Non-Regression**
     - **Validates: Requirements 7.4**
-    - Generate random valid OpenAPI specs
-    - Verify REST generation produces valid mocks
+    - Use JUnit 6 `@ParameterizedTest` with 10-15 OpenAPI spec examples
+    - Create test data files: `petstore-openapi.yaml`, `simple-rest-api.yaml`, `complex-rest-api.yaml`, etc.
+    - Verify REST generation produces valid mocks for each example
+    - Verify no breaking changes to REST flow
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-14")`
 
   - [ ] 4.11 Write property test for GraphQL request acceptance
     - **Property 1: GraphQL Request Acceptance**
     - **Validates: Requirements 1.1**
-    - Generate random valid GraphQL endpoints and instructions
+    - Use JUnit 6 `@ParameterizedTest` with various GraphQL endpoint URLs and instructions
+    - Create 10+ combinations of valid endpoints and instructions
     - Verify requests are accepted without format-related errors
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-1")`
 
   - [ ] 4.12 Write property test for GraphQL-over-HTTP mock format
     - **Property 8: GraphQL-over-HTTP Mock Format**
     - **Validates: Requirements 4.3**
+    - Use JUnit 6 `@ParameterizedTest` with 10+ generated mock examples
     - Verify generated mocks specify POST method
     - Verify mocks include JSON body matcher for GraphQL operation
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-8")`
 
   - [ ] 4.13 Write property test for GraphQL response format compliance
     - **Property 9: GraphQL Response Format Compliance**
     - **Validates: Requirements 4.4**
+    - Use JUnit 6 `@ParameterizedTest` with 10+ mock response examples
     - Verify response bodies contain data or errors fields
     - Verify compliance with GraphQL response specification
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-9")`
 
   - [ ] 4.14 Write property test for validation error reporting
     - **Property 11: Validation Error Reporting**
     - **Validates: Requirements 5.8**
-    - Generate invalid mocks
+    - Use JUnit 6 `@ParameterizedTest` with 10+ invalid mock examples
     - Verify validator returns non-empty error list with context
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-11")`
 
   - [ ] 4.15 Write property test for WireMock persistence compatibility
     - **Property 13: WireMock Persistence Compatibility**
     - **Validates: Requirements 7.1**
+    - Use JUnit 6 `@ParameterizedTest` with 10+ generated mock examples
     - Verify generated mocks are valid WireMock JSON
     - Verify compatibility with existing persistence model
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-13")`
 
   - [ ] 4.16 Write property test for schema round-trip preservation
     - **Property 15: Schema Round-Trip Preservation**
     - **Validates: Requirements 10.3, 10.4, 10.5, 10.6**
+    - Use JUnit 6 `@ParameterizedTest` with 10+ compact schema examples
     - Parse introspection → pretty-print → parse SDL → compare
     - Verify operations, types, and enums are preserved
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-15")`
 
   - [ ] 4.17 Write property test for metadata field exclusion
     - **Property 6: Metadata Field Exclusion**
     - **Validates: Requirements 3.7**
+    - Use JUnit 6 `@ParameterizedTest` with 10+ introspection JSON examples
     - Verify compact schema excludes `__schema`, `__type`, `__typename`
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-6")`
 
   - [ ] 4.18 Write property test for schema size reduction
     - **Property 7: Schema Size Reduction**
     - **Validates: Requirements 3.8**
+    - Use JUnit 6 `@ParameterizedTest` with 10+ introspection JSON examples
     - Verify compact schema is at least 40% smaller than raw introspection
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-7")`
+
+  - [ ] 4.19 Write REST API property tests for non-regression
+    - Create comprehensive property tests for REST/OpenAPI generation to ensure no regressions
+    - Use JUnit 6 `@ParameterizedTest` with diverse OpenAPI examples
+    - Create test data directory: `src/test/resources/openapi/specs/`
+    - Add 15-20 OpenAPI spec examples:
+      - `petstore-v3.yaml` (Swagger Petstore)
+      - `simple-crud-api.yaml` (basic CRUD operations)
+      - `complex-api-with-refs.yaml` (with $ref references)
+      - `api-with-query-params.yaml` (query parameter handling)
+      - `api-with-path-params.yaml` (path parameter handling)
+      - `api-with-request-bodies.yaml` (POST/PUT with bodies)
+      - `api-with-arrays.yaml` (array responses)
+      - `api-with-nested-objects.yaml` (complex nested structures)
+      - `api-with-enums.yaml` (enum types)
+      - `api-with-auth.yaml` (authentication schemes)
+      - `minimal-api.yaml` (minimal valid spec)
+      - `large-api-50-endpoints.yaml` (large API)
+    - Test properties:
+      - All endpoints from spec are generated as mocks
+      - URL paths are correctly prefixed with namespace
+      - HTTP methods match spec
+      - Response status codes match spec
+      - Request/response schemas are valid
+      - Query parameters are handled correctly
+      - Path parameters are handled correctly
+    - Tag tests with `@Tag("rest-api-property-tests")`
+    - _Note: These tests ensure GraphQL changes don't break REST generation_
 
 - [ ] 5. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.

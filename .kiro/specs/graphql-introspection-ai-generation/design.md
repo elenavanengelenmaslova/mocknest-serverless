@@ -918,74 +918,82 @@ The GraphQL introspection feature will be tested using both unit tests and prope
 
 ### Property-Based Testing Configuration
 
-**Test Library**: Use Kotest property testing for Kotlin
+**Test Library**: Use JUnit 6 `@ParameterizedTest` for property-based testing
 
 **Configuration**:
-- Minimum 100 iterations per property test
+- Minimum 10-20 diverse test examples per property test
 - Each test tagged with feature name and property number
-- Tag format: `Feature: graphql-introspection-ai-generation, Property {number}: {property_text}`
+- Tag format: `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-{number}")`
+- Use test data files from `src/test/resources/` for deterministic, reproducible tests
 
 **Property Test Examples**:
 
 ```kotlin
-@Test
-fun `Property 1 - GraphQL Request Acceptance`() = runTest {
-    checkAll(100, Arb.graphqlEndpointUrl(), Arb.instructions()) { url, instructions ->
-        val request = SpecWithDescriptionRequest(
-            namespace = MockNamespace("test-api"),
-            specificationUrl = url,
-            format = SpecificationFormat.GRAPHQL,
-            description = instructions
-        )
-        
-        // Should not throw format-related exceptions
-        shouldNotThrowAny {
-            // Validation logic
-        }
-    }
+@ParameterizedTest
+@ValueSource(strings = [
+    "simple-schema.json",
+    "complex-schema.json",
+    "pokeapi-schema.json",
+    "100-operations.json",
+    "nested-types.json",
+    "with-enums.json",
+    "large-schema.json",
+    "minimal-schema.json"
+])
+@Tag("graphql-introspection-ai-generation")
+@Tag("Property-5")
+suspend fun `Property 5 - Schema Extraction Completeness`(filename: String) {
+    val introspectionJson = loadTestData("graphql/introspection/$filename")
+    val compactSchema = schemaReducer.reduce(introspectionJson)
+    
+    // Verify all operations extracted
+    val originalOperations = extractOperationsFromJson(introspectionJson)
+    assertEquals(originalOperations.size, compactSchema.queries.size + compactSchema.mutations.size)
+    
+    // Verify all types extracted
+    val originalTypes = extractTypesFromJson(introspectionJson)
+    assertEquals(originalTypes.size, compactSchema.types.size)
+    
+    // Verify all enums extracted
+    val originalEnums = extractEnumsFromJson(introspectionJson)
+    assertEquals(originalEnums.size, compactSchema.enums.size)
 }
 
-@Test
-fun `Property 5 - Schema Extraction Completeness`() = runTest {
-    checkAll(100, Arb.graphqlIntrospectionJson()) { introspectionJson ->
-        val compactSchema = schemaReducer.reduce(introspectionJson)
-        
-        // Verify all operations extracted
-        val originalOperations = extractOperationsFromJson(introspectionJson)
-        compactSchema.queries.size + compactSchema.mutations.size shouldBe originalOperations.size
-        
-        // Verify all types extracted
-        val originalTypes = extractTypesFromJson(introspectionJson)
-        compactSchema.types.size shouldBe originalTypes.size
-        
-        // Verify all enums extracted
-        val originalEnums = extractEnumsFromJson(introspectionJson)
-        compactSchema.enums.size shouldBe originalEnums.size
-    }
+@ParameterizedTest
+@MethodSource("compactSchemaExamples")
+@Tag("graphql-introspection-ai-generation")
+@Tag("Property-15")
+fun `Property 15 - Schema Round-Trip Preservation`(schema: CompactGraphQLSchema) {
+    val prettyPrinted = schema.prettyPrint()
+    val reparsed = parseGraphQLSDL(prettyPrinted)
+    
+    // Schemas should be equivalent
+    assertEquals(schema.queries.toSet(), reparsed.queries.toSet())
+    assertEquals(schema.mutations.toSet(), reparsed.mutations.toSet())
+    assertEquals(schema.types, reparsed.types)
+    assertEquals(schema.enums, reparsed.enums)
 }
 
-@Test
-fun `Property 15 - Schema Round-Trip Preservation`() = runTest {
-    checkAll(100, Arb.compactGraphQLSchema()) { schema ->
-        val prettyPrinted = schema.prettyPrint()
-        val reparsed = parseGraphQLSDL(prettyPrinted)
-        
-        // Schemas should be equivalent
-        reparsed.queries shouldContainExactlyInAnyOrder schema.queries
-        reparsed.mutations shouldContainExactlyInAnyOrder schema.mutations
-        reparsed.types shouldBe schema.types
-        reparsed.enums shouldBe schema.enums
-    }
+companion object {
+    @JvmStatic
+    fun compactSchemaExamples() = listOf(
+        loadCompactSchema("simple-compact.json"),
+        loadCompactSchema("complex-compact.json"),
+        loadCompactSchema("with-enums-compact.json"),
+        // ... 10+ examples
+    )
 }
 ```
 
-**Generators for Property Tests**:
-- `Arb.graphqlEndpointUrl()`: Generates valid GraphQL endpoint URLs
-- `Arb.instructions()`: Generates natural language instructions
-- `Arb.graphqlIntrospectionJson()`: Generates valid introspection JSON
-- `Arb.compactGraphQLSchema()`: Generates valid CompactGraphQLSchema instances
-- `Arb.graphqlOperation()`: Generates valid GraphQL operations
-- `Arb.graphqlMock()`: Generates valid GraphQL mocks
+**Test Data Organization**:
+- Create diverse test data files covering edge cases
+- Simple schemas (1-5 operations)
+- Complex schemas (20-50 operations)
+- Large schemas (100+ operations)
+- Schemas with nested types
+- Schemas with enums
+- Schemas with various type combinations
+- Invalid schemas for error testing
 
 ### Test Data Management
 
@@ -1017,7 +1025,7 @@ fun `Property 15 - Schema Round-Trip Preservation`() = runTest {
 
 **Test Execution**:
 - All unit tests run on every commit
-- Property tests run on every commit (100 iterations)
+- Property tests (parameterized tests with 10-20 examples) run on every commit
 - Integration tests run on every commit
 - Manual tests documented but not automated
 
@@ -1220,7 +1228,7 @@ Following clean architecture principles, implement in this sequence:
 - Parsing with `SpecificationParserInterface`
 - Domain model validation in `init` blocks
 - Test organization with Given-When-Then naming
-- Property testing with Kotest
+- Property testing with `@ParameterizedTest`
 
 ### Dependencies
 
@@ -1239,8 +1247,8 @@ testImplementation("com.graphql-java:graphql-java:21.0")
 **Existing Dependencies to Leverage**:
 - `kotlinx-serialization-json`: For JSON parsing
 - `kotlin-logging`: For structured logging
-- `kotest`: For property testing
 - `mockk`: For mocking in tests
+- JUnit 6 `@ParameterizedTest`: For property-based testing
 
 ### Configuration
 
