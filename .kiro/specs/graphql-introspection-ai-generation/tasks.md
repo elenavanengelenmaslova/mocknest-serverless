@@ -94,16 +94,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Test format support check
     - _Requirements: 1.2, 1.4_
 
-  - [ ] 2.6 Write property test for dual input mode support
-    - **Property 3: Dual Input Mode Support**
-    - **Validates: Requirements 1.4**
-    - Use JUnit 6 `@ParameterizedTest` with both URL and pre-fetched schema inputs
-    - Create test data files for pre-fetched schemas
-    - Mock introspection client for URL-based tests
-    - Verify both input modes produce valid APISpecification
-    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-3")`
-
-  - [x] 2.7 Implement GraphQLMockValidator with validation rules
+  - [x] 2.6 Implement GraphQLMockValidator with validation rules
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/validators/GraphQLMockValidator.kt`
     - Implement `MockValidatorInterface` for GraphQL
     - Extract GraphQL operation from WireMock mapping JSON
@@ -117,7 +108,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Return `MockValidationResult` with specific error messages
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8_
 
-  - [ ] 2.8 Write unit tests for GraphQLMockValidator
+  - [x] 2.7 Write unit tests for GraphQLMockValidator
     - Test validation of valid mocks
     - Test detection of missing operations
     - Test detection of argument type mismatches
@@ -127,7 +118,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Test error message formatting with context
     - _Requirements: 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8_
 
-  - [ ]* 2.9 Write property test for comprehensive mock validation
+  - [ ] 2.8 Write property test for comprehensive mock validation
     - **Property 10: Comprehensive Mock Validation**
     - **Validates: Requirements 5.2, 5.3, 5.4, 5.5, 5.6, 5.7**
     - Use JUnit 6 `@ParameterizedTest` with diverse mock examples
@@ -136,14 +127,14 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify validation errors are reported correctly
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-10")`
 
-  - [ ] 2.10 Reorganize existing REST prompts into subdirectory
+  - [ ] 2.9 Reorganize existing REST prompts into subdirectory
     - Create directory `software/application/src/main/resources/prompts/rest/`
     - Move `spec-with-description.txt` to `prompts/rest/spec-with-description.txt`
     - Move `correction.txt` to `prompts/rest/correction.txt`
     - Keep `system-prompt.txt` and `wiremock-stub-schema.yaml` at `prompts/` root (shared)
     - _Note: This organizes prompts by API type for clarity_
 
-  - [ ] 2.11 Create GraphQL-specific generation prompt
+  - [ ] 2.10 Create GraphQL-specific generation prompt
     - Create `software/application/src/main/resources/prompts/graphql/spec-with-description.txt`
     - Adapt from REST prompt but focus on GraphQL-specific requirements:
       - Single POST endpoint pattern (no URL path parameters)
@@ -156,7 +147,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Use same template variables: `{{SPEC_TITLE}}`, `{{SPEC_VERSION}}`, `{{ENDPOINT_COUNT}}`, `{{KEY_ENDPOINTS}}`, `{{API_NAME}}`, `{{CLIENT_SECTION}}`, `{{DESCRIPTION}}`, `{{NAMESPACE}}`, `{{WIREMOCK_SCHEMA}}`
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-  - [ ] 2.12 Create GraphQL-specific correction prompt
+  - [ ] 2.11 Create GraphQL-specific correction prompt
     - Create `software/application/src/main/resources/prompts/graphql/correction.txt`
     - Adapt from REST correction prompt but focus on GraphQL validation errors:
       - Operation name not found in schema
@@ -168,7 +159,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Use same template variables: `{{SPEC_CONTEXT}}`, `{{API_NAME}}`, `{{CLIENT_SECTION}}`, `{{MOCKS_WITH_ERRORS}}`, `{{NAMESPACE}}`
     - _Requirements: 5.8, 6.1, 6.2_
 
-  - [ ] 2.13 Update PromptBuilderService to support format-specific prompts
+  - [ ] 2.12 Update PromptBuilderService to support format-specific prompts
     - Update `buildSpecWithDescriptionPrompt` method to accept `SpecificationFormat` parameter
     - Add logic to select prompt path based on format:
       - `SpecificationFormat.GRAPHQL` → load from `/prompts/graphql/spec-with-description.txt`
@@ -180,7 +171,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Keep `loadSystemPrompt()` unchanged (loads from `/prompts/system-prompt.txt`)
     - _Requirements: 1.2, 4.1_
 
-  - [ ] 2.14 Update PromptBuilderService tests for format-specific prompts
+  - [ ] 2.13 Update PromptBuilderService tests for format-specific prompts
     - Update existing tests to pass `SpecificationFormat` parameter
     - Add test for GraphQL prompt loading
     - Add test for REST prompt loading
@@ -233,13 +224,24 @@ The implementation follows clean architecture principles with strict layer separ
     - Use pre-fetched content when URL is not provided
     - _Requirements: 1.4, 2.1_
 
-  - [ ]* 3.6 Write integration tests for parser with introspection
+  - [ ] 3.6 Write property test for dual input mode support
+    - **Property 3: Dual Input Mode Support**
+    - **Validates: Requirements 1.4**
+    - Use JUnit 6 `@ParameterizedTest` with both URL and pre-fetched schema inputs
+    - Update existing test file `GraphQLSpecificationParserDualInputPropertyTest.kt`
+    - Uncomment and complete URL-based introspection test cases
+    - Mock introspection client for URL-based tests
+    - Verify both input modes produce valid APISpecification
+    - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-3")`
+    - _Note: Pre-fetched schema tests already implemented in Phase 2, this task completes URL-based testing_
+
+  - [ ] 3.7 Write integration tests for parser with introspection
     - Test parsing from URL (using mock introspection client)
     - Test parsing from pre-fetched schema
     - Test error propagation from introspection client
     - _Requirements: 1.4, 2.1_
 
-  - [ ] 3.7 Create Spring configuration for GraphQL components
+  - [ ] 3.8 Create Spring configuration for GraphQL components
     - Create `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/config/GraphQLGenerationConfig.kt`
     - Define `@Configuration` class with Spring beans
     - Register `GraphQLIntrospectionClient` bean
