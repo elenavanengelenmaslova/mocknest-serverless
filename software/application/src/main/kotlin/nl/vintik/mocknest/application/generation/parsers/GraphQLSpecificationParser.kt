@@ -25,13 +25,7 @@ class GraphQLSpecificationParser(
         logger.info { "Parsing GraphQL specification" }
 
         return runCatching {
-            val introspectionJson = if (isHttpUrl(content)) {
-                logger.info { "Detected URL input, executing introspection: $content" }
-                introspectionClient.introspect(content)
-            } else {
-                logger.debug { "Using pre-fetched schema content" }
-                content
-            }
+            val introspectionJson = resolveIntrospectionContent(content)
             val compactSchema = schemaReducer.reduce(introspectionJson)
             convertToAPISpecification(compactSchema, introspectionJson)
         }.onFailure { exception ->
@@ -45,15 +39,11 @@ class GraphQLSpecificationParser(
 
     override suspend fun validate(content: String, format: SpecificationFormat): ValidationResult {
         require(format == SpecificationFormat.GRAPHQL) { "Only GRAPHQL format supported" }
-        
+
         logger.debug { "Validating GraphQL specification" }
-        
+
         return runCatching {
-            val introspectionJson = if (isHttpUrl(content)) {
-                introspectionClient.introspect(content)
-            } else {
-                content
-            }
+            val introspectionJson = resolveIntrospectionContent(content)
             schemaReducer.reduce(introspectionJson)
             ValidationResult.valid()
         }.fold(
@@ -74,15 +64,11 @@ class GraphQLSpecificationParser(
 
     override suspend fun extractMetadata(content: String, format: SpecificationFormat): SpecificationMetadata {
         require(format == SpecificationFormat.GRAPHQL) { "Only GRAPHQL format supported" }
-        
+
         logger.debug { "Extracting metadata from GraphQL specification" }
-        
+
         return runCatching {
-            val introspectionJson = if (isHttpUrl(content)) {
-                introspectionClient.introspect(content)
-            } else {
-                content
-            }
+            val introspectionJson = resolveIntrospectionContent(content)
             val compactSchema = schemaReducer.reduce(introspectionJson)
             
             SpecificationMetadata(
@@ -281,6 +267,16 @@ class GraphQLSpecificationParser(
             else -> JsonSchemaType.OBJECT
         }
         return JsonSchema(type = schemaType, description = description)
+    }
+
+    private suspend fun resolveIntrospectionContent(content: String): String {
+        return if (isHttpUrl(content)) {
+            logger.info { "Detected URL input, executing introspection" }
+            introspectionClient.introspect(content)
+        } else {
+            logger.debug { "Using pre-fetched schema content" }
+            content
+        }
     }
 
     private fun isHttpUrl(content: String): Boolean {
