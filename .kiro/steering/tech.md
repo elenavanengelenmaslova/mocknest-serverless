@@ -509,6 +509,62 @@ Kiro is used to systematically develop feature specifications through a structur
 2. **Design Creation**: After requirements approval, Kiro creates technical design documents with architecture, components, and correctness properties
 3. **Task Planning**: Following design approval, Kiro generates implementation task lists with specific, actionable steps
 
+## Mandatory Testing Requirements for Task Generation
+
+**CRITICAL: All generated task lists MUST include comprehensive testing tasks**
+
+When generating implementation tasks (tasks.md), the following testing requirements are MANDATORY:
+
+### Required Test Tasks for Every Feature
+
+1. **Unit Tests (MANDATORY)**
+   - Every new class, function, or component MUST have corresponding unit tests
+   - Unit tests MUST follow Given-When-Then naming convention
+   - Unit tests MUST use MockK for mocking dependencies
+   - Unit tests MUST achieve minimum 90% code coverage for new code
+   - Task example: "Write unit tests for [ComponentName] covering success and failure paths"
+
+2. **Property-Based Tests (MANDATORY)**
+   - Features with data transformation, parsing, or validation logic MUST include property-based tests
+   - Use JUnit 6's `@ParameterizedTest` with multiple test cases (10-20 diverse examples)
+   - Create test data files in `src/test/resources/test-data/` for complex scenarios
+   - Test universal properties that should hold for ALL valid inputs
+   - Task example: "Write property-based tests for [FeatureName] using @ParameterizedTest with diverse test data files"
+
+3. **Integration Tests (MANDATORY for infrastructure layer)**
+   - Infrastructure layer code (AWS adapters, storage implementations) MUST have LocalStack TestContainers integration tests
+   - Integration tests MUST validate actual AWS SDK interactions
+   - Integration tests MUST use proper TestContainers lifecycle management
+   - Task example: "Write LocalStack integration tests for [AWS Component] validating S3/Bedrock interactions"
+
+### Task Generation Rules
+
+- **Every implementation task MUST be followed by a corresponding test task**
+- Test tasks are NOT optional - they are required for task completion
+- Test tasks should be explicit and specific about what needs to be tested
+- Test tasks should reference the testing standards in this document
+
+### Example Task Structure
+
+```markdown
+- [ ] 1. Implement GraphQL schema parser
+  - [ ] 1.1 Create GraphQLSchemaParser class in application layer
+  - [ ] 1.2 Implement schema parsing logic
+  - [ ] 1.3 Write unit tests for GraphQLSchemaParser covering all parsing scenarios
+  - [ ] 1.4 Write property-based tests using @ParameterizedTest with 10+ diverse GraphQL schema files
+  - [ ] 1.5 Write LocalStack integration tests validating end-to-end schema parsing with S3 storage
+```
+
+### Coverage Verification Task
+
+Every task list MUST include a final verification task:
+```markdown
+- [ ] N. Verify test coverage and quality
+  - [ ] N.1 Run `./gradlew koverHtmlReport` and verify 90%+ coverage for new code
+  - [ ] N.2 Run `./gradlew koverVerify` to enforce coverage threshold
+  - [ ] N.3 Review test quality: Given-When-Then naming, proper assertions, edge case coverage
+```
+
 ## Incremental Feature Completion Strategy
 
 **Critical Rule: Complete one feature fully before starting the next**

@@ -86,7 +86,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Implement `supports(format)`, `validate(content, format)`, `extractMetadata(content, format)` methods
     - _Requirements: 1.1, 1.2, 1.4, 3.1_
 
-  - [ ] 2.5 Write unit tests for GraphQLSpecificationParser
+  - [x] 2.5 Write unit tests for GraphQLSpecificationParser
     - Test parsing from pre-fetched schema content
     - Test conversion to APISpecification
     - Test metadata extraction
@@ -94,7 +94,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Test format support check
     - _Requirements: 1.2, 1.4_
 
-  - [ ]* 2.6 Write property test for dual input mode support
+  - [ ] 2.6 Write property test for dual input mode support
     - **Property 3: Dual Input Mode Support**
     - **Validates: Requirements 1.4**
     - Use JUnit 6 `@ParameterizedTest` with both URL and pre-fetched schema inputs
