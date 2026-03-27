@@ -142,11 +142,32 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 
 When `enableValidation` is enabled, generated mocks are automatically validated. If invalid mocks are detected, the system retries generation with AI self-correction (up to `BedrockGenerationMaxRetries` attempts) and only returns mocks that pass validation.
 
+Generate mocks from a GraphQL endpoint (via introspection):
+
+```bash
+curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "namespace": {
+    "apiName": "pokemon-graphql",
+    "client": null
+  },
+  "specificationUrl": "https://graphql.pokeapi.co/v1beta2",
+  "format": "GRAPHQL",
+  "description": "Generate mocks for Pokemon queries such as pokemon details, moves, abilities, and item lookups with realistic but consistent test data.",
+  "options": {
+    "enableValidation": true
+  }
+}'
+```
+
 **Supported Formats**:
 - OpenAPI 3.x (fully tested)
 - Swagger 2.0 (experimental)
+- GraphQL (via introspection)
 
-**Current Limitations**: AI generation supports REST APIs only. GraphQL and SOAP API generation not yet supported.
+**Current Limitations**: AI generation supports REST and GraphQL APIs. SOAP API generation is not yet supported.
 
 ## Architecture and Data Persistence
 

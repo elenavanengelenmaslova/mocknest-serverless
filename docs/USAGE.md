@@ -28,6 +28,7 @@ You can manage mocks in two ways:
   - [Import Generated Mappings](#import-generated-mappings)
   - [Call Generated Pet API by Status](#call-generated-pet-api-by-status)
   - [Call Generated Pet API by Tags](#call-generated-pet-api-by-tags)
+  - [Generate Mocks from GraphQL Schema (via Introspection)](#generate-mocks-from-graphql-schema-via-introspection)
 - [Administrative Operations](#administrative-operations)
   - [Get All Mappings](#get-all-mappings)
   - [Get File Content](#get-file-content)
@@ -755,6 +756,37 @@ curl -X GET "${MOCKNEST_URL}/petstore/pet/findByTags?tags=new" \
 **Key Parameters**:
 - `tags` query parameter: Filter pets by tag name (e.g., "new", "featured")
 - Response: Array of pet objects that have the specified tag
+
+
+### Generate Mocks from GraphQL Schema (via Introspection)
+
+**Description**: Generates mocks for a GraphQL API by fetching the schema via introspection from the endpoint URL. This example generates mocks for the Pokemon GraphQL API.
+
+**Command**:
+```bash
+curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "namespace": {
+    "apiName": "pokemon-graphql",
+    "client": null
+  },
+  "specificationUrl": "https://graphql.pokeapi.co/v1beta2",
+  "format": "GRAPHQL",
+  "description": "Generate mocks for Pokemon queries such as pokemon details, moves, abilities, and item lookups with realistic but consistent test data.",
+  "options": {
+    "enableValidation": true
+  }
+}'
+```
+
+**Key Parameters**:
+- `namespace.apiName`: Name prefix for the generated mock endpoints
+- `specificationUrl`: URL of the GraphQL endpoint (introspection query is sent automatically)
+- `format`: Must be `GRAPHQL` for GraphQL APIs
+- `description`: Natural language description guiding the AI generation
+- `options.enableValidation`: Validate generated mocks against the GraphQL schema
 
 
 ## Administrative Operations
