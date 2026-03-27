@@ -14,6 +14,13 @@ private val logger = KotlinLogging.logger {}
  * Validator for GraphQL mocks.
  * Validates generated GraphQL mocks against the introspected schema.
  */
+import org.springframework.stereotype.Component
+
+/**
+ * Validator for GraphQL mocks.
+ * Validates generated GraphQL mocks against the introspected schema.
+ */
+`@Component`
 class GraphQLMockValidator : MockValidatorInterface {
 
     override suspend fun validate(mock: GeneratedMock, specification: APISpecification): MockValidationResult {
