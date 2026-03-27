@@ -21,9 +21,11 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
     override suspend fun parse(content: String, format: SpecificationFormat): APISpecification {
         val parseResult = OpenAPIV3Parser().readContents(content)
 
-        require(parseResult.messages.isEmpty()) { "OpenAPI parsing errors: ${parseResult.messages.joinToString(", ")}" }
-
         val openAPI = requireNotNull(parseResult.openAPI) { "Failed to parse OpenAPI specification" }
+
+        if (parseResult.messages.isNotEmpty()) {
+            logger.warn { "OpenAPI parsing warnings: ${parseResult.messages.joinToString(", ")}" }
+        }
 
         return convertToAPISpecification(openAPI, format, content)
     }
