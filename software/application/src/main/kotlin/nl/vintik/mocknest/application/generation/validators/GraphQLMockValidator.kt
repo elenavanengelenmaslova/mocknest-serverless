@@ -79,10 +79,10 @@ class GraphQLMockValidator : MockValidatorInterface {
             val request = wireMockJson["request"]?.jsonObject ?: return@runCatching null
             val bodyPatterns = request["bodyPatterns"]?.jsonArray ?: return@runCatching null
 
-            // Find the JSON body matcher
-            val bodyPattern = bodyPatterns.firstOrNull()?.jsonObject ?: return@runCatching null
-            val equalToJson = bodyPattern["equalToJson"]?.jsonPrimitive?.contentOrNull
-                ?: return@runCatching null // matchesJsonPath contains expressions, not JSON
+            // Find the body pattern containing an equalToJson matcher
+            val equalToJson = bodyPatterns
+                .mapNotNull { it.jsonObject["equalToJson"]?.jsonPrimitive?.contentOrNull }
+                .firstOrNull() ?: return@runCatching null
 
             // Parse the GraphQL request body
             val graphqlRequest = Json.parseToJsonElement(equalToJson).jsonObject
