@@ -361,8 +361,7 @@ class GraphQLSchemaReducerTest {
             val compactSize = result.prettyPrint().length
 
             // Then
-            assertEquals(result.prettyPrint().length, compactSize)
-            assertTrue(originalSize > compactSize)
+            assertTrue(originalSize > compactSize, "Compact size ($compactSize) should be smaller than original ($originalSize)")
         }
     }
 
