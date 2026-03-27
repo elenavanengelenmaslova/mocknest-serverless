@@ -383,10 +383,16 @@ class GraphQLSchemaExtractionCompletenessPropertyTest {
         )
 
         // Then - Verify LIST modifier ([]) is well-formed when present
-        allTypes.filter { it.contains("[") }.forEach { typeStr ->
+        allTypes.filter { it.contains("[") || it.contains("]") }.forEach { typeStr ->
+            val openCount = typeStr.count { it == '[' }
+            val closeCount = typeStr.count { it == ']' }
+            assertEquals(
+                openCount, closeCount,
+                "List type '$typeStr' should have balanced brackets (found $openCount '[' and $closeCount ']')"
+            )
             assertTrue(
-                typeStr.contains("]"),
-                "List type '$typeStr' should have matching closing bracket"
+                typeStr.indexOf('[') < typeStr.lastIndexOf(']'),
+                "List type '$typeStr' should have '[' before ']'"
             )
         }
     }
