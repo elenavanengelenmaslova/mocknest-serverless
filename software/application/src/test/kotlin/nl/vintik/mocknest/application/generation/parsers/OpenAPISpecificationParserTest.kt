@@ -111,13 +111,16 @@ class OpenAPISpecificationParserTest {
                     options:
                       responses:
                         '200': { description: Options }
+                    trace:
+                      responses:
+                        '200': { description: Trace }
             """.trimIndent()
 
             // When
             val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
 
             // Then
-            assertEquals(7, spec.endpoints.size)
+            assertEquals(8, spec.endpoints.size)
             assertTrue(spec.endpoints.any { it.method == HttpMethod.GET })
             assertTrue(spec.endpoints.any { it.method == HttpMethod.POST })
             assertTrue(spec.endpoints.any { it.method == HttpMethod.PUT })
@@ -125,6 +128,7 @@ class OpenAPISpecificationParserTest {
             assertTrue(spec.endpoints.any { it.method == HttpMethod.PATCH })
             assertTrue(spec.endpoints.any { it.method == HttpMethod.HEAD })
             assertTrue(spec.endpoints.any { it.method == HttpMethod.OPTIONS })
+            assertTrue(spec.endpoints.any { it.method == HttpMethod.TRACE })
         }
 
         @Test

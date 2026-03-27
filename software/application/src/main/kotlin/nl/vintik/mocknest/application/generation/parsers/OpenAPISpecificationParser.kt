@@ -117,7 +117,8 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
         pathItem.patch?.let { endpoints.add(convertOperation(path, HttpMethod.PATCH, it)) }
         pathItem.head?.let { endpoints.add(convertOperation(path, HttpMethod.HEAD, it)) }
         pathItem.options?.let { endpoints.add(convertOperation(path, HttpMethod.OPTIONS, it)) }
-        
+        pathItem.trace?.let { endpoints.add(convertOperation(path, HttpMethod.TRACE, it)) }
+
         return endpoints
     }
     
