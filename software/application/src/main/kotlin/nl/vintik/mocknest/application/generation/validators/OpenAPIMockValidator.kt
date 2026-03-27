@@ -16,6 +16,11 @@ class OpenAPIMockValidator : MockValidatorInterface {
     private val logger = KotlinLogging.logger {}
     
     override suspend fun validate(mock: GeneratedMock, specification: APISpecification): MockValidationResult {
+        // Only validate OpenAPI/Swagger specifications
+        if (specification.format != SpecificationFormat.OPENAPI_3 && specification.format != SpecificationFormat.SWAGGER_2) {
+            return MockValidationResult.valid()
+        }
+
         return try {
             val errors = mutableListOf<String>()
             
