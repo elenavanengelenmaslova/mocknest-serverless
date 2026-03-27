@@ -20,6 +20,10 @@ on:
       - '.kiro/**'
       - 'docs/**'
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   test:
     uses: ./.github/workflows/workflow-build.yml
