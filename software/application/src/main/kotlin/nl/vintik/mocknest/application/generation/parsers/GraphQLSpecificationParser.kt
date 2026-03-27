@@ -49,8 +49,12 @@ class GraphQLSpecificationParser(
         logger.debug { "Validating GraphQL specification" }
         
         return runCatching {
-            // Attempt to reduce the schema - if it succeeds, it's valid
-            schemaReducer.reduce(content)
+            val introspectionJson = if (isHttpUrl(content)) {
+                introspectionClient.introspect(content)
+            } else {
+                content
+            }
+            schemaReducer.reduce(introspectionJson)
             ValidationResult.valid()
         }.fold(
             onSuccess = { it },
@@ -74,7 +78,12 @@ class GraphQLSpecificationParser(
         logger.debug { "Extracting metadata from GraphQL specification" }
         
         return runCatching {
-            val compactSchema = schemaReducer.reduce(content)
+            val introspectionJson = if (isHttpUrl(content)) {
+                introspectionClient.introspect(content)
+            } else {
+                content
+            }
+            val compactSchema = schemaReducer.reduce(introspectionJson)
             
             SpecificationMetadata(
                 title = compactSchema.metadata.description ?: "GraphQL API",
