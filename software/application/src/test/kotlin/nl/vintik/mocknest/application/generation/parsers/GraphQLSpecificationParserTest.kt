@@ -615,25 +615,25 @@ class GraphQLSpecificationParserTest {
     inner class FormatSupportCheck {
 
         @Test
-        fun `Should support GRAPHQL format`() {
+        fun `Given GRAPHQL format When checking support Then returns true`() {
             // When & Then
             assertTrue(parser.supports(SpecificationFormat.GRAPHQL))
         }
 
         @Test
-        fun `Should not support OPENAPI_3 format`() {
+        fun `Given OPENAPI_3 format When checking support Then returns false`() {
             // When & Then
             assertFalse(parser.supports(SpecificationFormat.OPENAPI_3))
         }
 
         @Test
-        fun `Should not support SWAGGER_2 format`() {
+        fun `Given SWAGGER_2 format When checking support Then returns false`() {
             // When & Then
             assertFalse(parser.supports(SpecificationFormat.SWAGGER_2))
         }
 
         @Test
-        fun `Should not support WSDL format`() {
+        fun `Given WSDL format When checking support Then returns false`() {
             // When & Then
             assertFalse(parser.supports(SpecificationFormat.WSDL))
         }
