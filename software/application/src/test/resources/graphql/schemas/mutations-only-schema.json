@@ -1,0 +1,148 @@
+{
+  "queries": [],
+  "mutations": [
+    {
+      "name": "sendNotification",
+      "arguments": [
+        {
+          "name": "input",
+          "type": "NotificationInput!",
+          "description": "Notification input"
+        }
+      ],
+      "returnType": "NotificationResult",
+      "description": "Send a notification to a user"
+    },
+    {
+      "name": "scheduleJob",
+      "arguments": [
+        {
+          "name": "input",
+          "type": "JobInput!",
+          "description": "Job scheduling input"
+        }
+      ],
+      "returnType": "Job",
+      "description": "Schedule a background job"
+    },
+    {
+      "name": "cancelJob",
+      "arguments": [
+        {
+          "name": "jobId",
+          "type": "ID!",
+          "description": "Job ID to cancel"
+        }
+      ],
+      "returnType": "Job",
+      "description": "Cancel a scheduled job"
+    }
+  ],
+  "types": {
+    "NotificationInput": {
+      "name": "NotificationInput",
+      "fields": [
+        {
+          "name": "userId",
+          "type": "ID!",
+          "description": null
+        },
+        {
+          "name": "message",
+          "type": "String!",
+          "description": null
+        },
+        {
+          "name": "channel",
+          "type": "NotificationChannel!",
+          "description": null
+        }
+      ],
+      "description": "Input for sending a notification"
+    },
+    "NotificationResult": {
+      "name": "NotificationResult",
+      "fields": [
+        {
+          "name": "success",
+          "type": "Boolean!",
+          "description": null
+        },
+        {
+          "name": "messageId",
+          "type": "String",
+          "description": null
+        }
+      ],
+      "description": "Result of sending a notification"
+    },
+    "JobInput": {
+      "name": "JobInput",
+      "fields": [
+        {
+          "name": "type",
+          "type": "JobType!",
+          "description": null
+        },
+        {
+          "name": "scheduledAt",
+          "type": "String!",
+          "description": null
+        },
+        {
+          "name": "payload",
+          "type": "String",
+          "description": null
+        }
+      ],
+      "description": "Input for scheduling a job"
+    },
+    "Job": {
+      "name": "Job",
+      "fields": [
+        {
+          "name": "id",
+          "type": "ID!",
+          "description": null
+        },
+        {
+          "name": "type",
+          "type": "JobType!",
+          "description": null
+        },
+        {
+          "name": "status",
+          "type": "JobStatus!",
+          "description": null
+        },
+        {
+          "name": "scheduledAt",
+          "type": "String!",
+          "description": null
+        }
+      ],
+      "description": "Background job"
+    }
+  },
+  "enums": {
+    "NotificationChannel": {
+      "name": "NotificationChannel",
+      "values": ["EMAIL", "SMS", "PUSH"],
+      "description": "Notification delivery channel"
+    },
+    "JobType": {
+      "name": "JobType",
+      "values": ["REPORT", "CLEANUP", "SYNC", "EXPORT"],
+      "description": "Background job type"
+    },
+    "JobStatus": {
+      "name": "JobStatus",
+      "values": ["PENDING", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"],
+      "description": "Background job status"
+    }
+  },
+  "metadata": {
+    "schemaVersion": null,
+    "description": "Write-only schema with no queries"
+  }
+}

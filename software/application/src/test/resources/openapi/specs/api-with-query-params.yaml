@@ -1,0 +1,77 @@
+openapi: 3.0.0
+info:
+  title: Query Params API
+  version: 1.0.0
+paths:
+  /search:
+    get:
+      operationId: search
+      summary: Search resources
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+  /filter:
+    get:
+      operationId: filter
+      summary: Filter resources
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Filtered results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object

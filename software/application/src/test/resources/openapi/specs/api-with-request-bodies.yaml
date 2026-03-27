@@ -1,0 +1,90 @@
+openapi: 3.0.0
+info:
+  title: Request Bodies API
+  version: 1.0.0
+paths:
+  /articles:
+    post:
+      operationId: createArticle
+      summary: Create an article
+      requestBody:
+        required: true
+        description: Article to create
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+  /articles/{id}:
+    put:
+      operationId: replaceArticle
+      summary: Replace an article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Replaced
+    patch:
+      operationId: patchArticle
+      summary: Partially update an article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Updated

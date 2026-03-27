@@ -1,0 +1,85 @@
+{
+  "queries": [
+    {
+      "name": "user",
+      "arguments": [
+        {
+          "name": "id",
+          "type": "ID!",
+          "description": "User ID"
+        }
+      ],
+      "returnType": "User",
+      "description": "Get user by ID"
+    }
+  ],
+  "mutations": [
+    {
+      "name": "createUser",
+      "arguments": [
+        {
+          "name": "input",
+          "type": "CreateUserInput!",
+          "description": "User input data"
+        }
+      ],
+      "returnType": "User",
+      "description": "Create a new user"
+    }
+  ],
+  "types": {
+    "User": {
+      "name": "User",
+      "fields": [
+        {
+          "name": "id",
+          "type": "ID!",
+          "description": null
+        },
+        {
+          "name": "name",
+          "type": "String!",
+          "description": null
+        },
+        {
+          "name": "email",
+          "type": "String",
+          "description": null
+        },
+        {
+          "name": "status",
+          "type": "UserStatus",
+          "description": null
+        }
+      ],
+      "description": "User type"
+    },
+    "CreateUserInput": {
+      "name": "CreateUserInput",
+      "fields": [
+        {
+          "name": "name",
+          "type": "String!",
+          "description": null
+        },
+        {
+          "name": "email",
+          "type": "String",
+          "description": null
+        }
+      ],
+      "description": "Input for creating a user"
+    }
+  },
+  "enums": {
+    "UserStatus": {
+      "name": "UserStatus",
+      "values": ["ACTIVE", "INACTIVE", "SUSPENDED"],
+      "description": "User status enum"
+    }
+  },
+  "metadata": {
+    "schemaVersion": null,
+    "description": null
+  }
+}

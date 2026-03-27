@@ -1,0 +1,52 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": {
+        "name": "Query"
+      },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "user",
+              "description": "Get user by ID",
+              "args": [
+                {
+                  "name": "id",
+                  "description": null,
+                  "type": {
+                    "kind": "NON_NULL",
+                    "name": null,
+                    "ofType": {
+                      "kind": "SCALAR",
+                      "name": "ID",
+                      "ofType": null
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "OBJECT",
+                "name": "NonExistentType",
+                "ofType": null
+              }
+            },
+            {
+              "name": "product",
+              "description": "Get product by ID",
+              "args": [],
+              "type": {
+                "kind": "OBJECT",
+                "name": "AnotherMissingType",
+                "ofType": null
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

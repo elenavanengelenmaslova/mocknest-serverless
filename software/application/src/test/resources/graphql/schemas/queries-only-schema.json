@@ -1,0 +1,136 @@
+{
+  "queries": [
+    {
+      "name": "pokemon",
+      "arguments": [
+        {
+          "name": "name",
+          "type": "String",
+          "description": "Pokemon name"
+        },
+        {
+          "name": "id",
+          "type": "Int",
+          "description": "Pokemon ID"
+        }
+      ],
+      "returnType": "Pokemon",
+      "description": "Get a single Pokemon by name or ID"
+    },
+    {
+      "name": "pokemons",
+      "arguments": [
+        {
+          "name": "first",
+          "type": "Int",
+          "description": "Number of results to return"
+        }
+      ],
+      "returnType": "[Pokemon]",
+      "description": "List Pokemon"
+    },
+    {
+      "name": "ability",
+      "arguments": [
+        {
+          "name": "ability",
+          "type": "String",
+          "description": "Ability name"
+        }
+      ],
+      "returnType": "Ability",
+      "description": "Get a Pokemon ability"
+    }
+  ],
+  "mutations": [],
+  "types": {
+    "Pokemon": {
+      "name": "Pokemon",
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "description": null
+        },
+        {
+          "name": "number",
+          "type": "String",
+          "description": null
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "description": null
+        },
+        {
+          "name": "types",
+          "type": "[PokemonType]",
+          "description": null
+        },
+        {
+          "name": "abilities",
+          "type": "[Ability]",
+          "description": null
+        },
+        {
+          "name": "weight",
+          "type": "PokemonDimension",
+          "description": null
+        },
+        {
+          "name": "height",
+          "type": "PokemonDimension",
+          "description": null
+        }
+      ],
+      "description": "Pokemon type"
+    },
+    "PokemonDimension": {
+      "name": "PokemonDimension",
+      "fields": [
+        {
+          "name": "minimum",
+          "type": "String",
+          "description": null
+        },
+        {
+          "name": "maximum",
+          "type": "String",
+          "description": null
+        }
+      ],
+      "description": "Pokemon dimension (weight or height)"
+    },
+    "Ability": {
+      "name": "Ability",
+      "fields": [
+        {
+          "name": "name",
+          "type": "String",
+          "description": null
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "description": null
+        }
+      ],
+      "description": "Pokemon ability"
+    }
+  },
+  "enums": {
+    "PokemonType": {
+      "name": "PokemonType",
+      "values": [
+        "Normal", "Fire", "Water", "Electric", "Grass", "Ice",
+        "Fighting", "Poison", "Ground", "Flying", "Psychic",
+        "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy"
+      ],
+      "description": "Pokemon elemental type"
+    }
+  },
+  "metadata": {
+    "schemaVersion": null,
+    "description": "PokeAPI-style read-only schema"
+  }
+}

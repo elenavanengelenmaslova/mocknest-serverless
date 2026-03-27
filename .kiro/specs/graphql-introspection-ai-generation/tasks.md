@@ -250,14 +250,14 @@ The implementation follows clean architecture principles with strict layer separ
     - Register `GraphQLMockValidator` bean
     - _Requirements: 1.1, 1.2_
 
-- [ ] 4. Phase 4: Integration - Wire components and test end-to-end flows
-  - [ ] 4.1 Register GraphQLSpecificationParser in CompositeSpecificationParserImpl
+- [-] 4. Phase 4: Integration - Wire components and test end-to-end flows
+  - [x] 4.1 Register GraphQLSpecificationParser in CompositeSpecificationParserImpl
     - Locate `CompositeSpecificationParserImpl` in application layer
     - Add `GraphQLSpecificationParser` to list of parsers
     - Verify parser selection based on `SpecificationFormat.GRAPHQL`
     - _Requirements: 1.2_
 
-  - [ ] 4.2 Write property test for format-based parser selection
+  - [x] 4.2 Write property test for format-based parser selection
     - **Property 2: Format-Based Parser Selection**
     - **Validates: Requirements 1.2**
     - Use JUnit 6 `@ParameterizedTest` with `@EnumSource(SpecificationFormat.class)`
@@ -265,13 +265,13 @@ The implementation follows clean architecture principles with strict layer separ
     - Test that OPENAPI_3/SWAGGER_2 routes to OpenAPISpecificationParser
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-2")`
 
-  - [ ] 4.3 Register GraphQLMockValidator in validator registry
+  - [x] 4.3 Register GraphQLMockValidator in validator registry
     - Locate validator registry in application layer
     - Add `GraphQLMockValidator` to list of validators
     - Ensure validator is selected for GraphQL mocks
     - _Requirements: 5.1_
 
-  - [ ] 4.4 Create test data resources for integration tests
+  - [x] 4.4 Create test data resources for integration tests
     - Create directory structure: `src/test/resources/graphql/introspection/`, `schemas/`, `mocks/`, `invalid/`
     - Add sample introspection JSON files (simple, complex, PokeAPI)
     - Add sample compact schemas
@@ -279,27 +279,27 @@ The implementation follows clean architecture principles with strict layer separ
     - Add invalid schemas for error testing
     - _Requirements: 9.5_
 
-  - [ ] 4.5 Write end-to-end integration test for GraphQL generation
+  - [x] 4.5 Write end-to-end integration test for GraphQL generation
     - Test complete flow: introspection → reduction → generation → validation
     - Use fixed mock introspection responses (no external dependencies)
     - Verify generated mocks are valid WireMock mappings
     - Verify mocks pass validation
     - _Requirements: 9.5_
 
-  - [ ] 4.6 Write integration test for validation-retry loop with correctable errors
+  - [x] 4.6 Write integration test for validation-retry loop with correctable errors
     - Mock AI service to return invalid mock on first attempt
     - Mock AI service to return valid mock on retry
     - Verify retry coordinator feeds validation errors to AI
     - Verify corrected mock is accepted
     - _Requirements: 6.1, 6.2, 6.5_
 
-  - [ ] 4.7 Write integration test for validation-retry loop with uncorrectable errors
+  - [x] 4.7 Write integration test for validation-retry loop with uncorrectable errors
     - Mock AI service to return invalid mocks on all attempts
     - Verify retry coordinator respects max retry limit
     - Verify generation fails with accumulated errors
     - _Requirements: 6.3, 6.6_
 
-  - [ ] 4.8 Write property test for bounded retry attempts
+  - [x] 4.8 Write property test for bounded retry attempts
     - **Property 12: Bounded Retry Attempts**
     - **Validates: Requirements 6.3**
     - Use JUnit 6 `@ParameterizedTest` with various retry configurations (0, 1, 2, 3 retries)
@@ -307,13 +307,13 @@ The implementation follows clean architecture principles with strict layer separ
     - Test with mock AI service that always fails
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-12")`
 
-  - [ ] 4.9 Write REST generation non-regression tests
+  - [x] 4.9 Write REST generation non-regression tests
     - Test OpenAPI specification generation still works
     - Test existing REST mocks are generated correctly
     - Verify no breaking changes to REST flow
     - _Requirements: 7.4, 9.7_
 
-  - [ ] 4.10 Write property test for REST generation non-regression
+  - [x] 4.10 Write property test for REST generation non-regression
     - **Property 14: REST Generation Non-Regression**
     - **Validates: Requirements 7.4**
     - Use JUnit 6 `@ParameterizedTest` with 10-15 OpenAPI spec examples

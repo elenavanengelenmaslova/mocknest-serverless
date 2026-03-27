@@ -1,0 +1,131 @@
+{
+  "queries": [
+    {
+      "name": "searchContent",
+      "arguments": [
+        {
+          "name": "query",
+          "type": "String!",
+          "description": "Search query"
+        },
+        {
+          "name": "type",
+          "type": "ContentType",
+          "description": "Filter by content type"
+        },
+        {
+          "name": "status",
+          "type": "PublishStatus",
+          "description": "Filter by publish status"
+        },
+        {
+          "name": "language",
+          "type": "Language",
+          "description": "Filter by language"
+        }
+      ],
+      "returnType": "[Content]",
+      "description": "Search content with filters"
+    },
+    {
+      "name": "content",
+      "arguments": [
+        {
+          "name": "id",
+          "type": "ID!",
+          "description": "Content ID"
+        }
+      ],
+      "returnType": "Content",
+      "description": "Get content by ID"
+    }
+  ],
+  "mutations": [
+    {
+      "name": "publishContent",
+      "arguments": [
+        {
+          "name": "id",
+          "type": "ID!",
+          "description": "Content ID"
+        },
+        {
+          "name": "channel",
+          "type": "PublishChannel!",
+          "description": "Channel to publish to"
+        }
+      ],
+      "returnType": "Content",
+      "description": "Publish content to a channel"
+    }
+  ],
+  "types": {
+    "Content": {
+      "name": "Content",
+      "fields": [
+        {
+          "name": "id",
+          "type": "ID!",
+          "description": null
+        },
+        {
+          "name": "title",
+          "type": "String!",
+          "description": null
+        },
+        {
+          "name": "type",
+          "type": "ContentType!",
+          "description": null
+        },
+        {
+          "name": "status",
+          "type": "PublishStatus!",
+          "description": null
+        },
+        {
+          "name": "language",
+          "type": "Language!",
+          "description": null
+        },
+        {
+          "name": "priority",
+          "type": "Priority!",
+          "description": null
+        }
+      ],
+      "description": "Content item"
+    }
+  },
+  "enums": {
+    "ContentType": {
+      "name": "ContentType",
+      "values": ["ARTICLE", "VIDEO", "PODCAST", "INFOGRAPHIC", "TUTORIAL"],
+      "description": "Type of content"
+    },
+    "PublishStatus": {
+      "name": "PublishStatus",
+      "values": ["DRAFT", "REVIEW", "APPROVED", "PUBLISHED", "ARCHIVED"],
+      "description": "Content publish status"
+    },
+    "Language": {
+      "name": "Language",
+      "values": ["EN", "NL", "DE", "FR", "ES", "PT"],
+      "description": "Supported languages"
+    },
+    "PublishChannel": {
+      "name": "PublishChannel",
+      "values": ["WEB", "MOBILE", "EMAIL", "SOCIAL"],
+      "description": "Publishing channel"
+    },
+    "Priority": {
+      "name": "Priority",
+      "values": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+      "description": "Content priority level"
+    }
+  },
+  "metadata": {
+    "schemaVersion": "1.0",
+    "description": "Content management schema with multiple enum types"
+  }
+}
