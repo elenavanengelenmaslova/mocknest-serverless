@@ -6,6 +6,7 @@ import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducerInt
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import nl.vintik.mocknest.domain.generation.*
 import org.springframework.http.HttpMethod
+import java.net.URI
 
 private val logger = KotlinLogging.logger {}
 
@@ -24,7 +25,7 @@ class GraphQLSpecificationParser(
         logger.info { "Parsing GraphQL specification" }
 
         return runCatching {
-            val introspectionJson = if (content.startsWith("http")) {
+            val introspectionJson = if (isHttpUrl(content)) {
                 logger.info { "Detected URL input, executing introspection: $content" }
                 introspectionClient.introspect(content)
             } else {
@@ -260,7 +261,7 @@ class GraphQLSpecificationParser(
 
     private fun mapGraphQLTypeToJsonSchemaType(graphQLType: String): JsonSchemaType {
         val baseType = graphQLType.removeSuffix("!").removePrefix("[").removeSuffix("]")
-        
+
         return when (baseType) {
             "String", "ID" -> JsonSchemaType.STRING
             "Int" -> JsonSchemaType.INTEGER
@@ -268,5 +269,12 @@ class GraphQLSpecificationParser(
             "Boolean" -> JsonSchemaType.BOOLEAN
             else -> JsonSchemaType.OBJECT // Custom types
         }
+    }
+
+    private fun isHttpUrl(content: String): Boolean {
+        return runCatching {
+            val uri = URI(content.trim())
+            uri.scheme?.lowercase() in listOf("http", "https") && uri.host != null
+        }.getOrDefault(false)
     }
 }
