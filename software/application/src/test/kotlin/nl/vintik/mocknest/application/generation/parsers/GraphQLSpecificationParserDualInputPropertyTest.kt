@@ -2,8 +2,10 @@ package nl.vintik.mocknest.application.generation.parsers
 
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import nl.vintik.mocknest.application.generation.graphql.GraphQLIntrospectionClientInterface
 import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducerInterface
 import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
@@ -34,7 +36,8 @@ import kotlin.test.assertTrue
 class GraphQLSpecificationParserDualInputPropertyTest {
 
     private val mockReducer: GraphQLSchemaReducerInterface = mockk(relaxed = true)
-    private val parser = GraphQLSpecificationParser(mockReducer)
+    private val mockIntrospectionClient: GraphQLIntrospectionClientInterface = mockk(relaxed = true)
+    private val parser = GraphQLSpecificationParser(mockIntrospectionClient, mockReducer)
 
     @AfterEach
     fun tearDown() {
@@ -301,23 +304,12 @@ class GraphQLSpecificationParserDualInputPropertyTest {
         assertNotNull(result.title, "Title should not be null")
     }
 
-    // TODO: Uncomment and complete in Phase 3, Task 3.6 after GraphQLIntrospectionClient is wired (Task 3.5)
-    // Instructions for Task 3.6:
-    // 1. Uncomment the @ParameterizedTest annotation and method below
-    // 2. Import GraphQLIntrospectionClientInterface
-    // 3. Update GraphQLSpecificationParser constructor call to include introspection client
-    // 4. Verify the test passes with URL-based introspection
-    // 5. Add coVerify to ensure introspection client was called with correct URL
-    /*
     @ParameterizedTest(name = "URL-based introspection: {0}")
     @MethodSource("urlBasedIntrospectionTestCases")
     fun `Property 3 - Given GraphQL endpoint URL When parsing Then should produce valid APISpecification`(
         testCase: UrlBasedTestCase
     ) = runTest {
         // Given - Mock introspection client to return schema for URL
-        val mockIntrospectionClient: GraphQLIntrospectionClientInterface = mockk()
-        val parserWithClient = GraphQLSpecificationParser(mockIntrospectionClient, mockReducer)
-        
         val introspectionJson = loadTestData(testCase.schemaFilename)
         val mockSchema = createMockCompactSchema(
             queryCount = testCase.expectedQueries,
@@ -325,17 +317,17 @@ class GraphQLSpecificationParserDualInputPropertyTest {
             typeCount = 5,
             enumCount = 2
         )
-        
+
         coEvery { mockIntrospectionClient.introspect(testCase.url, any(), any()) } returns introspectionJson
         coEvery { mockReducer.reduce(introspectionJson) } returns mockSchema
 
         // When - Parse using URL (should trigger introspection)
-        val result = parserWithClient.parse(testCase.url, SpecificationFormat.GRAPHQL)
+        val result = parser.parse(testCase.url, SpecificationFormat.GRAPHQL)
 
         // Then - Verify valid APISpecification is produced
         assertNotNull(result, "APISpecification should not be null for ${testCase.name}")
         assertEquals(SpecificationFormat.GRAPHQL, result.format, "Format should be GRAPHQL for ${testCase.name}")
-        
+
         // Verify endpoints are created
         val totalExpectedEndpoints = testCase.expectedQueries + testCase.expectedMutations
         assertEquals(
@@ -343,17 +335,16 @@ class GraphQLSpecificationParserDualInputPropertyTest {
             result.endpoints.size,
             "Should have $totalExpectedEndpoints endpoints for ${testCase.name}"
         )
-        
+
         // Verify all endpoints follow GraphQL-over-HTTP pattern
         result.endpoints.forEach { endpoint ->
             assertEquals("/graphql", endpoint.path, "All GraphQL endpoints should use /graphql path")
             assertEquals(org.springframework.http.HttpMethod.POST, endpoint.method, "All GraphQL endpoints should use POST method")
         }
-        
+
         // Verify introspection client was called with correct URL
         coVerify { mockIntrospectionClient.introspect(testCase.url, any(), any()) }
     }
-    */
 
     @ParameterizedTest(name = "Validation: {0}")
     @MethodSource("preFetchedSchemaTestCases")

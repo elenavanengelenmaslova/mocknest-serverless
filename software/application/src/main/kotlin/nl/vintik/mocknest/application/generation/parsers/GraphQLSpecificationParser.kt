@@ -1,6 +1,7 @@
 package nl.vintik.mocknest.application.generation.parsers
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.vintik.mocknest.application.generation.graphql.GraphQLIntrospectionClientInterface
 import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducerInterface
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import nl.vintik.mocknest.domain.generation.*
@@ -13,19 +14,25 @@ private val logger = KotlinLogging.logger {}
  * Supports both URL-based introspection and pre-fetched schema content.
  */
 class GraphQLSpecificationParser(
+    private val introspectionClient: GraphQLIntrospectionClientInterface,
     private val schemaReducer: GraphQLSchemaReducerInterface
 ) : SpecificationParserInterface {
 
     override suspend fun parse(content: String, format: SpecificationFormat): APISpecification {
         require(format == SpecificationFormat.GRAPHQL) { "Only GRAPHQL format supported" }
-        
+
         logger.info { "Parsing GraphQL specification" }
-        
+
         return runCatching {
-            // For now, treat content as pre-fetched introspection JSON
-            // URL-based introspection will be added in Phase 3 when introspection client is implemented
-            val compactSchema = schemaReducer.reduce(content)
-            convertToAPISpecification(compactSchema, content)
+            val introspectionJson = if (content.startsWith("http")) {
+                logger.info { "Detected URL input, executing introspection: $content" }
+                introspectionClient.introspect(content)
+            } else {
+                logger.debug { "Using pre-fetched schema content" }
+                content
+            }
+            val compactSchema = schemaReducer.reduce(introspectionJson)
+            convertToAPISpecification(compactSchema, introspectionJson)
         }.onFailure { exception ->
             logger.error(exception) { "Failed to parse GraphQL specification" }
         }.getOrThrow()

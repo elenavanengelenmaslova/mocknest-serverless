@@ -179,14 +179,14 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify template variable replacement works for both formats
     - _Requirements: 1.2_
 
-- [ ] 3. Phase 3: Infrastructure Layer - Implement introspection client and integration
-  - [ ] 3.1 Add Kotlin HTTP client dependencies to Gradle
+- [-] 3. Phase 3: Infrastructure Layer - Implement introspection client and integration
+  - [x] 3.1 Add Kotlin HTTP client dependencies to Gradle
     - Update `software/infra/aws/generation/build.gradle.kts`
     - Add ktor-client-core, ktor-client-cio, ktor-client-content-negotiation, ktor-serialization-kotlinx-json
     - Version: 2.3.0 or compatible with project Kotlin version
     - _Requirements: 2.1_
 
-  - [ ] 3.2 Implement GraphQLIntrospectionClient with HTTP client
+  - [x] 3.2 Implement GraphQLIntrospectionClient with HTTP client
     - Create `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/graphql/GraphQLIntrospectionClient.kt`
     - Define `GraphQLIntrospectionClientInterface` with `introspect(endpointUrl, headers, timeoutMs)` method
     - Use Kotlin ktor HTTP client for requests
@@ -200,7 +200,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Use kotlin-logging for structured error logging
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-  - [ ]* 3.3 Write unit tests for GraphQLIntrospectionClient
+  - [ ] 3.3 Write unit tests for GraphQLIntrospectionClient
     - Test successful introspection with valid endpoint (use mock HTTP server)
     - Test network failure scenarios (unreachable, timeout, SSL errors)
     - Test introspection disabled error handling
@@ -209,7 +209,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Use MockK for HTTP client mocking
     - _Requirements: 2.2, 2.3, 2.4, 2.5_
 
-  - [ ]* 3.4 Write property test for introspection success
+  - [ ] 3.4 Write property test for introspection success
     - **Property 4: Introspection Success Returns Valid JSON**
     - **Validates: Requirements 2.6**
     - Use JUnit 6 `@ParameterizedTest` with mock HTTP responses
@@ -217,14 +217,14 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify returned JSON is valid and contains schema information
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-4")`
 
-  - [ ] 3.5 Wire GraphQLIntrospectionClient into GraphQLSpecificationParser
+  - [x] 3.5 Wire GraphQLIntrospectionClient into GraphQLSpecificationParser
     - Update `GraphQLSpecificationParser` constructor to accept `GraphQLIntrospectionClientInterface`
     - Implement URL detection logic (starts with "http")
     - Call introspection client when URL is provided
     - Use pre-fetched content when URL is not provided
     - _Requirements: 1.4, 2.1_
 
-  - [ ] 3.6 Write property test for dual input mode support
+  - [x] 3.6 Write property test for dual input mode support
     - **Property 3: Dual Input Mode Support**
     - **Validates: Requirements 1.4**
     - Use JUnit 6 `@ParameterizedTest` with both URL and pre-fetched schema inputs
@@ -235,13 +235,13 @@ The implementation follows clean architecture principles with strict layer separ
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-3")`
     - _Note: Pre-fetched schema tests already implemented in Phase 2, this task completes URL-based testing_
 
-  - [ ] 3.7 Write integration tests for parser with introspection
+  - [x] 3.7 Write integration tests for parser with introspection
     - Test parsing from URL (using mock introspection client)
     - Test parsing from pre-fetched schema
     - Test error propagation from introspection client
     - _Requirements: 1.4, 2.1_
 
-  - [ ] 3.8 Create Spring configuration for GraphQL components
+  - [x] 3.8 Create Spring configuration for GraphQL components
     - Create `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/config/GraphQLGenerationConfig.kt`
     - Define `@Configuration` class with Spring beans
     - Register `GraphQLIntrospectionClient` bean
@@ -257,7 +257,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify parser selection based on `SpecificationFormat.GRAPHQL`
     - _Requirements: 1.2_
 
-  - [ ]* 4.2 Write property test for format-based parser selection
+  - [ ] 4.2 Write property test for format-based parser selection
     - **Property 2: Format-Based Parser Selection**
     - **Validates: Requirements 1.2**
     - Use JUnit 6 `@ParameterizedTest` with `@EnumSource(SpecificationFormat.class)`
@@ -307,13 +307,13 @@ The implementation follows clean architecture principles with strict layer separ
     - Test with mock AI service that always fails
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-12")`
 
-  - [ ]* 4.9 Write REST generation non-regression tests
+  - [ ] 4.9 Write REST generation non-regression tests
     - Test OpenAPI specification generation still works
     - Test existing REST mocks are generated correctly
     - Verify no breaking changes to REST flow
     - _Requirements: 7.4, 9.7_
 
-  - [ ]* 4.10 Write property test for REST generation non-regression
+  - [ ] 4.10 Write property test for REST generation non-regression
     - **Property 14: REST Generation Non-Regression**
     - **Validates: Requirements 7.4**
     - Use JUnit 6 `@ParameterizedTest` with 10-15 OpenAPI spec examples

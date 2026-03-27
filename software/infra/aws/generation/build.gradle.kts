@@ -26,6 +26,9 @@ dependencies {
     api("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
     api("com.squareup.okhttp3:okhttp:5.3.2")
 
+    // OkHttp coroutines support for GraphQL introspection client
+    implementation("com.squareup.okhttp3:okhttp-coroutines:5.3.2")
+
     // Coroutines
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     

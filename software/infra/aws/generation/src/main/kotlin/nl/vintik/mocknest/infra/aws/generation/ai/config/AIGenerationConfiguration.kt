@@ -4,12 +4,12 @@ import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import nl.vintik.mocknest.application.generation.agent.MockGenerationFunctionalAgent
 import nl.vintik.mocknest.application.generation.interfaces.*
 import nl.vintik.mocknest.application.generation.parsers.CompositeSpecificationParserImpl
-import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducer
-import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducerInterface
-import nl.vintik.mocknest.application.generation.parsers.GraphQLSpecificationParser
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.application.generation.usecases.*
+import nl.vintik.mocknest.application.generation.validators.CompositeMockValidator
+import nl.vintik.mocknest.application.generation.validators.GraphQLMockValidator
+import nl.vintik.mocknest.application.generation.validators.OpenAPIMockValidator
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.infra.aws.generation.ai.BedrockServiceAdapter
 import org.springframework.beans.factory.annotation.Value
@@ -20,8 +20,9 @@ import org.springframework.context.annotation.Primary
 /**
  * Spring configuration for AI-powered mock generation components.
  * AI features are always enabled.
- * 
+ *
  * Note: BedrockRuntimeClient bean is provided by BedrockConfiguration.
+ * Note: GraphQL-specific beans are provided by GraphQLGenerationConfig.
  */
 @Configuration
 class AIGenerationConfiguration {
@@ -58,24 +59,25 @@ class AIGenerationConfiguration {
     }
 
     @Bean
-    fun graphQLSchemaReducer(): GraphQLSchemaReducerInterface {
-        return GraphQLSchemaReducer()
-    }
-
-    @Bean
-    fun graphQLSpecificationParser(
-        schemaReducer: GraphQLSchemaReducerInterface
-    ): SpecificationParserInterface {
-        return GraphQLSpecificationParser(schemaReducer)
-    }
-
-    @Bean
     fun bedrockServiceAdapter(
         bedrockClient: BedrockRuntimeClient,
         modelConfiguration: ModelConfiguration,
         promptBuilder: PromptBuilderService
     ): AIModelServiceInterface {
         return BedrockServiceAdapter(bedrockClient, modelConfiguration, promptBuilder)
+    }
+
+    /**
+     * Primary composite mock validator that delegates to all registered format-specific validators.
+     * Each validator handles its own format and returns valid() for unsupported formats.
+     */
+    @Bean
+    @Primary
+    fun compositeMockValidator(
+        openAPIMockValidator: OpenAPIMockValidator,
+        graphQLMockValidator: GraphQLMockValidator
+    ): MockValidatorInterface {
+        return CompositeMockValidator(listOf(openAPIMockValidator, graphQLMockValidator))
     }
 
     @Bean
@@ -96,7 +98,6 @@ class AIGenerationConfiguration {
     ): GenerateMocksFromSpecWithDescriptionUseCase {
         return GenerateMocksFromSpecWithDescriptionUseCase(mockGenerationAgent)
     }
-
 
     @Bean
     fun aiGenerationRequestUseCase(

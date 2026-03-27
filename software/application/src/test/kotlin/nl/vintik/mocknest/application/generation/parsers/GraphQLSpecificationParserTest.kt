@@ -4,6 +4,7 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import nl.vintik.mocknest.application.generation.graphql.GraphQLIntrospectionClientInterface
 import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducerInterface
 import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
@@ -19,7 +20,8 @@ import kotlin.test.assertTrue
 class GraphQLSpecificationParserTest {
 
     private val mockReducer: GraphQLSchemaReducerInterface = mockk(relaxed = true)
-    private val parser = GraphQLSpecificationParser(mockReducer)
+    private val mockIntrospectionClient: GraphQLIntrospectionClientInterface = mockk(relaxed = true)
+    private val parser = GraphQLSpecificationParser(mockIntrospectionClient, mockReducer)
 
     @AfterEach
     fun tearDown() {
