@@ -172,7 +172,7 @@ class GraphQLSpecificationParser(
                         description = arg.description
                     )
                 },
-                required = operation.arguments.map { it.name }
+                required = operation.arguments.filter { it.type.endsWith("!") }.map { it.name }
             )
         } else {
             JsonSchema(type = JsonSchemaType.OBJECT)
