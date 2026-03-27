@@ -8,8 +8,8 @@ The implementation follows clean architecture principles with strict layer separ
 
 ## Tasks
 
-- [ ] 1. Phase 1: Domain Layer - Create GraphQL domain models and exceptions
-  - [ ] 1.1 Create CompactGraphQLSchema domain model with validation
+- [x] 1. Phase 1: Domain Layer - Create GraphQL domain models and exceptions
+  - [x] 1.1 Create CompactGraphQLSchema domain model with validation
     - Create `software/domain/src/main/kotlin/nl/vintik/mocknest/domain/generation/CompactGraphQLSchema.kt`
     - Implement `CompactGraphQLSchema` data class with queries, mutations, types, enums, and metadata
     - Implement `GraphQLOperation`, `GraphQLArgument`, `GraphQLType`, `GraphQLField`, `GraphQLEnum`, `GraphQLSchemaMetadata` data classes
@@ -24,13 +24,13 @@ The implementation follows clean architecture principles with strict layer separ
     - Test data class equality and immutability
     - _Requirements: 10.1, 10.2_
 
-  - [ ] 1.3 Create GraphQL-specific exceptions
+  - [x] 1.3 Create GraphQL-specific exceptions
     - Create `software/domain/src/main/kotlin/nl/vintik/mocknest/domain/generation/GraphQLExceptions.kt`
     - Implement `GraphQLIntrospectionException` with message and optional cause
     - Implement `GraphQLSchemaParsingException` with message and optional cause
     - _Requirements: 2.2, 2.3, 2.4, 2.5, 3.1_
 
-  - [ ] 1.4 Add GRAPHQL to SpecificationFormat enum
+  - [x] 1.4 Add GRAPHQL to SpecificationFormat enum
     - Locate existing `SpecificationFormat` enum in domain layer
     - Add `GRAPHQL` enum value
     - _Requirements: 1.2_
@@ -296,7 +296,19 @@ The implementation follows clean architecture principles with strict layer separ
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 6. Phase 5: Documentation and Deployment - Update documentation and verify deployment
-  - [ ] 6.1 Update API documentation with GraphQL examples
+  - [ ] 6.1 Create jar size validation test
+    - Create `software/infra/aws/mocknest/src/test/kotlin/nl/vintik/mocknest/infra/aws/deployment/JarSizeValidationTest.kt`
+    - Implement test that executes `./gradlew :software:infra:aws:mocknest:shadowJar` to build the jar
+    - After build completes, check `build/dist/mocknest-serverless.jar` file size
+    - Assert jar size is under 90MB (90 * 1024 * 1024 bytes)
+    - Test should fail with clear error message if size exceeds 90MB limit
+    - Log actual jar size in MB and percentage of 90MB limit used
+    - Use `ProcessBuilder` or similar to execute Gradle command from test
+    - Mark test with `@Tag("integration")` since it runs Gradle build
+    - _Note: This prevents dependency bloat from new GraphQL libraries (ktor-client, graphql-java)_
+    - _Note: This test runs as part of regular build pipeline, not just SAR publish_
+
+  - [ ] 6.2 Update API documentation with GraphQL examples
     - Update relevant documentation files in `docs/`
     - Add GraphQL endpoint examples
     - Add sample GraphQL generation requests
@@ -304,13 +316,13 @@ The implementation follows clean architecture principles with strict layer separ
     - Document dual input mode (URL vs pre-fetched schema)
     - _Requirements: 1.1, 1.4_
 
-  - [ ] 6.2 Update README with GraphQL support information
+  - [ ] 6.3 Update README with GraphQL support information
     - Add GraphQL to list of supported specification formats
     - Add GraphQL generation example
     - Add link to GraphQL documentation
     - _Requirements: 1.1_
 
-  - [ ] 6.3 Update Postman collection with GraphQL generation examples
+  - [ ] 6.4 Update Postman collection with GraphQL generation examples
     - Add GraphQL generation request to `docs/postman/AWS MockNest Serverless.postman_collection.json`
     - Include sample GraphQL endpoint URL
     - Include sample generation instructions
@@ -324,6 +336,7 @@ The implementation follows clean architecture principles with strict layer separ
 
   - [ ] 6.5 Build and deploy to AWS Lambda
     - Run full build with tests: `./gradlew clean build`
+    - Verify jar size validation test passes (confirms jar < 90MB)
     - Deploy using existing SAM template (no infrastructure changes needed)
     - Verify deployment succeeds
     - _Requirements: 7.1, 7.2, 7.3_
