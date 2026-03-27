@@ -7,6 +7,9 @@ import nl.vintik.mocknest.application.generation.parsers.CompositeSpecificationP
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.application.generation.usecases.*
+import nl.vintik.mocknest.application.generation.validators.CompositeMockValidator
+import nl.vintik.mocknest.application.generation.validators.GraphQLMockValidator
+import nl.vintik.mocknest.application.generation.validators.OpenAPIMockValidator
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.infra.aws.generation.ai.BedrockServiceAdapter
 import org.springframework.beans.factory.annotation.Value
@@ -17,8 +20,9 @@ import org.springframework.context.annotation.Primary
 /**
  * Spring configuration for AI-powered mock generation components.
  * AI features are always enabled.
- * 
+ *
  * Note: BedrockRuntimeClient bean is provided by BedrockConfiguration.
+ * Note: GraphQL-specific beans are provided by GraphQLGenerationConfig.
  */
 @Configuration
 class AIGenerationConfiguration {
@@ -63,6 +67,19 @@ class AIGenerationConfiguration {
         return BedrockServiceAdapter(bedrockClient, modelConfiguration, promptBuilder)
     }
 
+    /**
+     * Primary composite mock validator that delegates to all registered format-specific validators.
+     * Each validator handles its own format and returns valid() for unsupported formats.
+     */
+    @Bean
+    @Primary
+    fun compositeMockValidator(
+        openAPIMockValidator: OpenAPIMockValidator,
+        graphQLMockValidator: GraphQLMockValidator
+    ): MockValidatorInterface {
+        return CompositeMockValidator(listOf(openAPIMockValidator, graphQLMockValidator))
+    }
+
     @Bean
     fun mockGenerationAgent(
         @Value($$"${bedrock.generation.maxRetries:1}")
@@ -81,7 +98,6 @@ class AIGenerationConfiguration {
     ): GenerateMocksFromSpecWithDescriptionUseCase {
         return GenerateMocksFromSpecWithDescriptionUseCase(mockGenerationAgent)
     }
-
 
     @Bean
     fun aiGenerationRequestUseCase(

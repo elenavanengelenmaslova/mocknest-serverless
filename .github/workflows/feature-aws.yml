@@ -20,35 +20,6 @@ on:
       - '.kiro/**'
       - 'docs/**'
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
   test:
     uses: ./.github/workflows/workflow-build.yml
-
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      deploy-relevant: ${{ steps.filter.outputs.deploy-relevant }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            deploy-relevant:
-              - 'software/**'
-              - 'deployment/**'
-
-  deploy:
-    needs: [test, detect-changes]
-    if: needs.detect-changes.outputs.deploy-relevant == 'true'
-    uses: ./.github/workflows/workflow-deploy-aws.yml
-    with:
-      environment: default
-      aws-region: 'eu-west-1'
-      github-actions-role-name: 'GitHubOIDCAdmin'  # Change this to your existing role name
-    secrets:
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

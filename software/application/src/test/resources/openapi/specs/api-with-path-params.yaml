@@ -1,0 +1,92 @@
+openapi: 3.0.0
+info:
+  title: Path Params API
+  version: 1.0.0
+paths:
+  /orgs/{orgId}:
+    get:
+      operationId: getOrg
+      summary: Get organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /orgs/{orgId}/repos/{repoId}:
+    get:
+      operationId: getRepo
+      summary: Get repository
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /orgs/{orgId}/repos/{repoId}/issues/{issueId}:
+    get:
+      operationId: getIssue
+      summary: Get issue
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repoId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    patch:
+      operationId: updateIssue
+      summary: Update issue
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repoId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                state:
+                  type: string
+      responses:
+        '200':
+          description: Updated

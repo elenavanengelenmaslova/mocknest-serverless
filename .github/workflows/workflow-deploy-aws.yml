@@ -65,21 +65,29 @@ jobs:
           echo "✓ Unified JAR: $(du -h build/dist/mocknest-serverless.jar | cut -f1)"
   
       - name: Deploy with SAM
+        id: sam-deploy
         run: |
           cd deployment/aws/sam
-          echo "🚀 Starting SAM deployment..."
-          
-          # Deploy directly without sam build since JARs are pre-built
-          if sam deploy --config-env default --no-confirm-changeset --force-upload; then
-            echo "✅ Deployment completed successfully"
-          else
+          echo "Starting SAM deployment..."
+
+          DEPLOY_OUTPUT=$(sam deploy --config-env default --no-confirm-changeset --force-upload 2>&1) && {
+            echo "$DEPLOY_OUTPUT"
+            echo "Deployment completed successfully"
+            echo "deployed=true" >> $GITHUB_OUTPUT
+          } || {
             EXIT_CODE=$?
-            echo "❌ SAM deployment failed with exit code: $EXIT_CODE"
-            echo "💥 Deployment failed with errors - check logs above"
-            exit $EXIT_CODE
-          fi
+            if echo "$DEPLOY_OUTPUT" | grep -q "No changes to deploy"; then
+              echo "No changes to deploy. Stack is up to date - skipping."
+              echo "deployed=false" >> $GITHUB_OUTPUT
+            else
+              echo "$DEPLOY_OUTPUT"
+              echo "SAM deployment failed with exit code: $EXIT_CODE"
+              exit $EXIT_CODE
+            fi
+          }
 
       - name: Get deployment outputs
+        if: steps.sam-deploy.outputs.deployed == 'true'
         id: outputs
         run: |
           cd deployment/aws/sam
@@ -105,6 +113,7 @@ jobs:
           echo "stack-name=$STACK_NAME" >> $GITHUB_OUTPUT
                
       - name: Create deployment summary
+        if: steps.sam-deploy.outputs.deployed == 'true'
         run: |
           echo "## 🚀 MockNest Serverless Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

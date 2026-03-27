@@ -1,0 +1,71 @@
+openapi: 3.0.0
+info:
+  title: Enums API
+  version: 1.0.0
+paths:
+  /tasks:
+    get:
+      operationId: listTasks
+      summary: List tasks filtered by status
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - pending
+              - in_progress
+              - completed
+              - cancelled
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+    post:
+      operationId: createTask
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Task'
+      responses:
+        '201':
+          description: Created
+components:
+  schemas:
+    Priority:
+      type: string
+      enum:
+        - low
+        - medium
+        - high
+        - critical
+    Task:
+      type: object
+      required:
+        - title
+        - status
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - in_progress
+            - completed
+            - cancelled
+        priority:
+          $ref: '#/components/schemas/Priority'
+        assignee:
+          type: string

@@ -1,0 +1,51 @@
+{
+  "description": "Valid mock - list/array response structure matches schema",
+  "expectedValid": true,
+  "expectedErrors": [],
+  "specification": {
+    "operations": [
+      {
+        "operationId": "listProducts",
+        "variables": {
+          "limit": "INTEGER"
+        },
+        "requiredVariables": [],
+        "responseFields": {
+          "items": {
+            "type": "ARRAY",
+            "items": {
+              "id": "STRING",
+              "name": "STRING",
+              "price": "NUMBER"
+            }
+          },
+          "total": "INTEGER"
+        },
+        "requiredResponseFields": ["items", "total"]
+      }
+    ]
+  },
+  "wireMockMapping": {
+    "request": {
+      "method": "POST",
+      "urlPath": "/graphql",
+      "bodyPatterns": [
+        {
+          "equalToJson": "{\"query\":\"query listProducts($limit: Int) { listProducts(limit: $limit) { items { id name price } total } }\",\"operationName\":\"listProducts\",\"variables\":{\"limit\":5}}"
+        }
+      ]
+    },
+    "response": {
+      "status": 200,
+      "jsonBody": {
+        "data": {
+          "items": [
+            {"id": "prod-1", "name": "Widget", "price": 9.99},
+            {"id": "prod-2", "name": "Gadget", "price": 24.99}
+          ],
+          "total": 2
+        }
+      }
+    }
+  }
+}

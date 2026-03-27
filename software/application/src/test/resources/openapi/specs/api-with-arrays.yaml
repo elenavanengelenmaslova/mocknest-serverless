@@ -1,0 +1,78 @@
+openapi: 3.0.0
+info:
+  title: Arrays API
+  version: 1.0.0
+paths:
+  /tags:
+    get:
+      operationId: listTags
+      summary: List all tags
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /items:
+    get:
+      operationId: listItems
+      summary: List items with nested arrays
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    tags:
+                      type: array
+                      items:
+                        type: string
+                    scores:
+                      type: array
+                      items:
+                        type: number
+    post:
+      operationId: createItems
+      summary: Create multiple items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required:
+                  - name
+                properties:
+                  name:
+                    type: string
+                  tags:
+                    type: array
+                    items:
+                      type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string

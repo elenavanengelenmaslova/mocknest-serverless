@@ -1,0 +1,48 @@
+{
+  "description": "Invalid mock - response contains invalid enum value",
+  "expectedValid": false,
+  "expectedErrors": ["Field 'data.status' has invalid enum value: 'UNKNOWN'"],
+  "specification": {
+    "operations": [
+      {
+        "operationId": "getUser",
+        "variables": {
+          "id": "STRING"
+        },
+        "requiredVariables": ["id"],
+        "responseFields": {
+          "id": "STRING",
+          "name": "STRING",
+          "email": "STRING",
+          "status": {
+            "type": "STRING",
+            "enum": ["ACTIVE", "INACTIVE", "PENDING"]
+          }
+        },
+        "requiredResponseFields": ["id", "name", "email", "status"]
+      }
+    ]
+  },
+  "wireMockMapping": {
+    "request": {
+      "method": "POST",
+      "urlPath": "/graphql",
+      "bodyPatterns": [
+        {
+          "equalToJson": "{\"query\":\"query getUser($id: String!) { user(id: $id) { id name email status } }\",\"operationName\":\"getUser\",\"variables\":{\"id\":\"123\"}}"
+        }
+      ]
+    },
+    "response": {
+      "status": 200,
+      "jsonBody": {
+        "data": {
+          "id": "123",
+          "name": "John Doe",
+          "email": "john@example.com",
+          "status": "UNKNOWN"
+        }
+      }
+    }
+  }
+}

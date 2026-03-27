@@ -1,0 +1,44 @@
+{
+  "description": "Invalid mock - missing required argument in variables",
+  "expectedValid": false,
+  "expectedErrors": ["Missing required argument: 'email'"],
+  "specification": {
+    "operations": [
+      {
+        "operationId": "createUser",
+        "variables": {
+          "name": "STRING",
+          "email": "STRING"
+        },
+        "requiredVariables": ["name", "email"],
+        "responseFields": {
+          "id": "STRING",
+          "name": "STRING",
+          "email": "STRING"
+        },
+        "requiredResponseFields": ["id", "name", "email"]
+      }
+    ]
+  },
+  "wireMockMapping": {
+    "request": {
+      "method": "POST",
+      "urlPath": "/graphql",
+      "bodyPatterns": [
+        {
+          "equalToJson": "{\"query\":\"mutation createUser($name: String!, $email: String!) { createUser(name: $name, email: $email) { id name email } }\",\"operationName\":\"createUser\",\"variables\":{\"name\":\"Jane Doe\"}}"
+        }
+      ]
+    },
+    "response": {
+      "status": 200,
+      "jsonBody": {
+        "data": {
+          "id": "user-789",
+          "name": "Jane Doe",
+          "email": "jane@example.com"
+        }
+      }
+    }
+  }
+}

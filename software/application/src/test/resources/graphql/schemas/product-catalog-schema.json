@@ -1,0 +1,253 @@
+{
+  "queries": [
+    {
+      "name": "product",
+      "arguments": [
+        {
+          "name": "id",
+          "type": "ID!",
+          "description": "Product ID"
+        }
+      ],
+      "returnType": "Product",
+      "description": "Get product by ID"
+    },
+    {
+      "name": "products",
+      "arguments": [
+        {
+          "name": "filter",
+          "type": "ProductFilter",
+          "description": "Filter criteria"
+        },
+        {
+          "name": "limit",
+          "type": "Int",
+          "description": "Maximum number of results"
+        }
+      ],
+      "returnType": "[Product]",
+      "description": "List all products"
+    },
+    {
+      "name": "order",
+      "arguments": [
+        {
+          "name": "id",
+          "type": "ID!",
+          "description": "Order ID"
+        }
+      ],
+      "returnType": "Order",
+      "description": "Get order by ID"
+    }
+  ],
+  "mutations": [
+    {
+      "name": "createProduct",
+      "arguments": [
+        {
+          "name": "input",
+          "type": "CreateProductInput!",
+          "description": "Product input data"
+        }
+      ],
+      "returnType": "Product",
+      "description": "Create a new product"
+    },
+    {
+      "name": "updateProduct",
+      "arguments": [
+        {
+          "name": "id",
+          "type": "ID!",
+          "description": "Product ID"
+        },
+        {
+          "name": "input",
+          "type": "UpdateProductInput!",
+          "description": "Updated product data"
+        }
+      ],
+      "returnType": "Product",
+      "description": "Update an existing product"
+    },
+    {
+      "name": "placeOrder",
+      "arguments": [
+        {
+          "name": "input",
+          "type": "PlaceOrderInput!",
+          "description": "Order input data"
+        }
+      ],
+      "returnType": "Order",
+      "description": "Place a new order"
+    }
+  ],
+  "types": {
+    "Product": {
+      "name": "Product",
+      "fields": [
+        {
+          "name": "id",
+          "type": "ID!",
+          "description": null
+        },
+        {
+          "name": "name",
+          "type": "String!",
+          "description": null
+        },
+        {
+          "name": "price",
+          "type": "Float!",
+          "description": null
+        },
+        {
+          "name": "category",
+          "type": "ProductCategory!",
+          "description": null
+        },
+        {
+          "name": "inStock",
+          "type": "Boolean!",
+          "description": null
+        }
+      ],
+      "description": "Product type"
+    },
+    "Order": {
+      "name": "Order",
+      "fields": [
+        {
+          "name": "id",
+          "type": "ID!",
+          "description": null
+        },
+        {
+          "name": "status",
+          "type": "OrderStatus!",
+          "description": null
+        },
+        {
+          "name": "items",
+          "type": "[OrderItem!]!",
+          "description": null
+        },
+        {
+          "name": "total",
+          "type": "Float!",
+          "description": null
+        }
+      ],
+      "description": "Order type"
+    },
+    "OrderItem": {
+      "name": "OrderItem",
+      "fields": [
+        {
+          "name": "product",
+          "type": "Product!",
+          "description": null
+        },
+        {
+          "name": "quantity",
+          "type": "Int!",
+          "description": null
+        }
+      ],
+      "description": "Order item type"
+    },
+    "ProductFilter": {
+      "name": "ProductFilter",
+      "fields": [
+        {
+          "name": "category",
+          "type": "ProductCategory",
+          "description": null
+        },
+        {
+          "name": "inStock",
+          "type": "Boolean",
+          "description": null
+        },
+        {
+          "name": "maxPrice",
+          "type": "Float",
+          "description": null
+        }
+      ],
+      "description": "Filter criteria for products"
+    },
+    "CreateProductInput": {
+      "name": "CreateProductInput",
+      "fields": [
+        {
+          "name": "name",
+          "type": "String!",
+          "description": null
+        },
+        {
+          "name": "price",
+          "type": "Float!",
+          "description": null
+        },
+        {
+          "name": "category",
+          "type": "ProductCategory!",
+          "description": null
+        }
+      ],
+      "description": "Input for creating a product"
+    },
+    "UpdateProductInput": {
+      "name": "UpdateProductInput",
+      "fields": [
+        {
+          "name": "name",
+          "type": "String",
+          "description": null
+        },
+        {
+          "name": "price",
+          "type": "Float",
+          "description": null
+        }
+      ],
+      "description": "Input for updating a product"
+    },
+    "PlaceOrderInput": {
+      "name": "PlaceOrderInput",
+      "fields": [
+        {
+          "name": "productId",
+          "type": "ID!",
+          "description": null
+        },
+        {
+          "name": "quantity",
+          "type": "Int!",
+          "description": null
+        }
+      ],
+      "description": "Input for placing an order"
+    }
+  },
+  "enums": {
+    "ProductCategory": {
+      "name": "ProductCategory",
+      "values": ["ELECTRONICS", "CLOTHING", "FOOD", "BOOKS", "OTHER"],
+      "description": "Product category enum"
+    },
+    "OrderStatus": {
+      "name": "OrderStatus",
+      "values": ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"],
+      "description": "Order status enum"
+    }
+  },
+  "metadata": {
+    "schemaVersion": null,
+    "description": null
+  }
+}

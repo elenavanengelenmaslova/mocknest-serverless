@@ -45,13 +45,14 @@ paths:
     post:
       summary: Generate Mocks from API Specification
       description: |
-        Generate WireMock mappings from OpenAPI 3.x specifications with optional instruction text for customization. All generated mappings include persistent: true by default, ensuring they survive Lambda cold starts and are stored in S3.
+        Generate WireMock mappings from API specifications with optional instruction text for customization. All generated mappings include persistent: true by default, ensuring they survive Lambda cold starts and are stored in S3.
 
         **Supported Formats**:
         - OpenAPI 3.x (fully tested)
         - Swagger 2.0 (experimental - supported but not extensively tested)
+        - GraphQL (via introspection endpoint URL or pre-fetched introspection JSON)
 
-        **Current Limitations**: AI generation currently supports REST APIs only. GraphQL and SOAP API generation is not yet supported.
+        **Current Limitations**: SOAP API generation is not yet supported.
       tags:
         - AI Generation
       requestBody:
@@ -60,18 +61,33 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GenerateFromSpecRequest'
-            example:
-              namespace:
-                apiName: petstore
-                client: null
-              specification: null
-              specificationUrl: "https://petstore3.swagger.io/api/v3/openapi.json"
-              format: OPENAPI_3
-              description: "Generate mocks for 3 pets from the Petstore OpenAPI specification, pets endpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets across endpoints, 1 pet is a dog with this image: https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg, this dog is available and a new pet and should have a tag new, we need to have api call to get all new pets and its that dog, the other two pets are available also but are not new"
-              options:
-                enableValidation: true
-                includeExamples: true
-                generateErrorCases: true
+            examples:
+              rest-generation:
+                summary: Generate mocks from OpenAPI specification
+                value:
+                  namespace:
+                    apiName: petstore
+                    client: null
+                  specification: null
+                  specificationUrl: "https://petstore3.swagger.io/api/v3/openapi.json"
+                  format: OPENAPI_3
+                  description: "Generate mocks for 3 pets from the Petstore OpenAPI specification, pets endpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets across endpoints, 1 pet is a dog with this image: https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg, this dog is available and a new pet and should have a tag new, we need to have api call to get all new pets and its that dog, the other two pets are available also but are not new"
+                  options:
+                    enableValidation: true
+                    includeExamples: true
+                    generateErrorCases: true
+              graphql-generation:
+                summary: Generate mocks from GraphQL endpoint via introspection
+                value:
+                  namespace:
+                    apiName: my-graphql-api
+                    client: null
+                  specification: null
+                  specificationUrl: "https://example.com/graphql"
+                  format: GRAPHQL
+                  description: "Generate mocks for user and product queries, returning realistic test data with consistent IDs across related operations"
+                  options:
+                    enableValidation: true
       responses:
         '200':
           description: Mocks generated successfully
@@ -1424,7 +1440,7 @@ components:
           format: uri
         format:
           type: string
-          enum: [OPENAPI_3, OPENAPI_2, SWAGGER_2]
+          enum: [OPENAPI_3, OPENAPI_2, SWAGGER_2, GRAPHQL]
           description: Specification format
         description:
           type: string

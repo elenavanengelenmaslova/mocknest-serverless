@@ -1,0 +1,22 @@
+{
+  "queryType": {
+    "name": "Query"
+  },
+  "types": [
+    {
+      "kind": "OBJECT",
+      "name": "Query",
+      "fields": [
+        {
+          "name": "user",
+          "args": [],
+          "type": {
+            "kind": "OBJECT",
+            "name": "User",
+            "ofType": null
+          }
+        }
+      ]
+    }
+  ]
+}

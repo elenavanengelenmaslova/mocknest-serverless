@@ -50,8 +50,6 @@ knowledge_base:
   learnings:
     scope: local
 
-
-
 # Tone and style
 tone_instructions: |
   Be concise and technical. Focus on code quality, maintainability, and adherence to 
