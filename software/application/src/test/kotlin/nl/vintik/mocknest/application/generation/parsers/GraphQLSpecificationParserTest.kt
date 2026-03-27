@@ -166,10 +166,10 @@ class GraphQLSpecificationParserTest {
             
             val userSchema = result.schemas["User"]!!
             assertEquals(JsonSchemaType.OBJECT, userSchema.type)
-            assertEquals(3, userSchema.properties?.size)
-            assertTrue(userSchema.properties?.containsKey("id") ?: false)
-            assertTrue(userSchema.properties?.containsKey("name") ?: false)
-            assertTrue(userSchema.properties?.containsKey("email") ?: false)
+            assertEquals(3, userSchema.properties.size)
+            assertTrue(userSchema.properties.containsKey("id"))
+            assertTrue(userSchema.properties.containsKey("name"))
+            assertTrue(userSchema.properties.containsKey("email"))
         }
 
         @Test
@@ -187,10 +187,10 @@ class GraphQLSpecificationParserTest {
             
             val statusSchema = result.schemas["UserStatus"]!!
             assertEquals(JsonSchemaType.STRING, statusSchema.type)
-            assertEquals(3, statusSchema.enum?.size)
-            assertTrue(statusSchema.enum?.contains("ACTIVE") ?: false)
-            assertTrue(statusSchema.enum?.contains("INACTIVE") ?: false)
-            assertTrue(statusSchema.enum?.contains("SUSPENDED") ?: false)
+            assertEquals(3, statusSchema.enum.size)
+            assertTrue(statusSchema.enum.contains("ACTIVE"))
+            assertTrue(statusSchema.enum.contains("INACTIVE"))
+            assertTrue(statusSchema.enum.contains("SUSPENDED"))
         }
 
         @Test
@@ -260,10 +260,10 @@ class GraphQLSpecificationParserTest {
             
             assertNotNull(requestSchema)
             assertEquals(JsonSchemaType.OBJECT, requestSchema.type)
-            assertTrue(requestSchema.properties?.containsKey("query") ?: false)
-            assertTrue(requestSchema.properties?.containsKey("variables") ?: false)
-            assertTrue(requestSchema.properties?.containsKey("operationName") ?: false)
-            assertTrue(requestSchema.required?.contains("query") ?: false)
+            assertTrue(requestSchema.properties.containsKey("query"))
+            assertTrue(requestSchema.properties.containsKey("variables"))
+            assertTrue(requestSchema.properties.containsKey("operationName"))
+            assertTrue(requestSchema.required.contains("query"))
         }
 
         @Test
@@ -283,8 +283,8 @@ class GraphQLSpecificationParserTest {
             
             assertNotNull(variablesSchema)
             assertEquals(JsonSchemaType.OBJECT, variablesSchema.type)
-            assertTrue(variablesSchema.properties?.containsKey("id") ?: false)
-            assertEquals(JsonSchemaType.STRING, variablesSchema.properties?.get("id")?.type)
+            assertTrue(variablesSchema.properties.containsKey("id"))
+            assertEquals(JsonSchemaType.STRING, variablesSchema.properties["id"]?.type)
         }
 
         @Test
@@ -303,8 +303,8 @@ class GraphQLSpecificationParserTest {
             
             assertNotNull(responseSchema)
             assertEquals(JsonSchemaType.OBJECT, responseSchema.type)
-            assertTrue(responseSchema.properties?.containsKey("data") ?: false)
-            assertTrue(responseSchema.properties?.containsKey("errors") ?: false)
+            assertTrue(responseSchema.properties.containsKey("data"))
+            assertTrue(responseSchema.properties.containsKey("errors"))
         }
 
         @Test
@@ -319,9 +319,9 @@ class GraphQLSpecificationParserTest {
 
             // Then
             val userSchema = result.schemas["User"]!!
-            assertTrue(userSchema.required?.contains("id") ?: false)
-            assertTrue(userSchema.required?.contains("name") ?: false)
-            assertFalse(userSchema.required?.contains("email") ?: true)
+            assertTrue(userSchema.required.contains("id"))
+            assertTrue(userSchema.required.contains("name"))
+            assertFalse(userSchema.required.contains("email"))
         }
 
         @Test
@@ -349,11 +349,11 @@ class GraphQLSpecificationParserTest {
 
             // Then
             val testSchema = result.schemas["TestType"]!!
-            assertEquals(JsonSchemaType.STRING, testSchema.properties?.get("stringField")?.type)
-            assertEquals(JsonSchemaType.INTEGER, testSchema.properties?.get("intField")?.type)
-            assertEquals(JsonSchemaType.NUMBER, testSchema.properties?.get("floatField")?.type)
-            assertEquals(JsonSchemaType.BOOLEAN, testSchema.properties?.get("boolField")?.type)
-            assertEquals(JsonSchemaType.STRING, testSchema.properties?.get("idField")?.type)
+            assertEquals(JsonSchemaType.STRING, testSchema.properties["stringField"]?.type)
+            assertEquals(JsonSchemaType.INTEGER, testSchema.properties["intField"]?.type)
+            assertEquals(JsonSchemaType.NUMBER, testSchema.properties["floatField"]?.type)
+            assertEquals(JsonSchemaType.BOOLEAN, testSchema.properties["boolField"]?.type)
+            assertEquals(JsonSchemaType.STRING, testSchema.properties["idField"]?.type)
         }
 
         @Test
@@ -377,7 +377,7 @@ class GraphQLSpecificationParserTest {
 
             // Then
             val testSchema = result.schemas["TestType"]!!
-            assertEquals(JsonSchemaType.OBJECT, testSchema.properties?.get("customField")?.type)
+            assertEquals(JsonSchemaType.OBJECT, testSchema.properties["customField"]?.type)
         }
     }
 
