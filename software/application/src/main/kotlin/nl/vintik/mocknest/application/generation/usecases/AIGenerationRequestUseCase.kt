@@ -1,5 +1,6 @@
 package nl.vintik.mocknest.application.generation.usecases
 
+import com.fasterxml.jackson.core.JsonProcessingException
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.core.mapper
@@ -29,11 +30,16 @@ class AIGenerationRequestUseCase(
             }
         }.onFailure {
             logger.error(it) { "Error processing AI generation request: $path: $it" }
-        }.getOrElse {
+        }.getOrElse { exception ->
+            val statusCode = when (exception) {
+                is IllegalArgumentException, is JsonProcessingException -> 400
+                else -> 500
+            }
+            val defaultMessage = if (statusCode == 400) "Bad Request" else "Internal Server Error"
             HttpResponse(
-                HttpStatusCode.valueOf(500),
+                HttpStatusCode.valueOf(statusCode),
                 jsonHeaders(),
-                mapper.writeValueAsString(mapOf("error" to (it.message ?: "Internal Server Error")))
+                mapper.writeValueAsString(mapOf("error" to (exception.message ?: defaultMessage)))
             )
         }
     }

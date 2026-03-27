@@ -1,104 +1,196 @@
 package nl.vintik.mocknest.application.generation.usecases
 
-import nl.vintik.mocknest.domain.core.HttpRequest
-import nl.vintik.mocknest.domain.generation.*
+import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
+import nl.vintik.mocknest.domain.core.HttpRequest
+import nl.vintik.mocknest.domain.generation.*
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class AIGenerationRequestUseCaseTest {
 
-    private val generateFromSpecWithDescriptionUseCase = mockk<GenerateMocksFromSpecWithDescriptionUseCase>()
+    private val generateFromSpecWithDescriptionUseCase =
+        mockk<GenerateMocksFromSpecWithDescriptionUseCase>(relaxed = true)
     private val useCase = AIGenerationRequestUseCase(generateFromSpecWithDescriptionUseCase)
 
-    @Test
-    fun `Should handle valid from-spec request`() {
-        val body = """
-            {
-                "namespace": { "apiName": "test-api" },
-                "specification": "openapi content",
-                "format": "OPENAPI_3",
-                "description": "test description"
-            }
-        """.trimIndent()
-        val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/ai/generation/from-spec", emptyMap(), body)
+    @AfterEach
+    fun tearDown() {
+        clearAllMocks()
+    }
 
-        coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } returns GenerationResult.success(
-            jobId = "job-123",
-            mocks = listOf(
-                GeneratedMock(
-                    id = "m-1",
-                    name = "mock",
-                    namespace = MockNamespace("test-api"),
-                    wireMockMapping = """{"request":{"method":"GET"},"response":{"status":200}}""",
-                    metadata = MockMetadata(
-                        sourceType = SourceType.SPEC_WITH_DESCRIPTION,
-                        sourceReference = "ref",
-                        endpoint = EndpointInfo(HttpMethod.GET, "/t", 200, "json")
+    @Nested
+    inner class SuccessfulRequests {
+
+        @Test
+        fun `Given valid from-spec request When generating mocks Then should return 200 with mappings`() {
+            // Given
+            val body = """
+                {
+                    "namespace": { "apiName": "test-api" },
+                    "specification": "openapi content",
+                    "format": "OPENAPI_3",
+                    "description": "test description"
+                }
+            """.trimIndent()
+            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/ai/generation/from-spec", emptyMap(), body)
+
+            coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } returns GenerationResult.success(
+                jobId = "job-123",
+                mocks = listOf(
+                    GeneratedMock(
+                        id = "m-1",
+                        name = "mock",
+                        namespace = MockNamespace("test-api"),
+                        wireMockMapping = """{"request":{"method":"GET"},"response":{"status":200}}""",
+                        metadata = MockMetadata(
+                            sourceType = SourceType.SPEC_WITH_DESCRIPTION,
+                            sourceReference = "ref",
+                            endpoint = EndpointInfo(HttpMethod.GET, "/t", 200, "json")
+                        )
                     )
                 )
             )
-        )
 
-        val response = useCase.invoke("/from-spec", httpRequest)
+            // When
+            val response = useCase.invoke("/from-spec", httpRequest)
 
-        assertEquals(HttpStatus.OK, response.statusCode)
-        assertTrue(response.body?.contains("mappings") == true)
+            // Then
+            assertEquals(HttpStatus.OK, response.statusCode)
+            assertEquals(true, response.body?.contains("mappings"))
+        }
     }
 
-    @Test
-    fun `Should return 404 for unknown path`() {
-        val httpRequest = HttpRequest(HttpMethod.GET, emptyMap(), "/unknown", emptyMap(), null)
-        val response = useCase.invoke("/unknown", httpRequest)
-        assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
+    @Nested
+    inner class RoutingAndMethodHandling {
+
+        @Test
+        fun `Given unknown path When handling request Then should return 404`() {
+            // Given
+            val httpRequest = HttpRequest(HttpMethod.GET, emptyMap(), "/unknown", emptyMap(), null)
+
+            // When
+            val response = useCase.invoke("/unknown", httpRequest)
+
+            // Then
+            assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
+        }
+
+        @Test
+        fun `Given wrong HTTP method When handling from-spec request Then should return 404`() {
+            // Given
+            val httpRequest = HttpRequest(HttpMethod.GET, emptyMap(), "/from-spec", emptyMap(), null)
+
+            // When
+            val response = useCase.invoke("/from-spec", httpRequest)
+
+            // Then
+            assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
+        }
     }
 
-    @Test
-    fun `Should return 500 for failed generation`() {
-        val body = """
-            {
-                "namespace": { "apiName": "test-api" },
-                "specification": "openapi content",
-                "format": "OPENAPI_3",
-                "description": "test description"
-            }
-        """.trimIndent()
-        val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/ai/generation/from-spec", emptyMap(), body)
+    @Nested
+    inner class ClientErrorHandling {
 
-        coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } returns GenerationResult.failure(
-            jobId = "job-123",
-            error = "Generation failed"
-        )
+        @Test
+        fun `Given malformed JSON When handling from-spec request Then should return 400`() {
+            // Given
+            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), "not-json")
 
-        val response = useCase.invoke("/from-spec", httpRequest)
+            // When
+            val response = useCase.invoke("/from-spec", httpRequest)
 
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
-        assertTrue(response.body?.contains("FAILED") == true)
-        assertTrue(response.body?.contains("Generation failed") == true)
+            // Then
+            assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+        }
+
+        @Test
+        fun `Given null body When handling from-spec request Then should return 400`() {
+            // Given
+            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), null)
+
+            // When
+            val response = useCase.invoke("/from-spec", httpRequest)
+
+            // Then
+            assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+        }
+
+        @Test
+        fun `Given invalid namespace When handling from-spec request Then should return 400`() {
+            // Given
+            val body = """
+                {
+                    "namespace": { "apiName": "invalid name!@#" },
+                    "specification": "openapi content",
+                    "format": "OPENAPI_3",
+                    "description": "test description"
+                }
+            """.trimIndent()
+            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), body)
+
+            // When
+            val response = useCase.invoke("/from-spec", httpRequest)
+
+            // Then
+            assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+            assertEquals(true, response.body?.contains("error"))
+        }
+
+        @Test
+        fun `Given missing description When handling from-spec request Then should return 400`() {
+            // Given
+            val body = """
+                {
+                    "namespace": { "apiName": "test-api" },
+                    "specification": "openapi content",
+                    "format": "OPENAPI_3",
+                    "description": ""
+                }
+            """.trimIndent()
+            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), body)
+
+            // When
+            val response = useCase.invoke("/from-spec", httpRequest)
+
+            // Then
+            assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+            assertEquals(true, response.body?.contains("error"))
+        }
     }
 
-    @Test
-    fun `Should handle malformed JSON in request`() {
-        val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), "not-json")
-        val response = useCase.invoke("/from-spec", httpRequest)
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
-    }
+    @Nested
+    inner class ServerErrorHandling {
 
-    @Test
-    fun `Should return 404 for wrong method`() {
-        val httpRequest = HttpRequest(HttpMethod.GET, emptyMap(), "/from-spec", emptyMap(), null)
-        val response = useCase.invoke("/from-spec", httpRequest)
-        assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
-    }
+        @Test
+        fun `Given failed generation When handling from-spec request Then should return 500 with error details`() {
+            // Given
+            val body = """
+                {
+                    "namespace": { "apiName": "test-api" },
+                    "specification": "openapi content",
+                    "format": "OPENAPI_3",
+                    "description": "test description"
+                }
+            """.trimIndent()
+            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/ai/generation/from-spec", emptyMap(), body)
 
-    @Test
-    fun `Should handle null body in generateFromSpecWithDescription`() {
-        val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), null)
-        val response = useCase.invoke("/from-spec", httpRequest)
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+            coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } returns GenerationResult.failure(
+                jobId = "job-123",
+                error = "Generation failed"
+            )
+
+            // When
+            val response = useCase.invoke("/from-spec", httpRequest)
+
+            // Then
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+            assertEquals(true, response.body?.contains("FAILED"))
+            assertEquals(true, response.body?.contains("Generation failed"))
+        }
     }
 }
