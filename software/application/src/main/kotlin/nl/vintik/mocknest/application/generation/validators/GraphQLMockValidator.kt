@@ -144,7 +144,7 @@ class GraphQLMockValidator : MockValidatorInterface {
             if (expectedSchema == null) {
                 errors.add("Unexpected argument: '$argName' not defined in schema")
             } else {
-                val typeError = validateValueAgainstSchema(argValue, expectedSchema, argName)
+                val typeError = validateJsonElementAgainstSchema(argValue, expectedSchema, argName)
                 if (typeError != null) {
                     errors.add(typeError)
                 }
@@ -271,8 +271,8 @@ class GraphQLMockValidator : MockValidatorInterface {
                     return errors
                 }
 
-                // Validate enum values
-                schema.enum?.let { enumValues ->
+                // Validate enum values (only when enum list is non-empty)
+                schema.enum?.takeIf { it.isNotEmpty() }?.let { enumValues ->
                     if (!enumValues.contains(data.content)) {
                         errors.add("Field '$path' has invalid enum value: '${data.content}'. Valid values: ${enumValues.joinToString(", ")}")
                     }
@@ -305,6 +305,43 @@ class GraphQLMockValidator : MockValidatorInterface {
         }
 
         return errors
+    }
+
+    /**
+     * Validates a JsonElement value against a JSON schema (for arguments extracted from JSON body).
+     */
+    private fun validateJsonElementAgainstSchema(
+        value: Any?,
+        schema: nl.vintik.mocknest.domain.generation.JsonSchema,
+        fieldName: String
+    ): String? {
+        // Handle JsonElement values (from JsonObject.toMap())
+        if (value is JsonElement) {
+            return when (schema.type) {
+                nl.vintik.mocknest.domain.generation.JsonSchemaType.STRING -> {
+                    if (value !is JsonPrimitive || !value.isString) "Argument '$fieldName' must be a string" else null
+                }
+                nl.vintik.mocknest.domain.generation.JsonSchemaType.INTEGER -> {
+                    if (value !is JsonPrimitive || value.intOrNull == null) "Argument '$fieldName' must be an integer" else null
+                }
+                nl.vintik.mocknest.domain.generation.JsonSchemaType.NUMBER -> {
+                    if (value !is JsonPrimitive || (value.intOrNull == null && value.doubleOrNull == null)) "Argument '$fieldName' must be a number" else null
+                }
+                nl.vintik.mocknest.domain.generation.JsonSchemaType.BOOLEAN -> {
+                    if (value !is JsonPrimitive || value.booleanOrNull == null) "Argument '$fieldName' must be a boolean" else null
+                }
+                nl.vintik.mocknest.domain.generation.JsonSchemaType.OBJECT -> {
+                    if (value !is JsonObject) "Argument '$fieldName' must be an object" else null
+                }
+                nl.vintik.mocknest.domain.generation.JsonSchemaType.ARRAY -> {
+                    if (value !is JsonArray) "Argument '$fieldName' must be an array" else null
+                }
+                nl.vintik.mocknest.domain.generation.JsonSchemaType.NULL -> {
+                    if (value !is JsonNull) "Argument '$fieldName' must be null" else null
+                }
+            }
+        }
+        return validateValueAgainstSchema(value, schema, fieldName)
     }
 
     /**
