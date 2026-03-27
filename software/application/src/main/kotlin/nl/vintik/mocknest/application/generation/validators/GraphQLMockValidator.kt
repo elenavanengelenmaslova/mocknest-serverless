@@ -280,19 +280,19 @@ class GraphQLMockValidator : MockValidatorInterface {
             }
 
             JsonSchemaType.INTEGER -> {
-                if (data !is JsonPrimitive || data.intOrNull == null) {
+                if (data !is JsonPrimitive || data.isString || data.intOrNull == null) {
                     errors.add("Field '$path' must be an integer")
                 }
             }
 
             JsonSchemaType.NUMBER -> {
-                if (data !is JsonPrimitive || (data.intOrNull == null && data.doubleOrNull == null)) {
+                if (data !is JsonPrimitive || data.isString || (data.intOrNull == null && data.doubleOrNull == null)) {
                     errors.add("Field '$path' must be a number")
                 }
             }
 
             JsonSchemaType.BOOLEAN -> {
-                if (data !is JsonPrimitive || data.booleanOrNull == null) {
+                if (data !is JsonPrimitive || data.isString || data.booleanOrNull == null) {
                     errors.add("Field '$path' must be a boolean")
                 }
             }
