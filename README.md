@@ -43,7 +43,7 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 - **Serverless WireMock Runtime**: Full WireMock API running on AWS Lambda
 - **Persistent Mock Storage**: Mock definitions stored in Amazon S3
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
-- **AI-Assisted Mock Generation**: Intelligent mock creation from API specifications using Bedrock with a configurable model, defaulted to Amazon Nova Pro
+- **AI-Assisted Mock Generation**: Intelligent mock creation from REST and GraphQL API specifications using Bedrock with a configurable model, defaulted to Amazon Nova Pro
 - **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR) or deploy via SAM
 - **Performance Optimized**: Lambda SnapStart with priming for reduced cold start latency
 
@@ -134,6 +134,25 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 ```
 
 When `enableValidation` is enabled, generated mocks are automatically validated. If invalid mocks are detected, the system retries generation with AI self-correction (up to `BedrockGenerationMaxRetries` attempts) and only returns mocks that pass validation.
+
+Generate mocks from a GraphQL endpoint (via introspection):
+```bash
+curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": {
+        "apiName": "my-graphql-api",
+        "client": null
+    },
+    "specificationUrl": "https://example.com/graphql",
+    "format": "GRAPHQL",
+    "description": "Generate mocks for user and product queries, returning realistic test data with consistent IDs",
+    "options": {
+        "enableValidation": true
+    }
+}'
+```
 
 Import the generated mappings (copy the `mappings` array from the response):
 ```bash

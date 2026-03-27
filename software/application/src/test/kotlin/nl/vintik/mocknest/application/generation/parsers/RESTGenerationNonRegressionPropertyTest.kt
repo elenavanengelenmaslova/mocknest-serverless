@@ -19,7 +19,7 @@ import org.springframework.http.HttpMethod
  * the OpenAPISpecificationParser should still successfully parse the spec
  * and produce a valid APISpecification with correct endpoints, methods, and schemas.
  *
- * Uses 10 diverse OpenAPI YAML test data files covering different API patterns.
+ * Uses 16 diverse OpenAPI YAML test data files covering different API patterns.
  */
 @Tag("graphql-introspection-ai-generation")
 @Tag("Property-14")
@@ -47,7 +47,12 @@ class RESTGenerationNonRegressionPropertyTest {
         "api-with-enums.yaml",
         "minimal-api.yaml",
         "api-with-auth.yaml",
-        "api-with-multiple-responses.yaml"
+        "api-with-multiple-responses.yaml",
+        "api-with-pagination.yaml",
+        "api-with-oneOf.yaml",
+        "api-with-file-upload.yaml",
+        "api-with-deprecated.yaml",
+        "large-crud-api.yaml"
     ])
     fun `Property 14 - Given OpenAPI spec When parsing Then produces valid APISpecification`(filename: String) = runTest {
         // Given
@@ -75,7 +80,12 @@ class RESTGenerationNonRegressionPropertyTest {
         "api-with-enums.yaml",
         "minimal-api.yaml",
         "api-with-auth.yaml",
-        "api-with-multiple-responses.yaml"
+        "api-with-multiple-responses.yaml",
+        "api-with-pagination.yaml",
+        "api-with-oneOf.yaml",
+        "api-with-file-upload.yaml",
+        "api-with-deprecated.yaml",
+        "large-crud-api.yaml"
     ])
     fun `Property 14 - Given OpenAPI spec When parsing Then all endpoints have valid HTTP methods`(filename: String) = runTest {
         // Given
@@ -109,7 +119,12 @@ class RESTGenerationNonRegressionPropertyTest {
         "api-with-enums.yaml",
         "minimal-api.yaml",
         "api-with-auth.yaml",
-        "api-with-multiple-responses.yaml"
+        "api-with-multiple-responses.yaml",
+        "api-with-pagination.yaml",
+        "api-with-oneOf.yaml",
+        "api-with-file-upload.yaml",
+        "api-with-deprecated.yaml",
+        "large-crud-api.yaml"
     ])
     fun `Property 14 - Given OpenAPI spec When parsing Then all endpoints have non-blank paths`(filename: String) = runTest {
         // Given
@@ -143,7 +158,12 @@ class RESTGenerationNonRegressionPropertyTest {
         "api-with-enums.yaml",
         "minimal-api.yaml",
         "api-with-auth.yaml",
-        "api-with-multiple-responses.yaml"
+        "api-with-multiple-responses.yaml",
+        "api-with-pagination.yaml",
+        "api-with-oneOf.yaml",
+        "api-with-file-upload.yaml",
+        "api-with-deprecated.yaml",
+        "large-crud-api.yaml"
     ])
     fun `Property 14 - Given OpenAPI spec When parsing Then all endpoints have at least one response`(filename: String) = runTest {
         // Given
@@ -173,7 +193,12 @@ class RESTGenerationNonRegressionPropertyTest {
         "api-with-enums.yaml",
         "minimal-api.yaml",
         "api-with-auth.yaml",
-        "api-with-multiple-responses.yaml"
+        "api-with-multiple-responses.yaml",
+        "api-with-pagination.yaml",
+        "api-with-oneOf.yaml",
+        "api-with-file-upload.yaml",
+        "api-with-deprecated.yaml",
+        "large-crud-api.yaml"
     ])
     fun `Property 14 - Given OpenAPI spec When validating Then result is valid`(filename: String) = runTest {
         // Given
@@ -198,7 +223,12 @@ class RESTGenerationNonRegressionPropertyTest {
         "api-with-enums.yaml",
         "minimal-api.yaml",
         "api-with-auth.yaml",
-        "api-with-multiple-responses.yaml"
+        "api-with-multiple-responses.yaml",
+        "api-with-pagination.yaml",
+        "api-with-oneOf.yaml",
+        "api-with-file-upload.yaml",
+        "api-with-deprecated.yaml",
+        "large-crud-api.yaml"
     ])
     fun `Property 14 - Given OpenAPI spec When extracting metadata Then metadata is populated`(filename: String) = runTest {
         // Given
@@ -218,7 +248,9 @@ class RESTGenerationNonRegressionPropertyTest {
     @ValueSource(strings = [
         "petstore-v3.yaml",
         "simple-crud-api.yaml",
-        "api-with-path-params.yaml"
+        "api-with-path-params.yaml",
+        "api-with-file-upload.yaml",
+        "large-crud-api.yaml"
     ])
     fun `Property 14 - Given OpenAPI spec with path params When parsing Then path parameters are extracted`(filename: String) = runTest {
         // Given
@@ -241,7 +273,10 @@ class RESTGenerationNonRegressionPropertyTest {
     @ValueSource(strings = [
         "petstore-v3.yaml",
         "api-with-query-params.yaml",
-        "api-with-enums.yaml"
+        "api-with-enums.yaml",
+        "api-with-pagination.yaml",
+        "api-with-deprecated.yaml",
+        "large-crud-api.yaml"
     ])
     fun `Property 14 - Given OpenAPI spec with query params When parsing Then query parameters are extracted`(filename: String) = runTest {
         // Given
@@ -264,7 +299,12 @@ class RESTGenerationNonRegressionPropertyTest {
         "api-with-nested-objects.yaml",
         "api-with-enums.yaml",
         "api-with-auth.yaml",
-        "api-with-multiple-responses.yaml"
+        "api-with-multiple-responses.yaml",
+        "api-with-pagination.yaml",
+        "api-with-oneOf.yaml",
+        "api-with-file-upload.yaml",
+        "api-with-deprecated.yaml",
+        "large-crud-api.yaml"
     ])
     fun `Property 14 - Given OpenAPI spec with component schemas When parsing Then schemas are extracted`(filename: String) = runTest {
         // Given
@@ -275,7 +315,7 @@ class RESTGenerationNonRegressionPropertyTest {
 
         // Then
         assertTrue(spec.schemas.isNotEmpty(), "[$filename] Should have at least one component schema")
-        spec.schemas.forEach { (name, schema) ->
+        spec.schemas.forEach { (name, _) ->
             assertFalse(name.isBlank(), "[$filename] Schema name should not be blank")
         }
     }
@@ -285,7 +325,11 @@ class RESTGenerationNonRegressionPropertyTest {
         "petstore-v3.yaml",
         "simple-crud-api.yaml",
         "api-with-request-bodies.yaml",
-        "api-with-nested-objects.yaml"
+        "api-with-nested-objects.yaml",
+        "api-with-oneOf.yaml",
+        "api-with-file-upload.yaml",
+        "api-with-deprecated.yaml",
+        "large-crud-api.yaml"
     ])
     fun `Property 14 - Given OpenAPI spec with POST endpoints When parsing Then request bodies are extracted`(filename: String) = runTest {
         // Given
@@ -315,7 +359,12 @@ class RESTGenerationNonRegressionPropertyTest {
         "api-with-enums.yaml",
         "minimal-api.yaml",
         "api-with-auth.yaml",
-        "api-with-multiple-responses.yaml"
+        "api-with-multiple-responses.yaml",
+        "api-with-pagination.yaml",
+        "api-with-oneOf.yaml",
+        "api-with-file-upload.yaml",
+        "api-with-deprecated.yaml",
+        "large-crud-api.yaml"
     ])
     fun `Property 14 - Given any OpenAPI spec When checking format support Then OPENAPI_3 is supported`(filename: String) {
         // Given - just verify the parser still supports REST formats (no regression)

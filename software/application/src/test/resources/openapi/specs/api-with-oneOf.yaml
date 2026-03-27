@@ -1,0 +1,63 @@
+openapi: 3.0.0
+info:
+  title: Polymorphic API
+  version: 1.0.0
+paths:
+  /notifications:
+    get:
+      operationId: listNotifications
+      summary: List notifications
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+    post:
+      operationId: createNotification
+      summary: Create a notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      responses:
+        '201':
+          description: Notification created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+components:
+  schemas:
+    Notification:
+      oneOf:
+        - $ref: '#/components/schemas/EmailNotification'
+        - $ref: '#/components/schemas/SmsNotification'
+    EmailNotification:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [email]
+        to:
+          type: string
+          format: email
+        subject:
+          type: string
+        body:
+          type: string
+    SmsNotification:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [sms]
+        phoneNumber:
+          type: string
+        message:
+          type: string

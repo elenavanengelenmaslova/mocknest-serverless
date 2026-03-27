@@ -250,7 +250,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Register `GraphQLMockValidator` bean
     - _Requirements: 1.1, 1.2_
 
-- [-] 4. Phase 4: Integration - Wire components and test end-to-end flows
+- [x] 4. Phase 4: Integration - Wire components and test end-to-end flows
   - [x] 4.1 Register GraphQLSpecificationParser in CompositeSpecificationParserImpl
     - Locate `CompositeSpecificationParserImpl` in application layer
     - Add `GraphQLSpecificationParser` to list of parsers
@@ -322,7 +322,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify no breaking changes to REST flow
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-14")`
 
-  - [ ] 4.11 Write property test for GraphQL request acceptance
+  - [x] 4.11 Write property test for GraphQL request acceptance
     - **Property 1: GraphQL Request Acceptance**
     - **Validates: Requirements 1.1**
     - Use JUnit 6 `@ParameterizedTest` with various GraphQL endpoint URLs and instructions
@@ -330,7 +330,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify requests are accepted without format-related errors
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-1")`
 
-  - [ ] 4.12 Write property test for GraphQL-over-HTTP mock format
+  - [x] 4.12 Write property test for GraphQL-over-HTTP mock format
     - **Property 8: GraphQL-over-HTTP Mock Format**
     - **Validates: Requirements 4.3**
     - Use JUnit 6 `@ParameterizedTest` with 10+ generated mock examples
@@ -338,7 +338,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify mocks include JSON body matcher for GraphQL operation
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-8")`
 
-  - [ ] 4.13 Write property test for GraphQL response format compliance
+  - [x] 4.13 Write property test for GraphQL response format compliance
     - **Property 9: GraphQL Response Format Compliance**
     - **Validates: Requirements 4.4**
     - Use JUnit 6 `@ParameterizedTest` with 10+ mock response examples
@@ -346,14 +346,14 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify compliance with GraphQL response specification
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-9")`
 
-  - [ ] 4.14 Write property test for validation error reporting
+  - [x] 4.14 Write property test for validation error reporting
     - **Property 11: Validation Error Reporting**
     - **Validates: Requirements 5.8**
     - Use JUnit 6 `@ParameterizedTest` with 10+ invalid mock examples
     - Verify validator returns non-empty error list with context
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-11")`
 
-  - [ ] 4.15 Write property test for WireMock persistence compatibility
+  - [x] 4.15 Write property test for WireMock persistence compatibility
     - **Property 13: WireMock Persistence Compatibility**
     - **Validates: Requirements 7.1**
     - Use JUnit 6 `@ParameterizedTest` with 10+ generated mock examples
@@ -361,7 +361,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify compatibility with existing persistence model
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-13")`
 
-  - [ ] 4.16 Write property test for schema round-trip preservation
+  - [x] 4.16 Write property test for schema round-trip preservation
     - **Property 15: Schema Round-Trip Preservation**
     - **Validates: Requirements 10.3, 10.4, 10.5, 10.6**
     - Use JUnit 6 `@ParameterizedTest` with 10+ compact schema examples
@@ -369,21 +369,21 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify operations, types, and enums are preserved
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-15")`
 
-  - [ ] 4.17 Write property test for metadata field exclusion
+  - [x] 4.17 Write property test for metadata field exclusion
     - **Property 6: Metadata Field Exclusion**
     - **Validates: Requirements 3.7**
     - Use JUnit 6 `@ParameterizedTest` with 10+ introspection JSON examples
     - Verify compact schema excludes `__schema`, `__type`, `__typename`
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-6")`
 
-  - [ ] 4.18 Write property test for schema size reduction
+  - [x] 4.18 Write property test for schema size reduction
     - **Property 7: Schema Size Reduction**
     - **Validates: Requirements 3.8**
     - Use JUnit 6 `@ParameterizedTest` with 10+ introspection JSON examples
     - Verify compact schema is at least 40% smaller than raw introspection
     - Tag test with `@Tag("graphql-introspection-ai-generation")` and `@Tag("Property-7")`
 
-  - [ ] 4.19 Write REST API property tests for non-regression
+  - [x] 4.19 Write REST API property tests for non-regression
     - Create comprehensive property tests for REST/OpenAPI generation to ensure no regressions
     - Use JUnit 6 `@ParameterizedTest` with diverse OpenAPI examples
     - Create test data directory: `src/test/resources/openapi/specs/`
@@ -411,11 +411,11 @@ The implementation follows clean architecture principles with strict layer separ
     - Tag tests with `@Tag("rest-api-property-tests")`
     - _Note: These tests ensure GraphQL changes don't break REST generation_
 
-- [ ] 5. Checkpoint - Ensure all tests pass
+- [x] 5. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Phase 5: Documentation and Deployment - Update documentation and verify deployment
-  - [ ] 6.1 Create jar size validation test
+- [-] 6. Phase 5: Documentation and Deployment - Update documentation and verify deployment
+  - [x] 6.1 Create jar size validation test
     - Create `software/infra/aws/mocknest/src/test/kotlin/nl/vintik/mocknest/infra/aws/deployment/JarSizeValidationTest.kt`
     - Implement test that executes `./gradlew :software:infra:aws:mocknest:shadowJar` to build the jar
     - After build completes, check `build/dist/mocknest-serverless.jar` file size
@@ -427,7 +427,7 @@ The implementation follows clean architecture principles with strict layer separ
     - _Note: This prevents dependency bloat from new GraphQL libraries (ktor-client, graphql-java)_
     - _Note: This test runs as part of regular build pipeline, not just SAR publish_
 
-  - [ ] 6.2 Update API documentation with GraphQL examples
+  - [x] 6.2 Update API documentation with GraphQL examples
     - Update relevant documentation files in `docs/`
     - Add GraphQL endpoint examples
     - Add sample GraphQL generation requests
@@ -435,7 +435,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Document dual input mode (URL vs pre-fetched schema)
     - _Requirements: 1.1, 1.4_
 
-  - [ ] 6.3 Update README with GraphQL support information
+  - [x] 6.3 Update README with GraphQL support information
     - Add GraphQL to list of supported specification formats
     - Add GraphQL generation example
     - Add link to GraphQL documentation
@@ -447,7 +447,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Include sample generation instructions
     - _Requirements: 1.1_
 
-  - [ ] 6.4 Verify code coverage meets 90% threshold
+  - [x] 6.4 Verify code coverage meets 90% threshold
     - Run `./gradlew koverHtmlReport`
     - Verify aggregated coverage is at least 90%
     - Identify any coverage gaps and add tests if needed
