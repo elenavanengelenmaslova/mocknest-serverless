@@ -1,0 +1,233 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": {
+        "name": "Query"
+      },
+      "mutationType": {
+        "name": "Mutation"
+      },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "task",
+              "description": "Get a task by ID",
+              "args": [
+                {
+                  "name": "id",
+                  "description": "Task ID",
+                  "type": {
+                    "kind": "NON_NULL",
+                    "name": null,
+                    "ofType": {
+                      "kind": "SCALAR",
+                      "name": "ID",
+                      "ofType": null
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "OBJECT",
+                "name": "Task",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            {
+              "name": "updateTaskStatus",
+              "description": "Update task status",
+              "args": [
+                {
+                  "name": "id",
+                  "description": "Task ID",
+                  "type": {
+                    "kind": "NON_NULL",
+                    "name": null,
+                    "ofType": {
+                      "kind": "SCALAR",
+                      "name": "ID",
+                      "ofType": null
+                    }
+                  }
+                },
+                {
+                  "name": "status",
+                  "description": "New status",
+                  "type": {
+                    "kind": "NON_NULL",
+                    "name": null,
+                    "ofType": {
+                      "kind": "ENUM",
+                      "name": "TaskStatus",
+                      "ofType": null
+                    }
+                  }
+                }
+              ],
+              "type": {
+                "kind": "OBJECT",
+                "name": "Task",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Task",
+          "description": "Task type",
+          "fields": [
+            {
+              "name": "id",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "ID",
+                  "ofType": null
+                }
+              }
+            },
+            {
+              "name": "title",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "String",
+                  "ofType": null
+                }
+              }
+            },
+            {
+              "name": "status",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "ENUM",
+                "name": "TaskStatus",
+                "ofType": null
+              }
+            },
+            {
+              "name": "priority",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "ENUM",
+                "name": "TaskPriority",
+                "ofType": null
+              }
+            },
+            {
+              "name": "category",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "ENUM",
+                "name": "TaskCategory",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "TaskStatus",
+          "description": "Task status enum",
+          "enumValues": [
+            {
+              "name": "TODO",
+              "description": "Task not started"
+            },
+            {
+              "name": "IN_PROGRESS",
+              "description": "Task in progress"
+            },
+            {
+              "name": "DONE",
+              "description": "Task completed"
+            },
+            {
+              "name": "BLOCKED",
+              "description": "Task blocked"
+            }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "TaskPriority",
+          "description": "Task priority enum",
+          "enumValues": [
+            {
+              "name": "LOW",
+              "description": null
+            },
+            {
+              "name": "MEDIUM",
+              "description": null
+            },
+            {
+              "name": "HIGH",
+              "description": null
+            },
+            {
+              "name": "URGENT",
+              "description": null
+            }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "TaskCategory",
+          "description": "Task category enum",
+          "enumValues": [
+            {
+              "name": "BUG",
+              "description": null
+            },
+            {
+              "name": "FEATURE",
+              "description": null
+            },
+            {
+              "name": "IMPROVEMENT",
+              "description": null
+            },
+            {
+              "name": "DOCUMENTATION",
+              "description": null
+            }
+          ]
+        },
+        {
+          "kind": "SCALAR",
+          "name": "String",
+          "description": "Built-in String scalar"
+        },
+        {
+          "kind": "SCALAR",
+          "name": "ID",
+          "description": "Built-in ID scalar"
+        }
+      ]
+    }
+  }
+}

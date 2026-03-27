@@ -179,7 +179,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Verify template variable replacement works for both formats
     - _Requirements: 1.2_
 
-- [-] 3. Phase 3: Infrastructure Layer - Implement introspection client and integration
+- [x] 3. Phase 3: Infrastructure Layer - Implement introspection client and integration
   - [x] 3.1 Add Kotlin HTTP client dependencies to Gradle
     - Update `software/infra/aws/generation/build.gradle.kts`
     - Add ktor-client-core, ktor-client-cio, ktor-client-content-negotiation, ktor-serialization-kotlinx-json
@@ -200,7 +200,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Use kotlin-logging for structured error logging
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-  - [ ] 3.3 Write unit tests for GraphQLIntrospectionClient
+  - [x] 3.3 Write unit tests for GraphQLIntrospectionClient
     - Test successful introspection with valid endpoint (use mock HTTP server)
     - Test network failure scenarios (unreachable, timeout, SSL errors)
     - Test introspection disabled error handling
@@ -209,7 +209,7 @@ The implementation follows clean architecture principles with strict layer separ
     - Use MockK for HTTP client mocking
     - _Requirements: 2.2, 2.3, 2.4, 2.5_
 
-  - [ ] 3.4 Write property test for introspection success
+  - [x] 3.4 Write property test for introspection success
     - **Property 4: Introspection Success Returns Valid JSON**
     - **Validates: Requirements 2.6**
     - Use JUnit 6 `@ParameterizedTest` with mock HTTP responses
