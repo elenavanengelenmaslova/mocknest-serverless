@@ -175,10 +175,7 @@ class GraphQLSpecificationParser(
             JsonSchema(
                 type = JsonSchemaType.OBJECT,
                 properties = operation.arguments.associate { arg ->
-                    arg.name to JsonSchema(
-                        type = mapGraphQLTypeToJsonSchemaType(arg.type),
-                        description = arg.description
-                    )
+                    arg.name to mapGraphQLTypeToJsonSchema(arg.type, arg.description)
                 },
                 required = operation.arguments.filter { it.type.endsWith("!") }.map { it.name }
             )
@@ -210,10 +207,7 @@ class GraphQLSpecificationParser(
         // GraphQL response: { "data": {...}, "errors": [...] }
         val returnTypeName = operation.returnType.removeSuffix("!").removePrefix("[").removeSuffix("]")
         val dataSchema = schema.types[returnTypeName]?.let { convertTypeToJsonSchema(it) }
-            ?: JsonSchema(
-                type = mapGraphQLTypeToJsonSchemaType(operation.returnType),
-                description = "Response data"
-            )
+            ?: mapGraphQLTypeToJsonSchema(operation.returnType, "Response data")
         
         return JsonSchema(
             type = JsonSchemaType.OBJECT,
@@ -241,10 +235,7 @@ class GraphQLSpecificationParser(
         return JsonSchema(
             type = JsonSchemaType.OBJECT,
             properties = type.fields.associate { field ->
-                field.name to JsonSchema(
-                    type = mapGraphQLTypeToJsonSchemaType(field.type),
-                    description = field.description
-                )
+                field.name to mapGraphQLTypeToJsonSchema(field.type, field.description)
             },
             required = type.fields.filter { it.type.endsWith("!") }.map { it.name },
             description = type.description
@@ -259,16 +250,25 @@ class GraphQLSpecificationParser(
         )
     }
 
-    private fun mapGraphQLTypeToJsonSchemaType(graphQLType: String): JsonSchemaType {
-        val baseType = graphQLType.removeSuffix("!").removePrefix("[").removeSuffix("]")
-
-        return when (baseType) {
+    private fun mapGraphQLTypeToJsonSchema(graphQLType: String, description: String? = null): JsonSchema {
+        val stripped = graphQLType.removeSuffix("!")
+        // Detect list types like [Product], [String]!, [Int!]
+        if (stripped.startsWith("[") && stripped.endsWith("]")) {
+            val innerType = stripped.removePrefix("[").removeSuffix("]")
+            return JsonSchema(
+                type = JsonSchemaType.ARRAY,
+                items = mapGraphQLTypeToJsonSchema(innerType),
+                description = description
+            )
+        }
+        val schemaType = when (stripped) {
             "String", "ID" -> JsonSchemaType.STRING
             "Int" -> JsonSchemaType.INTEGER
             "Float" -> JsonSchemaType.NUMBER
             "Boolean" -> JsonSchemaType.BOOLEAN
-            else -> JsonSchemaType.OBJECT // Custom types
+            else -> JsonSchemaType.OBJECT
         }
+        return JsonSchema(type = schemaType, description = description)
     }
 
     private fun isHttpUrl(content: String): Boolean {
