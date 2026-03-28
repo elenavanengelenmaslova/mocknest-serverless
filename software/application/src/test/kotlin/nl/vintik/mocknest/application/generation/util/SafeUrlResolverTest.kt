@@ -217,8 +217,8 @@ class SafeUrlResolverTest {
         }
 
         @Test
-        fun `Given slow response When fetching with short timeout Then throws UrlResolutionException`() {
-            // Given - use a resolver that bypasses SSRF validation to test the actual timeout
+        fun `Given slow response When fetching with short timeout Then throws SocketTimeoutException`() {
+            // Given - use a custom fetcher that bypasses SSRF validation to test raw timeout behavior
             wireMockServer.stubFor(
                 get(urlEqualTo("/slow"))
                     .willReturn(
