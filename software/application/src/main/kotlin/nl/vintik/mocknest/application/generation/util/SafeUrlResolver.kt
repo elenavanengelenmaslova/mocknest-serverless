@@ -21,7 +21,8 @@ interface UrlFetcher {
  */
 class SafeUrlResolver(
     private val connectTimeoutMs: Int = 10_000,
-    private val readTimeoutMs: Int = 10_000
+    private val readTimeoutMs: Int = 10_000,
+    private val maxResponseBytes: Long = 10 * 1024 * 1024 // 10 MB
 ) : UrlFetcher {
 
     override fun fetch(url: String): String {
@@ -33,7 +34,23 @@ class SafeUrlResolver(
             connection.connectTimeout = connectTimeoutMs
             connection.readTimeout = readTimeoutMs
             connection.requestMethod = "GET"
-            connection.inputStream.bufferedReader().use { it.readText() }
+            connection.inputStream.use { input ->
+                val result = StringBuilder()
+                val buffer = CharArray(8192)
+                val reader = input.bufferedReader()
+                var totalRead = 0L
+                var charsRead: Int
+                while (reader.read(buffer).also { charsRead = it } != -1) {
+                    totalRead += charsRead
+                    if (totalRead > maxResponseBytes) {
+                        throw UrlResolutionException(
+                            "Response exceeds maximum size of ${maxResponseBytes / (1024 * 1024)} MB"
+                        )
+                    }
+                    result.appendRange(buffer, 0, charsRead)
+                }
+                result.toString()
+            }
         }.getOrElse { e ->
             when (e) {
                 is UrlResolutionException -> throw e
