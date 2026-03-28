@@ -80,12 +80,12 @@ open build/reports/kover/html/index.html
 # Individual module coverage
 open software/application/build/reports/kover/html/index.html
 open software/domain/build/reports/kover/html/index.html
-open software/infra/aws/build/reports/kover/html/index.html
+open software/infra/aws/runtime/build/reports/kover/html/index.html
 ```
 
 #### Coverage Verification
 ```bash
-# Verify 90% coverage threshold (fails build if under 90%)
+# Verify 80% coverage threshold (fails build if under 80%)
 ./gradlew koverVerify
 ```
 
@@ -109,19 +109,19 @@ sam build
 sam local start-api
 
 # Invoke function locally
-sam local invoke MockNestFunction --event events/test-event.json
+sam local invoke MockNestRuntimeFunction --event events/test-event.json
 ```
 
 ## CI/CD Pipeline
 
 ### Feature Branches
 - Build and test all modules
-- Verify 90% code coverage
+- Verify 80% code coverage
 - No deployment
 
 ### Main Branch
 - Build and test all modules
-- Verify 90% code coverage
+- Verify 80% code coverage
 - Upload coverage to Codecov
 - Deploy to AWS
 
@@ -149,7 +149,7 @@ sdk use java 25.0.1-open
 
 **Coverage Failures**
 ```bash
-# Check which modules are under 90%
+# Check which modules are under 80%
 ./gradlew koverVerify
 
 # Generate detailed coverage report

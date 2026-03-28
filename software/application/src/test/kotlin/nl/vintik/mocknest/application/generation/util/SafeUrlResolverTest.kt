@@ -165,8 +165,8 @@ class SafeUrlResolverTest {
 
         @Test
         fun `Given valid external URL When validating Then does not throw`() {
-            // Should not throw for a valid external URL
-            SafeUrlResolver.validateUrlSafety("https://petstore3.swagger.io/api/v3/openapi.json")
+            // Use an IP literal so InetAddress.getAllByName parses it locally without DNS
+            SafeUrlResolver.validateUrlSafety("https://8.8.8.8/api/v3/openapi.json")
         }
     }
 

@@ -48,7 +48,7 @@ After deployment, find your API Gateway endpoint and API key in the CloudFormati
 1. Go to **CloudFormation** in your AWS Console
 2. Find your MockNest stack (usually named `serverlessrepo-MockNest-Serverless-*`)
 3. Click the **Outputs** tab
-4. Note the `MockNestApiUrl` and `MockNestApiKey` values
+4. Note the `MockNestApiUrl` value. For `MockNestApiKey`, the output shows the API key ID — to retrieve the actual key value, go to API Gateway → API Keys → select the key → Show
 
 ## Quick Start
 
@@ -73,7 +73,7 @@ The fastest way to explore MockNest Serverless:
 
 ```bash
 # Set your API details from CloudFormation outputs
-export MOCKNEST_URL="https://your-api-id.execute-api.region.amazonaws.com/prod"
+export MOCKNEST_URL="https://your-api-id.execute-api.region.amazonaws.com/mocks"
 export API_KEY="your-api-key-from-outputs"
 
 # Verify deployment
@@ -209,7 +209,7 @@ MockNest automatically creates CloudWatch log groups:
 
 - **Runtime logs**: `/aws/lambda/{stack-name}-runtime` - WireMock runtime and mock serving
 - **Generation logs**: `/aws/lambda/{stack-name}-generation` - AI mock generation
-- **Retention**: 30 days (automatically configured)
+- **Retention**: 7 days (automatically configured)
 
 **To view logs:**
 1. Go to **CloudWatch** in AWS Console

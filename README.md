@@ -155,7 +155,7 @@ curl "${MOCKNEST_URL}/mocknest/petstore/pet/findByStatus?status=available" \
 To use MockNest with your application:
 1. Create mocks for the third-party APIs your app depends on (using manual creation or AI generation)
 2. Update your app's configuration to point at MockNest instead of the real API:
-   - Change the API base URL to `${MOCKNEST_URL}` (plus any path prefix like `/petstore`)
+   - Change the API base URL to `${MOCKNEST_URL}/mocknest` (plus any path prefix like `/petstore`)
    - Add the API key header to your requests: `x-api-key: ${API_KEY}`
 3. Your app will now call mocks instead of real services
 
@@ -243,7 +243,7 @@ MockNest Serverless provides multiple ways to interact with the API:
 
 The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock inference profiles:
 
-- **AUTO** (recommended): Tries cross-region inference profile first, then falls back to region-specific profile. Best for most users who want automatic optimization and maximum availability.
+- **AUTO** (recommended): Tries region-specific inference profile first, then falls back to cross-region profile. Best for most users who want automatic optimization and maximum availability.
   
 - **GLOBAL_ONLY**: Forces use of cross-region inference profile only. Use when you need consistent model behavior across all regions and data residency is not a concern.
   
@@ -321,7 +321,7 @@ For developers who want to build from source or contribute to MockNest Serverles
 - AWS CLI configured with appropriate permissions
 - AWS SAM CLI installed
 - Docker (or equivalent such as Colima, for local testing)
-- Java 21+ and Gradle (or use included Gradle wrapper)
+- Java 25+ and Gradle (or use included Gradle wrapper)
 
 ### Build and Deploy from Source
 
@@ -374,7 +374,7 @@ sam deploy --parameter-overrides \
 
 2. **Run Integration Tests** (requires Docker):
    ```bash
-   ./gradlew :software:infra:aws:test
+   ./gradlew test
    ```
 
 3. **Local SAM Testing**:
@@ -392,9 +392,9 @@ mocknest-serverless/
 │   ├── application/             # Use cases and WireMock orchestration
 │   └── infra/aws/              # AWS-specific implementations
 ├── deployment/                 # Deployment configurations
-│   ├── sam/                    # SAM templates and scripts
-│   ├── sar/                    # SAR deployment scripts
-│   └── shared/                 # Shared deployment utilities
+│   └── aws/                   # AWS-specific deployment
+│       ├── sam/               # SAM templates and scripts
+│       └── shared/            # Shared deployment utilities
 ├── docs/                       # Documentation and examples
 └── .kiro/steering/            # Architecture and design decisions
 ```
@@ -410,7 +410,7 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 | **Bedrock Inference Mode** | `BedrockInferenceMode` | `BEDROCK_INFERENCE_MODE` | `AUTO`, `GLOBAL_ONLY`, `GEO_ONLY` | `AUTO` | SAM parameter for deployment; environment variable for runtime override. Use `AUTO` for best availability, `GLOBAL_ONLY` for cross-region consistency, `GEO_ONLY` for data residency |
 | **Bedrock Model** | `BedrockModelName` | `BEDROCK_MODEL_NAME` | Any Bedrock model ID | `AmazonNovaPro` | SAM parameter for deployment; environment variable for runtime override. Amazon Nova Pro is officially supported |
 | **S3 Bucket** | `BucketName` | `MOCKNEST_S3_BUCKET_NAME` | Valid S3 bucket name | Auto-generated | SAM parameter for deployment; environment variable for runtime override |
-| **Lambda Memory** | `LambdaMemorySize` | N/A | 128-10240 MB | `1024` | SAM parameter only - set during deployment based on workload requirements |
+| **Lambda Memory** | `LambdaMemorySize` | N/A | 512-10240 MB | `512` | SAM parameter only - set during deployment based on workload requirements |
 | **Lambda Timeout** | `LambdaTimeout` | N/A | 1-900 seconds | `120` | SAM parameter only - set during deployment based on expected processing time |
 | **Deployment Name** | `DeploymentName` | N/A | Alphanumeric string | `mocks` | SAM parameter only - used for resource naming and identification |
 

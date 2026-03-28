@@ -37,14 +37,14 @@ MockNest Serverless follows a strict incremental development approach where each
 ## Module Development Order
 
 Follow clean architecture principles by developing in this sequence:
-1. **Domain Layer** (`:domain`) - Start with business models, entities, and domain rules
-2. **Application Layer** (`:application`) - Implement use cases, WireMock orchestration, and service interfaces
-3. **Infrastructure Layer** (`:infra-aws`) - Add AWS-specific adapters and implementations
-4. **Deployment Configuration** (`deployment/aws/sam/` and `deployment/aws/sar/`) - Update SAM templates and deployment scripts
+1. **Domain Layer** (`:software:domain`) - Start with business models, entities, and domain rules
+2. **Application Layer** (`:software:application`) - Implement use cases, WireMock orchestration, and service interfaces
+3. **Infrastructure Layer** (`:software:infra:aws:*`) - Add AWS-specific adapters and implementations (submodules: core, runtime, generation, mocknest)
+4. **Deployment Configuration** (`deployment/aws/sam/`) - Update SAM templates and deployment scripts
 
 ## Multi-module Gradle Workflow
 
-- Treat the repository as a clean-architecture, multi-module Kotlin project: domain models live in `:domain`, application-layer WireMock orchestration in `:application`, and cloud-specific adapters in `:infra-aws`
+- Treat the repository as a clean-architecture, multi-module Kotlin project: domain models live in `:software:domain`, application-layer WireMock orchestration in `:software:application`, and cloud-specific adapters in `:software:infra:aws:*`
 - Keep new code aligned with that separation and register new modules in `settings.gradle.kts` if needed
 - Ensure dependencies flow correctly: infra → application → domain (never the reverse)
 
@@ -63,7 +63,7 @@ Follow clean architecture principles by developing in this sequence:
 
 ## GitHub Actions Integration
 
-- Feature branches trigger `feature-aws.yml` workflow for build and deployment validation
+- Feature branches trigger `feature-aws.yml` workflow for build and test validation (no deployment)
 - Main branch changes trigger `main-aws.yml` for production-ready build and deployment
 - Use `workflow-build.yml` and `workflow-deploy-aws.yml` as reusable workflow templates
 - Ensure new features don't break existing CI/CD pipelines
@@ -402,9 +402,9 @@ AI assistance for test creation, execution, and maintenance:
 
 - Add JUnit 6/Kotlin test coverage alongside new features, following the unit testing standards defined in the Code Generation Standards section above
 - **Use Kover for code coverage** - Apply `org.jetbrains.kotlinx.kover` plugin for Kotlin-optimized coverage reporting with better support for inline functions and coroutines
-- **Target 90% aggregated code coverage** across the entire project - run `./gradlew koverHtmlReport` to generate coverage reports and `./gradlew koverVerify` to enforce the 90% threshold
+- **Target 80% minimum aggregated code coverage** (enforced) across the entire project, aiming for 90%+ - run `./gradlew koverHtmlReport` to generate coverage reports and `./gradlew koverVerify` to enforce the 80% threshold
 - **Emphasize integration tests over unit tests** - Focus on comprehensive end-to-end testing that validates actual system behavior rather than artificial per-module coverage targets
-- **Aggregated coverage enforcement** - The 90% coverage requirement is enforced at the project level (aggregated across all modules) rather than per-module, allowing flexibility in test strategy while ensuring overall system quality
+- **Aggregated coverage enforcement** - The 80% coverage minimum is enforced at the project level (aggregated across all modules) rather than per-module, allowing flexibility in test strategy while ensuring overall system quality
 
 - **Property-based testing with @ParameterizedTest** - Use JUnit 6's `@ParameterizedTest` to validate universal properties across multiple examples:
   - Create comprehensive test data files covering edge cases (simple, complex, large, nested, etc.)
