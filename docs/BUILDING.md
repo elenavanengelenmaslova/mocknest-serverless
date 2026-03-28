@@ -5,7 +5,7 @@ This guide covers building, testing, and packaging MockNest Serverless.
 ## Prerequisites
 
 - **Java 25** (recommended via [SDKMAN](https://sdkman.io/))
-- **Gradle 9.0.0** (included via wrapper)
+- **Gradle 9.4.1** (included via wrapper)
 - **Kotlin 2.3.0** (configured in build files)
 
 ### Installing Java 25 with SDKMAN
@@ -80,12 +80,12 @@ open build/reports/kover/html/index.html
 # Individual module coverage
 open software/application/build/reports/kover/html/index.html
 open software/domain/build/reports/kover/html/index.html
-open software/infra/aws/build/reports/kover/html/index.html
+open software/infra/aws/runtime/build/reports/kover/html/index.html
 ```
 
 #### Coverage Verification
 ```bash
-# Verify 90% coverage threshold (fails build if under 90%)
+# Verify 80% coverage threshold (fails build if under 80%)
 ./gradlew koverVerify
 ```
 
@@ -109,19 +109,19 @@ sam build
 sam local start-api
 
 # Invoke function locally
-sam local invoke MockNestFunction --event events/test-event.json
+sam local invoke MockNestRuntimeFunction --event events/test-event.json
 ```
 
 ## CI/CD Pipeline
 
 ### Feature Branches
 - Build and test all modules
-- Verify 90% code coverage
+- Verify 80% code coverage
 - No deployment
 
 ### Main Branch
 - Build and test all modules
-- Verify 90% code coverage
+- Verify 80% code coverage
 - Upload coverage to Codecov
 - Deploy to AWS
 
@@ -149,7 +149,7 @@ sdk use java 25.0.1-open
 
 **Coverage Failures**
 ```bash
-# Check which modules are under 90%
+# Check which modules are under 80%
 ./gradlew koverVerify
 
 # Generate detailed coverage report
@@ -178,8 +178,8 @@ The project follows clean architecture with strict dependency rules:
 software/infra/aws → software/application → software/domain
 ```
 
-- **Domain**: No external dependencies (pure business logic)
+- **Domain**: Minimal dependencies (spring-web for HTTP types, wiremock-standalone, kotlinx-serialization)
 - **Application**: Depends on domain, defines interfaces
-- **Infrastructure**: Depends on application and domain, implements interfaces
+- **Infrastructure**: Depends on application and domain, implements interfaces, cloud-specific dependencies
 
 Never create reverse dependencies (e.g., domain depending on application).

@@ -3,13 +3,17 @@ package nl.vintik.mocknest.application.generation.agent
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.interfaces.MockValidationResult
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
+import nl.vintik.mocknest.application.generation.util.UrlFetcher
+import nl.vintik.mocknest.application.generation.util.UrlResolutionException
 import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
@@ -20,6 +24,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.http.HttpMethod
 import java.time.Instant
+import kotlin.test.assertFailsWith
 import java.util.*
 
 class MockGenerationFunctionalAgentTest {
@@ -28,6 +33,7 @@ class MockGenerationFunctionalAgentTest {
     private val specificationParser: SpecificationParserInterface = mockk()
     private val mockValidator: MockValidatorInterface = mockk()
     private val promptBuilder: PromptBuilderService = mockk()
+    private val urlFetcher: UrlFetcher = mockk()
     private lateinit var agent: MockGenerationFunctionalAgent
 
     private val testSpecification = APISpecification(
@@ -74,7 +80,8 @@ class MockGenerationFunctionalAgentTest {
             aiModelService,
             specificationParser,
             mockValidator,
-            promptBuilder
+            promptBuilder,
+            urlFetcher = urlFetcher
         )
     }
 
@@ -494,7 +501,6 @@ class MockGenerationFunctionalAgentTest {
             coEvery {
                 aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
             } coAnswers {
-                val strategy = firstArg<Any>()
                 GenerationResult.success("job-node-1", listOf(testMock))
             }
 
@@ -778,6 +784,120 @@ class MockGenerationFunctionalAgentTest {
             assertTrue(result.success)
             assertEquals("client-a", result.mocks[0].namespace.client)
             assertEquals("api", result.mocks[0].namespace.apiName)
+        }
+    }
+
+    @Nested
+    inner class ContentResolution {
+
+        @Test
+        fun `Given GraphQL format with URL When resolving content Then should return URL string directly`() {
+            // Given
+            val request = SpecWithDescriptionRequest(
+                namespace = testNamespace,
+                specificationUrl = "https://example.com/graphql",
+                format = SpecificationFormat.GRAPHQL,
+                description = "test graphql"
+            )
+
+            // When
+            val result = agent.resolveContent(request)
+
+            // Then
+            assertEquals("https://example.com/graphql", result)
+        }
+
+        @Test
+        fun `Given GraphQL format with content When resolving content Then should return content string`() {
+            // Given
+            val content = """{"data":{"__schema":{"queryType":{"name":"Query"}}}}"""
+            val request = SpecWithDescriptionRequest(
+                namespace = testNamespace,
+                specificationContent = content,
+                format = SpecificationFormat.GRAPHQL,
+                description = "test graphql"
+            )
+
+            // When
+            val result = agent.resolveContent(request)
+
+            // Then
+            assertEquals(content, result)
+        }
+
+        @Test
+        fun `Given OpenAPI format with URL When resolving content Then should return URL string directly`() {
+            // Given - OpenAPI also handles own URL resolution via readLocation()
+            val request = SpecWithDescriptionRequest(
+                namespace = testNamespace,
+                specificationUrl = "https://example.com/openapi.yaml",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "test openapi"
+            )
+
+            // When
+            val result = agent.resolveContent(request)
+
+            // Then
+            assertEquals("https://example.com/openapi.yaml", result)
+        }
+
+        @Test
+        fun `Given format without own URL resolution with URL When resolving content Then should delegate to urlFetcher`() {
+            // Given - WSDL does not handle own URL resolution
+            val wsdlUrl = "https://invalid.test/service.wsdl"
+            val request = SpecWithDescriptionRequest(
+                namespace = testNamespace,
+                specificationUrl = wsdlUrl,
+                format = SpecificationFormat.WSDL,
+                description = "test wsdl"
+            )
+            every { urlFetcher.fetch(wsdlUrl) } throws UrlResolutionException("Failed to fetch URL: $wsdlUrl")
+
+            // When / Then
+            assertFailsWith<UrlResolutionException> {
+                agent.resolveContent(request)
+            }
+            verify { urlFetcher.fetch(wsdlUrl) }
+        }
+
+        @Test
+        fun `Given format without own URL resolution with URL When fetcher succeeds Then should return fetched content`() {
+            // Given
+            val wsdlUrl = "https://example.com/service.wsdl"
+            val wsdlContent = "<definitions>WSDL content</definitions>"
+            val request = SpecWithDescriptionRequest(
+                namespace = testNamespace,
+                specificationUrl = wsdlUrl,
+                format = SpecificationFormat.WSDL,
+                description = "test wsdl"
+            )
+            every { urlFetcher.fetch(wsdlUrl) } returns wsdlContent
+
+            // When
+            val result = agent.resolveContent(request)
+
+            // Then
+            assertEquals(wsdlContent, result)
+            verify { urlFetcher.fetch(wsdlUrl) }
+        }
+
+        @Test
+        fun `Given format with content When resolving content Then should return content string`() {
+            // Given
+            val content = "openapi: 3.0.0"
+            val request = SpecWithDescriptionRequest(
+                namespace = testNamespace,
+                specificationContent = content,
+                format = SpecificationFormat.OPENAPI_3,
+                description = "test openapi"
+            )
+
+            // When
+            val result = agent.resolveContent(request)
+
+            // Then
+            assertEquals(content, result)
         }
     }
 }

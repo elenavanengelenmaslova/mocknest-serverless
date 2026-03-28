@@ -8,8 +8,9 @@ import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterf
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
+import nl.vintik.mocknest.application.generation.util.SafeUrlResolver
+import nl.vintik.mocknest.application.generation.util.UrlFetcher
 import nl.vintik.mocknest.domain.generation.*
-import java.net.URI
 
 private val logger = KotlinLogging.logger {}
 
@@ -34,18 +35,14 @@ class MockGenerationFunctionalAgent(
     private val mockValidator: MockValidatorInterface,
     private val promptBuilder: PromptBuilderService,
     private val maxRetries: Int = 1, // Default to 1 retry (2 attempts total)
+    private val urlFetcher: UrlFetcher = SafeUrlResolver()
 ) {
 
     private val mockGenerationStrategy = strategy<SpecWithDescriptionRequest, GenerationResult>("mock-generation") {
 
         // Node 1: Setup and Parse Specification
         val setupNode by node<SpecWithDescriptionRequest, MockGenerationContext>("setup") { request ->
-            val url = request.specificationUrl
-            val content = if (url != null) {
-                URI(url).toURL().readText()
-            } else {
-                request.specificationContent!!
-            }
+            val content = resolveContent(request)
             val specification = specificationParser.parse(content, request.format)
             MockGenerationContext(request, specification)
         }
@@ -134,6 +131,22 @@ class MockGenerationFunctionalAgent(
 
         edge(validateNode forwardTo correctNode onCondition { ctx -> ctx.errors.isNotEmpty() && ctx.attempt <= maxRetries })
         edge(correctNode forwardTo validateNode)
+    }
+
+    /**
+     * Resolves the specification content from the request.
+     * Formats that handle their own URL resolution (e.g. GraphQL introspection via POST)
+     * receive the URL string directly; other formats have their URL content pre-fetched.
+     */
+    internal fun resolveContent(request: SpecWithDescriptionRequest): String {
+        val url = request.specificationUrl
+        return when {
+            !url.isNullOrBlank() && request.format.handlesOwnUrlResolution -> url
+            !url.isNullOrBlank() -> urlFetcher.fetch(url)
+            else -> requireNotNull(request.specificationContent) {
+                "Specification content is required when no URL is provided"
+            }
+        }
     }
 
     /**

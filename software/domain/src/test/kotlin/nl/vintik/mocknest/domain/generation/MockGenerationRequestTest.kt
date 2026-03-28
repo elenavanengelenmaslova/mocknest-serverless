@@ -8,7 +8,7 @@ import kotlin.test.assertNotNull
 class MockGenerationRequestTest {
 
     @Test
-    fun `Should create valid SpecWithDescriptionRequest`() {
+    fun `Given valid parameters When creating SpecWithDescriptionRequest Then should succeed`() {
         val request = SpecWithDescriptionRequest(
             namespace = MockNamespace("test"),
             specificationContent = "content",
@@ -20,7 +20,7 @@ class MockGenerationRequestTest {
     }
 
     @Test
-    fun `Should fail SpecWithDescriptionRequest with blank jobId`() {
+    fun `Given blank jobId When creating SpecWithDescriptionRequest Then should throw IllegalArgumentException`() {
         assertThrows<IllegalArgumentException> {
             SpecWithDescriptionRequest(
                 jobId = "",
@@ -33,7 +33,7 @@ class MockGenerationRequestTest {
     }
 
     @Test
-    fun `Should fail SpecWithDescriptionRequest without content and url`() {
+    fun `Given no content and no URL When creating SpecWithDescriptionRequest Then should throw IllegalArgumentException`() {
         assertThrows<IllegalArgumentException> {
             SpecWithDescriptionRequest(
                 namespace = MockNamespace("test"),
@@ -46,7 +46,7 @@ class MockGenerationRequestTest {
     }
 
     @Test
-    fun `Should fail SpecWithDescriptionRequest with blank description`() {
+    fun `Given blank description When creating SpecWithDescriptionRequest Then should throw IllegalArgumentException`() {
         assertThrows<IllegalArgumentException> {
             SpecWithDescriptionRequest(
                 namespace = MockNamespace("test"),
@@ -58,7 +58,20 @@ class MockGenerationRequestTest {
     }
 
     @Test
-    fun `Should create default GenerationOptions`() {
+    fun `Given both content and URL When creating SpecWithDescriptionRequest Then should throw IllegalArgumentException`() {
+        assertThrows<IllegalArgumentException> {
+            SpecWithDescriptionRequest(
+                namespace = MockNamespace("test"),
+                specificationContent = "content",
+                specificationUrl = "https://example.com/spec",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "desc"
+            )
+        }
+    }
+
+    @Test
+    fun `Given default factory method When creating GenerationOptions Then should have validation enabled`() {
         val options = GenerationOptions.default()
         assertEquals(true, options.enableValidation)
     }

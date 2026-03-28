@@ -37,7 +37,7 @@ class GraphQLSpecificationParserDualInputPropertyTest {
 
     private val mockReducer: GraphQLSchemaReducerInterface = mockk(relaxed = true)
     private val mockIntrospectionClient: GraphQLIntrospectionClientInterface = mockk(relaxed = true)
-    private val parser = GraphQLSpecificationParser(mockIntrospectionClient, mockReducer)
+    private val parser = GraphQLSpecificationParser(mockIntrospectionClient, mockReducer, urlSafetyValidator = {})
 
     @AfterEach
     fun tearDown() {

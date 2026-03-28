@@ -33,7 +33,7 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: https://your-api-id.execute-api.region.amazonaws.com/prod
+  - url: https://your-api-id.execute-api.region.amazonaws.com/mocks
     description: MockNest Serverless API Gateway endpoint
 
 security:
@@ -74,8 +74,6 @@ paths:
                   description: "Generate mocks for 3 pets from the Petstore OpenAPI specification, pets endpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets across endpoints, 1 pet is a dog with this image: https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg, this dog is available and a new pet and should have a tag new, we need to have api call to get all new pets and its that dog, the other two pets are available also but are not new"
                   options:
                     enableValidation: true
-                    includeExamples: true
-                    generateErrorCases: true
               graphql-generation:
                 summary: Generate mocks from GraphQL endpoint via introspection
                 value:
@@ -200,10 +198,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: AI service unavailable
+        '500':
+          description: Internal server error or AI service failure
 
-  /ai/health:
+  /ai/generation/health:
     get:
       summary: AI Features Health Check
       description: Check the health status of AI-powered mock generation features
@@ -1440,7 +1438,7 @@ components:
           format: uri
         format:
           type: string
-          enum: [OPENAPI_3, OPENAPI_2, SWAGGER_2, GRAPHQL]
+          enum: [OPENAPI_3, SWAGGER_2, GRAPHQL, WSDL]
           description: Specification format
         description:
           type: string
@@ -1450,6 +1448,7 @@ components:
       required:
         - namespace
         - format
+        - description
       oneOf:
         - required: [specification]
         - required: [specificationUrl]
@@ -1461,11 +1460,10 @@ components:
           type: string
           description: Name of the API being mocked
         client:
-          type: string
-          description: Client or environment identifier
+          type: ["string", "null"]
+          description: Client or environment identifier (optional, defaults to null)
       required:
         - apiName
-        - client
 
     GenerationOptions:
       type: object
@@ -1474,22 +1472,6 @@ components:
           type: boolean
           description: Enable request/response validation
           default: true
-        includeExamples:
-          type: boolean
-          description: Include example data in responses
-          default: true
-        generateErrorCases:
-          type: boolean
-          description: Generate error response scenarios
-          default: true
-        realisticData:
-          type: boolean
-          description: Use realistic data in examples
-          default: true
-        includePagination:
-          type: boolean
-          description: Include pagination patterns for list endpoints
-          default: false
 
     GeneratedMocksResponse:
       type: object
@@ -1537,24 +1519,8 @@ components:
       type: object
       properties:
         error:
-          type: object
-          properties:
-            code:
-              type: string
-              description: Error code
-            message:
-              type: string
-              description: Human-readable error message
-            details:
-              type: object
-              description: Additional error details
-            timestamp:
-              type: string
-              format: date-time
-          required:
-            - code
-            - message
-            - timestamp
+          type: string
+          description: Human-readable error message
       required:
         - error
 

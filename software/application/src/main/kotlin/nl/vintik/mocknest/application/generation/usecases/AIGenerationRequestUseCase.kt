@@ -1,5 +1,6 @@
 package nl.vintik.mocknest.application.generation.usecases
 
+import com.fasterxml.jackson.core.JsonProcessingException
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.core.mapper
@@ -27,42 +28,58 @@ class AIGenerationRequestUseCase(
 
                 else -> HttpResponse(HttpStatusCode.valueOf(404), body = "Path $path not found for AI generation")
             }
-        }.onFailure {
-            logger.error(it) { "Error processing AI generation request: $path: $it" }
+        }.onFailure { exception ->
+            logger.error(exception) { "Unexpected error processing AI generation request: $path" }
         }.getOrElse {
-            HttpResponse(
-                HttpStatusCode.valueOf(500),
-                jsonHeaders(),
-                mapper.writeValueAsString(mapOf("error" to (it.message ?: "Internal Server Error")))
-            )
+            serverError()
         }
     }
 
     private suspend fun generateFromSpecWithDescription(request: HttpRequest): HttpResponse {
-        val body = requireNotNull(request.body) { "Body must be a string" }
-        logger.info { "Parsing request body for AI generation with description" }
-        val dto = mapper.readValue(body, GenerateFromSpecWithDescriptionRequest::class.java)
+        val body = request.body
+            ?: return badRequest("Body must be a string")
 
-        val specWithDescRequest = SpecWithDescriptionRequest(
-            namespace = dto.namespace,
-            specificationContent = dto.specification,
-            specificationUrl = dto.specificationUrl,
-            format = dto.format,
-            description = dto.description,
-            options = dto.options
-        )
+        logger.info { "Parsing request body for AI generation with description" }
+
+        val dto = runCatching {
+            mapper.readValue(body, GenerateFromSpecWithDescriptionRequest::class.java)
+        }.onFailure { e ->
+            logger.warn(e) { "Failed to parse request body" }
+        }.getOrElse {
+            return badRequest("Invalid JSON in request body: ${(it as? JsonProcessingException)?.originalMessage ?: it.message}")
+        }
+
+        val specWithDescRequest = runCatching {
+            SpecWithDescriptionRequest(
+                namespace = dto.namespace,
+                specificationContent = dto.specification,
+                specificationUrl = dto.specificationUrl,
+                format = dto.format,
+                description = dto.description,
+                options = dto.options
+            )
+        }.onFailure { e ->
+            logger.warn(e) { "Invalid request parameters" }
+        }.getOrElse {
+            return badRequest(it.message ?: "Invalid request")
+        }
+
         logger.info { "About to generate mocks from spec with description." }
         val result = generateFromSpecWithDescriptionUseCase.execute(specWithDescRequest)
 
         return if (result.success) {
             logger.info { "Generated successfully: ${result.mocks.size} mocks" }
-            ok(
-                MocksResponse(
-                    mappings = result.mocks.map { mock ->
-                        mapper.readTree(mock.wireMockMapping)
-                    }
+            runCatching {
+                ok(
+                    MocksResponse(
+                        mappings = result.mocks.map { mock ->
+                            mapper.readTree(mock.wireMockMapping)
+                        }
+                    )
                 )
-            )
+            }.onFailure { e ->
+                logger.error(e) { "Failed to serialize generation response" }
+            }.getOrElse { serverError() }
         } else {
             logger.info { "Generation failed: ${result.error}." }
             HttpResponse(
@@ -84,6 +101,18 @@ class AIGenerationRequestUseCase(
         HttpStatusCode.valueOf(200),
         jsonHeaders(),
         mapper.writeValueAsString(body)
+    )
+
+    private fun badRequest(message: String): HttpResponse = HttpResponse(
+        HttpStatusCode.valueOf(400),
+        jsonHeaders(),
+        mapper.writeValueAsString(mapOf("error" to message))
+    )
+
+    private fun serverError(): HttpResponse = HttpResponse(
+        HttpStatusCode.valueOf(500),
+        jsonHeaders(),
+        mapper.writeValueAsString(mapOf("error" to "Internal Server Error"))
     )
 
     private fun jsonHeaders() = LinkedMultiValueMap<String, String>().apply {

@@ -207,7 +207,7 @@ class GenerationLambdaHandlerIntegrationTest {
 
             // Then
             logger.info { "Missing fields response: ${response.statusCode}" }
-            assertEquals(500, response.statusCode)
+            assertEquals(400, response.statusCode)
         }
     }
 

@@ -1,744 +1,1084 @@
 package nl.vintik.mocknest.application.generation.parsers
 
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import kotlinx.coroutines.test.runTest
+import nl.vintik.mocknest.domain.generation.JsonSchemaType
+import nl.vintik.mocknest.domain.generation.ParameterLocation
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class OpenAPISpecificationParserTest {
 
     private val parser = OpenAPISpecificationParser()
 
-    @Test
-    fun `Given valid OAS 3_0 specification When parsing Then should extract endpoints correctly`() = runTest {
-        // Given
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Pet Store API
-              version: 1.0.0
-            paths:
-              /pets:
-                get:
-                  summary: List all pets
-                  operationId: listPets
-                  responses:
-                    '200':
-                      description: A paged array of pets
-                      content:
-                        application/json:
-                          schema:
-                            type: array
-                            items:
-                              ${'$'}ref: '#/components/schemas/Pet'
-                post:
-                  summary: Create a pet
-                  operationId: createPets
-                  responses:
-                    '201':
-                      description: Null response
-            components:
-              schemas:
-                Pet:
-                  required:
-                    - id
-                    - name
-                  properties:
-                    id:
-                      type: integer
-                      format: int64
-                    name:
-                      type: string
-                    tag:
-                      type: string
-        """.trimIndent()
+    @Nested
+    inner class EndpointParsing {
 
-        // When
-        val specification = parser.parse(content, SpecificationFormat.OPENAPI_3)
-
-        // Then
-        assertEquals("Pet Store API", specification.title)
-        assertEquals("1.0.0", specification.version)
-        assertEquals(2, specification.endpoints.size)
-        
-        val getPets = specification.endpoints.find { it.path == "/pets" && it.method == HttpMethod.GET }
-        assertEquals("listPets", getPets?.operationId)
-        assertEquals("List all pets", getPets?.summary)
-        assertTrue(getPets?.responses?.containsKey(200) ?: false)
-        
-        val postPets = specification.endpoints.find { it.path == "/pets" && it.method == HttpMethod.POST }
-        assertEquals("createPets", postPets?.operationId)
-        assertTrue(postPets?.responses?.containsKey(201) ?: false)
-    }
-
-    @Test
-    fun `Given OAS 3_0 with path parameters When parsing Then should extract parameters correctly`() = runTest {
-        // Given
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Pet Store API
-              version: 1.0.0
-            paths:
-              /pets/{petId}:
-                get:
-                  summary: Info for a specific pet
-                  operationId: showPetById
-                  parameters:
-                    - name: petId
-                      in: path
-                      required: true
-                      description: The id of the pet to retrieve
-                      schema:
-                        type: string
-                  responses:
-                    '200':
-                      description: Expected response to a valid request
-        """.trimIndent()
-
-        // When
-        val specification = parser.parse(content, SpecificationFormat.OPENAPI_3)
-
-        // Then
-        val getPet = specification.endpoints.find { it.path == "/pets/{petId}" }
-        assertEquals(1, getPet?.parameters?.size)
-        assertEquals("petId", getPet?.parameters?.get(0)?.name)
-        assertEquals("PATH", getPet?.parameters?.get(0)?.location?.name)
-        assertTrue(getPet?.parameters?.get(0)?.required ?: false)
-    }
-
-    @Test
-    fun `Given invalid OAS content When validating Then should return failure`() = runTest {
-        // Given
-        val content = "not a yaml or json"
-
-        // When
-        val result = parser.validate(content, SpecificationFormat.OPENAPI_3)
-
-        // Then
-        assertTrue(!result.isValid)
-        assertTrue(result.errors.isNotEmpty())
-    }
-
-    @Test
-    fun `Should extract metadata correctly`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: My API
-              version: 2.1
-            paths:
-              /p1:
-                get: {}
-                post: {}
-              /p2:
-                put: {}
-        """.trimIndent()
-        
-        val metadata = parser.extractMetadata(content, SpecificationFormat.OPENAPI_3)
-        
-        assertEquals("My API", metadata.title)
-        assertEquals("2.1", metadata.version)
-        assertEquals(3, metadata.endpointCount)
-    }
-
-    @Test
-    fun `Should support only OpenAPI and Swagger formats`() {
-        assertTrue(parser.supports(SpecificationFormat.OPENAPI_3))
-        assertTrue(parser.supports(SpecificationFormat.SWAGGER_2))
-        assertFalse(parser.supports(SpecificationFormat.GRAPHQL))
-        assertFalse(parser.supports(SpecificationFormat.WSDL))
-    }
-
-    @Test
-    fun `Should parse complex schema with nested objects and arrays`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Complex API
-              version: 1.0
-            paths:
-              /test:
-                post:
-                  responses:
-                    '200':
-                      description: OK
-                      content:
-                        application/json:
-                          schema:
-                            type: object
-                            properties:
-                              tags:
+        @Test
+        fun `Given valid OAS 3_0 specification When parsing Then should extract endpoints correctly`() = runTest {
+            // Given
+            val content = $$"""
+                openapi: 3.0.0
+                info:
+                  title: Pet Store API
+                  version: 1.0.0
+                paths:
+                  /pets:
+                    get:
+                      summary: List all pets
+                      operationId: listPets
+                      responses:
+                        '200':
+                          description: A paged array of pets
+                          content:
+                            application/json:
+                              schema:
                                 type: array
                                 items:
-                                  type: string
-                              metadata:
-                                type: object
-                                additionalProperties: true
-        """.trimIndent()
-        
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-        val endpoint = spec.endpoints.first()
-        val schema = endpoint.responses[200]?.schema
-        
-        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.OBJECT, schema?.type)
-        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.ARRAY, schema?.properties?.get("tags")?.type)
-        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.STRING, schema?.properties?.get("tags")?.items?.type)
-        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.OBJECT, schema?.properties?.get("metadata")?.type)
+                                  $ref: '#/components/schemas/Pet'
+                    post:
+                      summary: Create a pet
+                      operationId: createPets
+                      responses:
+                        '201':
+                          description: Null response
+                components:
+                  schemas:
+                    Pet:
+                      required:
+                        - id
+                        - name
+                      properties:
+                        id:
+                          type: integer
+                          format: int64
+                        name:
+                          type: string
+                        tag:
+                          type: string
+            """.trimIndent()
+
+            // When
+            val specification = parser.parse(content, SpecificationFormat.OPENAPI_3)
+
+            // Then
+            assertEquals("Pet Store API", specification.title)
+            assertEquals("1.0.0", specification.version)
+            assertEquals(2, specification.endpoints.size)
+
+            val getPets = specification.endpoints.find { it.path == "/pets" && it.method == HttpMethod.GET }
+            assertEquals("listPets", getPets?.operationId)
+            assertEquals("List all pets", getPets?.summary)
+            assertEquals(true, getPets?.responses?.containsKey(200))
+
+            val postPets = specification.endpoints.find { it.path == "/pets" && it.method == HttpMethod.POST }
+            assertEquals("createPets", postPets?.operationId)
+            assertEquals(true, postPets?.responses?.containsKey(201))
+        }
+
+        @Test
+        fun `Given OAS 3_0 with all HTTP methods When parsing Then should extract all methods`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Methods API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      responses:
+                        '200': { description: OK }
+                    post:
+                      responses:
+                        '201': { description: Created }
+                    put:
+                      responses:
+                        '200': { description: Updated }
+                    delete:
+                      responses:
+                        '204': { description: Deleted }
+                    patch:
+                      responses:
+                        '200': { description: Patched }
+                    head:
+                      responses:
+                        '200': { description: Head }
+                    options:
+                      responses:
+                        '200': { description: Options }
+                    trace:
+                      responses:
+                        '200': { description: Trace }
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+
+            // Then
+            assertEquals(8, spec.endpoints.size)
+            assertTrue(spec.endpoints.any { it.method == HttpMethod.GET })
+            assertTrue(spec.endpoints.any { it.method == HttpMethod.POST })
+            assertTrue(spec.endpoints.any { it.method == HttpMethod.PUT })
+            assertTrue(spec.endpoints.any { it.method == HttpMethod.DELETE })
+            assertTrue(spec.endpoints.any { it.method == HttpMethod.PATCH })
+            assertTrue(spec.endpoints.any { it.method == HttpMethod.HEAD })
+            assertTrue(spec.endpoints.any { it.method == HttpMethod.OPTIONS })
+            assertTrue(spec.endpoints.any { it.method == HttpMethod.TRACE })
+        }
+
+        @Test
+        fun `Given spec with no-content response When parsing Then should have null schema`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Null Schema API
+                  version: 1.0
+                paths:
+                  /test:
+                    post:
+                      responses:
+                        '204':
+                          description: No content
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+
+            // Then
+            val response = spec.endpoints.first().responses[204]
+            assertEquals(null, response?.schema)
+        }
     }
 
-    @Test
-    fun `Should parse headers and query parameters`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Params API
-              version: 1.0
-            paths:
-              /test:
-                get:
-                  parameters:
-                    - name: X-Request-ID
-                      in: header
-                      required: true
-                      schema:
-                        type: string
-                    - name: limit
-                      in: query
-                      schema:
-                        type: integer
-                  responses:
-                    '200':
-                      description: OK
-        """.trimIndent()
+    @Nested
+    inner class ParameterParsing {
 
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-        val params = spec.endpoints.first().parameters
-
-        assertEquals(2, params.size)
-        assertTrue(params.any { it.name == "X-Request-ID" && it.location == nl.vintik.mocknest.domain.generation.ParameterLocation.HEADER })
-        assertTrue(params.any { it.name == "limit" && it.location == nl.vintik.mocknest.domain.generation.ParameterLocation.QUERY })
-    }
-
-    @Test
-    fun `Should parse all HTTP methods`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Methods API
-              version: 1.0
-            paths:
-              /test:
-                get:
-                  responses:
-                    '200': { description: OK }
-                post:
-                  responses:
-                    '201': { description: Created }
-                put:
-                  responses:
-                    '200': { description: Updated }
-                delete:
-                  responses:
-                    '204': { description: Deleted }
-                patch:
-                  responses:
-                    '200': { description: Patched }
-                head:
-                  responses:
-                    '200': { description: Head }
-                options:
-                  responses:
-                    '200': { description: Options }
-        """.trimIndent()
-
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-
-        assertEquals(7, spec.endpoints.size)
-        assertTrue(spec.endpoints.any { it.method == HttpMethod.GET })
-        assertTrue(spec.endpoints.any { it.method == HttpMethod.POST })
-        assertTrue(spec.endpoints.any { it.method == HttpMethod.PUT })
-        assertTrue(spec.endpoints.any { it.method == HttpMethod.DELETE })
-        assertTrue(spec.endpoints.any { it.method == HttpMethod.PATCH })
-        assertTrue(spec.endpoints.any { it.method == HttpMethod.HEAD })
-        assertTrue(spec.endpoints.any { it.method == HttpMethod.OPTIONS })
-    }
-
-    @Test
-    fun `Should parse cookie parameters`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Cookie API
-              version: 1.0
-            paths:
-              /test:
-                get:
-                  parameters:
-                    - name: session
-                      in: cookie
-                      required: true
-                      schema:
-                        type: string
-                  responses:
-                    '200':
-                      description: OK
-        """.trimIndent()
-
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-        val param = spec.endpoints.first().parameters.first()
-
-        assertEquals("session", param.name)
-        assertEquals(nl.vintik.mocknest.domain.generation.ParameterLocation.COOKIE, param.location)
-        assertTrue(param.required)
-    }
-
-    @Test
-    fun `Should parse request body with examples`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Request Body API
-              version: 1.0
-            paths:
-              /test:
-                post:
-                  requestBody:
-                    required: true
-                    description: Test request body
-                    content:
-                      application/json:
-                        schema:
-                          type: object
-                          properties:
-                            name:
-                              type: string
-                        examples:
-                          example1:
-                            value:
-                              name: John
-                  responses:
-                    '201':
-                      description: Created
-        """.trimIndent()
-
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-        val requestBody = spec.endpoints.first().requestBody
-
-        assertTrue(requestBody?.required ?: false)
-        assertEquals("Test request body", requestBody?.description)
-        assertTrue(requestBody?.content?.containsKey("application/json") ?: false)
-        assertEquals(1, requestBody?.content?.get("application/json")?.examples?.size)
-    }
-
-    @Test
-    fun `Should parse response with headers`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Response Headers API
-              version: 1.0
-            paths:
-              /test:
-                get:
-                  responses:
-                    '200':
-                      description: OK
-                      headers:
-                        X-Rate-Limit:
+        @Test
+        fun `Given OAS 3_0 with path parameters When parsing Then should extract parameters correctly`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Pet Store API
+                  version: 1.0.0
+                paths:
+                  /pets/{petId}:
+                    get:
+                      summary: Info for a specific pet
+                      operationId: showPetById
+                      parameters:
+                        - name: petId
+                          in: path
                           required: true
-                          description: Rate limit
-                          schema:
-                            type: integer
-                        X-Expires:
-                          required: false
+                          description: The id of the pet to retrieve
                           schema:
                             type: string
-        """.trimIndent()
+                      responses:
+                        '200':
+                          description: Expected response to a valid request
+            """.trimIndent()
 
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-        val response = spec.endpoints.first().responses[200]
+            // When
+            val specification = parser.parse(content, SpecificationFormat.OPENAPI_3)
 
-        assertEquals(2, response?.headers?.size)
-        assertTrue(response?.headers?.get("X-Rate-Limit")?.required ?: false)
-        assertEquals("Rate limit", response?.headers?.get("X-Rate-Limit")?.description)
-        assertFalse(response?.headers?.get("X-Expires")?.required ?: true)
+            // Then
+            val getPet = specification.endpoints.find { it.path == "/pets/{petId}" }
+            assertEquals(1, getPet?.parameters?.size)
+            assertEquals("petId", getPet?.parameters?.get(0)?.name)
+            assertEquals("PATH", getPet?.parameters?.get(0)?.location?.name)
+            assertEquals(true, getPet?.parameters?.get(0)?.required)
+        }
+
+        @Test
+        fun `Given spec with header and query parameters When parsing Then should extract both`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Params API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      parameters:
+                        - name: X-Request-ID
+                          in: header
+                          required: true
+                          schema:
+                            type: string
+                        - name: limit
+                          in: query
+                          schema:
+                            type: integer
+                      responses:
+                        '200':
+                          description: OK
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+            val params = spec.endpoints.first().parameters
+
+            // Then
+            assertEquals(2, params.size)
+            assertTrue(params.any { it.name == "X-Request-ID" && it.location == ParameterLocation.HEADER })
+            assertTrue(params.any { it.name == "limit" && it.location == ParameterLocation.QUERY })
+        }
+
+        @Test
+        fun `Given spec with cookie parameter When parsing Then should extract cookie location`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Cookie API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      parameters:
+                        - name: session
+                          in: cookie
+                          required: true
+                          schema:
+                            type: string
+                      responses:
+                        '200':
+                          description: OK
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+            val param = spec.endpoints.first().parameters.first()
+
+            // Then
+            assertEquals("session", param.name)
+            assertEquals(ParameterLocation.COOKIE, param.location)
+            assertTrue(param.required)
+        }
+
+        @Test
+        fun `Given spec with parameter description When parsing Then should extract description`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Param Description API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      parameters:
+                        - name: userId
+                          in: query
+                          required: false
+                          description: The ID of the user to fetch
+                          schema:
+                            type: string
+                      responses:
+                        '200':
+                          description: OK
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+            val param = spec.endpoints.first().parameters.first()
+
+            // Then
+            assertEquals("userId", param.name)
+            assertEquals("The ID of the user to fetch", param.description)
+            assertFalse(param.required)
+        }
+
+        @Test
+        fun `Given spec with path-level parameters When parsing Then should include them in all operations`() = runTest {
+            // Given - petId is defined at the path level, not on the operation
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Pet Store API
+                  version: 1.0.0
+                paths:
+                  /pets/{petId}:
+                    parameters:
+                      - name: petId
+                        in: path
+                        required: true
+                        schema:
+                          type: string
+                    get:
+                      summary: Get a pet
+                      responses:
+                        '200':
+                          description: OK
+                    delete:
+                      summary: Delete a pet
+                      responses:
+                        '204':
+                          description: Deleted
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+
+            // Then - both GET and DELETE should have the path-level petId parameter
+            val getEndpoint = spec.endpoints.find { it.method == HttpMethod.GET }
+            val deleteEndpoint = spec.endpoints.find { it.method == HttpMethod.DELETE }
+            assertNotNull(getEndpoint)
+            assertNotNull(deleteEndpoint)
+            assertEquals(1, getEndpoint.parameters.size)
+            assertEquals("petId", getEndpoint.parameters[0].name)
+            assertEquals(ParameterLocation.PATH, getEndpoint.parameters[0].location)
+            assertEquals(1, deleteEndpoint.parameters.size)
+            assertEquals("petId", deleteEndpoint.parameters[0].name)
+        }
+
+        @Test
+        fun `Given spec with both path-level and operation-level parameter with same name When parsing Then operation-level wins`() = runTest {
+            // Given - petId defined at path level and overridden at operation level
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Pet Store API
+                  version: 1.0.0
+                paths:
+                  /pets/{petId}:
+                    parameters:
+                      - name: petId
+                        in: path
+                        required: true
+                        description: Path-level pet ID
+                        schema:
+                          type: string
+                    get:
+                      summary: Get a pet
+                      parameters:
+                        - name: petId
+                          in: path
+                          required: true
+                          description: Operation-level pet ID
+                          schema:
+                            type: integer
+                      responses:
+                        '200':
+                          description: OK
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+
+            // Then - operation-level should override path-level
+            val endpoint = spec.endpoints.first()
+            assertEquals(1, endpoint.parameters.size)
+            assertEquals("petId", endpoint.parameters[0].name)
+            assertEquals("Operation-level pet ID", endpoint.parameters[0].description)
+        }
     }
 
-    @Test
-    fun `Should parse schema with all types`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Schema Types API
-              version: 1.0
-            paths:
-              /test:
-                post:
-                  responses:
-                    '200':
-                      description: OK
-                      content:
-                        application/json:
-                          schema:
-                            type: object
-                            properties:
-                              stringProp:
-                                type: string
-                              numberProp:
-                                type: number
-                              integerProp:
-                                type: integer
-                              booleanProp:
-                                type: boolean
-                              arrayProp:
-                                type: array
-                                items:
-                                  type: string
-                              objectProp:
+    @Nested
+    inner class SchemaParsing {
+
+        @Test
+        fun `Given spec with nested objects and arrays When parsing Then should extract schema types`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Complex API
+                  version: 1.0
+                paths:
+                  /test:
+                    post:
+                      responses:
+                        '200':
+                          description: OK
+                          content:
+                            application/json:
+                              schema:
                                 type: object
-        """.trimIndent()
+                                properties:
+                                  tags:
+                                    type: array
+                                    items:
+                                      type: string
+                                  metadata:
+                                    type: object
+                                    additionalProperties: true
+            """.trimIndent()
 
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-        val schema = spec.endpoints.first().responses[200]?.schema
-        val properties = schema?.properties
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+            val schema = spec.endpoints.first().responses[200]?.schema
 
-        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.STRING, properties?.get("stringProp")?.type)
-        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.NUMBER, properties?.get("numberProp")?.type)
-        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.INTEGER, properties?.get("integerProp")?.type)
-        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.BOOLEAN, properties?.get("booleanProp")?.type)
-        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.ARRAY, properties?.get("arrayProp")?.type)
-        assertEquals(nl.vintik.mocknest.domain.generation.JsonSchemaType.OBJECT, properties?.get("objectProp")?.type)
+            // Then
+            assertEquals(JsonSchemaType.OBJECT, schema?.type)
+            assertEquals(JsonSchemaType.ARRAY, schema?.properties?.get("tags")?.type)
+            assertEquals(JsonSchemaType.STRING, schema?.properties?.get("tags")?.items?.type)
+            assertEquals(JsonSchemaType.OBJECT, schema?.properties?.get("metadata")?.type)
+        }
+
+        @Test
+        fun `Given spec with all schema types When parsing Then should map types correctly`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Schema Types API
+                  version: 1.0
+                paths:
+                  /test:
+                    post:
+                      responses:
+                        '200':
+                          description: OK
+                          content:
+                            application/json:
+                              schema:
+                                type: object
+                                properties:
+                                  stringProp:
+                                    type: string
+                                  numberProp:
+                                    type: number
+                                  integerProp:
+                                    type: integer
+                                  booleanProp:
+                                    type: boolean
+                                  arrayProp:
+                                    type: array
+                                    items:
+                                      type: string
+                                  objectProp:
+                                    type: object
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+            val properties = spec.endpoints.first().responses[200]?.schema?.properties
+
+            // Then
+            assertEquals(JsonSchemaType.STRING, properties?.get("stringProp")?.type)
+            assertEquals(JsonSchemaType.NUMBER, properties?.get("numberProp")?.type)
+            assertEquals(JsonSchemaType.INTEGER, properties?.get("integerProp")?.type)
+            assertEquals(JsonSchemaType.BOOLEAN, properties?.get("booleanProp")?.type)
+            assertEquals(JsonSchemaType.ARRAY, properties?.get("arrayProp")?.type)
+            assertEquals(JsonSchemaType.OBJECT, properties?.get("objectProp")?.type)
+        }
+
+        @Test
+        fun `Given spec with validation constraints When parsing Then should extract constraints`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Validation API
+                  version: 1.0
+                paths:
+                  /test:
+                    post:
+                      responses:
+                        '200':
+                          description: OK
+                          content:
+                            application/json:
+                              schema:
+                                type: object
+                                properties:
+                                  age:
+                                    type: integer
+                                    minimum: 0
+                                    maximum: 150
+                                  name:
+                                    type: string
+                                    minLength: 1
+                                    maxLength: 100
+                                    pattern: '^[a-zA-Z]+$'
+                                  status:
+                                    type: string
+                                    enum:
+                                      - active
+                                      - inactive
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+            val properties = spec.endpoints.first().responses[200]?.schema?.properties
+
+            // Then
+            val age = properties?.get("age")
+            assertEquals(0, age?.minimum?.toInt())
+            assertEquals(150, age?.maximum?.toInt())
+
+            val name = properties?.get("name")
+            assertEquals(1, name?.minLength)
+            assertEquals(100, name?.maxLength)
+            assertEquals("^[a-zA-Z]+$", name?.pattern)
+
+            val status = properties?.get("status")
+            assertEquals(2, status?.enum?.size)
+            assertEquals(true, status?.enum?.contains("active"))
+        }
+
+        @Test
+        fun `Given spec with example value When parsing Then should extract example`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Example API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+                          content:
+                            application/json:
+                              schema:
+                                type: object
+                                properties:
+                                  name:
+                                    type: string
+                                    example: John Doe
+                                    description: User's full name
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+            val nameProperty = spec.endpoints.first().responses[200]?.schema?.properties?.get("name")
+
+            // Then
+            assertEquals("John Doe", nameProperty?.example)
+            assertEquals("User's full name", nameProperty?.description)
+        }
+
+        @Test
+        fun `Given spec with additionalProperties false When parsing Then should extract flag`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Strict Schema API
+                  version: 1.0
+                paths:
+                  /test:
+                    post:
+                      responses:
+                        '200':
+                          description: OK
+                          content:
+                            application/json:
+                              schema:
+                                type: object
+                                additionalProperties: false
+                                properties:
+                                  id:
+                                    type: integer
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+            val schema = spec.endpoints.first().responses[200]?.schema
+
+            // Then
+            assertEquals(false, schema?.additionalProperties)
+        }
+
+        @Test
+        fun `Given spec with component schemas When parsing Then should extract schemas`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Schemas API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+                components:
+                  schemas:
+                    User:
+                      type: object
+                      required:
+                        - id
+                        - email
+                      properties:
+                        id:
+                          type: integer
+                        email:
+                          type: string
+                          format: email
+                    Product:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+
+            // Then
+            assertEquals(2, spec.schemas.size)
+            assertTrue(spec.schemas.containsKey("User"))
+            assertTrue(spec.schemas.containsKey("Product"))
+
+            val user = spec.schemas["User"]
+            assertEquals(2, user?.required?.size)
+            assertEquals(true, user?.required?.contains("id"))
+            assertEquals("email", user?.properties?.get("email")?.format)
+        }
     }
 
-    @Test
-    fun `Should parse schema with validation constraints`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Validation API
-              version: 1.0
-            paths:
-              /test:
-                post:
-                  responses:
-                    '200':
-                      description: OK
-                      content:
-                        application/json:
-                          schema:
-                            type: object
-                            properties:
-                              age:
+    @Nested
+    inner class RequestBodyParsing {
+
+        @Test
+        fun `Given spec with request body and examples When parsing Then should extract body`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Request Body API
+                  version: 1.0
+                paths:
+                  /test:
+                    post:
+                      requestBody:
+                        required: true
+                        description: Test request body
+                        content:
+                          application/json:
+                            schema:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                            examples:
+                              example1:
+                                value:
+                                  name: John
+                      responses:
+                        '201':
+                          description: Created
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+            val requestBody = spec.endpoints.first().requestBody
+
+            // Then
+            assertEquals(true, requestBody?.required)
+            assertEquals("Test request body", requestBody?.description)
+            assertEquals(true, requestBody?.content?.containsKey("application/json"))
+            assertEquals(1, requestBody?.content?.get("application/json")?.examples?.size)
+        }
+    }
+
+    @Nested
+    inner class ResponseParsing {
+
+        @Test
+        fun `Given spec with response headers When parsing Then should extract headers`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Response Headers API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+                          headers:
+                            X-Rate-Limit:
+                              required: true
+                              description: Rate limit
+                              schema:
                                 type: integer
-                                minimum: 0
-                                maximum: 150
-                              name:
+                            X-Expires:
+                              required: false
+                              schema:
                                 type: string
-                                minLength: 1
-                                maxLength: 100
-                                pattern: '^[a-zA-Z]+${'$'}'
-                              status:
-                                type: string
-                                enum:
-                                  - active
-                                  - inactive
-        """.trimIndent()
+            """.trimIndent()
 
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-        val properties = spec.endpoints.first().responses[200]?.schema?.properties
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+            val response = spec.endpoints.first().responses[200]
 
-        val age = properties?.get("age")
-        assertEquals(0, age?.minimum?.toInt())
-        assertEquals(150, age?.maximum?.toInt())
-
-        val name = properties?.get("name")
-        assertEquals(1, name?.minLength)
-        assertEquals(100, name?.maxLength)
-        assertEquals("^[a-zA-Z]+$", name?.pattern)
-
-        val status = properties?.get("status")
-        assertEquals(2, status?.enum?.size)
-        assertTrue(status?.enum?.contains("active") ?: false)
+            // Then
+            assertEquals(2, response?.headers?.size)
+            assertEquals(true, response?.headers?.get("X-Rate-Limit")?.required)
+            assertEquals("Rate limit", response?.headers?.get("X-Rate-Limit")?.description)
+            assertEquals(false, response?.headers?.get("X-Expires")?.required)
+        }
     }
 
-    @Test
-    fun `Should parse specification with metadata and description`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Detailed API
-              version: 2.5.1
-              description: This is a detailed API description
-            servers:
-              - url: https://api.example.com/v1
-            paths:
-              /test:
-                get:
-                  responses:
-                    '200':
-                      description: OK
-        """.trimIndent()
+    @Nested
+    inner class MetadataExtraction {
 
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+        @Test
+        fun `Given spec with metadata and description When parsing Then should extract metadata`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Detailed API
+                  version: 2.5.1
+                  description: This is a detailed API description
+                servers:
+                  - url: https://api.example.com/v1
+                paths:
+                  /test:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+            """.trimIndent()
 
-        assertEquals("Detailed API", spec.title)
-        assertEquals("2.5.1", spec.version)
-        assertEquals("This is a detailed API description", spec.metadata["description"])
-        assertEquals("https://api.example.com/v1", spec.metadata["host"])
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+
+            // Then
+            assertEquals("Detailed API", spec.title)
+            assertEquals("2.5.1", spec.version)
+            assertEquals("This is a detailed API description", spec.metadata["description"])
+            assertEquals("https://api.example.com/v1", spec.metadata["host"])
+        }
+
+        @Test
+        fun `Given spec with endpoints When extracting metadata Then should count endpoints`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: My API
+                  version: 2.1
+                paths:
+                  /p1:
+                    get: {}
+                    post: {}
+                  /p2:
+                    put: {}
+            """.trimIndent()
+
+            // When
+            val metadata = parser.extractMetadata(content, SpecificationFormat.OPENAPI_3)
+
+            // Then
+            assertEquals("My API", metadata.title)
+            assertEquals("2.1", metadata.version)
+            assertEquals(3, metadata.endpointCount)
+        }
+
+        @Test
+        fun `Given spec with component schemas When extracting metadata Then should count schemas`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Schema Count API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+                components:
+                  schemas:
+                    User:
+                      type: object
+                    Product:
+                      type: object
+                    Order:
+                      type: object
+            """.trimIndent()
+
+            // When
+            val metadata = parser.extractMetadata(content, SpecificationFormat.OPENAPI_3)
+
+            // Then
+            assertEquals(3, metadata.schemaCount)
+            assertEquals("Schema Count API", metadata.title)
+            assertEquals(SpecificationFormat.OPENAPI_3, metadata.format)
+        }
     }
 
-    @Test
-    fun `Should parse specification with component schemas`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Schemas API
-              version: 1.0
-            paths:
-              /test:
-                get:
-                  responses:
-                    '200':
-                      description: OK
-            components:
-              schemas:
-                User:
-                  type: object
-                  required:
-                    - id
-                    - email
-                  properties:
-                    id:
-                      type: integer
-                    email:
-                      type: string
-                      format: email
-                Product:
-                  type: object
-                  properties:
-                    name:
-                      type: string
-        """.trimIndent()
+    @Nested
+    inner class FormatSupport {
 
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-
-        assertEquals(2, spec.schemas.size)
-        assertTrue(spec.schemas.containsKey("User"))
-        assertTrue(spec.schemas.containsKey("Product"))
-
-        val user = spec.schemas["User"]
-        assertEquals(2, user?.required?.size)
-        assertTrue(user?.required?.contains("id") ?: false)
-        assertEquals("email", user?.properties?.get("email")?.format)
+        @Test
+        fun `Given format check When querying supported formats Then should support only OpenAPI and Swagger`() {
+            // Then
+            assertTrue(parser.supports(SpecificationFormat.OPENAPI_3))
+            assertTrue(parser.supports(SpecificationFormat.SWAGGER_2))
+            assertFalse(parser.supports(SpecificationFormat.GRAPHQL))
+            assertFalse(parser.supports(SpecificationFormat.WSDL))
+        }
     }
 
-    @Test
-    fun `Should validate specification with warnings`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: API
-              version: 1.0
-            paths: {}
-        """.trimIndent()
+    @Nested
+    inner class ValidationAndParsingConsistency {
 
-        val result = parser.validate(content, SpecificationFormat.OPENAPI_3)
+        @Test
+        fun `Given invalid content When validating Then should return failure`() = runTest {
+            // Given
+            val content = "not a yaml or json"
 
-        assertTrue(result.isValid)
-    }
+            // When
+            val result = parser.validate(content, SpecificationFormat.OPENAPI_3)
 
-    @Test
-    fun `Should parse null schema as object type`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Null Schema API
-              version: 1.0
-            paths:
-              /test:
-                post:
-                  responses:
-                    '204':
-                      description: No content
-        """.trimIndent()
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(result.errors.isNotEmpty())
+        }
 
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-        val response = spec.endpoints.first().responses[204]
+        @Test
+        fun `Given spec with empty paths When validating Then should be valid`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: API
+                  version: 1.0
+                paths: {}
+            """.trimIndent()
 
-        // Response with no content should have null schema
-        assertEquals(null, response?.schema)
-    }
+            // When
+            val result = parser.validate(content, SpecificationFormat.OPENAPI_3)
 
-    @Test
-    fun `Should parse schema with example value`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Example API
-              version: 1.0
-            paths:
-              /test:
-                get:
-                  responses:
-                    '200':
-                      description: OK
-                      content:
-                        application/json:
+            // Then
+            assertTrue(result.isValid)
+        }
+
+        @Test
+        fun `Given spec with invalid status code When validating Then should handle gracefully`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Invalid API
+                paths:
+                  /test:
+                    get:
+                      responses:
+                        invalid-status-code:
+                          description: Bad
+            """.trimIndent()
+
+            // When
+            val result = parser.validate(content, SpecificationFormat.OPENAPI_3)
+
+            // Then - should handle without crashing
+            assertTrue(result.isValid)
+        }
+
+        @Test
+        fun `Given spec with unknown parameter location When validating Then should handle gracefully`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Unknown Param API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      parameters:
+                        - name: test
+                          in: unknown
                           schema:
-                            type: object
-                            properties:
-                              name:
-                                type: string
-                                example: John Doe
-                                description: User's full name
-        """.trimIndent()
+                            type: string
+                      responses:
+                        '200':
+                          description: OK
+            """.trimIndent()
 
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-        val schema = spec.endpoints.first().responses[200]?.schema
-        val nameProperty = schema?.properties?.get("name")
+            // When
+            val result = parser.validate(content, SpecificationFormat.OPENAPI_3)
 
-        assertEquals("John Doe", nameProperty?.example)
-        assertEquals("User's full name", nameProperty?.description)
+            // Then - should handle without crashing
+            assertTrue(result.isValid)
+        }
+
+        @Test
+        fun `Given spec with undefined ref When validating Then should be valid with warnings`() = runTest {
+            // Given
+            val content = $$"""
+                openapi: 3.0.0
+                info:
+                  title: Test API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+                          content:
+                            application/json:
+                              schema:
+                                $ref: '#/components/schemas/NonExistent'
+            """.trimIndent()
+
+            // When
+            val validateResult = parser.validate(content, SpecificationFormat.OPENAPI_3)
+
+            // Then - OpenAPI parser is intentionally lenient with unresolved $refs:
+            // it treats them as warnings rather than errors, allowing partial specs
+            // to still be useful for mock generation.
+            assertTrue(validateResult.isValid)
+        }
+
+        @Test
+        fun `Given spec with undefined ref When parsing Then should succeed like validate`() = runTest {
+            // Given
+            val content = $$"""
+                openapi: 3.0.0
+                info:
+                  title: Test API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+                          content:
+                            application/json:
+                              schema:
+                                $ref: '#/components/schemas/NonExistent'
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+
+            // Then - Parsing succeeds with unresolved $refs by design, matching
+            // the lenient validation behavior above. The parser generates mocks
+            // for the resolvable parts of the specification.
+            assertEquals(1, spec.endpoints.size)
+            assertEquals("/test", spec.endpoints.first().path)
+        }
     }
 
-    @Test
-    fun `Should handle schema with additionalProperties false`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Strict Schema API
-              version: 1.0
-            paths:
-              /test:
-                post:
-                  responses:
-                    '200':
-                      description: OK
-                      content:
-                        application/json:
-                          schema:
-                            type: object
-                            additionalProperties: false
-                            properties:
-                              id:
-                                type: integer
-        """.trimIndent()
+    @Nested
+    inner class UrlBasedParsing {
 
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-        val schema = spec.endpoints.first().responses[200]?.schema
+        private lateinit var wireMockServer: WireMockServer
+        // Use a parser without SSRF validation for localhost-based WireMock tests
+        private val urlParser = OpenAPISpecificationParser(urlSafetyValidator = {})
 
-        assertFalse(schema?.additionalProperties ?: true)
-    }
+        @BeforeEach
+        fun setUp() {
+            wireMockServer = WireMockServer(wireMockConfig().dynamicPort())
+            wireMockServer.start()
+        }
 
-    @Test
-    fun `Should parse parameter with description`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Param Description API
-              version: 1.0
-            paths:
-              /test:
-                get:
-                  parameters:
-                    - name: userId
-                      in: query
-                      required: false
-                      description: The ID of the user to fetch
-                      schema:
-                        type: string
-                  responses:
-                    '200':
-                      description: OK
-        """.trimIndent()
+        @AfterEach
+        fun tearDown() {
+            wireMockServer.stop()
+        }
 
-        val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
-        val param = spec.endpoints.first().parameters.first()
+        @Test
+        fun `Given URL serving OpenAPI spec When parsing Then should fetch and parse from URL`() = runTest {
+            // Given
+            val specContent = """
+                openapi: 3.0.0
+                info:
+                  title: Remote API
+                  version: 1.0
+                paths:
+                  /users:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+            """.trimIndent()
 
-        assertEquals("userId", param.name)
-        assertEquals("The ID of the user to fetch", param.description)
-        assertFalse(param.required)
-    }
+            wireMockServer.stubFor(
+                get(urlEqualTo("/openapi.yaml"))
+                    .willReturn(
+                        aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/yaml")
+                            .withBody(specContent)
+                    )
+            )
 
-    @Test
-    fun `Should handle parsing errors with descriptive message`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Invalid API
-            paths:
-              /test:
-                get:
-                  responses:
-                    invalid-status-code:
-                      description: Bad
-        """.trimIndent()
+            val url = "http://localhost:${wireMockServer.port()}/openapi.yaml"
 
-        val result = parser.validate(content, SpecificationFormat.OPENAPI_3)
+            // When
+            val spec = urlParser.parse(url, SpecificationFormat.OPENAPI_3)
 
-        // Should still parse but may have warnings
-        assertTrue(result.isValid || !result.isValid)
-    }
+            // Then
+            assertEquals("Remote API", spec.title)
+            assertEquals(1, spec.endpoints.size)
+            assertEquals("/users", spec.endpoints.first().path)
+        }
 
-    @Test
-    fun `Should extract metadata with schema count`() = runTest {
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Schema Count API
-              version: 1.0
-            paths:
-              /test:
-                get:
-                  responses:
-                    '200':
-                      description: OK
-            components:
-              schemas:
-                User:
-                  type: object
-                Product:
-                  type: object
-                Order:
-                  type: object
-        """.trimIndent()
+        @Test
+        fun `Given raw content When parsing Then should still work with readContents`() = runTest {
+            // Given
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Test API
+                  version: 1.0
+                paths:
+                  /test:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+            """.trimIndent()
 
-        val metadata = parser.extractMetadata(content, SpecificationFormat.OPENAPI_3)
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
 
-        assertEquals(3, metadata.schemaCount)
-        assertEquals("Schema Count API", metadata.title)
-        assertEquals(SpecificationFormat.OPENAPI_3, metadata.format)
-    }
+            // Then
+            assertEquals(1, spec.endpoints.size)
+        }
 
-    @Test
-    fun `Should parse unknown parameter location as QUERY`() = runTest {
-        // Testing the fallback behavior for unknown parameter locations
-        val content = """
-            openapi: 3.0.0
-            info:
-              title: Unknown Param API
-              version: 1.0
-            paths:
-              /test:
-                get:
-                  parameters:
-                    - name: test
-                      in: unknown
-                      schema:
-                        type: string
-                  responses:
-                    '200':
-                      description: OK
-        """.trimIndent()
+        @Test
+        fun `Given localhost URL When parsing with default SSRF protection Then should reject`() = runTest {
+            // Given
+            wireMockServer.stubFor(
+                get(urlEqualTo("/openapi.yaml"))
+                    .willReturn(
+                        aResponse()
+                            .withStatus(200)
+                            .withBody("openapi: 3.0.0\ninfo:\n  title: Test\n  version: '1.0'\npaths: {}")
+                    )
+            )
 
-        // This will likely fail parsing, but we test graceful handling
-        val result = parser.validate(content, SpecificationFormat.OPENAPI_3)
+            val url = "http://localhost:${wireMockServer.port()}/openapi.yaml"
 
-        // The parser should handle this without crashing
-        assertTrue(result.isValid || !result.isValid)
+            // When / Then - default parser should reject localhost
+            assertFailsWith<nl.vintik.mocknest.application.generation.util.UrlResolutionException> {
+                parser.parse(url, SpecificationFormat.OPENAPI_3)
+            }
+        }
     }
 }

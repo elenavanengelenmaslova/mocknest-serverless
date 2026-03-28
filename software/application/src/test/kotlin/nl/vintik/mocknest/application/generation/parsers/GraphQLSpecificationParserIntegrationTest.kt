@@ -26,7 +26,7 @@ class GraphQLSpecificationParserIntegrationTest {
 
     private val mockIntrospectionClient: GraphQLIntrospectionClientInterface = mockk(relaxed = true)
     private val realReducer = GraphQLSchemaReducer()
-    private val parser = GraphQLSpecificationParser(mockIntrospectionClient, realReducer)
+    private val parser = GraphQLSpecificationParser(mockIntrospectionClient, realReducer, urlSafetyValidator = {})
 
     @AfterEach
     fun tearDown() {

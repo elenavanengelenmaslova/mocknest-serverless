@@ -79,25 +79,48 @@ class GraphQLMockValidator : MockValidatorInterface {
             val request = wireMockJson["request"]?.jsonObject ?: return@runCatching null
             val bodyPatterns = request["bodyPatterns"]?.jsonArray ?: return@runCatching null
 
-            // Find the body pattern containing an equalToJson matcher
+            // Try equalToJson first (exact match)
             val equalToJson = bodyPatterns
                 .mapNotNull { it.jsonObject["equalToJson"]?.jsonPrimitive?.contentOrNull }
-                .firstOrNull() ?: return@runCatching null
+                .firstOrNull()
 
-            // Parse the GraphQL request body
-            val graphqlRequest = Json.parseToJsonElement(equalToJson).jsonObject
-            val query = graphqlRequest["query"]?.jsonPrimitive?.contentOrNull ?: return@runCatching null
-            val operationName = graphqlRequest["operationName"]?.jsonPrimitive?.contentOrNull
-            val variables = graphqlRequest["variables"]?.jsonObject
+            if (equalToJson != null) {
+                val graphqlRequest = Json.parseToJsonElement(equalToJson).jsonObject
+                val query = graphqlRequest["query"]?.jsonPrimitive?.contentOrNull ?: return@runCatching null
+                val operationName = graphqlRequest["operationName"]?.jsonPrimitive?.contentOrNull
+                val variables = graphqlRequest["variables"]?.jsonObject
+                val finalOperationName = operationName ?: extractOperationNameFromQuery(query)
+                return@runCatching GraphQLOperationInfo(
+                    operationName = finalOperationName,
+                    query = query,
+                    variables = variables?.toMap() ?: emptyMap()
+                )
+            }
 
-            // Extract operation name from query if not provided
-            val finalOperationName = operationName ?: extractOperationNameFromQuery(query)
+            // Fallback: matchesJsonPath — extract operation name from JSONPath expression
+            val matchesJsonPath = bodyPatterns
+                .mapNotNull { it.jsonObject["matchesJsonPath"]?.jsonPrimitive?.contentOrNull }
+                .firstOrNull()
 
-            GraphQLOperationInfo(
-                operationName = finalOperationName,
-                query = query,
-                variables = variables?.toMap() ?: emptyMap()
-            )
+            if (matchesJsonPath != null) {
+                // Try operationName equality (single or double quotes)
+                val operationNameRegex = """operationName\s*==\s*['"]([^'"]+)['"]""".toRegex()
+                val match = operationNameRegex.find(matchesJsonPath)
+                if (match != null) {
+                    return@runCatching GraphQLOperationInfo(match.groupValues[1], "", emptyMap())
+                }
+
+                // Try extracting operation name from embedded query/mutation pattern
+                val queryRegex = """(?:query|mutation)\s+(\w+)""".toRegex()
+                val queryMatch = queryRegex.find(matchesJsonPath)
+                if (queryMatch != null) {
+                    return@runCatching GraphQLOperationInfo(queryMatch.groupValues[1], "", emptyMap())
+                }
+
+                return@runCatching null
+            }
+
+            null
         }.onFailure { exception ->
             logger.warn(exception) { "Failed to extract GraphQL operation from WireMock mapping" }
         }.getOrNull()
@@ -120,6 +143,9 @@ class GraphQLMockValidator : MockValidatorInterface {
         operation: GraphQLOperationInfo,
         endpoint: EndpointDefinition
     ): List<String> {
+        // Skip argument validation for matchesJsonPath mocks (no query details available)
+        if (operation.query.isBlank()) return emptyList()
+
         val errors = mutableListOf<String>()
 
         // Get expected arguments from endpoint request body schema

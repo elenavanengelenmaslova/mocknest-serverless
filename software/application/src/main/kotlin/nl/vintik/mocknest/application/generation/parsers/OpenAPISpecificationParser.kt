@@ -1,6 +1,8 @@
 package nl.vintik.mocknest.application.generation.parsers
 
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
+import nl.vintik.mocknest.application.generation.util.SafeUrlResolver
+import nl.vintik.mocknest.application.generation.util.UrlResolutionException
 import org.springframework.http.HttpMethod
 import nl.vintik.mocknest.domain.generation.*
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -11,19 +13,24 @@ import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.responses.ApiResponse
 import io.swagger.v3.parser.OpenAPIV3Parser
+import kotlinx.coroutines.withTimeout
 
 private val logger = KotlinLogging.logger {}
 /**
  * Parser for OpenAPI 3.0 and Swagger 2.0 specifications.
  */
-class OpenAPISpecificationParser : SpecificationParserInterface {
+class OpenAPISpecificationParser(
+    private val urlSafetyValidator: (String) -> Unit = SafeUrlResolver.Companion::validateUrlSafety
+) : SpecificationParserInterface {
 
     override suspend fun parse(content: String, format: SpecificationFormat): APISpecification {
-        val parseResult = OpenAPIV3Parser().readContents(content)
-
-        require(parseResult.messages.isEmpty()) { "OpenAPI parsing errors: ${parseResult.messages.joinToString(", ")}" }
+        val parseResult = resolveParseResult(content)
 
         val openAPI = requireNotNull(parseResult.openAPI) { "Failed to parse OpenAPI specification" }
+
+        if (parseResult.messages.isNotEmpty()) {
+            logger.warn { "OpenAPI parsing warnings: ${parseResult.messages.joinToString(", ")}" }
+        }
 
         return convertToAPISpecification(openAPI, format, content)
     }
@@ -32,7 +39,7 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
         format in listOf(SpecificationFormat.OPENAPI_3, SpecificationFormat.SWAGGER_2)
 
     override suspend fun validate(content: String, format: SpecificationFormat): ValidationResult = runCatching {
-        val parseResult = OpenAPIV3Parser().readContents(content)
+        val parseResult = resolveParseResult(content)
 
         if (parseResult.openAPI == null) {
             ValidationResult.invalid(
@@ -59,7 +66,7 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
     }
 
     override suspend fun extractMetadata(content: String, format: SpecificationFormat): SpecificationMetadata {
-        val parseResult = OpenAPIV3Parser().readContents(content)
+        val parseResult = resolveParseResult(content)
         val openAPI = requireNotNull(parseResult.openAPI) { "Failed to parse OpenAPI specification" }
         
         val endpointCount = openAPI.paths?.values?.sumOf { pathItem ->
@@ -107,20 +114,31 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
     
     private fun convertPathItem(path: String, pathItem: PathItem): List<EndpointDefinition> {
         val endpoints = mutableListOf<EndpointDefinition>()
-        
-        pathItem.get?.let { endpoints.add(convertOperation(path, HttpMethod.GET, it)) }
-        pathItem.post?.let { endpoints.add(convertOperation(path, HttpMethod.POST, it)) }
-        pathItem.put?.let { endpoints.add(convertOperation(path, HttpMethod.PUT, it)) }
-        pathItem.delete?.let { endpoints.add(convertOperation(path, HttpMethod.DELETE, it)) }
-        pathItem.patch?.let { endpoints.add(convertOperation(path, HttpMethod.PATCH, it)) }
-        pathItem.head?.let { endpoints.add(convertOperation(path, HttpMethod.HEAD, it)) }
-        pathItem.options?.let { endpoints.add(convertOperation(path, HttpMethod.OPTIONS, it)) }
-        
+        val pathParameters = pathItem.parameters
+
+        pathItem.get?.let { endpoints.add(convertOperation(path, HttpMethod.GET, it, pathParameters)) }
+        pathItem.post?.let { endpoints.add(convertOperation(path, HttpMethod.POST, it, pathParameters)) }
+        pathItem.put?.let { endpoints.add(convertOperation(path, HttpMethod.PUT, it, pathParameters)) }
+        pathItem.delete?.let { endpoints.add(convertOperation(path, HttpMethod.DELETE, it, pathParameters)) }
+        pathItem.patch?.let { endpoints.add(convertOperation(path, HttpMethod.PATCH, it, pathParameters)) }
+        pathItem.head?.let { endpoints.add(convertOperation(path, HttpMethod.HEAD, it, pathParameters)) }
+        pathItem.options?.let { endpoints.add(convertOperation(path, HttpMethod.OPTIONS, it, pathParameters)) }
+        pathItem.trace?.let { endpoints.add(convertOperation(path, HttpMethod.TRACE, it, pathParameters)) }
+
         return endpoints
     }
-    
-    private fun convertOperation(path: String, method: HttpMethod, operation: Operation): EndpointDefinition {
-        val parameters = operation.parameters?.map { convertParameter(it) } ?: emptyList()
+
+    private fun convertOperation(
+        path: String,
+        method: HttpMethod,
+        operation: Operation,
+        pathLevelParameters: List<Parameter>? = null
+    ): EndpointDefinition {
+        // Merge path-level and operation-level parameters.
+        // Operation-level parameters override path-level ones with the same name+location (per OpenAPI spec).
+        val pathParams = pathLevelParameters?.map { convertParameter(it) } ?: emptyList()
+        val opParams = operation.parameters?.map { convertParameter(it) } ?: emptyList()
+        val parameters = (opParams + pathParams).distinctBy { it.name to it.location }
         
         val requestBody = operation.requestBody?.let { requestBodySpec ->
             RequestBodyDefinition(
@@ -233,5 +251,25 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
             pattern = schema.pattern,
             additionalProperties = schema.additionalProperties != false
         )
+    }
+
+    private suspend fun resolveParseResult(content: String): io.swagger.v3.parser.core.models.SwaggerParseResult {
+        return if (SafeUrlResolver.isHttpUrl(content)) {
+            logger.info { "Detected URL input, fetching specification" }
+            urlSafetyValidator(content.trim())
+            try {
+                withTimeout(30_000) {
+                    OpenAPIV3Parser().readLocation(content, null, null)
+                }
+            } catch (e: UrlResolutionException) {
+                throw e
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                throw UrlResolutionException("Timed out fetching specification from URL: $content", e)
+            } catch (e: Exception) {
+                throw UrlResolutionException("Failed to fetch specification from URL: $content", e)
+            }
+        } else {
+            OpenAPIV3Parser().readContents(content)
+        }
     }
 }

@@ -8,16 +8,16 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 
 **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)**
 - **2 Lambda functions**: Runtime (mock serving) and Generation (AI features)
-- **Memory**: [1024 MB default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html) (configurable 512-10240 MB)
+- **Memory**: [512 MB default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html) (configurable 512-10240 MB)
 - **Timeout**: [120 seconds default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-timeout.html) (configurable 3-900 seconds)
 - **Concurrency**: Auto-scales within AWS account limits - designed for cost efficiency
-- **Architecture**: [ARM64](https://docs.aws.amazon.com/lambda/latest/dg/foundation-arch.html) for 20% cost reduction (SnapStart optimization planned)
+- **Architecture**: [ARM64](https://docs.aws.amazon.com/lambda/latest/dg/foundation-arch.html) for 20% cost reduction (SnapStart enabled for reduced cold start latency)
 - **Java Runtime**: Java 25 with JVM optimizations for cold start performance
 
 **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)**
 - **Type**: [REST API default](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-basic-concept.html) (not HTTP API) for full WireMock compatibility
 - **Authentication**: API key-based access control
-- **Throttling**: [100 requests/second, 200 burst limit default](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html)
+- **Throttling**: [100 requests/second, 1 burst limit default](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html)
 - **Caching**: [Disabled default](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-caching.html) (to minimize costs)
 
 **[Amazon S3](https://aws.amazon.com/s3/pricing/)**
@@ -60,7 +60,7 @@ The following AWS services are used by MockNest, with links to current pricing a
 - **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)**: Compute runtime for serving mocks
 - **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)**: HTTP routing and API key authentication
 - **[Amazon S3](https://aws.amazon.com/s3/pricing/)**: Persistent storage for mock definitions and response payloads
-- **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**: Message queuing for AI generation requests
+- **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**: Dead Letter Queue for failed Lambda invocations
 - **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)**: Logging and monitoring
 
 **Typical Development Usage**: Most development and testing scenarios stay well within AWS Free Tier limits for these core services.
@@ -81,7 +81,7 @@ MockNest includes several built-in cost optimization features:
 - **JVM optimizations** reduce Lambda cold start costs
 - **Response externalization** keeps payloads in S3, not Lambda memory
 - **ARM64 architecture** provides 20% Lambda cost reduction
-- **SnapStart optimization** planned for improved performance and cost efficiency
+- **SnapStart enabled** for improved cold start performance and cost efficiency
 
 ## Cost Monitoring
 

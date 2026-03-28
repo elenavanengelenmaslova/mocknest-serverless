@@ -4,7 +4,7 @@ MockNest Serverless consists of three main capabilities:
 
 1) **AI-Powered Mock Intelligence**: A comprehensive mock maintenance engine that analyzes traffic patterns, generates mocks from API specifications, detects specification changes, and provides intelligent mock suggestions and optimization recommendations to keep mock suites current and comprehensive
 2) **Core Mock Runtime**: A serverless WireMock runtime that serves mocked HTTP endpoints and exposes the WireMock admin API
-3) **Persistent Storage**: Stores mock definitions, response payloads, traffic logs, and analysis results outside the runtime so they remain available across executions
+3) **Persistent Storage**: Stores mock definitions and response payloads outside the runtime so they remain available across executions (traffic logs and analysis results storage planned for future phases)
 
 ## AI-Powered Mock Intelligence Flow
 The AI intelligence system provides intelligent mock generation and maintenance through dedicated admin endpoints:
@@ -88,9 +88,9 @@ flowchart TB
 
     subgraph Storage["Persistent Storage"]
         MOCKSTORE[(Mock Definitions)]
-        TRAFFICSTORE[(Traffic Logs)]
-        ANALYSISSTORE[(Analysis Results)]
-        SPECSTORE[(API Specifications)]
+        TRAFFICSTORE[(Traffic Logs - Future)]
+        ANALYSISSTORE[(Analysis Results - Future)]
+        SPECSTORE[(API Specifications - Future)]
     end
 
     USER -->|Admin calls| ADMIN
@@ -273,19 +273,17 @@ mocknest-serverless/
 │   │   └── build.gradle.kts
 │   └── infra/            // Infrastructure specific code
 │       └── aws/          // AWS-specific code, including AWS Lambda
-│           ├── src/
-│           └── build.gradle.kts
+│           ├── core/             // Shared AWS infrastructure
+│           ├── runtime/          // Runtime Lambda handler
+│           ├── generation/       // Generation Lambda handler
+│           └── mocknest/         // MockNest WireMock integration
 │
 └── deployment/           // Cloud deployment configurations
     └── aws/              // AWS-specific deployment
         ├── sam/              // SAM deployment method
         │   ├── template.yaml         // SAM template for infrastructure as code
-        │   ├── samconfig.toml       // SAM configuration for different environments
-        │   ├── build.sh             // Build script for SAM deployment
-        │   └── deploy.sh            // Deployment script for SAM
+        │   └── samconfig.toml       // SAM configuration for different environments
         └── shared/           // Shared deployment utilities
-            ├── setup-github-oidc.sh     // OIDC setup script
-            └── update-existing-oidc-role.sh // OIDC role update script
 ```
 
 # Technology Stack

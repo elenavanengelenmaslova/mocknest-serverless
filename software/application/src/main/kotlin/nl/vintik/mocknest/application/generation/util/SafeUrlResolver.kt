@@ -1,0 +1,147 @@
+package nl.vintik.mocknest.application.generation.util
+
+import io.github.oshai.kotlinlogging.KotlinLogging
+import java.net.HttpURLConnection
+import java.net.InetAddress
+import java.net.URI
+
+private val logger = KotlinLogging.logger {}
+
+/**
+ * Interface for fetching content from a URL.
+ * Implementations should enforce security checks and timeouts.
+ */
+interface UrlFetcher {
+    fun fetch(url: String): String
+}
+
+/**
+ * SSRF-safe URL resolver that validates URLs against internal/private network addresses
+ * and fetches content with strict timeouts. Redirects are disabled to prevent SSRF via redirect.
+ */
+class SafeUrlResolver(
+    private val connectTimeoutMs: Int = 10_000,
+    private val readTimeoutMs: Int = 10_000,
+    private val maxResponseBytes: Long = 10 * 1024 * 1024 // 10 MB
+) : UrlFetcher {
+
+    override fun fetch(url: String): String {
+        val normalizedUrl = url.trim()
+        validateUrlSafety(normalizedUrl)
+        return runCatching {
+            logger.info { "Fetching URL: ${sanitizeUrlForLogging(normalizedUrl)}" }
+            val connection = URI(normalizedUrl).toURL().openConnection() as HttpURLConnection
+            connection.instanceFollowRedirects = false
+            connection.connectTimeout = connectTimeoutMs
+            connection.readTimeout = readTimeoutMs
+            connection.requestMethod = "GET"
+            val responseCode = connection.responseCode
+            if (responseCode !in 200..299) {
+                throw UrlResolutionException(
+                    "HTTP $responseCode from ${sanitizeUrlForLogging(normalizedUrl)}"
+                )
+            }
+            connection.inputStream.use { input ->
+                val output = java.io.ByteArrayOutputStream()
+                val buffer = ByteArray(8192)
+                var totalRead = 0L
+                var bytesRead: Int
+                while (input.read(buffer).also { bytesRead = it } != -1) {
+                    totalRead += bytesRead
+                    if (totalRead > maxResponseBytes) {
+                        throw UrlResolutionException(
+                            "Response exceeds maximum size of ${maxResponseBytes / (1024 * 1024)} MB"
+                        )
+                    }
+                    output.write(buffer, 0, bytesRead)
+                }
+                output.toString(Charsets.UTF_8.name())
+            }
+        }.getOrElse { e ->
+            when (e) {
+                is UrlResolutionException -> throw e
+                else -> throw UrlResolutionException("Failed to fetch URL: ${sanitizeUrlForLogging(normalizedUrl)}", e)
+            }
+        }
+    }
+
+    companion object {
+        private val ALLOWED_SCHEMES = listOf("http", "https")
+
+        private fun isUnsafeAddress(address: InetAddress): Boolean {
+            if (address.isLoopbackAddress) return true
+            if (address.isAnyLocalAddress) return true
+            if (address.isSiteLocalAddress) return true
+            if (address.isLinkLocalAddress) return true
+            if (address.isMulticastAddress) return true
+
+            val bytes = address.address
+            // IPv6 ULA fc00::/7
+            if (bytes.size == 16 && (bytes[0].toInt() and 0xFE) == 0xFC) return true
+            // IPv4 CGNAT 100.64.0.0/10
+            if (bytes.size == 4 && bytes[0] == 100.toByte() && (bytes[1].toInt() and 0xC0) == 64) return true
+
+            return false
+        }
+        private val SENSITIVE_PARAM_PATTERNS = listOf("token", "key", "secret", "auth", "sig", "password", "credential")
+
+        /**
+         * Checks if a string looks like an HTTP(S) URL.
+         * Shared utility replacing duplicate private isHttpUrl methods in parsers.
+         */
+        fun isHttpUrl(content: String): Boolean {
+            return runCatching {
+                val uri = URI(content.trim())
+                uri.scheme?.lowercase() in ALLOWED_SCHEMES && uri.host != null
+            }.getOrDefault(false)
+        }
+
+        /**
+         * Sanitizes a URL for safe logging by stripping userinfo and redacting sensitive query parameters.
+         */
+        fun sanitizeUrlForLogging(url: String): String = runCatching {
+            val uri = URI(url.trim())
+            val sanitizedQuery = uri.query?.let { query ->
+                query.split("&").joinToString("&") { param ->
+                    val paramKey = param.substringBefore("=").lowercase()
+                    if (SENSITIVE_PARAM_PATTERNS.any { paramKey.contains(it) } || paramKey.startsWith("x-amz-"))
+                        "${param.substringBefore("=")}=<redacted>"
+                    else param
+                }
+            }
+            URI(uri.scheme, null, uri.host, uri.port, uri.path, sanitizedQuery, null).toString()
+        }.getOrDefault("<unparseable-url>")
+
+        /**
+         * Validates a URL is safe to fetch (no SSRF to internal networks).
+         * Throws [UrlResolutionException] if the URL targets a forbidden address.
+         */
+        fun validateUrlSafety(url: String) {
+            val uri = runCatching {
+                URI(url.trim())
+            }.getOrElse { e ->
+                throw UrlResolutionException("Invalid URL", e)
+            }
+
+            val scheme = uri.scheme?.lowercase()
+            if (scheme !in ALLOWED_SCHEMES) {
+                throw UrlResolutionException("Unsupported URL scheme: $scheme (only HTTP and HTTPS are allowed)")
+            }
+
+            val host = uri.host
+                ?: throw UrlResolutionException("URL has no host")
+
+            val addresses = runCatching {
+                InetAddress.getAllByName(host)
+            }.getOrElse { e ->
+                throw UrlResolutionException("Cannot resolve host: $host", e)
+            }
+
+            for (address in addresses) {
+                if (isUnsafeAddress(address)) {
+                    throw UrlResolutionException("URL targets an unsafe address: $host")
+                }
+            }
+        }
+    }
+}

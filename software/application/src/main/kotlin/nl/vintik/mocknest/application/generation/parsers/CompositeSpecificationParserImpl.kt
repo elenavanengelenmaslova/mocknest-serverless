@@ -20,7 +20,7 @@ class CompositeSpecificationParserImpl(
     init {
         // Register all available parsers
         parsers.forEach { parser ->
-            SpecificationFormat.values().forEach { format ->
+            SpecificationFormat.entries.forEach { format ->
                 if (parser.supports(format)) {
                     parserMap[format] = parser
                 }
