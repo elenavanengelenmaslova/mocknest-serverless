@@ -26,41 +26,63 @@ class SafeUrlResolver(
 ) : UrlFetcher {
 
     override fun fetch(url: String): String {
-        validateUrlSafety(url)
+        val normalizedUrl = url.trim()
+        validateUrlSafety(normalizedUrl)
         return runCatching {
-            logger.info { "Fetching URL: ${sanitizeUrlForLogging(url)}" }
-            val connection = URI(url).toURL().openConnection() as HttpURLConnection
+            logger.info { "Fetching URL: ${sanitizeUrlForLogging(normalizedUrl)}" }
+            val connection = URI(normalizedUrl).toURL().openConnection() as HttpURLConnection
             connection.instanceFollowRedirects = false
             connection.connectTimeout = connectTimeoutMs
             connection.readTimeout = readTimeoutMs
             connection.requestMethod = "GET"
+            val responseCode = connection.responseCode
+            if (responseCode !in 200..299) {
+                throw UrlResolutionException(
+                    "HTTP $responseCode from ${sanitizeUrlForLogging(normalizedUrl)}"
+                )
+            }
             connection.inputStream.use { input ->
-                val result = StringBuilder()
-                val buffer = CharArray(8192)
-                val reader = input.bufferedReader()
+                val output = java.io.ByteArrayOutputStream()
+                val buffer = ByteArray(8192)
                 var totalRead = 0L
-                var charsRead: Int
-                while (reader.read(buffer).also { charsRead = it } != -1) {
-                    totalRead += charsRead
+                var bytesRead: Int
+                while (input.read(buffer).also { bytesRead = it } != -1) {
+                    totalRead += bytesRead
                     if (totalRead > maxResponseBytes) {
                         throw UrlResolutionException(
                             "Response exceeds maximum size of ${maxResponseBytes / (1024 * 1024)} MB"
                         )
                     }
-                    result.appendRange(buffer, 0, charsRead)
+                    output.write(buffer, 0, bytesRead)
                 }
-                result.toString()
+                output.toString(Charsets.UTF_8.name())
             }
         }.getOrElse { e ->
             when (e) {
                 is UrlResolutionException -> throw e
-                else -> throw UrlResolutionException("Failed to fetch URL: ${sanitizeUrlForLogging(url)}", e)
+                else -> throw UrlResolutionException("Failed to fetch URL: ${sanitizeUrlForLogging(normalizedUrl)}", e)
             }
         }
     }
 
     companion object {
         private val ALLOWED_SCHEMES = listOf("http", "https")
+
+        private fun isUnsafeAddress(address: InetAddress): Boolean {
+            if (address.isLoopbackAddress) return true
+            if (address.isAnyLocalAddress) return true
+            if (address.isSiteLocalAddress) return true
+            if (address.isLinkLocalAddress) return true
+            if (address.isMulticastAddress) return true
+
+            val bytes = address.address
+            // IPv6 ULA fc00::/7
+            if (bytes.size == 16 && (bytes[0].toInt() and 0xFE) == 0xFC) return true
+            // IPv4 CGNAT 100.64.0.0/10
+            if (bytes.size == 4 && bytes[0] == 100.toByte() && (bytes[1].toInt() and 0xC0) == 64) return true
+
+            return false
+        }
         private val SENSITIVE_PARAM_PATTERNS = listOf("token", "key", "secret", "auth", "sig", "password", "credential")
 
         /**
@@ -116,17 +138,8 @@ class SafeUrlResolver(
             }
 
             for (address in addresses) {
-                if (address.isLoopbackAddress) {
-                    throw UrlResolutionException("URL targets a loopback address: $host")
-                }
-                if (address.isAnyLocalAddress) {
-                    throw UrlResolutionException("URL targets a wildcard address: $host")
-                }
-                if (address.isSiteLocalAddress) {
-                    throw UrlResolutionException("URL targets a private network address: $host")
-                }
-                if (address.isLinkLocalAddress) {
-                    throw UrlResolutionException("URL targets a link-local address: $host")
+                if (isUnsafeAddress(address)) {
+                    throw UrlResolutionException("URL targets an unsafe address: $host")
                 }
             }
         }

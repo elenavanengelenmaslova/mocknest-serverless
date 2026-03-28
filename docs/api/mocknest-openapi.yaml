@@ -203,7 +203,7 @@ paths:
         '503':
           description: AI service unavailable
 
-  /ai/health:
+  /ai/generation/health:
     get:
       summary: AI Features Health Check
       description: Check the health status of AI-powered mock generation features
@@ -1440,7 +1440,7 @@ components:
           format: uri
         format:
           type: string
-          enum: [OPENAPI_3, OPENAPI_2, SWAGGER_2, GRAPHQL]
+          enum: [OPENAPI_3, SWAGGER_2, GRAPHQL, WSDL]
           description: Specification format
         description:
           type: string
@@ -1450,6 +1450,7 @@ components:
       required:
         - namespace
         - format
+        - description
       oneOf:
         - required: [specification]
         - required: [specificationUrl]
@@ -1461,11 +1462,10 @@ components:
           type: string
           description: Name of the API being mocked
         client:
-          type: string
-          description: Client or environment identifier
+          type: ["string", "null"]
+          description: Client or environment identifier (optional, defaults to null)
       required:
         - apiName
-        - client
 
     GenerationOptions:
       type: object
@@ -1474,22 +1474,6 @@ components:
           type: boolean
           description: Enable request/response validation
           default: true
-        includeExamples:
-          type: boolean
-          description: Include example data in responses
-          default: true
-        generateErrorCases:
-          type: boolean
-          description: Generate error response scenarios
-          default: true
-        realisticData:
-          type: boolean
-          description: Use realistic data in examples
-          default: true
-        includePagination:
-          type: boolean
-          description: Include pagination patterns for list endpoints
-          default: false
 
     GeneratedMocksResponse:
       type: object
@@ -1537,24 +1521,8 @@ components:
       type: object
       properties:
         error:
-          type: object
-          properties:
-            code:
-              type: string
-              description: Error code
-            message:
-              type: string
-              description: Human-readable error message
-            details:
-              type: object
-              description: Additional error details
-            timestamp:
-              type: string
-              format: date-time
-          required:
-            - code
-            - message
-            - timestamp
+          type: string
+          description: Human-readable error message
       required:
         - error
 

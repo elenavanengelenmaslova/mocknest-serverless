@@ -72,7 +72,7 @@ class SafeUrlResolverTest {
             val exception = assertFailsWith<UrlResolutionException> {
                 SafeUrlResolver.validateUrlSafety("http://localhost/api")
             }
-            assertTrue(exception.message!!.contains("loopback"))
+            assertTrue(exception.message!!.contains("unsafe address"))
         }
 
         @Test
@@ -80,7 +80,7 @@ class SafeUrlResolverTest {
             val exception = assertFailsWith<UrlResolutionException> {
                 SafeUrlResolver.validateUrlSafety("http://127.0.0.1/api")
             }
-            assertTrue(exception.message!!.contains("loopback"))
+            assertTrue(exception.message!!.contains("unsafe address"))
         }
 
         @Test
@@ -88,7 +88,7 @@ class SafeUrlResolverTest {
             val exception = assertFailsWith<UrlResolutionException> {
                 SafeUrlResolver.validateUrlSafety("http://10.0.0.1/api")
             }
-            assertTrue(exception.message!!.contains("private network"))
+            assertTrue(exception.message!!.contains("unsafe address"))
         }
 
         @Test
@@ -96,7 +96,7 @@ class SafeUrlResolverTest {
             val exception = assertFailsWith<UrlResolutionException> {
                 SafeUrlResolver.validateUrlSafety("http://192.168.1.1/api")
             }
-            assertTrue(exception.message!!.contains("private network"))
+            assertTrue(exception.message!!.contains("unsafe address"))
         }
 
         @Test
@@ -104,7 +104,47 @@ class SafeUrlResolverTest {
             val exception = assertFailsWith<UrlResolutionException> {
                 SafeUrlResolver.validateUrlSafety("http://169.254.1.1/api")
             }
-            assertTrue(exception.message!!.contains("link-local"))
+            assertTrue(exception.message!!.contains("unsafe address"))
+        }
+
+        @Test
+        fun `Given multicast IPv4 URL When validating Then throws UrlResolutionException`() {
+            val exception = assertFailsWith<UrlResolutionException> {
+                SafeUrlResolver.validateUrlSafety("http://224.0.0.1/api")
+            }
+            assertTrue(exception.message!!.contains("unsafe address"))
+        }
+
+        @Test
+        fun `Given multicast IPv6 URL When validating Then throws UrlResolutionException`() {
+            val exception = assertFailsWith<UrlResolutionException> {
+                SafeUrlResolver.validateUrlSafety("http://[ff02::1]/api")
+            }
+            assertTrue(exception.message!!.contains("unsafe address"))
+        }
+
+        @Test
+        fun `Given IPv6 ULA URL When validating Then throws UrlResolutionException`() {
+            val exception = assertFailsWith<UrlResolutionException> {
+                SafeUrlResolver.validateUrlSafety("http://[fd12:3456:789a::1]/api")
+            }
+            assertTrue(exception.message!!.contains("unsafe address"))
+        }
+
+        @Test
+        fun `Given IPv4 CGNAT URL When validating Then throws UrlResolutionException`() {
+            val exception = assertFailsWith<UrlResolutionException> {
+                SafeUrlResolver.validateUrlSafety("http://100.64.0.1/api")
+            }
+            assertTrue(exception.message!!.contains("unsafe address"))
+        }
+
+        @Test
+        fun `Given IPv4 CGNAT upper bound URL When validating Then throws UrlResolutionException`() {
+            val exception = assertFailsWith<UrlResolutionException> {
+                SafeUrlResolver.validateUrlSafety("http://100.127.255.254/api")
+            }
+            assertTrue(exception.message!!.contains("unsafe address"))
         }
 
         @Test

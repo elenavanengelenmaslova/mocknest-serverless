@@ -162,7 +162,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 }'
 ```
 
-> **Note**: The target GraphQL endpoint must have introspection enabled for URL-based schema fetching. For endpoints with introspection disabled or requiring authentication, provide the schema content directly using the `specification` field instead of `specificationUrl`.
+> **Note**: The target GraphQL endpoint must have introspection enabled for URL-based schema fetching. For endpoints with introspection disabled or requiring authentication, provide the introspection JSON result directly in the `specification` field instead of `specificationUrl`. Raw SDL (`.graphql` schema text) is not supported; the value must be a JSON introspection response.
 
 **Supported Formats**:
 - OpenAPI 3.x (fully tested)

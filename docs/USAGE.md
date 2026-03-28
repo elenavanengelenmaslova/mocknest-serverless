@@ -459,7 +459,7 @@ curl -X POST "${MOCKNEST_URL}/mocknest/graphql" \
 ```json
 {
   "data": {
-    "pet": {
+    "getPet": {
       "id": "123",
       "name": "Buddy",
       "species": "dog",
