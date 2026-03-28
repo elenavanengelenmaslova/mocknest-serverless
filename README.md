@@ -367,17 +367,12 @@ sam deploy --parameter-overrides \
 
 ### Local Development
 
-1. **Run Tests**:
+1. **Run Tests** (requires Docker for integration tests):
    ```bash
    ./gradlew test
    ```
 
-2. **Run Integration Tests** (requires Docker):
-   ```bash
-   ./gradlew test
-   ```
-
-3. **Local SAM Testing**:
+2. **Local SAM Testing**:
    ```bash
    cd deployment/aws/sam
    sam local start-api
@@ -411,7 +406,7 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 | **Bedrock Model** | `BedrockModelName` | `BEDROCK_MODEL_NAME` | Any Bedrock model ID | `AmazonNovaPro` | SAM parameter for deployment; environment variable for runtime override. Amazon Nova Pro is officially supported |
 | **S3 Bucket** | `BucketName` | `MOCKNEST_S3_BUCKET_NAME` | Valid S3 bucket name | Auto-generated | SAM parameter for deployment; environment variable for runtime override |
 | **Lambda Memory** | `LambdaMemorySize` | N/A | 512-10240 MB | `512` | SAM parameter only - set during deployment based on workload requirements |
-| **Lambda Timeout** | `LambdaTimeout` | N/A | 1-900 seconds | `120` | SAM parameter only - set during deployment based on expected processing time |
+| **Lambda Timeout** | `LambdaTimeout` | N/A | 3-900 seconds | `120` | SAM parameter only - set during deployment based on expected processing time |
 | **Deployment Name** | `DeploymentName` | N/A | Alphanumeric string | `mocks` | SAM parameter only - used for resource naming and identification |
 
 **Configuration Precedence**: Environment variables override SAM parameters at runtime. Use SAM parameters for initial deployment configuration and environment variables for runtime adjustments without redeployment.
