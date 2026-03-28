@@ -92,23 +92,25 @@ class SafeUrlResolver(
             val host = uri.host
                 ?: throw UrlResolutionException("URL has no host")
 
-            val address = runCatching {
-                InetAddress.getByName(host)
+            val addresses = runCatching {
+                InetAddress.getAllByName(host)
             }.getOrElse { e ->
                 throw UrlResolutionException("Cannot resolve host: $host", e)
             }
 
-            if (address.isLoopbackAddress) {
-                throw UrlResolutionException("URL targets a loopback address: $host")
-            }
-            if (address.isAnyLocalAddress) {
-                throw UrlResolutionException("URL targets a wildcard address: $host")
-            }
-            if (address.isSiteLocalAddress) {
-                throw UrlResolutionException("URL targets a private network address: $host")
-            }
-            if (address.isLinkLocalAddress) {
-                throw UrlResolutionException("URL targets a link-local address: $host")
+            for (address in addresses) {
+                if (address.isLoopbackAddress) {
+                    throw UrlResolutionException("URL targets a loopback address: $host")
+                }
+                if (address.isAnyLocalAddress) {
+                    throw UrlResolutionException("URL targets a wildcard address: $host")
+                }
+                if (address.isSiteLocalAddress) {
+                    throw UrlResolutionException("URL targets a private network address: $host")
+                }
+                if (address.isLinkLocalAddress) {
+                    throw UrlResolutionException("URL targets a link-local address: $host")
+                }
             }
         }
     }

@@ -287,10 +287,11 @@ class GraphQLSpecificationParser(
     }
 
     private suspend fun resolveIntrospectionContent(content: String): String {
-        return if (SafeUrlResolver.isHttpUrl(content)) {
+        val normalized = content.trim()
+        return if (SafeUrlResolver.isHttpUrl(normalized)) {
             logger.info { "Detected URL input, executing introspection" }
-            urlSafetyValidator(content.trim())
-            introspectionClient.introspect(content)
+            urlSafetyValidator(normalized)
+            introspectionClient.introspect(normalized)
         } else {
             logger.debug { "Using pre-fetched schema content" }
             content

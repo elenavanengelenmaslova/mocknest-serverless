@@ -123,7 +123,7 @@ class GraphQLUrlEndToEndTest {
             id = UUID.randomUUID().toString(),
             name = "GraphQL user mock",
             namespace = testNamespace,
-            wireMockMapping = """{"request":{"method":"POST","urlPath":"/graphql","bodyPatterns":[{"equalToJson":"{\"query\":\"query user(${'$'}id: ID!) { user(id: ${'$'}id) { id name email } }\",\"operationName\":\"user\",\"variables\":{\"id\":\"user-123\"}}"}]},"response":{"status":200,"jsonBody":{"data":{"id":"user-123","name":"Alice Smith","email":"alice@example.com"}}}}""",
+            wireMockMapping = """{"request":{"method":"POST","urlPath":"/graphql","bodyPatterns":[{"equalToJson":"{\"query\":\"query user(${'$'}id: ID!) { user(id: ${'$'}id) { id name email } }\",\"operationName\":\"user\",\"variables\":{\"id\":\"user-123\"}}"}]},"response":{"status":200,"jsonBody":{"data":{"user":{"id":"user-123","name":"Alice Smith","email":"alice@example.com"}}}}}""",
             metadata = MockMetadata(
                 sourceType = SourceType.SPEC_WITH_DESCRIPTION,
                 sourceReference = "GraphQL API: e2e test",
