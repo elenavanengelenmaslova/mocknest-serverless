@@ -1156,11 +1156,9 @@ class GraphQLMockValidatorTest {
         }
 
         @Test
-        fun `Given mock with matchesJsonPath instead of equalToJson When validating Then should fail to extract operation`() = runTest {
+        fun `Given mock with matchesJsonPath containing operationName When validating Then should extract and validate`() = runTest {
             // Given
             val specification = createTestSpecification()
-            // matchesJsonPath contains JSONPath expressions, not a full JSON body,
-            // so the validator cannot extract the GraphQL operation from it
             val mockJson = """
                 {
                   "request": {
@@ -1168,7 +1166,7 @@ class GraphQLMockValidatorTest {
                     "urlPath": "/graphql",
                     "bodyPatterns": [
                       {
-                        "matchesJsonPath": "{\"query\":\"query getUser(${'$'}id: String!) { user(id: ${'$'}id) { id name email status } }\",\"operationName\":\"getUser\",\"variables\":{\"id\":\"123\"}}"
+                        "matchesJsonPath": "$..[?(@.operationName == 'getUser')]"
                       }
                     ]
                   },
@@ -1190,12 +1188,81 @@ class GraphQLMockValidatorTest {
             // When
             val result = validator.validate(mock, specification)
 
+            // Then — matchesJsonPath with operationName should be extracted and validated
+            assertTrue(result.isValid, "Mock with matchesJsonPath should pass validation. Errors: ${result.errors}")
+        }
+
+        @Test
+        fun `Given mock with matchesJsonPath containing unknown operation When validating Then should fail`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "urlPath": "/graphql",
+                    "bodyPatterns": [
+                      {
+                        "matchesJsonPath": "$..[?(@.operationName == 'nonExistentOperation')]"
+                      }
+                    ]
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "data": {
+                        "result": "test"
+                      }
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("unknown-op-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then — unknown operation should fail validation
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("not found in schema") },
+                "Should report operation not found. Errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given mock with matchesJsonPath without operationName pattern When validating Then should fail to extract`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "urlPath": "/graphql",
+                    "bodyPatterns": [
+                      {
+                        "matchesJsonPath": "$.query"
+                      }
+                    ]
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "data": { "result": "test" }
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("no-op-name-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
             // Then
-            // matchesJsonPath is not supported for GraphQL operation extraction
             assertFalse(result.isValid)
             assertTrue(
                 result.errors.any { it.contains("Failed to extract GraphQL operation") },
-                "Should report failure to extract operation from matchesJsonPath. Errors: ${result.errors}"
+                "Should report extraction failure. Errors: ${result.errors}"
             )
         }
 

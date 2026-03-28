@@ -8,8 +8,9 @@ import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterf
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
+import nl.vintik.mocknest.application.generation.util.SafeUrlResolver
+import nl.vintik.mocknest.application.generation.util.UrlFetcher
 import nl.vintik.mocknest.domain.generation.*
-import java.net.URI
 
 private val logger = KotlinLogging.logger {}
 
@@ -34,6 +35,7 @@ class MockGenerationFunctionalAgent(
     private val mockValidator: MockValidatorInterface,
     private val promptBuilder: PromptBuilderService,
     private val maxRetries: Int = 1, // Default to 1 retry (2 attempts total)
+    private val urlFetcher: UrlFetcher = SafeUrlResolver()
 ) {
 
     private val mockGenerationStrategy = strategy<SpecWithDescriptionRequest, GenerationResult>("mock-generation") {
@@ -139,8 +141,8 @@ class MockGenerationFunctionalAgent(
     internal fun resolveContent(request: SpecWithDescriptionRequest): String {
         val url = request.specificationUrl
         return when {
-            url != null && request.format.handlesOwnUrlResolution -> url
-            url != null -> URI(url).toURL().readText()
+            !url.isNullOrBlank() && request.format.handlesOwnUrlResolution -> url
+            !url.isNullOrBlank() -> urlFetcher.fetch(url)
             else -> requireNotNull(request.specificationContent) {
                 "Specification content is required when no URL is provided"
             }

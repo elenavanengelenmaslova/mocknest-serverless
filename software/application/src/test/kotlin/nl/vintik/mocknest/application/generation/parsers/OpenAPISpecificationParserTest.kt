@@ -17,6 +17,7 @@ import org.springframework.http.HttpMethod
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class OpenAPISpecificationParserTest {
@@ -302,6 +303,90 @@ class OpenAPISpecificationParserTest {
             assertEquals("userId", param.name)
             assertEquals("The ID of the user to fetch", param.description)
             assertFalse(param.required)
+        }
+
+        @Test
+        fun `Given spec with path-level parameters When parsing Then should include them in all operations`() = runTest {
+            // Given - petId is defined at the path level, not on the operation
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Pet Store API
+                  version: 1.0.0
+                paths:
+                  /pets/{petId}:
+                    parameters:
+                      - name: petId
+                        in: path
+                        required: true
+                        schema:
+                          type: string
+                    get:
+                      summary: Get a pet
+                      responses:
+                        '200':
+                          description: OK
+                    delete:
+                      summary: Delete a pet
+                      responses:
+                        '204':
+                          description: Deleted
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+
+            // Then - both GET and DELETE should have the path-level petId parameter
+            val getEndpoint = spec.endpoints.find { it.method == HttpMethod.GET }
+            val deleteEndpoint = spec.endpoints.find { it.method == HttpMethod.DELETE }
+            assertNotNull(getEndpoint)
+            assertNotNull(deleteEndpoint)
+            assertEquals(1, getEndpoint.parameters.size)
+            assertEquals("petId", getEndpoint.parameters[0].name)
+            assertEquals(ParameterLocation.PATH, getEndpoint.parameters[0].location)
+            assertEquals(1, deleteEndpoint.parameters.size)
+            assertEquals("petId", deleteEndpoint.parameters[0].name)
+        }
+
+        @Test
+        fun `Given spec with both path-level and operation-level parameter with same name When parsing Then operation-level wins`() = runTest {
+            // Given - petId defined at path level and overridden at operation level
+            val content = """
+                openapi: 3.0.0
+                info:
+                  title: Pet Store API
+                  version: 1.0.0
+                paths:
+                  /pets/{petId}:
+                    parameters:
+                      - name: petId
+                        in: path
+                        required: true
+                        description: Path-level pet ID
+                        schema:
+                          type: string
+                    get:
+                      summary: Get a pet
+                      parameters:
+                        - name: petId
+                          in: path
+                          required: true
+                          description: Operation-level pet ID
+                          schema:
+                            type: integer
+                      responses:
+                        '200':
+                          description: OK
+            """.trimIndent()
+
+            // When
+            val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
+
+            // Then - operation-level should override path-level
+            val endpoint = spec.endpoints.first()
+            assertEquals(1, endpoint.parameters.size)
+            assertEquals("petId", endpoint.parameters[0].name)
+            assertEquals("Operation-level pet ID", endpoint.parameters[0].description)
         }
     }
 
@@ -861,7 +946,9 @@ class OpenAPISpecificationParserTest {
             // When
             val validateResult = parser.validate(content, SpecificationFormat.OPENAPI_3)
 
-            // Then
+            // Then - OpenAPI parser is intentionally lenient with unresolved $refs:
+            // it treats them as warnings rather than errors, allowing partial specs
+            // to still be useful for mock generation.
             assertTrue(validateResult.isValid)
         }
 
@@ -888,7 +975,9 @@ class OpenAPISpecificationParserTest {
             // When
             val spec = parser.parse(content, SpecificationFormat.OPENAPI_3)
 
-            // Then
+            // Then - Parsing succeeds with unresolved $refs by design, matching
+            // the lenient validation behavior above. The parser generates mocks
+            // for the resolvable parts of the specification.
             assertEquals(1, spec.endpoints.size)
             assertEquals("/test", spec.endpoints.first().path)
         }
@@ -898,6 +987,8 @@ class OpenAPISpecificationParserTest {
     inner class UrlBasedParsing {
 
         private lateinit var wireMockServer: WireMockServer
+        // Use a parser without SSRF validation for localhost-based WireMock tests
+        private val urlParser = OpenAPISpecificationParser(urlSafetyValidator = {})
 
         @BeforeEach
         fun setUp() {
@@ -939,7 +1030,7 @@ class OpenAPISpecificationParserTest {
             val url = "http://localhost:${wireMockServer.port()}/openapi.yaml"
 
             // When
-            val spec = parser.parse(url, SpecificationFormat.OPENAPI_3)
+            val spec = urlParser.parse(url, SpecificationFormat.OPENAPI_3)
 
             // Then
             assertEquals("Remote API", spec.title)
@@ -968,6 +1059,26 @@ class OpenAPISpecificationParserTest {
 
             // Then
             assertEquals(1, spec.endpoints.size)
+        }
+
+        @Test
+        fun `Given localhost URL When parsing with default SSRF protection Then should reject`() = runTest {
+            // Given
+            wireMockServer.stubFor(
+                get(urlEqualTo("/openapi.yaml"))
+                    .willReturn(
+                        aResponse()
+                            .withStatus(200)
+                            .withBody("openapi: 3.0.0\ninfo:\n  title: Test\n  version: '1.0'\npaths: {}")
+                    )
+            )
+
+            val url = "http://localhost:${wireMockServer.port()}/openapi.yaml"
+
+            // When / Then - default parser should reject localhost
+            assertFailsWith<nl.vintik.mocknest.application.generation.util.UrlResolutionException> {
+                parser.parse(url, SpecificationFormat.OPENAPI_3)
+            }
         }
     }
 }

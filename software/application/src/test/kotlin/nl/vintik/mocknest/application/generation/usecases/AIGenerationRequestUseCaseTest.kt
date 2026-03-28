@@ -192,5 +192,88 @@ class AIGenerationRequestUseCaseTest {
             assertEquals(true, response.body?.contains("FAILED"))
             assertEquals(true, response.body?.contains("Generation failed"))
         }
+
+        @Test
+        fun `Given unexpected RuntimeException When generating Then should return 500 with generic message`() {
+            // Given
+            val body = """
+                {
+                    "namespace": { "apiName": "test-api" },
+                    "specification": "openapi content",
+                    "format": "OPENAPI_3",
+                    "description": "test description"
+                }
+            """.trimIndent()
+            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), body)
+
+            coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } throws RuntimeException("secret internal detail")
+
+            // When
+            val response = useCase.invoke("/from-spec", httpRequest)
+
+            // Then
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+            assertEquals(true, response.body?.contains("Internal Server Error"))
+            assertEquals(false, response.body?.contains("secret internal detail"))
+        }
+
+        @Test
+        fun `Given deep IllegalArgumentException from agent When generating Then should return 500 not 400`() {
+            // Given - IllegalArgumentException from deep in the generation pipeline is not a client error
+            val body = """
+                {
+                    "namespace": { "apiName": "test-api" },
+                    "specification": "openapi content",
+                    "format": "OPENAPI_3",
+                    "description": "test description"
+                }
+            """.trimIndent()
+            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), body)
+
+            coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } throws IllegalArgumentException("some library error")
+
+            // When
+            val response = useCase.invoke("/from-spec", httpRequest)
+
+            // Then - should be 500 because this is not a request validation error
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+        }
+
+        @Test
+        fun `Given AI produces invalid mapping JSON When serializing response Then should return 500 not 400`() {
+            // Given
+            val body = """
+                {
+                    "namespace": { "apiName": "test-api" },
+                    "specification": "openapi content",
+                    "format": "OPENAPI_3",
+                    "description": "test description"
+                }
+            """.trimIndent()
+            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), body)
+
+            coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } returns GenerationResult.success(
+                jobId = "job-123",
+                mocks = listOf(
+                    GeneratedMock(
+                        id = "m-1",
+                        name = "mock",
+                        namespace = MockNamespace("test-api"),
+                        wireMockMapping = "this is not valid json {{{",
+                        metadata = MockMetadata(
+                            sourceType = SourceType.SPEC_WITH_DESCRIPTION,
+                            sourceReference = "ref",
+                            endpoint = EndpointInfo(HttpMethod.GET, "/t", 200, "json")
+                        )
+                    )
+                )
+            )
+
+            // When
+            val response = useCase.invoke("/from-spec", httpRequest)
+
+            // Then - invalid AI output JSON should be 500, not 400
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+        }
     }
 }

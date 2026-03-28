@@ -1,6 +1,8 @@
 package nl.vintik.mocknest.application.generation.parsers
 
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
+import nl.vintik.mocknest.application.generation.util.SafeUrlResolver
+import nl.vintik.mocknest.application.generation.util.UrlResolutionException
 import org.springframework.http.HttpMethod
 import nl.vintik.mocknest.domain.generation.*
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -11,13 +13,15 @@ import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.responses.ApiResponse
 import io.swagger.v3.parser.OpenAPIV3Parser
-import java.net.URI
+import kotlinx.coroutines.withTimeout
 
 private val logger = KotlinLogging.logger {}
 /**
  * Parser for OpenAPI 3.0 and Swagger 2.0 specifications.
  */
-class OpenAPISpecificationParser : SpecificationParserInterface {
+class OpenAPISpecificationParser(
+    private val urlSafetyValidator: (String) -> Unit = SafeUrlResolver.Companion::validateUrlSafety
+) : SpecificationParserInterface {
 
     override suspend fun parse(content: String, format: SpecificationFormat): APISpecification {
         val parseResult = resolveParseResult(content)
@@ -110,21 +114,31 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
     
     private fun convertPathItem(path: String, pathItem: PathItem): List<EndpointDefinition> {
         val endpoints = mutableListOf<EndpointDefinition>()
-        
-        pathItem.get?.let { endpoints.add(convertOperation(path, HttpMethod.GET, it)) }
-        pathItem.post?.let { endpoints.add(convertOperation(path, HttpMethod.POST, it)) }
-        pathItem.put?.let { endpoints.add(convertOperation(path, HttpMethod.PUT, it)) }
-        pathItem.delete?.let { endpoints.add(convertOperation(path, HttpMethod.DELETE, it)) }
-        pathItem.patch?.let { endpoints.add(convertOperation(path, HttpMethod.PATCH, it)) }
-        pathItem.head?.let { endpoints.add(convertOperation(path, HttpMethod.HEAD, it)) }
-        pathItem.options?.let { endpoints.add(convertOperation(path, HttpMethod.OPTIONS, it)) }
-        pathItem.trace?.let { endpoints.add(convertOperation(path, HttpMethod.TRACE, it)) }
+        val pathParameters = pathItem.parameters
+
+        pathItem.get?.let { endpoints.add(convertOperation(path, HttpMethod.GET, it, pathParameters)) }
+        pathItem.post?.let { endpoints.add(convertOperation(path, HttpMethod.POST, it, pathParameters)) }
+        pathItem.put?.let { endpoints.add(convertOperation(path, HttpMethod.PUT, it, pathParameters)) }
+        pathItem.delete?.let { endpoints.add(convertOperation(path, HttpMethod.DELETE, it, pathParameters)) }
+        pathItem.patch?.let { endpoints.add(convertOperation(path, HttpMethod.PATCH, it, pathParameters)) }
+        pathItem.head?.let { endpoints.add(convertOperation(path, HttpMethod.HEAD, it, pathParameters)) }
+        pathItem.options?.let { endpoints.add(convertOperation(path, HttpMethod.OPTIONS, it, pathParameters)) }
+        pathItem.trace?.let { endpoints.add(convertOperation(path, HttpMethod.TRACE, it, pathParameters)) }
 
         return endpoints
     }
-    
-    private fun convertOperation(path: String, method: HttpMethod, operation: Operation): EndpointDefinition {
-        val parameters = operation.parameters?.map { convertParameter(it) } ?: emptyList()
+
+    private fun convertOperation(
+        path: String,
+        method: HttpMethod,
+        operation: Operation,
+        pathLevelParameters: List<Parameter>? = null
+    ): EndpointDefinition {
+        // Merge path-level and operation-level parameters.
+        // Operation-level parameters override path-level ones with the same name+location (per OpenAPI spec).
+        val pathParams = pathLevelParameters?.map { convertParameter(it) } ?: emptyList()
+        val opParams = operation.parameters?.map { convertParameter(it) } ?: emptyList()
+        val parameters = (pathParams + opParams).distinctBy { it.name to it.location }
         
         val requestBody = operation.requestBody?.let { requestBodySpec ->
             RequestBodyDefinition(
@@ -239,19 +253,23 @@ class OpenAPISpecificationParser : SpecificationParserInterface {
         )
     }
 
-    private fun resolveParseResult(content: String): io.swagger.v3.parser.core.models.SwaggerParseResult {
-        return if (isHttpUrl(content)) {
+    private suspend fun resolveParseResult(content: String): io.swagger.v3.parser.core.models.SwaggerParseResult {
+        return if (SafeUrlResolver.isHttpUrl(content)) {
             logger.info { "Detected URL input, fetching specification" }
-            OpenAPIV3Parser().readLocation(content, null, null)
+            urlSafetyValidator(content.trim())
+            try {
+                withTimeout(30_000) {
+                    OpenAPIV3Parser().readLocation(content, null, null)
+                }
+            } catch (e: UrlResolutionException) {
+                throw e
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                throw UrlResolutionException("Timed out fetching specification from URL: $content", e)
+            } catch (e: Exception) {
+                throw UrlResolutionException("Failed to fetch specification from URL: $content", e)
+            }
         } else {
             OpenAPIV3Parser().readContents(content)
         }
-    }
-
-    private fun isHttpUrl(content: String): Boolean {
-        return runCatching {
-            val uri = URI(content.trim())
-            uri.scheme?.lowercase() in listOf("http", "https") && uri.host != null
-        }.getOrDefault(false)
     }
 }
