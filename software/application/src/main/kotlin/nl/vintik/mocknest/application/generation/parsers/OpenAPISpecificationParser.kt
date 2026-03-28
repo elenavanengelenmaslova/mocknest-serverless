@@ -138,7 +138,7 @@ class OpenAPISpecificationParser(
         // Operation-level parameters override path-level ones with the same name+location (per OpenAPI spec).
         val pathParams = pathLevelParameters?.map { convertParameter(it) } ?: emptyList()
         val opParams = operation.parameters?.map { convertParameter(it) } ?: emptyList()
-        val parameters = (pathParams + opParams).distinctBy { it.name to it.location }
+        val parameters = (opParams + pathParams).distinctBy { it.name to it.location }
         
         val requestBody = operation.requestBody?.let { requestBodySpec ->
             RequestBodyDefinition(

@@ -101,7 +101,8 @@ class GraphQLGenerationIntegrationTest {
 
         private fun buildParser() = GraphQLSpecificationParser(
             introspectionClient = mockk(relaxed = true),
-            schemaReducer = realReducer
+            schemaReducer = realReducer,
+            urlSafetyValidator = {}
         )
 
         @Test

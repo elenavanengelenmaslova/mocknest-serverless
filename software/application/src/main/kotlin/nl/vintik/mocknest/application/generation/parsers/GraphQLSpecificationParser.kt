@@ -4,9 +4,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.graphql.GraphQLIntrospectionClientInterface
 import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducerInterface
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
+import nl.vintik.mocknest.application.generation.util.SafeUrlResolver
 import nl.vintik.mocknest.domain.generation.*
 import org.springframework.http.HttpMethod
-import java.net.URI
 
 private val logger = KotlinLogging.logger {}
 
@@ -16,7 +16,8 @@ private val logger = KotlinLogging.logger {}
  */
 class GraphQLSpecificationParser(
     private val introspectionClient: GraphQLIntrospectionClientInterface,
-    private val schemaReducer: GraphQLSchemaReducerInterface
+    private val schemaReducer: GraphQLSchemaReducerInterface,
+    private val urlSafetyValidator: (String) -> Unit = SafeUrlResolver.Companion::validateUrlSafety
 ) : SpecificationParserInterface {
 
     override suspend fun parse(content: String, format: SpecificationFormat): APISpecification {
@@ -286,19 +287,13 @@ class GraphQLSpecificationParser(
     }
 
     private suspend fun resolveIntrospectionContent(content: String): String {
-        return if (isHttpUrl(content)) {
+        return if (SafeUrlResolver.isHttpUrl(content)) {
             logger.info { "Detected URL input, executing introspection" }
+            urlSafetyValidator(content.trim())
             introspectionClient.introspect(content)
         } else {
             logger.debug { "Using pre-fetched schema content" }
             content
         }
-    }
-
-    private fun isHttpUrl(content: String): Boolean {
-        return runCatching {
-            val uri = URI(content.trim())
-            uri.scheme?.lowercase() in listOf("http", "https") && uri.host != null
-        }.getOrDefault(false)
     }
 }

@@ -103,10 +103,21 @@ class GraphQLMockValidator : MockValidatorInterface {
                 .firstOrNull()
 
             if (matchesJsonPath != null) {
-                val operationNameRegex = """operationName\s*==\s*'([^']+)'""".toRegex()
+                // Try operationName equality (single or double quotes)
+                val operationNameRegex = """operationName\s*==\s*['"]([^'"]+)['"]""".toRegex()
                 val match = operationNameRegex.find(matchesJsonPath)
-                val operationName = match?.groupValues?.get(1) ?: return@runCatching null
-                return@runCatching GraphQLOperationInfo(operationName, "", emptyMap())
+                if (match != null) {
+                    return@runCatching GraphQLOperationInfo(match.groupValues[1], "", emptyMap())
+                }
+
+                // Try extracting operation name from embedded query/mutation pattern
+                val queryRegex = """(?:query|mutation)\s+(\w+)""".toRegex()
+                val queryMatch = queryRegex.find(matchesJsonPath)
+                if (queryMatch != null) {
+                    return@runCatching GraphQLOperationInfo(queryMatch.groupValues[1], "", emptyMap())
+                }
+
+                return@runCatching null
             }
 
             null

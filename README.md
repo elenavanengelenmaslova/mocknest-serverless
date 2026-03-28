@@ -45,7 +45,7 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
 - **AI-Assisted Mock Generation**: Intelligent mock creation from REST and GraphQL API specifications using Bedrock with a configurable model, defaulted to Amazon Nova Pro
 - **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR) or deploy via SAM
-- **Performance Optimized**: Lambda SnapStart with priming for reduced cold start latency
+- **Performance Optimized**: Lambda SnapStart enabled for reduced cold start latency
 
 ### Planned Features
 See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslova/projects/3) 
@@ -108,7 +108,7 @@ curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
 
 Test the mock:
 ```bash
-curl "${MOCKNEST_URL}/hello" -H "x-api-key: ${API_KEY}"
+curl "${MOCKNEST_URL}/mocknest/hello" -H "x-api-key: ${API_KEY}"
 ```
 
 ### Step 5: Try AI-Assisted Generation
@@ -145,7 +145,7 @@ curl -X POST "${MOCKNEST_URL}/__admin/mappings/import" \
 
 Test the imported mock:
 ```bash
-curl "${MOCKNEST_URL}/petstore/pet/findByStatus?status=available" \
+curl "${MOCKNEST_URL}/mocknest/petstore/pet/findByStatus?status=available" \
   -H "x-api-key: ${API_KEY}"
 ```
 
@@ -222,7 +222,7 @@ MockNest Serverless provides multiple ways to interact with the API:
    - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
    - **BedrockInferenceMode**: Inference profile selection (default: "AUTO" - recommended)
-   - **LambdaMemorySize**: Memory allocation in MB (default: 1024)
+   - **LambdaMemorySize**: Memory allocation in MB (default: 512)
    - **LambdaTimeout**: Function timeout in seconds (default: 120)
 
 ### Getting Started After Deployment
@@ -407,7 +407,6 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 
 | Configuration | SAM Parameter | Environment Variable | Possible Values | Default | When to Use |
 |---------------|---------------|---------------------|-----------------|---------|-------------|
-| **AWS Region** | `AppRegion` | `MOCKNEST_APP_REGION` | Any AWS region | `eu-west-1` | SAM parameter for deployment; environment variable for runtime override |
 | **Bedrock Inference Mode** | `BedrockInferenceMode` | `BEDROCK_INFERENCE_MODE` | `AUTO`, `GLOBAL_ONLY`, `GEO_ONLY` | `AUTO` | SAM parameter for deployment; environment variable for runtime override. Use `AUTO` for best availability, `GLOBAL_ONLY` for cross-region consistency, `GEO_ONLY` for data residency |
 | **Bedrock Model** | `BedrockModelName` | `BEDROCK_MODEL_NAME` | Any Bedrock model ID | `AmazonNovaPro` | SAM parameter for deployment; environment variable for runtime override. Amazon Nova Pro is officially supported |
 | **S3 Bucket** | `BucketName` | `MOCKNEST_S3_BUCKET_NAME` | Valid S3 bucket name | Auto-generated | SAM parameter for deployment; environment variable for runtime override |

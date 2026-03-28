@@ -327,7 +327,7 @@ curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
 
 **Command**:
 ```bash
-curl -X POST "${MOCKNEST_URL}/dneonline/calculator.asmx" \
+curl -X POST "${MOCKNEST_URL}/mocknest/dneonline/calculator.asmx" \
   -H "x-api-key: ${API_KEY}" \
   -H "Content-Type: text/xml" \
   -d '<?xml version="1.0" encoding="UTF-8"?>
@@ -447,7 +447,7 @@ curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
 
 **Command**:
 ```bash
-curl -X POST "${MOCKNEST_URL}/graphql" \
+curl -X POST "${MOCKNEST_URL}/mocknest/graphql" \
   -H "x-api-key: ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -506,8 +506,6 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 **Expected Response** (200 OK):
 ```json
 {
-  "jobId": "generated-job-id",
-  "status": "completed",
   "mappings": [
     {
       "request": {
@@ -565,7 +563,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 **Key Parameters**:
 - `namespace.apiName`: Name prefix for the generated mock endpoints
 - `specificationUrl`: URL to the OpenAPI specification
-- `format`: Specification format (OPENAPI_3, OPENAPI_2, etc.)
+- `format`: Specification format (OPENAPI_3, SWAGGER_2, etc.)
 - `description`: Natural language description guiding the AI generation
 - `options.enableValidation`: Validate generated mocks against the specification
 
@@ -679,7 +677,7 @@ Empty response with status 200 indicating successful import.
 
 **Command**:
 ```bash
-curl -X GET "${MOCKNEST_URL}/petstore/pet/findByStatus?status=available" \
+curl -X GET "${MOCKNEST_URL}/mocknest/petstore/pet/findByStatus?status=available" \
   -H "x-api-key: ${API_KEY}"
 ```
 
@@ -729,7 +727,7 @@ curl -X GET "${MOCKNEST_URL}/petstore/pet/findByStatus?status=available" \
 
 **Command**:
 ```bash
-curl -X GET "${MOCKNEST_URL}/petstore/pet/findByTags?tags=new" \
+curl -X GET "${MOCKNEST_URL}/mocknest/petstore/pet/findByTags?tags=new" \
   -H "x-api-key: ${API_KEY}"
 ```
 

@@ -63,9 +63,11 @@ class GraphQLUrlEndToEndTest {
         // Real components — no mocks
         val realClient = GraphQLIntrospectionClient()
         val realReducer = GraphQLSchemaReducer()
+        // Bypass SSRF validation for localhost WireMock in tests
         val realParser = GraphQLSpecificationParser(
             introspectionClient = realClient,
-            schemaReducer = realReducer
+            schemaReducer = realReducer,
+            urlSafetyValidator = {}
         )
 
         // When - full chain: URL → introspection fetch → schema parse
@@ -105,9 +107,11 @@ class GraphQLUrlEndToEndTest {
 
         val realClient = GraphQLIntrospectionClient()
         val realReducer = GraphQLSchemaReducer()
+        // Bypass SSRF validation for localhost WireMock in tests
         val realParser = GraphQLSpecificationParser(
             introspectionClient = realClient,
-            schemaReducer = realReducer
+            schemaReducer = realReducer,
+            urlSafetyValidator = {}
         )
         val realValidator = GraphQLMockValidator()
 

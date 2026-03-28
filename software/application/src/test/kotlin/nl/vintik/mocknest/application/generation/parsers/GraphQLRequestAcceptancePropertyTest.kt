@@ -32,7 +32,7 @@ class GraphQLRequestAcceptancePropertyTest {
     private val introspectionClient: GraphQLIntrospectionClientInterface = mockk()
     private val schemaReducer: GraphQLSchemaReducerInterface = mockk()
 
-    private val parser = GraphQLSpecificationParser(introspectionClient, schemaReducer)
+    private val parser = GraphQLSpecificationParser(introspectionClient, schemaReducer, urlSafetyValidator = {})
 
     @AfterEach
     fun tearDown() {

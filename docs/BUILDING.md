@@ -5,7 +5,7 @@ This guide covers building, testing, and packaging MockNest Serverless.
 ## Prerequisites
 
 - **Java 25** (recommended via [SDKMAN](https://sdkman.io/))
-- **Gradle 9.0.0** (included via wrapper)
+- **Gradle 9.4.1** (included via wrapper)
 - **Kotlin 2.3.0** (configured in build files)
 
 ### Installing Java 25 with SDKMAN
@@ -178,8 +178,8 @@ The project follows clean architecture with strict dependency rules:
 software/infra/aws → software/application → software/domain
 ```
 
-- **Domain**: No external dependencies (pure business logic)
+- **Domain**: Minimal dependencies (spring-web for HTTP types, wiremock-standalone, kotlinx-serialization)
 - **Application**: Depends on domain, defines interfaces
-- **Infrastructure**: Depends on application and domain, implements interfaces
+- **Infrastructure**: Depends on application and domain, implements interfaces, cloud-specific dependencies
 
 Never create reverse dependencies (e.g., domain depending on application).

@@ -19,7 +19,7 @@ If you need support for a specific region, please open a feature request in [Git
 
 ### Current Testing Status
 
-AI-assisted mock generation has been tested with **Amazon Nova Pro** in the three regions listed above. Additional regions and models will be tested in future releases.
+AI-assisted mock generation has been tested with **Amazon Nova Pro** in the six regions listed above. Additional regions and models will be tested in future releases.
 
 ### Model Availability Requirements
 
@@ -63,7 +63,7 @@ These services are available in all standard AWS regions.
 If you want to use AI-assisted mock generation in a region not listed above:
 
 1. **Verify Model Availability**: Check that your chosen AI model is available in the target region
-2. **Test Thoroughly**: AI features have not been tested in regions outside the three listed above
+2. **Test Thoroughly**: AI features have not been tested in regions outside the six listed above
 3. **Report Issues**: If you encounter problems, please report them via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
 
 

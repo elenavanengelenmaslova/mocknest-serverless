@@ -17,7 +17,7 @@ interface UrlFetcher {
 
 /**
  * SSRF-safe URL resolver that validates URLs against internal/private network addresses
- * and fetches content with strict timeouts.
+ * and fetches content with strict timeouts. Redirects are disabled to prevent SSRF via redirect.
  */
 class SafeUrlResolver(
     private val connectTimeoutMs: Int = 10_000,
@@ -26,22 +26,25 @@ class SafeUrlResolver(
 
     override fun fetch(url: String): String {
         validateUrlSafety(url)
-        return try {
-            logger.info { "Fetching URL: $url" }
+        return runCatching {
+            logger.info { "Fetching URL: ${sanitizeUrlForLogging(url)}" }
             val connection = URI(url).toURL().openConnection() as HttpURLConnection
+            connection.instanceFollowRedirects = false
             connection.connectTimeout = connectTimeoutMs
             connection.readTimeout = readTimeoutMs
             connection.requestMethod = "GET"
             connection.inputStream.bufferedReader().use { it.readText() }
-        } catch (e: UrlResolutionException) {
-            throw e
-        } catch (e: Exception) {
-            throw UrlResolutionException("Failed to fetch URL: $url", e)
+        }.getOrElse { e ->
+            when (e) {
+                is UrlResolutionException -> throw e
+                else -> throw UrlResolutionException("Failed to fetch URL: ${sanitizeUrlForLogging(url)}", e)
+            }
         }
     }
 
     companion object {
         private val ALLOWED_SCHEMES = listOf("http", "https")
+        private val SENSITIVE_PARAM_PATTERNS = listOf("token", "key", "secret", "auth", "sig", "password", "credential")
 
         /**
          * Checks if a string looks like an HTTP(S) URL.
@@ -55,14 +58,30 @@ class SafeUrlResolver(
         }
 
         /**
+         * Sanitizes a URL for safe logging by stripping userinfo and redacting sensitive query parameters.
+         */
+        fun sanitizeUrlForLogging(url: String): String = runCatching {
+            val uri = URI(url.trim())
+            val sanitizedQuery = uri.query?.let { query ->
+                query.split("&").joinToString("&") { param ->
+                    val paramKey = param.substringBefore("=").lowercase()
+                    if (SENSITIVE_PARAM_PATTERNS.any { paramKey.contains(it) } || paramKey.startsWith("x-amz-"))
+                        "${param.substringBefore("=")}=<redacted>"
+                    else param
+                }
+            }
+            URI(uri.scheme, null, uri.host, uri.port, uri.path, sanitizedQuery, null).toString()
+        }.getOrDefault("<unparseable-url>")
+
+        /**
          * Validates a URL is safe to fetch (no SSRF to internal networks).
          * Throws [UrlResolutionException] if the URL targets a forbidden address.
          */
         fun validateUrlSafety(url: String) {
-            val uri = try {
+            val uri = runCatching {
                 URI(url.trim())
-            } catch (e: Exception) {
-                throw UrlResolutionException("Invalid URL: $url", e)
+            }.getOrElse { e ->
+                throw UrlResolutionException("Invalid URL", e)
             }
 
             val scheme = uri.scheme?.lowercase()
@@ -71,11 +90,11 @@ class SafeUrlResolver(
             }
 
             val host = uri.host
-                ?: throw UrlResolutionException("URL has no host: $url")
+                ?: throw UrlResolutionException("URL has no host")
 
-            val address = try {
+            val address = runCatching {
                 InetAddress.getByName(host)
-            } catch (e: Exception) {
+            }.getOrElse { e ->
                 throw UrlResolutionException("Cannot resolve host: $host", e)
             }
 

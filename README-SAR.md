@@ -112,7 +112,7 @@ curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
 }'
 
 # Test your mock
-curl -X GET "${MOCKNEST_URL}/bored/api/activity?type=social" \
+curl -X GET "${MOCKNEST_URL}/mocknest/bored/api/activity?type=social" \
   -H "x-api-key: ${API_KEY}"
 ```
 
