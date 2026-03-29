@@ -38,10 +38,10 @@ Parameters:
 
   LambdaTimeout:
     Type: Number
-    Default: "120"
+    Default: "30"
     MinValue: "3"
     MaxValue: "900"
-    Description: Lambda function timeout in seconds
+    Description: Lambda function timeout in seconds. Default aligns with API Gateway synchronous timeout (~29s).
 
   BedrockModelName:
     Type: String
@@ -107,7 +107,37 @@ Parameters:
   BedrockGenerationMaxRetries:
     Type: Number
     Default: "1"
-    Description: Maximum number of retry attempts for AI mock generation if validation fails.
+    MinValue: "0"
+    MaxValue: "2"
+    Description: Maximum number of retry attempts for AI mock generation if validation fails. Limited to 0-2 due to API Gateway synchronous timeout (~29s).
+
+  LogRetentionDays:
+    Type: Number
+    Default: "7"
+    AllowedValues:
+      - 1
+      - 3
+      - 5
+      - 7
+      - 14
+      - 30
+      - 60
+      - 90
+      - 120
+      - 150
+      - 180
+      - 365
+      - 400
+      - 545
+      - 731
+      - 1096
+      - 1827
+      - 2192
+      - 2557
+      - 2922
+      - 3288
+      - 3653
+    Description: Number of days to retain CloudWatch logs for Lambda functions.
 
 Globals:
   Function:
@@ -310,7 +340,6 @@ Resources:
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
-      Timeout: 300
       # Memory configuration optimized via Lambda Power Tuner (see docs/PERFORMANCE.md)
       # Default 512 MB provides optimal cost/performance balance
       # Generation function may benefit from higher memory due to AI model interactions
@@ -345,7 +374,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-runtime"
-      RetentionInDays: 7
+      RetentionInDays: !Ref LogRetentionDays
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -355,7 +384,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-generation"
-      RetentionInDays: 7
+      RetentionInDays: !Ref LogRetentionDays
       Tags:
         - Key: Application
           Value: MockNest-Serverless

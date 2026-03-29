@@ -2,6 +2,12 @@ name: Reusable - Build
 
 on:
   workflow_call:
+    inputs:
+      aws-region:
+        description: 'AWS region for SAM template validation'
+        required: false
+        type: string
+        default: 'eu-west-1'
 
 permissions:
   contents: read
@@ -38,3 +44,18 @@ jobs:
         with:
           files: ./build/reports/kover/report.xml
           fail_ci_if_error: false
+
+  validate-sam:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Validate SAM template
+        env:
+          AWS_DEFAULT_REGION: ${{ inputs.aws-region }}
+        run: sam validate --template-file deployment/aws/sam/template.yaml --region ${{ inputs.aws-region }}

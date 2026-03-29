@@ -5,6 +5,31 @@ All notable changes to MockNest Serverless will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-29
+
+### Added
+
+- **GraphQL AI Mock Generation**: AI-powered mock generation now supports GraphQL APIs via schema introspection, in addition to existing OpenAPI/Swagger support
+- **SSRF-Safe URL Resolution**: Added SafeUrlResolver for secure URL handling in specification parsers
+- **TRACE Method Support**: OpenAPI specification parser now supports the TRACE HTTP method
+- **Configurable Log Retention**: New `LogRetentionDays` SAM parameter to configure CloudWatch log retention (default: 7 days)
+- **Code of Conduct**: Added Contributor Covenant Code of Conduct
+
+### Changed
+
+- **Lambda Timeout**: Reduced default from 120s to 30s to align with API Gateway synchronous timeout (~29s)
+- **Generation Function Timeout**: Removed 300s override; generation function now uses the global `LambdaTimeout` (30s default)
+- **BedrockGenerationMaxRetries**: Constrained to 0-2 range (was unconstrained, documented as 0-5) due to API Gateway timeout limitation
+- **Documentation**: Updated README, README-SAR, COST, TROUBLESHOOTING, and OpenAPI docs for consistency with new timeout and retry defaults
+- **API Gateway Timeout Limitation**: Documented ~29s synchronous timeout as a known limitation for AI generation
+
+## [0.2.7] - 2026-03-25
+- Improve ai generation prompt
+- Improve sar docs
+## [0.2.6] - 2026-03-25
+- Enable snapstart with priming
+- Add performance docs
+- Improve readmes and usage
 ## [0.2.1] - 2026-03-13
 - Documentation improvements and demo video link
   
