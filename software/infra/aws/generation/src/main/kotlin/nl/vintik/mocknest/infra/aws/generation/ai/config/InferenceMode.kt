@@ -9,15 +9,14 @@ package nl.vintik.mocknest.infra.aws.generation.ai.config
  */
 enum class InferenceMode {
     /**
-     * Automatic mode: Try global inference profile first, then fall back to geo-specific prefix.
-     * 
+     * Automatic mode: Try geo-specific (region-specific) inference profile first, then fall back to global/cross-region profile.
+     *
      * This is the recommended mode for most use cases as it provides the best balance
-     * between reliability and performance. AWS will route requests to the best available
-     * region using the global inference profile, and if that fails (e.g., model not available
-     * globally), the system will automatically retry with a geo-specific prefix derived
-     * from the deployment region.
-     * 
-     * Example: In eu-west-1, tries "global" first, then "eu" if global fails.
+     * between reliability and performance. The system first attempts a geo-specific prefix
+     * derived from the deployment region (e.g., "eu" for eu-west-1), and if that fails,
+     * automatically retries with the global/cross-region inference profile.
+     *
+     * Example: In eu-west-1, tries "eu" first, then "global" if geo-specific fails.
      */
     AUTO,
     
