@@ -4,6 +4,7 @@ import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
 import java.time.Instant
@@ -208,6 +209,69 @@ class PromptBuilderServiceTest {
         }
 
         @Test
+        @Tag("soap-wsdl-ai-generation")
+        @Tag("unit")
+        fun `Given WSDL format When building spec prompt Then should load SOAP prompt template`() {
+            val specification = createTestWsdlSpecification()
+            val namespace = MockNamespace("soapapi", null)
+            val description = "Generate SOAP mocks"
+
+            val prompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, description, namespace, SpecificationFormat.WSDL)
+
+            // SOAP prompt contains SOAP-specific rules
+            assertTrue(prompt.contains("SOAPAction"), "SOAP prompt should mention SOAPAction")
+            assertTrue(prompt.contains("SOAP"), "SOAP prompt should contain SOAP-specific content")
+            assertFalse(prompt.contains("All mock URLs must be prefixed with"), "SOAP prompt should not contain REST URL routing")
+            assertFalse(prompt.contains("GraphQL-over-HTTP"), "SOAP prompt should not contain GraphQL content")
+        }
+
+        @Test
+        @Tag("soap-wsdl-ai-generation")
+        @Tag("unit")
+        fun `Given WSDL format When building spec prompt Then should inject template variables correctly`() {
+            val specification = createTestWsdlSpecification()
+            val namespace = MockNamespace("soapapi", "soap-client")
+            val description = "Generate SOAP mocks for calculator"
+
+            val prompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, description, namespace, SpecificationFormat.WSDL)
+
+            assertTrue(prompt.contains("Calculator SOAP API"))
+            assertTrue(prompt.contains("1.0.0"))
+            assertTrue(prompt.contains("soapapi"))
+            assertTrue(prompt.contains("soap-client"))
+            assertTrue(prompt.contains("Generate SOAP mocks for calculator"))
+            assertFalse(prompt.contains("{{SPEC_TITLE}}"))
+            assertFalse(prompt.contains("{{SPEC_VERSION}}"))
+            assertFalse(prompt.contains("{{ENDPOINT_COUNT}}"))
+            assertFalse(prompt.contains("{{KEY_ENDPOINTS}}"))
+            assertFalse(prompt.contains("{{API_NAME}}"))
+            assertFalse(prompt.contains("{{CLIENT_SECTION}}"))
+            assertFalse(prompt.contains("{{DESCRIPTION}}"))
+            assertFalse(prompt.contains("{{NAMESPACE}}"))
+            assertFalse(prompt.contains("{{WIREMOCK_SCHEMA}}"))
+        }
+
+        @Test
+        @Tag("soap-wsdl-ai-generation")
+        @Tag("unit")
+        fun `Given WSDL format When building spec prompt Then REST and GraphQL formats still load their own templates`() {
+            val restSpec = createTestSpecification(SpecificationFormat.OPENAPI_3)
+            val graphqlSpec = createTestGraphQLSpecification()
+            val namespace = MockNamespace("api", null)
+
+            val restPrompt = promptBuilder.buildSpecWithDescriptionPrompt(restSpec, "Test", namespace, SpecificationFormat.OPENAPI_3)
+            val graphqlPrompt = promptBuilder.buildSpecWithDescriptionPrompt(graphqlSpec, "Test", namespace, SpecificationFormat.GRAPHQL)
+
+            // REST still loads REST template
+            assertTrue(restPrompt.contains("All mock URLs must be prefixed with"))
+            assertFalse(restPrompt.contains("SOAPAction"))
+
+            // GraphQL still loads GraphQL template
+            assertTrue(graphqlPrompt.contains("GraphQL-over-HTTP"))
+            assertFalse(graphqlPrompt.contains("SOAPAction"))
+        }
+
+        @Test
         fun `Given GRAPHQL format When building prompt Then key endpoints should show operation names not paths`() {
             val specification = createTestGraphQLSpecification()
             val namespace = MockNamespace("myapi", null)
@@ -394,6 +458,68 @@ class PromptBuilderServiceTest {
     }
 
     @Nested
+    inner class WsdlRouting {
+
+        @Test
+        @Tag("soap-wsdl-ai-generation")
+        @Tag("unit")
+        fun `Given WSDL format When building correction prompt Then should load SOAP correction template`() {
+            val namespace = MockNamespace("soapapi", null)
+            val invalidMocks = listOf(
+                createTestMock("mock-1", namespace) to listOf("SOAP Envelope element missing or has wrong namespace")
+            )
+
+            val prompt = promptBuilder.buildCorrectionPrompt(invalidMocks, namespace, null, SpecificationFormat.WSDL)
+
+            assertTrue(prompt.contains("SOAPAction"), "SOAP correction prompt should mention SOAPAction")
+            assertTrue(prompt.contains("SOAP"), "SOAP correction prompt should contain SOAP-specific content")
+            assertFalse(prompt.contains("GraphQL-over-HTTP"), "SOAP correction prompt should not contain GraphQL content")
+            assertFalse(prompt.contains("All mock URLs must be prefixed with"), "SOAP correction prompt should not contain REST URL routing")
+        }
+
+        @Test
+        @Tag("soap-wsdl-ai-generation")
+        @Tag("unit")
+        fun `Given WSDL format When building correction prompt Then should inject template variables correctly`() {
+            val namespace = MockNamespace("soapapi", "soap-client")
+            val invalidMocks = listOf(
+                createTestMock("mock-1", namespace) to listOf("Content-Type header does not match SOAP version")
+            )
+
+            val prompt = promptBuilder.buildCorrectionPrompt(invalidMocks, namespace, null, SpecificationFormat.WSDL)
+
+            assertTrue(prompt.contains("soapapi"))
+            assertTrue(prompt.contains("soap-client"))
+            assertTrue(prompt.contains("Mock ID: mock-1"))
+            assertTrue(prompt.contains("Content-Type header does not match SOAP version"))
+            assertFalse(prompt.contains("{{SPEC_CONTEXT}}"))
+            assertFalse(prompt.contains("{{API_NAME}}"))
+            assertFalse(prompt.contains("{{CLIENT_SECTION}}"))
+            assertFalse(prompt.contains("{{MOCKS_WITH_ERRORS}}"))
+            assertFalse(prompt.contains("{{NAMESPACE}}"))
+        }
+
+        @Test
+        @Tag("soap-wsdl-ai-generation")
+        @Tag("unit")
+        fun `Given WSDL correction prompt When REST and GraphQL formats used Then they still load their own templates`() {
+            val namespace = MockNamespace("api", null)
+            val invalidMocks = listOf(createTestMock("mock-1", namespace) to listOf("Some error"))
+
+            val restPrompt = promptBuilder.buildCorrectionPrompt(invalidMocks, namespace, null, SpecificationFormat.OPENAPI_3)
+            val graphqlPrompt = promptBuilder.buildCorrectionPrompt(invalidMocks, namespace, null, SpecificationFormat.GRAPHQL)
+
+            // REST still loads REST correction template
+            assertFalse(restPrompt.contains("SOAPAction"))
+            assertFalse(restPrompt.contains("GraphQL-over-HTTP"))
+
+            // GraphQL still loads GraphQL correction template
+            assertTrue(graphqlPrompt.contains("GraphQL-over-HTTP"))
+            assertFalse(graphqlPrompt.contains("SOAPAction"))
+        }
+    }
+
+    @Nested
     inner class TemplateLoadingErrors {
 
         @Test
@@ -493,6 +619,48 @@ class PromptBuilderServiceTest {
                     requestBody = null,
                     responses = mapOf(200 to successResponse)
                 )
+            )
+        )
+    }
+
+    private fun createTestWsdlSpecification(): APISpecification {
+        val stringSchema = JsonSchema(type = JsonSchemaType.STRING)
+        val successResponse = ResponseDefinition(
+            statusCode = 200,
+            description = "Success",
+            schema = stringSchema
+        )
+
+        return APISpecification(
+            format = SpecificationFormat.WSDL,
+            title = "Calculator SOAP API",
+            version = "1.0.0",
+            schemas = emptyMap(),
+            endpoints = listOf(
+                EndpointDefinition(
+                    method = HttpMethod.POST,
+                    path = "/calculator",
+                    operationId = "Add",
+                    summary = "Add two numbers",
+                    parameters = emptyList(),
+                    requestBody = null,
+                    responses = mapOf(200 to successResponse),
+                    metadata = mapOf("soapAction" to "http://example.com/calculator/Add")
+                ),
+                EndpointDefinition(
+                    method = HttpMethod.POST,
+                    path = "/calculator",
+                    operationId = "Subtract",
+                    summary = "Subtract two numbers",
+                    parameters = emptyList(),
+                    requestBody = null,
+                    responses = mapOf(200 to successResponse),
+                    metadata = mapOf("soapAction" to "http://example.com/calculator/Subtract")
+                )
+            ),
+            metadata = mapOf(
+                "soapVersion" to "SOAP_1_1",
+                "targetNamespace" to "http://example.com/calculator"
             )
         )
     }

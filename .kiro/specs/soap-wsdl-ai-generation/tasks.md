@@ -49,7 +49,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - _Requirements: 5.1, 5.2, 5.3, 5.5_
 
 
-- [-] 2. Phase 2: Application Layer — WSDL parsing, reduction, validation, and prompts
+- [x] 2. Phase 2: Application Layer — WSDL parsing, reduction, validation, and prompts
   - [x] 2.1 Create `ParsedWsdl` internal model and `WsdlParserInterface`
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/wsdl/ParsedWsdl.kt` with the full intermediate WSDL structure (all XSD types, binding details, service port addresses)
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/wsdl/WsdlParserInterface.kt` with `fun parse(wsdlXml: String): ParsedWsdl`
@@ -119,20 +119,20 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("Property-6")`
     - _Requirements: 4.6, 12.7_
 
-  - [ ] 2.9 Create `WsdlContentFetcherInterface` in the application layer
+  - [x] 2.9 Create `WsdlContentFetcherInterface` in the application layer
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/wsdl/WsdlContentFetcherInterface.kt`
     - Define `suspend fun fetch(url: String): String` — throws `WsdlFetchException` on failure
     - Interface lives in application layer so domain/application have no infrastructure dependency
     - _Requirements: 2.7, 11.1_
 
-  - [ ] 2.10 Implement `WsdlSpecificationParser` (inline XML path only at this stage)
+  - [x] 2.10 Implement `WsdlSpecificationParser` (inline XML path only at this stage)
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/parsers/WsdlSpecificationParser.kt`
     - Implement `SpecificationParserInterface` with constructor accepting `WsdlContentFetcherInterface`, `WsdlParserInterface`, `WsdlSchemaReducerInterface`
     - Implement `supports(format)` returning true for `SpecificationFormat.WSDL`
     - Implement `parse(content, format)`: if content is an HTTP URL delegate to `contentFetcher.fetch()`, otherwise treat as inline XML; call `wsdlParser.parse()` then `schemaReducer.reduce()`; convert `CompactWsdl` to `APISpecification` (each operation → `EndpointDefinition` with POST method, SOAPAction in metadata, `prettyPrint()` output as `rawContent`)
     - _Requirements: 1.1, 1.3, 3.8, 4.8, 10.5, 11.2_
 
-  - [ ] 2.11 Write unit tests for `WsdlSpecificationParser` using inline XML content
+  - [x] 2.11 Write unit tests for `WsdlSpecificationParser` using inline XML content
     - Create test file in `software/application/src/test/kotlin/`
     - Test inline XML path: parse SOAP 1.1 WSDL inline XML → verify `APISpecification` contains correct endpoints with POST method and SOAPAction metadata
     - Test inline XML path: parse SOAP 1.2 WSDL inline XML → verify SOAP version propagated
@@ -143,7 +143,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag tests with `@Tag("soap-wsdl-ai-generation")` and `@Tag("unit")`
     - _Requirements: 1.1, 1.3, 12.1_
 
-  - [ ] 2.12 Implement `SoapMockValidator`
+  - [x] 2.12 Implement `SoapMockValidator`
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/validators/SoapMockValidator.kt`
     - Implement `MockValidatorInterface`
     - Apply all 7 validation rules in order using `DocumentBuilder` for XML parsing (no new XML deps):
@@ -157,7 +157,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Return `MockValidationResult.invalid(errors)` with all errors collected; return `MockValidationResult.valid()` on success
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 11.4_
 
-  - [ ] 2.13 Write unit tests for `SoapMockValidator` using inline XML-sourced mocks
+  - [x] 2.13 Write unit tests for `SoapMockValidator` using inline XML-sourced mocks
     - Create test file in `software/application/src/test/kotlin/`
     - Test valid SOAP 1.1 mock passes all 7 rules (mock generated from inline `simple-soap11.wsdl` content)
     - Test valid SOAP 1.2 mock passes all 7 rules (mock generated from inline `simple-soap12.wsdl` content)
@@ -173,7 +173,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag tests with `@Tag("soap-wsdl-ai-generation")` and `@Tag("unit")`
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 12.5_
 
-  - [ ] 2.14 Write property test: Property-7 (Comprehensive SOAP Mock Validation) using inline XML
+  - [x] 2.14 Write property test: Property-7 (Comprehensive SOAP Mock Validation) using inline XML
     - Use `@ParameterizedTest @MethodSource` with diverse mock examples derived from inline WSDL XML content
     - Create 10+ test cases covering: valid SOAP 1.1 mock, valid SOAP 1.2 mock, wrong method, invalid SOAPAction, non-XML body, wrong envelope namespace, missing Body, wrong target namespace, wrong Content-Type, multiple errors simultaneously
     - For each valid mock: assert `MockValidationResult.isValid == true`
@@ -184,7 +184,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("Property-7")`
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 12.5, 12.7_
 
-  - [ ] 2.15 Create SOAP-specific prompt templates
+  - [x] 2.15 Create SOAP-specific prompt templates
     - Create `software/application/src/main/resources/prompts/soap/spec-with-description.txt`
       - Instruct AI to generate WireMock mappings with POST method
       - Match on `SOAPAction` header for SOAP 1.1; match on `action` parameter in `Content-Type` for SOAP 1.2
@@ -198,13 +198,13 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
       - Use same template variables as REST/GraphQL correction prompts
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.9_
 
-  - [ ] 2.16 Update `PromptBuilderService` to route WSDL format to SOAP prompts
+  - [x] 2.16 Update `PromptBuilderService` to route WSDL format to SOAP prompts
     - Update `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/services/PromptBuilderService.kt`
     - In `buildSpecWithDescriptionPrompt`: add `SpecificationFormat.WSDL -> "/prompts/soap/spec-with-description.txt"` to the format routing `when` expression
     - In `buildCorrectionPrompt`: add `SpecificationFormat.WSDL -> "/prompts/soap/correction.txt"` to the format routing `when` expression
     - _Requirements: 6.9, 1.3_
 
-  - [ ] 2.17 Write unit tests for `PromptBuilderService` WSDL routing
+  - [x] 2.17 Write unit tests for `PromptBuilderService` WSDL routing
     - Update existing `PromptBuilderService` test file
     - Test that `SpecificationFormat.WSDL` loads from `/prompts/soap/spec-with-description.txt`
     - Test that `SpecificationFormat.WSDL` correction prompt loads from `/prompts/soap/correction.txt`
