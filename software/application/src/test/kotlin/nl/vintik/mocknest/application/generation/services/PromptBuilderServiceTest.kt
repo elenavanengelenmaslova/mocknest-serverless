@@ -206,6 +206,29 @@ class PromptBuilderServiceTest {
 
             assertTrue(prompt.contains("All mock URLs must be prefixed with"))
         }
+
+        @Test
+        fun `Given GRAPHQL format When building prompt Then key endpoints should show operation names not paths`() {
+            val specification = createTestGraphQLSpecification()
+            val namespace = MockNamespace("myapi", null)
+
+            val prompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, "Test", namespace, SpecificationFormat.GRAPHQL)
+
+            assertTrue(prompt.contains("- getUser (Returns: OBJECT)"))
+            assertTrue(prompt.contains("- createUser (Returns: OBJECT)"))
+            assertFalse(prompt.contains("POST /graphql (Returns:"))
+        }
+
+        @Test
+        fun `Given REST format When building prompt Then key endpoints should show method and path`() {
+            val specification = createTestSpecification(SpecificationFormat.OPENAPI_3)
+            val namespace = MockNamespace("petstore", null)
+
+            val prompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, "Test", namespace, SpecificationFormat.OPENAPI_3)
+
+            assertTrue(prompt.contains("GET /pets (Returns: STRING)"))
+            assertTrue(prompt.contains("POST /pets (Returns: STRING)"))
+        }
     }
 
     @Nested

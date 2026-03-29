@@ -42,7 +42,11 @@ class PromptBuilderService {
             .joinToString("\n") { endpoint ->
                 val response200 = endpoint.responses[200] ?: endpoint.responses[201]
                 val responseType = response200?.schema?.type?.name ?: "OBJECT"
-                "- ${endpoint.method} ${endpoint.path} (Returns: $responseType)"
+                if (format == SpecificationFormat.GRAPHQL && endpoint.operationId != null) {
+                    "- ${endpoint.operationId} (Returns: $responseType)"
+                } else {
+                    "- ${endpoint.method} ${endpoint.path} (Returns: $responseType)"
+                }
             }
         
         val clientSection = namespace.client?.let { "\n- Client: $it" } ?: ""

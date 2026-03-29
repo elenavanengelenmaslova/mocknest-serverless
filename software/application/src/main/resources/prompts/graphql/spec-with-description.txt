@@ -6,6 +6,8 @@ API Specification Summary:
 - Operations: {{ENDPOINT_COUNT}}
 - Key operations: {{KEY_ENDPOINTS}}
 
+CRITICAL: Use EXACT operation names from the Key operations list above for both the `matchesJsonPath` operationName matcher AND the response `data` key. Do NOT invent or rename operations — use them verbatim.
+
 Namespace:
 - API Name: {{API_NAME}}{{CLIENT_SECTION}}
 
@@ -21,8 +23,8 @@ Requirements:
 GraphQL request matching rules (IMPORTANT):
 - GraphQL requests are always POST requests with a JSON body containing `query` or `mutation` fields
 - Use `bodyPatterns` with `matchesJsonPath` to match specific GraphQL operations by operation name:
-  - Example: `{ "matchesJsonPath": "$..[?(@.operationName == 'GetUser')]" }`
-  - Or match by query content: `{ "matchesJsonPath": "$[?(@.query =~ /.*GetUser.*/)]" }`
+  - Example: `{ "matchesJsonPath": "$..[?(@.operationName == 'user')]" }` — where 'user' is an exact name from Key operations
+  - Or match by query content: `{ "matchesJsonPath": "$[?(@.query =~ /.*user.*/)]" }`
 - Do NOT use `urlPath`, `urlPattern`, or path parameters — GraphQL has a single endpoint
 - Do NOT use query parameters for operation routing — use `bodyPatterns` instead
 - If you return multiple mappings for the same GraphQL endpoint, they MUST be non-overlapping:
@@ -31,7 +33,7 @@ GraphQL request matching rules (IMPORTANT):
 
 GraphQL response format rules (IMPORTANT):
 - ALL GraphQL responses MUST follow the GraphQL response specification:
-  - Success: `{ "data": { "<operationName>": { ... } } }`
+  - Success: `{ "data": { "<exactOperationName>": { ... } } }` — use the exact name from Key operations
   - Error: `{ "errors": [{ "message": "...", "locations": [...], "path": [...] }] }`
   - Partial: `{ "data": { ... }, "errors": [...] }` (both fields allowed together)
 - NEVER return a bare JSON object or array as the response body — always wrap in `data` or `errors`

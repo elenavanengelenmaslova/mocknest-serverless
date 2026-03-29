@@ -65,16 +65,19 @@ The fastest way to explore MockNest Serverless:
 
 3. **Configure Environment**: Set these variables:
    - `MOCKNEST_URL`: Your `MockNestApiUrl` from CloudFormation outputs
-   - `API_KEY`: Your `MockNestApiKey` from CloudFormation outputs
+   - `API_KEY`: The actual API key value — go to **API Gateway → API Keys** → select the key → click **Show** to reveal it (the `MockNestApiKey` output in CloudFormation shows only the key ID, not the value)
 
 4. **Start Testing**: Explore all endpoints with working examples
 
 ### Option 2: cURL Commands
 
 ```bash
-# Set your API details from CloudFormation outputs
+# Set your API details
+# MOCKNEST_URL: Get MockNestApiUrl from CloudFormation outputs
+# API_KEY: Get the actual key value from API Gateway → API Keys → select the key → Show
+#          (MockNestApiKey in CloudFormation outputs shows the key ID only, not the value)
 export MOCKNEST_URL="https://your-api-id.execute-api.region.amazonaws.com/mocks"
-export API_KEY="your-api-key-from-outputs"
+export API_KEY="your-actual-api-key-value"
 
 # Verify deployment
 curl -X GET "${MOCKNEST_URL}/__admin/health" \

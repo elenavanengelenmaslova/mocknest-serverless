@@ -106,7 +106,7 @@ Parameters:
 
   BedrockGenerationMaxRetries:
     Type: Number
-    Default: 1
+    Default: "1"
     Description: Maximum number of retry attempts for AI mock generation if validation fails.
 
 Globals:

@@ -243,7 +243,7 @@ MockNest Serverless provides multiple ways to interact with the API:
 
 The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock inference profiles:
 
-- **AUTO** (recommended): Tries region-specific inference profile first, then falls back to cross-region profile. Best for most users who want automatic optimization and maximum availability.
+- **AUTO** (recommended): Tries region-specific inference profile first, then falls back to global/cross-region profile. Best for most users who want automatic optimization and maximum availability.
   
 - **GLOBAL_ONLY**: Forces use of cross-region inference profile only. Use when you need consistent model behavior across all regions and data residency is not a concern.
   
