@@ -290,20 +290,20 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - _Requirements: 10.5, 11.1, 11.6_
 
 
-- [ ] 4. Phase 4: Integration — Wire components, end-to-end flows, and non-regression
-  - [ ] 4.1 Register `WsdlSpecificationParser` in `CompositeSpecificationParserImpl`
+- [x] 4. Phase 4: Integration — Wire components, end-to-end flows, and non-regression
+  - [x] 4.1 Register `WsdlSpecificationParser` in `CompositeSpecificationParserImpl`
     - Verify `CompositeSpecificationParserImpl` uses `List<SpecificationParserInterface>` injection
     - Confirm `WsdlSpecificationParser` Spring bean is picked up automatically via `SoapGenerationConfig`
     - Verify `SpecificationFormat.WSDL` routes to `WsdlSpecificationParser` and not to REST or GraphQL parsers
     - _Requirements: 1.3, 10.5_
 
-  - [ ] 4.2 Register `SoapMockValidator` in the validator registry
+  - [x] 4.2 Register `SoapMockValidator` in the validator registry
     - Verify `CompositeMockValidator` (or equivalent) uses `List<MockValidatorInterface>` injection
     - Confirm `SoapMockValidator` Spring bean is picked up automatically via `SoapGenerationConfig`
     - Verify SOAP mocks are routed to `SoapMockValidator` for validation
     - _Requirements: 7.1, 10.5_
 
-  - [ ] 4.3 Write property test: Property-8 (Bounded Retry Attempts)
+  - [x] 4.3 Write property test: Property-8 (Bounded Retry Attempts)
     - Create property test in `software/application/src/test/kotlin/` or `software/infra/aws/generation/src/test/kotlin/`
     - Use `@ParameterizedTest @ValueSource` with retry configurations: 0, 1, 2, 3 max retries
     - Mock AI service to always return invalid SOAP mocks (inline XML-sourced `CompactWsdl` as specification)
@@ -314,7 +314,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("Property-8")`
     - _Requirements: 8.3, 8.4, 12.6_
 
-  - [ ] 4.4 Write property test: Property-9 (WireMock Mapping Compatibility) using inline XML
+  - [x] 4.4 Write property test: Property-9 (WireMock Mapping Compatibility) using inline XML
     - Use `@ParameterizedTest @MethodSource` with 10+ generated SOAP mock examples derived from inline WSDL XML content
     - For each mock: verify JSON is valid WireMock stub mapping (contains `request`, `response`, `"persistent": true` at top level)
     - Verify `request.method` is `POST`
@@ -324,7 +324,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("Property-9")`
     - _Requirements: 10.1, 10.2, 12.7_
 
-  - [ ] 4.5 Write property test: Property-10 (REST/GraphQL Non-Regression)
+  - [x] 4.5 Write property test: Property-10 (REST/GraphQL Non-Regression)
     - Use `@ParameterizedTest @MethodSource` with existing OpenAPI and GraphQL specification examples
     - For each spec: run through the full generation flow after WSDL support is added; assert generation succeeds and produces valid mocks
     - Verify `SpecificationFormat.OPENAPI_3`, `SWAGGER_2`, and `GRAPHQL` still route to their respective parsers
@@ -333,7 +333,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("Property-10")`
     - _Requirements: 10.4, 12.11_
 
-  - [ ] 4.6 Write integration test: validation-retry loop with correctable errors (inline XML)
+  - [x] 4.6 Write integration test: validation-retry loop with correctable errors (inline XML)
     - Create integration test in `software/application/src/test/kotlin/` or `software/infra/aws/generation/src/test/kotlin/`
     - Use inline WSDL XML from `calculator-soap11.wsdl` as specification source
     - Mock AI service: return invalid SOAP mock on first attempt (wrong envelope namespace), return valid mock on retry
@@ -342,7 +342,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("integration")`
     - _Requirements: 8.1, 8.2, 8.4, 8.5, 12.6_
 
-  - [ ] 4.7 Write integration test: validation-retry loop with uncorrectable errors (inline XML)
+  - [x] 4.7 Write integration test: validation-retry loop with uncorrectable errors (inline XML)
     - Use inline WSDL XML from `calculator-soap11.wsdl` as specification source
     - Mock AI service to return invalid SOAP mocks on all attempts
     - Verify retry coordinator respects max retry limit (does not exceed configured maximum)
@@ -350,7 +350,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("integration")`
     - _Requirements: 8.3, 8.6, 12.6_
 
-  - [ ] 4.8 Write LocalStack integration test: inline XML → S3 persistence
+  - [x] 4.8 Write LocalStack integration test: inline XML → S3 persistence
     - Create integration test in `software/infra/aws/generation/src/test/kotlin/`
     - Use LocalStack TestContainers with S3 (follow existing LocalStack test patterns with `@BeforeAll`/`@AfterAll`)
     - Use inline WSDL XML from `calculator-soap11.wsdl` as input
@@ -360,7 +360,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("integration")`
     - _Requirements: 10.1, 10.2, 12.9_
 
-  - [ ] 4.9 Write REST/GraphQL non-regression integration tests
+  - [x] 4.9 Write REST/GraphQL non-regression integration tests
     - Create or update integration tests verifying existing OpenAPI and GraphQL generation still works after WSDL support is added
     - Test OpenAPI specification generation produces valid mocks (use existing OpenAPI test fixtures)
     - Test GraphQL specification generation produces valid mocks (use existing GraphQL test fixtures)

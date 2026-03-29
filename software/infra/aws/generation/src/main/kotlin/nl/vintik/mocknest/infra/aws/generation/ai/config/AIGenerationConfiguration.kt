@@ -10,6 +10,7 @@ import nl.vintik.mocknest.application.generation.usecases.*
 import nl.vintik.mocknest.application.generation.validators.CompositeMockValidator
 import nl.vintik.mocknest.application.generation.validators.GraphQLMockValidator
 import nl.vintik.mocknest.application.generation.validators.OpenAPIMockValidator
+import nl.vintik.mocknest.application.generation.validators.SoapMockValidator
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.infra.aws.generation.ai.BedrockServiceAdapter
 import org.springframework.beans.factory.annotation.Value
@@ -70,14 +71,17 @@ class AIGenerationConfiguration {
     /**
      * Primary composite mock validator that delegates to all registered format-specific validators.
      * Each validator handles its own format and returns valid() for unsupported formats.
+     * Validators are explicitly listed to avoid circular dependency with List<MockValidatorInterface>.
+     * Add new format-specific validators here when extending mock generation support.
      */
     @Bean
     @Primary
     fun compositeMockValidator(
         openAPIMockValidator: OpenAPIMockValidator,
-        graphQLMockValidator: GraphQLMockValidator
+        graphQLMockValidator: GraphQLMockValidator,
+        soapMockValidator: SoapMockValidator
     ): MockValidatorInterface {
-        return CompositeMockValidator(listOf(openAPIMockValidator, graphQLMockValidator))
+        return CompositeMockValidator(listOf(openAPIMockValidator, graphQLMockValidator, soapMockValidator))
     }
 
     @Bean
