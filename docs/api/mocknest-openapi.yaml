@@ -33,8 +33,12 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: https://your-api-id.execute-api.region.amazonaws.com/mocks
-    description: MockNest Serverless API Gateway endpoint
+  - url: https://your-api-id.execute-api.region.amazonaws.com/{deploymentName}
+    description: MockNest Serverless API Gateway endpoint. The stage name matches the DeploymentName SAM parameter (default is "mocks").
+    variables:
+      deploymentName:
+        default: mocks
+        description: API Gateway stage name, configured via the DeploymentName SAM/CloudFormation parameter.
 
 security:
   - ApiKeyAuth: []
@@ -68,7 +72,6 @@ paths:
                   namespace:
                     apiName: petstore
                     client: null
-                  specification: null
                   specificationUrl: "https://petstore3.swagger.io/api/v3/openapi.json"
                   format: OPENAPI_3
                   description: "Generate mocks for 3 pets from the Petstore OpenAPI specification, pets endpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets across endpoints, 1 pet is a dog with this image: https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg, this dog is available and a new pet and should have a tag new, we need to have api call to get all new pets and its that dog, the other two pets are available also but are not new"
@@ -80,7 +83,6 @@ paths:
                   namespace:
                     apiName: my-graphql-api
                     client: null
-                  specification: null
                   specificationUrl: "https://example.com/graphql"
                   format: GRAPHQL
                   description: "Generate mocks for user and product queries, returning realistic test data with consistent IDs across related operations"
@@ -1481,16 +1483,6 @@ components:
           items:
             $ref: '#/components/schemas/StubMapping'
           description: Generated WireMock mappings
-        metadata:
-          type: object
-          properties:
-            generatedAt:
-              type: string
-              format: date-time
-            modelUsed:
-              type: string
-            tokensUsed:
-              type: integer
       required:
         - mappings
 

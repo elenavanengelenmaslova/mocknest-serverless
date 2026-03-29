@@ -9,7 +9,7 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)**
 - **2 Lambda functions**: Runtime (mock serving) and Generation (AI features)
 - **Memory**: [512 MB default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html) (configurable 512-10240 MB)
-- **Timeout**: [120 seconds default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-timeout.html) (configurable 3-900 seconds)
+- **Timeout**: [120 seconds default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-timeout.html) (configurable 3-900 seconds via `LambdaTimeout` parameter); the AI generation function is explicitly overridden to 300 seconds in the SAM template
 - **Concurrency**: Auto-scales within AWS account limits - designed for cost efficiency
 - **Architecture**: [ARM64](https://docs.aws.amazon.com/lambda/latest/dg/foundation-arch.html) for 20% cost reduction (SnapStart enabled for reduced cold start latency)
 - **Java Runtime**: Java 25 with JVM optimizations for cold start performance
@@ -24,7 +24,7 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 - **Storage**: Mock definitions, response payloads, and metadata
 - **Versioning**: [Enabled default](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html) with [30-day lifecycle for old versions](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-configuration-examples.html)
 - **Access**: Private bucket with lifecycle rules for cleanup
-- **Encryption**: [Server-side encryption at rest default](https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-encryption-faq.html) (included)
+- **Encryption**: S3 applies server-side encryption by default (AWS S3-managed keys) — not explicitly configured in the SAM template, but enabled by AWS S3's default bucket encryption behavior
 
 **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**
 - **Dead Letter Queue**: For failed Lambda invocations only

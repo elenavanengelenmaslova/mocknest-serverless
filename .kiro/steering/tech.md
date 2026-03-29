@@ -83,7 +83,7 @@ Follow clean architecture principles by developing in this sequence:
 
 Guidelines for AI-assisted code generation and review:
 
-- Generate Kotlin 2.3.0/Spring Boot 4.0 code targeting JVM 25, using Gradle 9.0.0, relying on the shared Gradle settings for dependency management and Kotlin logging; keep new tasks compatible with the existing toolchain
+- Generate Kotlin 2.3.0/Spring Boot 4.0 code targeting JVM 25, using Gradle 9.4.1, relying on the shared Gradle settings for dependency management and Kotlin logging; keep new tasks compatible with the existing toolchain
 - **Use Kotlin AWS SDK** (not Java SDK) for all AWS cloud infrastructure interactions - these must always be kept in the `software/infra/aws/` module to maintain clean architecture boundaries
 - **Use proper imports** instead of fully qualified class names in code:
  ```kotlin
@@ -521,7 +521,7 @@ When generating implementation tasks (tasks.md), the following testing requireme
    - Every new class, function, or component MUST have corresponding unit tests
    - Unit tests MUST follow Given-When-Then naming convention
    - Unit tests MUST use MockK for mocking dependencies
-   - Unit tests MUST achieve minimum 90% code coverage for new code
+   - Unit tests MUST achieve minimum 80% code coverage for new code (matching the enforced project threshold)
    - Task example: "Write unit tests for [ComponentName] covering success and failure paths"
 
 2. **Property-Based Tests (MANDATORY)**
@@ -560,7 +560,7 @@ When generating implementation tasks (tasks.md), the following testing requireme
 Every task list MUST include a final verification task:
 ```markdown
 - [ ] N. Verify test coverage and quality
-  - [ ] N.1 Run `./gradlew koverHtmlReport` and verify 90%+ coverage for new code
+  - [ ] N.1 Run `./gradlew koverHtmlReport` and verify 80%+ coverage for new code (enforced threshold; aim for 90%+ as a goal)
   - [ ] N.2 Run `./gradlew koverVerify` to enforce coverage threshold
   - [ ] N.3 Review test quality: Given-When-Then naming, proper assertions, edge case coverage
 ```

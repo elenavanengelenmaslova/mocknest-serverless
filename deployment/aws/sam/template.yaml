@@ -337,7 +337,6 @@ Resources:
             RestApiId: !Ref MockNestApi
             Path: /ai/{proxy+}
             Method: ANY
-            TimeoutInMillis: 60000
             Auth:
               ApiKeyRequired: true
 

@@ -44,8 +44,10 @@ Clean and rebuild everything:
 # Build only the application module
 ./gradlew :software:application:build
 
-# Build only the AWS infrastructure module
-./gradlew :software:infra:aws:build
+# Build only specific AWS infrastructure modules
+./gradlew :software:infra:aws:runtime:build
+./gradlew :software:infra:aws:generation:build
+./gradlew :software:infra:aws:mocknest:build
 ```
 
 ## Testing
