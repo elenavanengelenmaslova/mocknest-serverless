@@ -111,11 +111,12 @@ Common causes:
 
 ### AI Generation Timeouts
 
-**Problem**: AI generation requests timeout  
+**Problem**: AI generation requests timeout
 **Solution**:
-- Increase Lambda timeout in SAM template (default: 120 seconds)
+- Reduce `BedrockGenerationMaxRetries` (range 0-2, default 1) to allow more time per attempt within the API Gateway timeout
 - Simplify the generation request (fewer endpoints, simpler descriptions)
 - Check Bedrock service limits and quotas
+- For longer-running requests: switch to a Regional or private REST API endpoint type, then request an API Gateway integration timeout increase from AWS for your account
 
 ## Performance Issues
 

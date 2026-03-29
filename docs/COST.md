@@ -9,7 +9,7 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)**
 - **2 Lambda functions**: Runtime (mock serving) and Generation (AI features)
 - **Memory**: [512 MB default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html) (configurable 512-10240 MB)
-- **Timeout**: [120 seconds default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-timeout.html) (configurable 3-900 seconds via `LambdaTimeout` parameter); the AI generation function is explicitly overridden to 300 seconds in the SAM template
+- **Timeout**: [30 seconds default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-timeout.html) (configurable 3-900 seconds via `LambdaTimeout` parameter). The synchronous API Gateway timeout (~29 seconds) is the practical constraint for request duration.
 - **Concurrency**: Auto-scales within AWS account limits - designed for cost efficiency
 - **Architecture**: [ARM64](https://docs.aws.amazon.com/lambda/latest/dg/foundation-arch.html) for 20% cost reduction (SnapStart enabled for reduced cold start latency)
 - **Java Runtime**: Java 25 with JVM optimizations for cold start performance
@@ -33,7 +33,7 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 
 **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)**
 - **Log Groups**: 2 log groups (Runtime and Generation functions)
-- **Retention**: [7 days log retention default](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html)
+- **Retention**: [7 days log retention default](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html) (configurable via `LogRetentionDays` parameter)
 - **Metrics**: [Basic Lambda and API Gateway metrics default](https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics.html) (included)
 - **Alarms**: [None configured default](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html) (to minimize costs)
 

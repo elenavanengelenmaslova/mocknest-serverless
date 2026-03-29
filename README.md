@@ -223,7 +223,7 @@ MockNest Serverless provides multiple ways to interact with the API:
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
    - **BedrockInferenceMode**: Inference profile selection (default: "AUTO" - recommended)
    - **LambdaMemorySize**: Memory allocation in MB (default: 512)
-   - **LambdaTimeout**: Function timeout in seconds (default: 120)
+   - **LambdaTimeout**: Function timeout in seconds (default: 30)
 
 ### Getting Started After Deployment
 
@@ -307,6 +307,14 @@ The following WireMock capabilities have been validated in the serverless enviro
 **Recommendation**: Use namespaces for logical grouping within a deployment, and use multiple deployments when you need isolation, separate access control, or independent scaling.
 
 For detailed memory sizing, cold start measurements, and tuning guidance, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
+
+### AI Generation Timeout
+
+The default API Gateway REST API has a synchronous integration timeout of approximately 29 seconds. This constrains how many AI correction retries can complete within a single request. The `BedrockGenerationMaxRetries` parameter supports 0-2 retries, with 1 retry as the recommended default.
+
+If you need longer-running AI generation requests, you can:
+- Switch to a Regional or private REST API endpoint type
+- Request an API Gateway integration timeout increase from AWS for your account
 
 ### Usage Examples
 
@@ -406,7 +414,9 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 | **Bedrock Model** | `BedrockModelName` | `BEDROCK_MODEL_NAME` | Any Bedrock model ID | `AmazonNovaPro` | SAM parameter for deployment; environment variable for runtime override. Amazon Nova Pro is officially supported |
 | **S3 Bucket** | `BucketName` | `MOCKNEST_S3_BUCKET_NAME` | Valid S3 bucket name | Auto-generated | SAM parameter for deployment; environment variable for runtime override |
 | **Lambda Memory** | `LambdaMemorySize` | N/A | 512-10240 MB | `512` | SAM parameter only - set during deployment based on workload requirements |
-| **Lambda Timeout** | `LambdaTimeout` | N/A | 3-900 seconds | `120` | SAM parameter only - set during deployment based on expected processing time |
+| **Lambda Timeout** | `LambdaTimeout` | N/A | 3-900 seconds | `30` | SAM parameter only - set during deployment. Default aligns with API Gateway synchronous timeout (~29s) |
+| **Log Retention** | `LogRetentionDays` | N/A | 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365+ | `7` | SAM parameter only - CloudWatch log retention for Lambda functions |
+| **Max Retries** | `BedrockGenerationMaxRetries` | `MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES` | 0-2 | `1` | SAM parameter for deployment; environment variable for runtime override. Limited by API Gateway timeout (~29s) |
 | **Deployment Name** | `DeploymentName` | N/A | Alphanumeric string | `mocks` | SAM parameter only - used for resource naming and identification |
 
 **Configuration Precedence**: Environment variables override SAM parameters at runtime. Use SAM parameters for initial deployment configuration and environment variables for runtime adjustments without redeployment.
@@ -438,7 +448,7 @@ MockNest Serverless provides comprehensive logging through CloudWatch:
 **Log Groups Created:**
 - `/aws/lambda/{stack-name}-runtime` - WireMock runtime and mock serving
 - `/aws/lambda/{stack-name}-generation` - AI-assisted mock generation
-- **Retention**: 7 days (configurable in SAM template)
+- **Retention**: 7 days default (configurable via `LogRetentionDays` parameter)
 
 **View logs via SAM CLI:**
 ```bash
