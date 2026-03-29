@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/greet"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/greet"
+                  name="GreetService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/greet"/>
+  </wsdl:types>
+  <wsdl:message name="GreetRequest">
+    <wsdl:part name="parameters" element="tns:Greet"/>
+  </wsdl:message>
+  <wsdl:message name="GreetResponse">
+    <wsdl:part name="parameters" element="tns:GreetResponse"/>
+  </wsdl:message>
+  <wsdl:portType name="GreetPortType">
+    <wsdl:operation name="Greet">
+      <wsdl:input message="tns:GreetRequest"/>
+      <wsdl:output message="tns:GreetResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="GreetBinding" type="tns:GreetPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="Greet">
+      <soap12:operation soapAction="http://example.com/greet/Greet"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="GreetService">
+    <wsdl:port name="GreetPort" binding="tns:GreetBinding">
+      <soap12:address location="http://example.com/greet"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

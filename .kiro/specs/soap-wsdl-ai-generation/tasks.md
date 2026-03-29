@@ -49,13 +49,13 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - _Requirements: 5.1, 5.2, 5.3, 5.5_
 
 
-- [ ] 2. Phase 2: Application Layer — WSDL parsing, reduction, validation, and prompts
-  - [ ] 2.1 Create `ParsedWsdl` internal model and `WsdlParserInterface`
+- [-] 2. Phase 2: Application Layer — WSDL parsing, reduction, validation, and prompts
+  - [x] 2.1 Create `ParsedWsdl` internal model and `WsdlParserInterface`
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/wsdl/ParsedWsdl.kt` with the full intermediate WSDL structure (all XSD types, binding details, service port addresses)
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/wsdl/WsdlParserInterface.kt` with `fun parse(wsdlXml: String): ParsedWsdl`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.8_
 
-  - [ ] 2.2 Implement `WsdlParser` using JDK `DocumentBuilder` (no new XML dependencies)
+  - [x] 2.2 Implement `WsdlParser` using JDK `DocumentBuilder` (no new XML dependencies)
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/wsdl/WsdlParser.kt`
     - Use `javax.xml.parsers.DocumentBuilder` for XML parsing
     - Extract `targetNamespace` from `<wsdl:definitions>`, service name from `<wsdl:service>`, SOAP version from binding namespace (`http://schemas.xmlsoap.org/wsdl/soap/` → SOAP_1_1, `http://schemas.xmlsoap.org/wsdl/soap12/` → SOAP_1_2, default SOAP_1_1 with warning)
@@ -63,7 +63,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Throw `WsdlParsingException` on malformed XML (with line info), missing `<wsdl:definitions>`, missing `targetNamespace`, no operations found
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 9.1, 9.2, 9.3, 9.4_
 
-  - [ ] 2.3 Write unit tests for `WsdlParser` using inline XML content
+  - [x] 2.3 Write unit tests for `WsdlParser` using inline XML content
     - Create test file in `software/application/src/test/kotlin/`
     - Test successful parsing of SOAP 1.1 document (inline XML): verify service name, namespace, port types, operations, SOAPAction, XSD types extracted correctly
     - Test successful parsing of SOAP 1.2 document (inline XML): verify `SoapVersion.SOAP_1_2` detected
@@ -77,14 +77,14 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag tests with `@Tag("soap-wsdl-ai-generation")` and `@Tag("unit")`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 9.1, 9.2, 9.3, 9.4, 12.1, 12.3_
 
-  - [ ] 2.4 Create `WsdlSchemaReducerInterface` and implement `WsdlSchemaReducer`
+  - [x] 2.4 Create `WsdlSchemaReducerInterface` and implement `WsdlSchemaReducer`
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/wsdl/WsdlSchemaReducerInterface.kt` with `fun reduce(parsedWsdl: ParsedWsdl): CompactWsdl`
     - Create `software/application/src/main/kotlin/nl/vintik/mocknest/application/generation/wsdl/WsdlSchemaReducer.kt`
     - Copy service name, namespace, SOAP version; include all port types and operations with SOAPAction, input/output message element names
     - Walk XSD type graph from referenced message elements — include only reachable types; exclude binding details, service port addresses, unreferenced XSD types, WSDL import/include directives
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 11.3_
 
-  - [ ] 2.5 Write unit tests for `WsdlSchemaReducer` using inline XML content
+  - [x] 2.5 Write unit tests for `WsdlSchemaReducer` using inline XML content
     - Create test file in `software/application/src/test/kotlin/`
     - Test successful reduction: verify `CompactWsdl` contains all operations, SOAPActions, input/output messages, referenced XSD types (inline XML from `complex-types-soap11.wsdl` content)
     - Test unreferenced XSD types are excluded (inline XML from `unreferenced-types-soap11.wsdl` content)
@@ -94,7 +94,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag tests with `@Tag("soap-wsdl-ai-generation")` and `@Tag("unit")`
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 12.4_
 
-  - [ ] 2.6 Write property test: Property-2 (WSDL Extraction Completeness) using inline XML
+  - [x] 2.6 Write property test: Property-2 (WSDL Extraction Completeness) using inline XML
     - Create property test class in `software/application/src/test/kotlin/`
     - Use `@ParameterizedTest @ValueSource` with 10 WSDL files: `simple-soap11.wsdl`, `simple-soap12.wsdl`, `multi-operation-soap11.wsdl`, `multi-porttype-soap11.wsdl`, `complex-types-soap11.wsdl`, `nested-xsd-soap11.wsdl`, `multi-operation-soap12.wsdl`, `large-service.wsdl`, `calculator-soap11.wsdl`, `weather-soap12.wsdl`
     - For each file (loaded as inline XML from `src/test/resources/wsdl/`): verify all operation names present, all SOAPActions present, all referenced XSD types present
@@ -103,7 +103,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("Property-2")`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.3, 4.4, 4.5, 12.7_
 
-  - [ ] 2.7 Write property test: Property-3 (Schema Size Reduction) using inline XML
+  - [x] 2.7 Write property test: Property-3 (Schema Size Reduction) using inline XML
     - Use `@ParameterizedTest @ValueSource` with 8 multi-operation WSDL files: `multi-operation-soap11.wsdl`, `multi-porttype-soap11.wsdl`, `complex-types-soap11.wsdl`, `multi-operation-soap12.wsdl`, `large-service.wsdl`, `calculator-soap11.wsdl`, `weather-soap12.wsdl`, `nested-xsd-soap11.wsdl`
     - For each file (loaded as inline XML): assert `compactWsdl.prettyPrint().length < rawWsdlXml.length`
     - **Property 3: Schema Size Reduction**
@@ -111,7 +111,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("Property-3")`
     - _Requirements: 4.7, 12.7_
 
-  - [ ] 2.8 Write property test: Property-6 (Unreferenced XSD Type Exclusion) using inline XML
+  - [x] 2.8 Write property test: Property-6 (Unreferenced XSD Type Exclusion) using inline XML
     - Use `@ParameterizedTest @ValueSource` with WSDL files containing unreferenced types: `unreferenced-types-soap11.wsdl`, `complex-types-soap11.wsdl`, `nested-xsd-soap11.wsdl`, `large-service.wsdl`, `multi-porttype-soap11.wsdl`
     - For each file (loaded as inline XML): verify that XSD types not referenced by any operation message are absent from `compactWsdl.xsdTypes`
     - **Property 6: Unreferenced XSD Type Exclusion**
