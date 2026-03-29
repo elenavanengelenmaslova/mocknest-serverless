@@ -213,8 +213,8 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - _Requirements: 6.9, 1.3_
 
 
-- [ ] 3. Phase 3: Infrastructure Layer — WSDL content fetcher and Spring configuration
-  - [ ] 3.1 Implement `WsdlContentFetcher` in the infrastructure layer
+- [x] 3. Phase 3: Infrastructure Layer — WSDL content fetcher and Spring configuration
+  - [x] 3.1 Implement `WsdlContentFetcher` in the infrastructure layer
     - Create `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/wsdl/WsdlContentFetcher.kt`
     - Implement `WsdlContentFetcherInterface` using the existing Ktor HTTP client (already a dependency — no new HTTP client dependency)
     - Validate URL safety via `SafeUrlResolver.validateUrlSafety()` before any network call
@@ -222,7 +222,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Throw `WsdlFetchException` on: unsafe URL, non-2xx HTTP status (include status code in message), network failure, timeout, response not valid XML
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 11.1_
 
-  - [ ] 3.2 Write unit tests for `WsdlContentFetcher` using a mock HTTP server (URL path)
+  - [x] 3.2 Write unit tests for `WsdlContentFetcher` using a mock HTTP server (URL path)
     - Create test file in `software/infra/aws/generation/src/test/kotlin/`
     - Test successful fetch returns raw WSDL XML (mock HTTP server serving `simple-soap11.wsdl` content)
     - Test non-2xx HTTP status (404, 500) throws `WsdlFetchException` with status code in message
@@ -233,13 +233,13 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag tests with `@Tag("soap-wsdl-ai-generation")` and `@Tag("unit")`
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 12.2_
 
-  - [ ] 3.3 Wire `WsdlContentFetcher` into `WsdlSpecificationParser` and verify URL path
+  - [x] 3.3 Wire `WsdlContentFetcher` into `WsdlSpecificationParser` and verify URL path
     - Confirm `WsdlSpecificationParser.parse()` correctly delegates to `WsdlContentFetcherInterface.fetch()` when content is an HTTP URL
     - Verify URL detection logic (content starts with `http`) routes to fetcher
     - Verify inline XML content (not a URL) bypasses fetcher entirely
     - _Requirements: 1.2, 2.1, 2.7_
 
-  - [ ] 3.4 Write property test: Property-1 (Dual Input Mode Equivalence) — URL vs inline XML
+  - [x] 3.4 Write property test: Property-1 (Dual Input Mode Equivalence) — URL vs inline XML
     - Create property test in `software/infra/aws/generation/src/test/kotlin/`
     - Use `@ParameterizedTest @MethodSource` with 5+ WSDL files: `simple-soap11.wsdl`, `simple-soap12.wsdl`, `multi-operation-soap11.wsdl`, `calculator-soap11.wsdl`, `weather-soap12.wsdl`
     - For each file: parse via inline XML path; parse via URL path (mock HTTP server serving same XML); assert both `CompactWsdl` results have equal `serviceName`, `targetNamespace`, `soapVersion`, operation names, and XSD type keys
@@ -248,7 +248,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("Property-1")`
     - _Requirements: 1.1, 1.2, 2.6, 12.10_
 
-  - [ ] 3.5 Write property test: Property-5 (SOAP Version Detection) using inline XML
+  - [x] 3.5 Write property test: Property-5 (SOAP Version Detection) using inline XML
     - Use `@ParameterizedTest @MethodSource` with WSDL files and expected SOAP versions
     - Test cases (inline XML): `simple-soap11.wsdl` → SOAP_1_1, `simple-soap12.wsdl` → SOAP_1_2, `multi-operation-soap11.wsdl` → SOAP_1_1, `multi-operation-soap12.wsdl` → SOAP_1_2, `calculator-soap11.wsdl` → SOAP_1_1, `weather-soap12.wsdl` → SOAP_1_2, `mixed-version.wsdl` → both versions present
     - For each: parse inline XML, assert `compactWsdl.soapVersion` matches expected value
@@ -257,7 +257,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("Property-5")`
     - _Requirements: 9.1, 9.2, 9.5, 12.7_
 
-  - [ ] 3.6 Write property test: Property-4 (Round-Trip Integrity) using inline XML
+  - [x] 3.6 Write property test: Property-4 (Round-Trip Integrity) using inline XML
     - Use `@ParameterizedTest @ValueSource` with 10 WSDL files: `simple-soap11.wsdl`, `simple-soap12.wsdl`, `multi-operation-soap11.wsdl`, `complex-types-soap11.wsdl`, `multi-operation-soap12.wsdl`, `large-service.wsdl`, `calculator-soap11.wsdl`, `weather-soap12.wsdl`, `nested-xsd-soap11.wsdl`, `multi-porttype-soap11.wsdl`
     - For each file (inline XML): parse → `CompactWsdl` → `prettyPrint()` → parse pretty-printed output → assert equal `serviceName`, `targetNamespace`, `soapVersion`, operation names set, XSD type keys set
     - **Property 4: Round-Trip Integrity**
@@ -265,7 +265,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("Property-4")`
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 12.7_
 
-  - [ ] 3.7 Write integration test: inline XML end-to-end (no AWS)
+  - [x] 3.7 Write integration test: inline XML end-to-end (no AWS)
     - Create integration test in `software/application/src/test/kotlin/`
     - Test complete inline XML path: inline WSDL XML → `WsdlSpecificationParser.parse()` → `WsdlSchemaReducer.reduce()` → `APISpecification` → prompt construction → `SoapMockValidator.validate()`
     - Cover SOAP 1.1 (inline XML from `calculator-soap11.wsdl`) and SOAP 1.2 (inline XML from `weather-soap12.wsdl`)
@@ -274,7 +274,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("integration")`
     - _Requirements: 1.1, 3.8, 4.8, 12.8_
 
-  - [ ] 3.8 Write integration test: URL path with mock HTTP server
+  - [x] 3.8 Write integration test: URL path with mock HTTP server
     - Create integration test in `software/infra/aws/generation/src/test/kotlin/`
     - Use MockWebServer or WireMock to serve `calculator-soap11.wsdl` content
     - Verify `WsdlContentFetcher` performs GET and returns XML
@@ -282,7 +282,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("integration")`
     - _Requirements: 2.1, 2.6, 12.10_
 
-  - [ ] 3.9 Create Spring `SoapGenerationConfig` in the infrastructure layer
+  - [x] 3.9 Create Spring `SoapGenerationConfig` in the infrastructure layer
     - Create `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/config/SoapGenerationConfig.kt`
     - Define `@Configuration` class with Spring beans: `wsdlContentFetcher()`, `wsdlParser()`, `wsdlSchemaReducer()`, `wsdlSpecificationParser(contentFetcher, wsdlParser, schemaReducer)`, `soapMockValidator()`
     - `WsdlSpecificationParser` bean implements `SpecificationParserInterface` — auto-registered via `List<SpecificationParserInterface>` injection in `CompositeSpecificationParserImpl`

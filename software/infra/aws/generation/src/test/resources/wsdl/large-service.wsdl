@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+                  xmlns:tns="http://example.com/enterprise"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/enterprise"
+                  name="EnterpriseService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/enterprise">
+      <xsd:complexType name="CreateCustomerRequest">
+        <xsd:sequence>
+          <xsd:element name="customer" type="tns:CustomerData"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="CreateCustomerResponse">
+        <xsd:sequence>
+          <xsd:element name="customerId" type="xsd:string"/>
+          <xsd:element name="status" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="CustomerData">
+        <xsd:sequence>
+          <xsd:element name="firstName" type="xsd:string"/>
+          <xsd:element name="lastName" type="xsd:string"/>
+          <xsd:element name="email" type="xsd:string"/>
+          <xsd:element name="address" type="tns:AddressData"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="AddressData">
+        <xsd:sequence>
+          <xsd:element name="street" type="xsd:string"/>
+          <xsd:element name="city" type="xsd:string"/>
+          <xsd:element name="country" type="xsd:string"/>
+          <xsd:element name="postalCode" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="GetCustomerRequest">
+        <xsd:sequence>
+          <xsd:element name="customerId" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="GetCustomerResponse">
+        <xsd:sequence>
+          <xsd:element name="customer" type="tns:CustomerData"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="CreateOrderRequest">
+        <xsd:sequence>
+          <xsd:element name="order" type="tns:OrderData"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="CreateOrderResponse">
+        <xsd:sequence>
+          <xsd:element name="orderId" type="xsd:string"/>
+          <xsd:element name="status" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="OrderData">
+        <xsd:sequence>
+          <xsd:element name="customerId" type="xsd:string"/>
+          <xsd:element name="productId" type="xsd:string"/>
+          <xsd:element name="quantity" type="xsd:int"/>
+          <xsd:element name="totalAmount" type="xsd:decimal"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="GetOrderRequest">
+        <xsd:sequence>
+          <xsd:element name="orderId" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="GetOrderResponse">
+        <xsd:sequence>
+          <xsd:element name="order" type="tns:OrderData"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="SearchProductsRequest">
+        <xsd:sequence>
+          <xsd:element name="query" type="xsd:string"/>
+          <xsd:element name="maxResults" type="xsd:int"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="SearchProductsResponse">
+        <xsd:sequence>
+          <xsd:element name="totalCount" type="xsd:int"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="ProcessPaymentRequest">
+        <xsd:sequence>
+          <xsd:element name="orderId" type="xsd:string"/>
+          <xsd:element name="payment" type="tns:PaymentData"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="ProcessPaymentResponse">
+        <xsd:sequence>
+          <xsd:element name="transactionId" type="xsd:string"/>
+          <xsd:element name="status" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="PaymentData">
+        <xsd:sequence>
+          <xsd:element name="method" type="xsd:string"/>
+          <xsd:element name="amount" type="xsd:decimal"/>
+          <xsd:element name="currency" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="CreateCustomerRequestMsg"><wsdl:part name="parameters" element="tns:CreateCustomerRequest"/></wsdl:message>
+  <wsdl:message name="CreateCustomerResponseMsg"><wsdl:part name="parameters" element="tns:CreateCustomerResponse"/></wsdl:message>
+  <wsdl:message name="GetCustomerRequestMsg"><wsdl:part name="parameters" element="tns:GetCustomerRequest"/></wsdl:message>
+  <wsdl:message name="GetCustomerResponseMsg"><wsdl:part name="parameters" element="tns:GetCustomerResponse"/></wsdl:message>
+  <wsdl:message name="CreateOrderRequestMsg"><wsdl:part name="parameters" element="tns:CreateOrderRequest"/></wsdl:message>
+  <wsdl:message name="CreateOrderResponseMsg"><wsdl:part name="parameters" element="tns:CreateOrderResponse"/></wsdl:message>
+  <wsdl:message name="GetOrderRequestMsg"><wsdl:part name="parameters" element="tns:GetOrderRequest"/></wsdl:message>
+  <wsdl:message name="GetOrderResponseMsg"><wsdl:part name="parameters" element="tns:GetOrderResponse"/></wsdl:message>
+  <wsdl:message name="SearchProductsRequestMsg"><wsdl:part name="parameters" element="tns:SearchProductsRequest"/></wsdl:message>
+  <wsdl:message name="SearchProductsResponseMsg"><wsdl:part name="parameters" element="tns:SearchProductsResponse"/></wsdl:message>
+  <wsdl:message name="ProcessPaymentRequestMsg"><wsdl:part name="parameters" element="tns:ProcessPaymentRequest"/></wsdl:message>
+  <wsdl:message name="ProcessPaymentResponseMsg"><wsdl:part name="parameters" element="tns:ProcessPaymentResponse"/></wsdl:message>
+  <wsdl:portType name="CustomerPortType">
+    <wsdl:operation name="CreateCustomer">
+      <wsdl:input message="tns:CreateCustomerRequestMsg"/>
+      <wsdl:output message="tns:CreateCustomerResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetCustomer">
+      <wsdl:input message="tns:GetCustomerRequestMsg"/>
+      <wsdl:output message="tns:GetCustomerResponseMsg"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:portType name="OrderPortType">
+    <wsdl:operation name="CreateOrder">
+      <wsdl:input message="tns:CreateOrderRequestMsg"/>
+      <wsdl:output message="tns:CreateOrderResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetOrder">
+      <wsdl:input message="tns:GetOrderRequestMsg"/>
+      <wsdl:output message="tns:GetOrderResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="SearchProducts">
+      <wsdl:input message="tns:SearchProductsRequestMsg"/>
+      <wsdl:output message="tns:SearchProductsResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="ProcessPayment">
+      <wsdl:input message="tns:ProcessPaymentRequestMsg"/>
+      <wsdl:output message="tns:ProcessPaymentResponseMsg"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="CustomerBinding" type="tns:CustomerPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="CreateCustomer">
+      <soap:operation soapAction="http://example.com/enterprise/CreateCustomer"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetCustomer">
+      <soap:operation soapAction="http://example.com/enterprise/GetCustomer"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="OrderBinding" type="tns:OrderPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="CreateOrder">
+      <soap:operation soapAction="http://example.com/enterprise/CreateOrder"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetOrder">
+      <soap:operation soapAction="http://example.com/enterprise/GetOrder"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="SearchProducts">
+      <soap:operation soapAction="http://example.com/enterprise/SearchProducts"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ProcessPayment">
+      <soap:operation soapAction="http://example.com/enterprise/ProcessPayment"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="EnterpriseService">
+    <wsdl:port name="CustomerPort" binding="tns:CustomerBinding">
+      <soap:address location="http://example.com/enterprise/customer"/>
+    </wsdl:port>
+    <wsdl:port name="OrderPort" binding="tns:OrderBinding">
+      <soap:address location="http://example.com/enterprise/order"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

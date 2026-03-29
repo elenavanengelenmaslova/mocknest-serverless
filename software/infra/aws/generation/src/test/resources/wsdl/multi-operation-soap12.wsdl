@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/inventory"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/inventory"
+                  name="InventoryService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/inventory">
+      <xsd:complexType name="GetItemRequest">
+        <xsd:sequence>
+          <xsd:element name="itemId" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="GetItemResponse">
+        <xsd:sequence>
+          <xsd:element name="item" type="tns:Item"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="Item">
+        <xsd:sequence>
+          <xsd:element name="id" type="xsd:string"/>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="quantity" type="xsd:int"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="ListItemsRequest">
+        <xsd:sequence>
+          <xsd:element name="category" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="ListItemsResponse">
+        <xsd:sequence>
+          <xsd:element name="count" type="xsd:int"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="UpdateStockRequest">
+        <xsd:sequence>
+          <xsd:element name="itemId" type="xsd:string"/>
+          <xsd:element name="quantity" type="xsd:int"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="UpdateStockResponse">
+        <xsd:sequence>
+          <xsd:element name="success" type="xsd:boolean"/>
+        </xsd:sequence>
+      </xsd:complexType>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="GetItemRequestMsg"><wsdl:part name="parameters" element="tns:GetItemRequest"/></wsdl:message>
+  <wsdl:message name="GetItemResponseMsg"><wsdl:part name="parameters" element="tns:GetItemResponse"/></wsdl:message>
+  <wsdl:message name="ListItemsRequestMsg"><wsdl:part name="parameters" element="tns:ListItemsRequest"/></wsdl:message>
+  <wsdl:message name="ListItemsResponseMsg"><wsdl:part name="parameters" element="tns:ListItemsResponse"/></wsdl:message>
+  <wsdl:message name="UpdateStockRequestMsg"><wsdl:part name="parameters" element="tns:UpdateStockRequest"/></wsdl:message>
+  <wsdl:message name="UpdateStockResponseMsg"><wsdl:part name="parameters" element="tns:UpdateStockResponse"/></wsdl:message>
+  <wsdl:portType name="InventoryPortType">
+    <wsdl:operation name="GetItem">
+      <wsdl:input message="tns:GetItemRequestMsg"/>
+      <wsdl:output message="tns:GetItemResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="ListItems">
+      <wsdl:input message="tns:ListItemsRequestMsg"/>
+      <wsdl:output message="tns:ListItemsResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateStock">
+      <wsdl:input message="tns:UpdateStockRequestMsg"/>
+      <wsdl:output message="tns:UpdateStockResponseMsg"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="InventoryBinding" type="tns:InventoryPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="GetItem">
+      <soap12:operation soapAction="http://example.com/inventory/GetItem"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ListItems">
+      <soap12:operation soapAction="http://example.com/inventory/ListItems"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateStock">
+      <soap12:operation soapAction="http://example.com/inventory/UpdateStock"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="InventoryService">
+    <wsdl:port name="InventoryPort" binding="tns:InventoryBinding">
+      <soap12:address location="http://example.com/inventory"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
