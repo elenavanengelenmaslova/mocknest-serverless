@@ -2,6 +2,12 @@ name: Reusable - Build
 
 on:
   workflow_call:
+    inputs:
+      aws-region:
+        description: 'AWS region for SAM template validation'
+        required: false
+        type: string
+        default: 'eu-west-1'
 
 permissions:
   contents: read
@@ -50,4 +56,6 @@ jobs:
         uses: aws-actions/setup-sam@v2
 
       - name: Validate SAM template
-        run: sam validate --template-file deployment/aws/sam/template.yaml
+        env:
+          AWS_DEFAULT_REGION: ${{ inputs.aws-region }}
+        run: sam validate --template-file deployment/aws/sam/template.yaml --region ${{ inputs.aws-region }}

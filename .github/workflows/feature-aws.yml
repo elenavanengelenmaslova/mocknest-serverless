@@ -27,3 +27,5 @@ permissions:
 jobs:
   test:
     uses: ./.github/workflows/workflow-build.yml
+    with:
+      aws-region: 'eu-west-1'
