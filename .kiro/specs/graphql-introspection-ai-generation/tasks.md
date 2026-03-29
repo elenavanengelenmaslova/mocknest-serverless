@@ -453,35 +453,6 @@ The implementation follows clean architecture principles with strict layer separ
     - Identify any coverage gaps and add tests if needed
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
-  - [ ] 6.5 Build and deploy to AWS Lambda
-    - Run full build with tests: `./gradlew clean build`
-    - Verify jar size validation test passes (confirms jar < 90MB)
-    - Deploy using existing SAM template (no infrastructure changes needed)
-    - Verify deployment succeeds
-    - _Requirements: 7.1, 7.2, 7.3_
-
-  - [ ] 6.6 Verify REST generation still works in deployed environment
-    - Test OpenAPI generation endpoint
-    - Verify existing REST mocks work correctly
-    - Confirm no regression in REST functionality
-    - _Requirements: 7.4_
-
-  - [ ] 6.7 Test GraphQL generation in deployed environment
-    - Test GraphQL generation endpoint with sample schema
-    - Verify generated mocks are persisted correctly
-    - Verify generated mocks are served by WireMock runtime
-    - Test with both URL and pre-fetched schema inputs
-    - _Requirements: 1.1, 1.4, 7.2, 7.3_
-
-  - [ ] 6.8 Monitor CloudWatch logs and metrics
-    - Verify introspection requests are logged correctly
-    - Verify validation errors are logged with context
-    - Check for any unexpected errors or warnings
-    - Verify performance is within acceptable range (< 1s overhead)
-    - _Requirements: 2.1, 5.8_
-
-- [ ] 7. Final checkpoint - Ensure all tests pass and deployment is verified
-  - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
 
