@@ -238,7 +238,7 @@ class GraphQLSchemaReducer : GraphQLSchemaReducerInterface {
     
     private fun extractTypeName(typeObj: JsonObject?): String {
         if (typeObj == null) {
-            logger.warn { "Cannot extract type name: typeObj is null" }
+            logger.debug { "Cannot extract type name: typeObj is null" }
             return "Unknown"
         }
 

@@ -106,7 +106,7 @@ Parameters:
 
   BedrockGenerationMaxRetries:
     Type: Number
-    Default: 1
+    Default: "1"
     Description: Maximum number of retry attempts for AI mock generation if validation fails.
 
 Globals:
@@ -337,6 +337,7 @@ Resources:
             RestApiId: !Ref MockNestApi
             Path: /ai/{proxy+}
             Method: ANY
+            TimeoutInMillis: 60000
             Auth:
               ApiKeyRequired: true
 
