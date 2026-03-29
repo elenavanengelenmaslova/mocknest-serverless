@@ -314,7 +314,7 @@ The default API Gateway REST API has a synchronous integration timeout of approx
 
 If you need longer-running AI generation requests, you can:
 - Switch to a Regional or private REST API endpoint type
-- Request an API Gateway integration timeout increase from AWS for your account
+- Then request an API Gateway integration timeout increase from AWS (timeout increases are only available for Regional or private REST APIs)
 
 ### Usage Examples
 

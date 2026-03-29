@@ -175,7 +175,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 
 **Current Limitations**:
 - AI generation supports REST and GraphQL APIs. SOAP API generation is not yet supported.
-- **AI Generation Timeout**: The default API Gateway REST API has a synchronous integration timeout of ~29 seconds. This limits AI generation with validation to a maximum of 2 correction retries (0-2 range). The recommended default is 1 retry. Users needing longer synchronous requests can switch to a Regional or private REST API endpoint type, or request an AWS integration timeout increase.
+- **AI Generation Timeout**: The default API Gateway REST API has a synchronous integration timeout of ~29 seconds. This limits AI generation with validation to a maximum of 2 correction retries (0-2 range). The recommended default is 1 retry. Users needing longer synchronous requests can switch to a Regional or private REST API endpoint type, and then request an AWS integration timeout increase (timeout increases are only available for Regional or private REST APIs).
 
 ## Architecture and Data Persistence
 
