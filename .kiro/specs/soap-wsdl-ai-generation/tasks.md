@@ -8,39 +8,39 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
 
 ## Tasks
 
-- [ ] 1. Phase 1: Domain Layer — Create SOAP/WSDL domain models and exceptions
-  - [ ] 1.1 Create WSDL-specific exceptions in the domain layer
+- [x] 1. Phase 1: Domain Layer — Create SOAP/WSDL domain models and exceptions
+  - [x] 1.1 Create WSDL-specific exceptions in the domain layer
     - Create `software/domain/src/main/kotlin/nl/vintik/mocknest/domain/generation/WsdlExceptions.kt`
     - Implement `WsdlParsingException(message: String, cause: Throwable? = null)` extending `RuntimeException`
     - Implement `WsdlFetchException(message: String, cause: Throwable? = null)` extending `RuntimeException`
     - _Requirements: 2.3, 2.4, 2.5, 3.6, 3.7_
 
-  - [ ] 1.2 Write unit tests for WSDL exceptions
+  - [x] 1.2 Write unit tests for WSDL exceptions
     - Create test file in `software/domain/src/test/kotlin/`
     - Test that `WsdlParsingException` carries message and cause correctly
     - Test that `WsdlFetchException` carries message and cause correctly
     - Tag tests with `@Tag("soap-wsdl-ai-generation")` and `@Tag("unit")`
     - _Requirements: 3.6, 3.7_
 
-  - [ ] 1.3 Create `SoapVersion` enum in the domain layer
+  - [x] 1.3 Create `SoapVersion` enum in the domain layer
     - Create `software/domain/src/main/kotlin/nl/vintik/mocknest/domain/generation/CompactWsdl.kt`
     - Implement `SoapVersion` enum with `SOAP_1_1` (envelopeNamespace=`http://schemas.xmlsoap.org/soap/envelope/`, contentType=`text/xml`) and `SOAP_1_2` (envelopeNamespace=`http://www.w3.org/2003/05/soap-envelope`, contentType=`application/soap+xml`)
     - _Requirements: 9.1, 9.2, 9.5_
 
-  - [ ] 1.4 Create `WsdlPortType`, `WsdlOperation`, `WsdlXsdType`, `WsdlXsdField` data classes
+  - [x] 1.4 Create `WsdlPortType`, `WsdlOperation`, `WsdlXsdType`, `WsdlXsdField` data classes
     - In the same `CompactWsdl.kt` file, implement all four data classes with `init` validation blocks (non-blank names, non-blank types)
     - `WsdlOperation` fields: `name`, `soapAction`, `inputMessage`, `outputMessage`, `portTypeName`
     - `WsdlXsdType` fields: `name`, `fields: List<WsdlXsdField>`
     - `WsdlXsdField` fields: `name`, `type`
     - _Requirements: 3.2, 3.3, 3.4, 3.5, 4.2, 4.3, 4.4_
 
-  - [ ] 1.5 Create `CompactWsdl` domain model with `prettyPrint()`
+  - [x] 1.5 Create `CompactWsdl` domain model with `prettyPrint()`
     - In the same `CompactWsdl.kt` file, implement `CompactWsdl` data class with fields: `serviceName`, `targetNamespace`, `soapVersion`, `portTypes`, `operations`, `xsdTypes`
     - Add `init` validation: non-blank `serviceName`, non-blank `targetNamespace`, non-empty `operations`
     - Implement `prettyPrint()` producing human-readable text with service name, namespace, SOAP version, port types, operations (with soapAction, input, output), and XSD types with fields
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.5_
 
-  - [ ] 1.6 Write unit tests for `CompactWsdl` domain model
+  - [x] 1.6 Write unit tests for `CompactWsdl` domain model
     - Create test file in `software/domain/src/test/kotlin/`
     - Test `init` validation rules (blank service name, blank namespace, empty operations)
     - Test `prettyPrint()` output includes service name, namespace, SOAP version, all operations with soapAction/input/output, all XSD types with fields
