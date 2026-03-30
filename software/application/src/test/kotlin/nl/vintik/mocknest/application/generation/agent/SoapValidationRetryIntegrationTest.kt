@@ -180,8 +180,11 @@ class SoapValidationRetryIntegrationTest {
 
                 // Then
                 assertTrue(result.success, "Generation should succeed after retry")
-                assertNotNull(result.mocks)
-            }
+                val returnedMocks = assertNotNull(result.mocks)
+                assertTrue(
+                    returnedMocks.any { it.id == validMock.id },
+                    "The corrected mock should be returned after retry"
+                )
 
         @Test
         fun `Given SOAP validation errors When retrying Then should feed errors back to AI service`() = runTest {
