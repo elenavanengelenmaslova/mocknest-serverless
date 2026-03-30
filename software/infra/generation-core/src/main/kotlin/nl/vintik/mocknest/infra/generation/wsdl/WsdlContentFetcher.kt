@@ -74,6 +74,7 @@ class WsdlContentFetcher(
                 .url(url)
                 .get()
                 .header("Accept", "text/xml, application/xml, */*")
+                .header("User-Agent", "MockNest/1.0")
                 .build()
         }.getOrElse { e ->
             val msg = "Invalid WSDL URL format"

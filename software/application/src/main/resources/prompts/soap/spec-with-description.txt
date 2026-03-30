@@ -25,6 +25,9 @@ SOAP request matching rules (IMPORTANT):
   - Example: `"headers": { "Content-Type": { "contains": "action=\"http://example.com/service/OperationName\"" } }`
 - Use `urlPath` for the service endpoint path
 - Each mapping MUST target a different operation via its SOAPAction or action parameter
+- Generate one primary success stub per SOAP operation unless the description explicitly requires additional scenarios (e.g., error cases, multiple test inputs)
+- Never generate multiple stubs for the same SOAP operation unless request matchers are mutually exclusive (e.g., different XPath body matches or different SOAPAction values)
+- Prefer matching by URL path + POST method + SOAPAction header. Add XPath body matchers only when needed to disambiguate between stubs sharing the same endpoint and SOAPAction
 
 SOAP response format rules (IMPORTANT):
 - ALL SOAP responses MUST be valid XML SOAP envelopes

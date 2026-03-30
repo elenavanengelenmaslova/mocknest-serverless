@@ -1,11 +1,6 @@
 package nl.vintik.mocknest.application.generation.agent
 
-import io.mockk.clearAllMocks
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.interfaces.MockValidationResult
@@ -13,7 +8,6 @@ import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterfa
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.application.generation.util.UrlFetcher
-import nl.vintik.mocknest.application.generation.util.UrlResolutionException
 import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
@@ -24,7 +18,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.http.HttpMethod
 import java.time.Instant
-import kotlin.test.assertFailsWith
 import java.util.*
 
 class MockGenerationFunctionalAgentTest {
@@ -843,43 +836,22 @@ class MockGenerationFunctionalAgentTest {
         }
 
         @Test
-        fun `Given format without own URL resolution with URL When resolving content Then should delegate to urlFetcher`() {
-            // Given - WSDL does not handle own URL resolution
-            val wsdlUrl = "https://invalid.test/service.wsdl"
-            val request = SpecWithDescriptionRequest(
-                namespace = testNamespace,
-                specificationUrl = wsdlUrl,
-                format = SpecificationFormat.WSDL,
-                description = "test wsdl"
-            )
-            every { urlFetcher.fetch(wsdlUrl) } throws UrlResolutionException("Failed to fetch URL: $wsdlUrl")
-
-            // When / Then
-            assertFailsWith<UrlResolutionException> {
-                agent.resolveContent(request)
-            }
-            verify { urlFetcher.fetch(wsdlUrl) }
-        }
-
-        @Test
-        fun `Given format without own URL resolution with URL When fetcher succeeds Then should return fetched content`() {
-            // Given
+        fun `Given WSDL format with URL When resolving content Then should return URL string directly for parser to fetch`() {
+            // Given - WSDL handles own URL resolution via WsdlContentFetcher in the parser
             val wsdlUrl = "https://example.com/service.wsdl"
-            val wsdlContent = "<definitions>WSDL content</definitions>"
             val request = SpecWithDescriptionRequest(
                 namespace = testNamespace,
                 specificationUrl = wsdlUrl,
                 format = SpecificationFormat.WSDL,
                 description = "test wsdl"
             )
-            every { urlFetcher.fetch(wsdlUrl) } returns wsdlContent
 
             // When
             val result = agent.resolveContent(request)
 
-            // Then
-            assertEquals(wsdlContent, result)
-            verify { urlFetcher.fetch(wsdlUrl) }
+            // Then - URL is passed through, not pre-fetched by urlFetcher
+            assertEquals(wsdlUrl, result)
+            verify(exactly = 0) { urlFetcher.fetch(any()) }
         }
 
         @Test

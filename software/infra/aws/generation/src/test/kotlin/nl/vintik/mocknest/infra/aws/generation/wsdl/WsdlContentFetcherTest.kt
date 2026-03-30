@@ -3,6 +3,8 @@ package nl.vintik.mocknest.infra.aws.generation.wsdl
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.matching
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import kotlinx.coroutines.test.runTest
@@ -89,6 +91,31 @@ class WsdlContentFetcherTest {
             // Then
             assertTrue(result.isNotBlank())
             assertTrue(result.contains("wsdl:definitions"))
+        }
+
+        @Test
+        fun `Given valid WSDL URL When fetching Then should send User-Agent and Accept headers`() = runTest {
+            // Given
+            val wsdlContent = loadWsdl("simple-soap11.wsdl")
+            wireMockServer.stubFor(
+                get(urlEqualTo("/headers-check.wsdl"))
+                    .willReturn(
+                        aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "text/xml")
+                            .withBody(wsdlContent)
+                    )
+            )
+
+            // When
+            fetcher.fetch("${baseUrl()}/headers-check.wsdl")
+
+            // Then
+            wireMockServer.verify(
+                getRequestedFor(urlEqualTo("/headers-check.wsdl"))
+                    .withHeader("User-Agent", matching("MockNest.*"))
+                    .withHeader("Accept", matching(".*text/xml.*"))
+            )
         }
     }
 
