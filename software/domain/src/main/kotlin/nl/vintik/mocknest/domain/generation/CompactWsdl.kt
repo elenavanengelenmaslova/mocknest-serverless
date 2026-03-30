@@ -92,6 +92,7 @@ data class WsdlOperation(
         require(name.isNotBlank()) { "Operation name cannot be blank" }
         require(inputMessage.isNotBlank()) { "Input message cannot be blank" }
         require(outputMessage.isNotBlank()) { "Output message cannot be blank" }
+        require(portTypeName.isNotBlank()) { "Port type name cannot be blank" }
     }
 }
 
