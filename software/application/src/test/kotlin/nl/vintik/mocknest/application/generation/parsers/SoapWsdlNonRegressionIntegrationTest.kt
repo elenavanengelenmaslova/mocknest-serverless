@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
 import java.time.Instant
 import java.util.*
+import kotlin.test.assertNotNull
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -228,6 +229,7 @@ class SoapWsdlNonRegressionIntegrationTest {
             val spec = graphqlParser.parse(content, SpecificationFormat.GRAPHQL)
 
             // Then — GraphQL endpoints must still use POST to /graphql
+            assertTrue(spec.endpoints.isNotEmpty(), "Parser should produce at least one endpoint")
             spec.endpoints.forEach { endpoint ->
                 assertEquals("/graphql", endpoint.path, "All GraphQL endpoints should use /graphql path")
                 assertEquals(HttpMethod.POST, endpoint.method, "All GraphQL endpoints should use POST method")
@@ -376,6 +378,12 @@ class SoapWsdlNonRegressionIntegrationTest {
             // Given
             val wsdlXml = loadWsdl("calculator-soap11.wsdl")
             val spec = wsdlParser.parse(wsdlXml, SpecificationFormat.WSDL)
+
+            // Then — wsdlParser.parse must produce a valid WSDL spec
+            assertNotNull(spec, "Parsed WSDL spec must not be null")
+            assertEquals(SpecificationFormat.WSDL, spec.format, "Parsed spec format must be WSDL")
+            assertTrue(spec.endpoints.isNotEmpty(), "Parsed WSDL spec must contain at least one endpoint/operation")
+
             val namespace = MockNamespace(apiName = "calculator-api")
 
             val soapMock = GeneratedMock(

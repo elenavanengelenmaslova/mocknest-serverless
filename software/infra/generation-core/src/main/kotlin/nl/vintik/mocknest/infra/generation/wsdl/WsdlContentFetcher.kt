@@ -14,6 +14,7 @@ import java.io.IOException
 import java.net.InetAddress
 import java.net.URI
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -63,7 +64,9 @@ class WsdlContentFetcher(
             val host = URI(url.trim()).host
             client.newBuilder().dns(PinnedDns(host, validatedAddresses)).build()
         } else {
-            client
+            throw WsdlFetchException(
+                "DNS resolution returned no addresses for ${SafeUrlResolver.sanitizeUrlForLogging(url)}"
+            )
         }
 
         val request = runCatching {
@@ -87,6 +90,7 @@ class WsdlContentFetcher(
                 body
             },
             onFailure = { exception ->
+                if (exception is CancellationException) throw exception
                 val msg = when (exception) {
                     is WsdlFetchException -> throw exception
                     is java.net.SocketTimeoutException ->

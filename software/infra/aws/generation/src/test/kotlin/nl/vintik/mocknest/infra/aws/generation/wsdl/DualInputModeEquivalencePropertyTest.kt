@@ -47,7 +47,7 @@ class DualInputModeEquivalencePropertyTest {
             wsdlParser = WsdlParser()
             schemaReducer = WsdlSchemaReducer()
             // Bypass SSRF validation for localhost WireMock in tests
-            fetcher = WsdlContentFetcher(timeoutMs = 5_000L, urlSafetyValidator = { emptyList() })
+            fetcher = WsdlContentFetcher(timeoutMs = 5_000L, urlSafetyValidator = { listOf(java.net.InetAddress.getLoopbackAddress()) })
             parser = WsdlSpecificationParser(fetcher, wsdlParser, schemaReducer)
         }
 

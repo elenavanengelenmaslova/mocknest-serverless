@@ -25,7 +25,7 @@ class WsdlContentFetcherTest {
 
     // Short timeout for tests to keep them fast
     // Bypass SSRF validation for localhost WireMock in tests
-    private val fetcher = WsdlContentFetcher(timeoutMs = 5_000L, urlSafetyValidator = { emptyList() })
+    private val fetcher = WsdlContentFetcher(timeoutMs = 5_000L, urlSafetyValidator = { listOf(java.net.InetAddress.getLoopbackAddress()) })
 
     private fun loadWsdl(filename: String): String =
         this::class.java.getResource("/wsdl/$filename")?.readText()

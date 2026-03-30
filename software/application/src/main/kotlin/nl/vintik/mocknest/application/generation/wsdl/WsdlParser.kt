@@ -13,6 +13,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 private val logger = KotlinLogging.logger {}
 
+private const val WSDL_11_NS = "http://schemas.xmlsoap.org/wsdl/"
 private const val SOAP_11_BINDING_NS = "http://schemas.xmlsoap.org/wsdl/soap/"
 private const val SOAP_12_BINDING_NS = "http://schemas.xmlsoap.org/wsdl/soap12/"
 
@@ -42,7 +43,7 @@ class WsdlParser : WsdlParserInterface {
 
         // Step 2: Verify root element is definitions
         val root = document.documentElement
-        if (root.localName != "definitions") {
+        if (root.localName != "definitions" || root.namespaceURI != WSDL_11_NS) {
             throw WsdlParsingException("Not a valid WSDL 1.1 document: missing definitions element")
         }
 
@@ -165,9 +166,11 @@ class WsdlParser : WsdlParserInterface {
     private fun extractMessages(root: Element): Map<String, ParsedMessage> {
         return getElementsByLocalName(root, "message").associate { msgEl ->
             val msgName = msgEl.getAttribute("name")
-            val elementAttr = getElementsByLocalName(msgEl, "part").firstOrNull()
-                ?.getAttribute("element")?.stripPrefix() ?: ""
-            msgName to ParsedMessage(name = msgName, elementName = elementAttr)
+            val part = getElementsByLocalName(msgEl, "part").firstOrNull()
+            val refName = part?.getAttribute("element")?.stripPrefix()?.takeIf { it.isNotBlank() }
+                ?: part?.getAttribute("type")?.stripPrefix()?.takeIf { it.isNotBlank() }
+                ?: ""
+            msgName to ParsedMessage(name = msgName, elementName = refName)
         }
     }
 

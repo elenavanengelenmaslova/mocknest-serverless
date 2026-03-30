@@ -43,7 +43,7 @@ class WsdlUrlPathIntegrationTest {
         wireMockServer = WireMockServer(wireMockConfig().dynamicPort())
         wireMockServer.start()
         // Bypass SSRF validation for localhost WireMock in tests
-        fetcher = WsdlContentFetcher(timeoutMs = 5_000L, urlSafetyValidator = { emptyList() })
+        fetcher = WsdlContentFetcher(timeoutMs = 5_000L, urlSafetyValidator = { listOf(java.net.InetAddress.getLoopbackAddress()) })
         parser = WsdlSpecificationParser(fetcher, WsdlParser(), WsdlSchemaReducer())
     }
 
