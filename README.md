@@ -40,12 +40,14 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 ## Features
 
 ### Current Features
-- **Serverless Mock Runtime**: WireMock compatible API running on AWS Lambda
-- **Persistent Mock Storage**: Mock definitions stored in Amazon S3
-- **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
-- **AI-Assisted Mock Generation**: Intelligent mock creation from REST, SOAP/WSDL, and GraphQL API specifications using Bedrock with a configurable model, defaulted to Amazon Nova Pro
-- **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR) or deploy via SAM
-- **Performance Optimized**: Lambda SnapStart enabled for reduced cold start latency
+- **Serve Mock Responses**: Call mocked REST, SOAP, and GraphQL endpoints like real APIs — from tests, apps, or CI/CD pipelines
+- **Manage Mocks via API (CRUD)**: Create, update, and delete individual mock definitions through a simple REST interface or Postman
+- **WireMock-Compatible Mock Format**: Mock definitions use the WireMock mapping format — reuse existing WireMock stubs or leverage the WireMock ecosystem directly
+- **Import & Export Mock Sets**: Bulk-import mappings from JSON to replicate environments or onboard quickly
+- **Persistent Across Deployments**: Mock definitions survive Lambda cold starts and redeployments via Amazon S3
+- **AI-Assisted Mock Generation**: Generate realistic, consistent mocks from OpenAPI, WSDL/SOAP, or GraphQL specs using Amazon Bedrock (configurable model, defaults to Amazon Nova Pro)
+- **One-Click Deployment**: Deploy via AWS Serverless Application Repository (SAR) or build from source with SAM
+- **Low Latency**: Lambda SnapStart minimises cold start times
 
 ### Planned Features
 See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslova/projects/3) 

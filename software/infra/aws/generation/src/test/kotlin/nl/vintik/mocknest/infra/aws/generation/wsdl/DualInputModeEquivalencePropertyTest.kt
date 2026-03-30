@@ -73,7 +73,7 @@ class DualInputModeEquivalencePropertyTest {
 
     @ParameterizedTest
     @MethodSource("wsdlFiles")
-    fun `Property 1 - Dual Input Mode Equivalence`(filename: String) = runTest {
+    fun givenSameWsdl_whenParsedFromInlineAndUrl_thenSpecificationsMatch(filename: String) = runTest {
         // Given
         val wsdlContent = loadWsdl(filename)
         val path = "/$filename"

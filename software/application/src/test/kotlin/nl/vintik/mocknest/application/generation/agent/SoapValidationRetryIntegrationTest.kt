@@ -304,7 +304,7 @@ class SoapValidationRetryIntegrationTest {
 
                 coEvery {
                     aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), any())
-                } returns GenerationResult.success("job-soap-uncorr-1", emptyList())
+                } returns GenerationResult.success("job-soap-uncorr-1", listOf(invalidMock))
 
                 val mockValidator: MockValidatorInterface = mockk()
                 coEvery { mockValidator.validate(invalidMock, any()) } returns MockValidationResult.invalid(
@@ -344,7 +344,7 @@ class SoapValidationRetryIntegrationTest {
 
             coEvery {
                 aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), any())
-            } returns GenerationResult.success("job-soap-uncorr-2", emptyList())
+            } returns GenerationResult.success("job-soap-uncorr-2", listOf(invalidMock))
 
             val mockValidator: MockValidatorInterface = mockk()
             coEvery { mockValidator.validate(invalidMock, any()) } returns MockValidationResult.invalid(
@@ -381,15 +381,14 @@ class SoapValidationRetryIntegrationTest {
         fun `Given maxRetries of 3 When all SOAP attempts fail Then should respect the retry limit`() = runTest {
             // Given
             var strategyCallCount = 0
+            val invalidMock = buildInvalidSoap11Mock()
 
             coEvery {
                 aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), any())
             } answers {
                 strategyCallCount++
-                GenerationResult.success("job-soap-uncorr-3", emptyList())
+                GenerationResult.success("job-soap-uncorr-3", listOf(invalidMock))
             }
-
-            val invalidMock = buildInvalidSoap11Mock()
             val mockValidator: MockValidatorInterface = mockk()
             coEvery { mockValidator.validate(invalidMock, any()) } returns MockValidationResult.invalid(
                 listOf("Persistent SOAP validation error that cannot be corrected")
@@ -436,7 +435,7 @@ class SoapValidationRetryIntegrationTest {
 
             coEvery {
                 aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), any())
-            } returns GenerationResult.success("job-soap-uncorr-4", emptyList())
+            } returns GenerationResult.success("job-soap-uncorr-4", listOf(invalidMock))
 
             val mockValidator: MockValidatorInterface = mockk()
             coEvery { mockValidator.validate(invalidMock, any()) } returns MockValidationResult.invalid(

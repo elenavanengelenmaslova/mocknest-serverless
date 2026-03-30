@@ -98,7 +98,7 @@ class WsdlContentFetcher(
         if (body.isBlank()) {
             throw WsdlFetchException("Response from $sanitizedUrl is not valid XML: empty response body")
         }
-        val trimmed = body.trimStart()
+        val trimmed = body.dropWhile { it == '\uFEFF' || it.isWhitespace() }
         val looksLikeXml = trimmed.startsWith("<?xml") || trimmed.startsWith("<")
         if (!looksLikeXml) {
             throw WsdlFetchException("Response from $sanitizedUrl is not valid XML")

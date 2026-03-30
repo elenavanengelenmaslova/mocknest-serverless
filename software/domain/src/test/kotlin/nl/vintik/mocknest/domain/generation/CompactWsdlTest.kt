@@ -122,6 +122,13 @@ class CompactWsdlTest {
                 mockOperation(outputMessage = "")
             }
         }
+
+        @Test
+        fun `Given blank port type name When creating WsdlOperation Then should throw`() {
+            assertThrows<IllegalArgumentException> {
+                mockOperation(portTypeName = "")
+            }
+        }
     }
 
     @Nested
