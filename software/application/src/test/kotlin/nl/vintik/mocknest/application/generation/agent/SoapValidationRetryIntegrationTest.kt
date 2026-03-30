@@ -135,18 +135,10 @@ class SoapValidationRetryIntegrationTest {
                 val invalidMock = buildInvalidSoap11Mock()
                 val validMock = buildValidSoap11Mock()
 
-                // First call returns invalid mock; second call (retry) returns valid mock
-                var callCount = 0
+                // runStrategy encapsulates the full retry loop internally; mock returns the corrected result
                 coEvery {
                     aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), any())
-                } answers {
-                    callCount++
-                    if (callCount == 1) {
-                        GenerationResult.success("job-soap-retry-1", listOf(invalidMock))
-                    } else {
-                        GenerationResult.success("job-soap-retry-1", listOf(validMock))
-                    }
-                }
+                } returns GenerationResult.success("job-soap-retry-1", listOf(validMock))
 
                 val mockValidator: MockValidatorInterface = mockk()
                 coEvery { mockValidator.validate(invalidMock, any()) } returns MockValidationResult.invalid(
@@ -185,6 +177,7 @@ class SoapValidationRetryIntegrationTest {
                     returnedMocks.any { it.id == validMock.id },
                     "The corrected mock should be returned after retry"
                 )
+            }
 
         @Test
         fun `Given SOAP validation errors When retrying Then should feed errors back to AI service`() = runTest {
