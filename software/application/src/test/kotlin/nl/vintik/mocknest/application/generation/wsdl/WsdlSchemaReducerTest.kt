@@ -59,6 +59,7 @@ class WsdlSchemaReducerTest {
             // Customer is referenced by Order.customer field
             assertTrue(result.xsdTypes.containsKey("GetOrderResponse"))
             assertTrue(result.xsdTypes.containsKey("Order"))
+            assertTrue(result.xsdTypes.containsKey("Customer"))
         }
     }
 
