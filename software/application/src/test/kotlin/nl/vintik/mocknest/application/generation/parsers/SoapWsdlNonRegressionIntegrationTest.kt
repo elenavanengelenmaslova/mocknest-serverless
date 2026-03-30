@@ -92,14 +92,13 @@ class SoapWsdlNonRegressionIntegrationTest {
             // Then — all HTTP methods must still be extracted correctly
             val validMethods = setOf(
                 HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT,
-                HttpMethod.DELETE, HttpMethod.PATCH
+                HttpMethod.DELETE
             )
-            spec.endpoints.forEach { endpoint ->
-                assertTrue(
-                    endpoint.method in validMethods,
-                    "Endpoint ${endpoint.path} has invalid method: ${endpoint.method}"
-                )
-            }
+            val extractedMethods = spec.endpoints.map { it.method }.toSet()
+            assertEquals(
+                validMethods, extractedMethods,
+                "Extracted methods must match the expected CRUD set exactly"
+            )
         }
 
         @Test
