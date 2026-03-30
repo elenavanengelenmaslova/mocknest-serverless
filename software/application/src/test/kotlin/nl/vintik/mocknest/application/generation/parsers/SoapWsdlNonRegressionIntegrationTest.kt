@@ -14,10 +14,9 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -262,7 +261,7 @@ class SoapWsdlNonRegressionIntegrationTest {
                       "request": {
                         "method": "POST",
                         "urlPath": "/graphql",
-                        "bodyPatterns": [{"equalToJson": "{\"query\":\"query { user { id name } }\",\"operationName\":\"user\",\"variables\":{}}"}]
+                        "bodyPatterns": [{"equalToJson": "{\"query\":\"query user(${'$'}id: ID!) { user(id: ${'$'}id) { id name } }\",\"operationName\":\"user\",\"variables\":{\"id\":\"1\"}}"}]
                       },
                       "response": {
                         "status": 200,
@@ -282,7 +281,11 @@ class SoapWsdlNonRegressionIntegrationTest {
             val content = loadGraphQLSchema("simple-schema.json")
             val spec = graphqlParser.parse(content, SpecificationFormat.GRAPHQL)
 
-            // When — SoapMockValidator should return valid() for non-WSDL specs
+            // When — validate with the actual GraphQL validator
+            val graphqlResult = graphqlValidator.validate(validGraphQLMock, spec)
+            assertTrue(graphqlResult.isValid, "GraphQLMockValidator should validate a valid GraphQL mock. Errors: ${graphqlResult.errors}")
+
+            // And — SOAP validator should pass through for non-WSDL specs
             val soapResult = soapValidator.validate(validGraphQLMock, spec)
             assertTrue(soapResult.isValid, "SoapMockValidator should return valid() for non-WSDL spec")
         }
