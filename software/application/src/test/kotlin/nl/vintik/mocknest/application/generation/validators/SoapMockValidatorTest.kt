@@ -761,7 +761,7 @@ class SoapMockValidatorTest {
     inner class ContentTypeAbsent {
 
         @Test
-        fun `Given response with no headers section When validating Then Content-Type rule is skipped`() = runTest {
+        fun `Given response with no headers section When validating Then Content-Type validation fails`() = runTest {
             val spec = soap11Specification()
             val mapping = """
                 {
@@ -780,12 +780,13 @@ class SoapMockValidatorTest {
 
             val result = validator.validate(createMock("no-headers", mapping), spec)
 
-            // No Content-Type header → rule 7 is skipped, other rules pass
-            assertTrue(result.isValid, "Missing headers section should skip Content-Type rule. Errors: ${result.errors}")
+            // No headers section → Content-Type is required, validation must fail
+            assertFalse(result.isValid, "Missing headers section should produce a Content-Type validation failure")
+            assertTrue(result.errors.any { it.contains("Content-Type") }, "Error should mention Content-Type. Errors: ${result.errors}")
         }
 
         @Test
-        fun `Given response headers without Content-Type When validating Then Content-Type rule is skipped`() = runTest {
+        fun `Given response headers without Content-Type When validating Then Content-Type validation fails`() = runTest {
             val spec = soap11Specification()
             val mapping = """
                 {
@@ -805,8 +806,9 @@ class SoapMockValidatorTest {
 
             val result = validator.validate(createMock("no-content-type", mapping), spec)
 
-            // No Content-Type entry → rule 7 is skipped
-            assertTrue(result.isValid, "Missing Content-Type header should skip rule 7. Errors: ${result.errors}")
+            // No Content-Type entry → validation must fail
+            assertFalse(result.isValid, "Missing Content-Type header should produce a validation failure")
+            assertTrue(result.errors.any { it.contains("Content-Type") }, "Error should mention Content-Type. Errors: ${result.errors}")
         }
     }
 

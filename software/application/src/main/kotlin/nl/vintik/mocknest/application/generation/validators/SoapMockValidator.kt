@@ -272,11 +272,12 @@ class SoapMockValidator : MockValidatorInterface {
         responseNode: JsonObject,
         soapVersion: SoapVersion
     ): List<String> {
-        val headers = responseNode["headers"]?.jsonObject ?: return emptyList()
+        val headers = responseNode["headers"]?.jsonObject
+            ?: return listOf("Response is missing 'headers'; expected a Content-Type header")
 
         val contentTypeEntry = headers.entries
             .firstOrNull { it.key.equals("Content-Type", ignoreCase = true) }
-            ?: return emptyList()
+            ?: return listOf("Response headers are missing the required 'Content-Type' header")
 
         val contentType = contentTypeEntry.value.jsonPrimitive.content
         val expectedContentType = soapVersion.contentType
