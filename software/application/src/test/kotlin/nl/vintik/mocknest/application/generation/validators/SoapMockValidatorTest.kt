@@ -707,7 +707,7 @@ class SoapMockValidatorTest {
                   "request": {
                     "method": "POST",
                     "headers": {
-                      "SOAPAction": { "contains": "SayHello" }
+                      "SOAPAction": { "contains": "http://example.com/hello/SayHello" }
                     }
                   },
                   "response": {

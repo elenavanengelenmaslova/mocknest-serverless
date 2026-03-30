@@ -12,6 +12,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import nl.vintik.mocknest.application.generation.interfaces.MockValidationResult
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.domain.generation.APISpecification
+import nl.vintik.mocknest.domain.generation.EndpointDefinition
 import nl.vintik.mocknest.domain.generation.GeneratedMock
 import nl.vintik.mocknest.domain.generation.SoapVersion
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
@@ -49,7 +50,6 @@ class SoapMockValidator : MockValidatorInterface {
                 ?: return MockValidationResult.invalid(listOf("Missing response section in WireMock mapping"))
 
             val soapVersion = resolveSoapVersion(specification)
-            val operationNames = specification.endpoints.mapNotNull { it.operationId }.toSet()
             val targetNamespace = specification.metadata["targetNamespace"] ?: ""
 
             // Rule 1: Request method must be POST
@@ -59,7 +59,7 @@ class SoapMockValidator : MockValidatorInterface {
             }
 
             // Rule 2: SOAPAction / action in Content-Type references a valid operation
-            errors.addAll(validateSoapAction(requestNode, soapVersion, operationNames))
+            errors.addAll(validateSoapAction(requestNode, soapVersion, specification.endpoints))
 
             // Rules 3–6: Response body XML validation
             val responseBody = extractResponseBody(responseNode)
@@ -106,7 +106,7 @@ class SoapMockValidator : MockValidatorInterface {
     private fun validateSoapAction(
         requestNode: JsonObject,
         soapVersion: SoapVersion,
-        operationNames: Set<String>
+        endpoints: List<EndpointDefinition>
     ): List<String> {
         val headers = requestNode["headers"]?.jsonObject
 
@@ -135,11 +135,17 @@ class SoapMockValidator : MockValidatorInterface {
         // Strip surrounding quotes if present
         val cleanAction = action.trim().removeSurrounding("\"")
 
-        // Check if the action matches any operation name (by name or soapAction value)
-        val matchesOperation = operationNames.any { opName ->
-            cleanAction.equals(opName, ignoreCase = true) ||
-                cleanAction.endsWith("/$opName") ||
-                cleanAction.endsWith("#$opName")
+        // Check if the action matches any endpoint: exact soapAction metadata match when available, fallback otherwise
+        val matchesOperation = endpoints.any { endpoint ->
+            val metaSoapAction = endpoint.metadata["soapAction"]
+            if (metaSoapAction != null) {
+                cleanAction == metaSoapAction
+            } else {
+                val opName = endpoint.operationId ?: return@any false
+                cleanAction.equals(opName, ignoreCase = true) ||
+                    cleanAction.endsWith("/$opName") ||
+                    cleanAction.endsWith("#$opName")
+            }
         }
 
         return if (!matchesOperation) {

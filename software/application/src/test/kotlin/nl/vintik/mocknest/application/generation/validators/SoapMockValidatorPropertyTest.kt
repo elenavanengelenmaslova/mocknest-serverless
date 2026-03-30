@@ -364,7 +364,7 @@ class SoapMockValidatorPropertyTest {
                       "request": {
                         "method": "POST",
                         "urlPath": "/greet",
-                        "headers": { "Content-Type": { "equalTo": "application/soap+xml; charset=utf-8; action=\"Greet\"" } }
+                        "headers": { "Content-Type": { "equalTo": "application/soap+xml; charset=utf-8; action=\"http://example.com/greet/Greet\"" } }
                       },
                       "response": {
                         "status": 200,
@@ -388,7 +388,7 @@ class SoapMockValidatorPropertyTest {
                       "request": {
                         "method": "POST",
                         "urlPath": "/greet",
-                        "headers": { "Content-Type": { "equalTo": "application/soap+xml; action=\"Greet\"" } }
+                        "headers": { "Content-Type": { "equalTo": "application/soap+xml; action=\"http://example.com/greet/Greet\"" } }
                       },
                       "response": {
                         "status": 200,
