@@ -68,7 +68,7 @@ class WsdlUrlPathWiringTest {
                     )
             )
 
-            val realFetcher = WsdlContentFetcher(timeoutMs = 5_000L, urlSafetyValidator = {})
+            val realFetcher = WsdlContentFetcher(timeoutMs = 5_000L, urlSafetyValidator = { emptyList() })
             val parser = WsdlSpecificationParser(realFetcher, WsdlParser(), WsdlSchemaReducer())
             val url = "http://localhost:${wireMockServer.port()}/service.wsdl"
 
@@ -95,7 +95,7 @@ class WsdlUrlPathWiringTest {
                     )
             )
 
-            val realFetcher = WsdlContentFetcher(timeoutMs = 5_000L, urlSafetyValidator = {})
+            val realFetcher = WsdlContentFetcher(timeoutMs = 5_000L, urlSafetyValidator = { emptyList() })
             val parser = WsdlSpecificationParser(realFetcher, WsdlParser(), WsdlSchemaReducer())
             val url = "http://localhost:${wireMockServer.port()}/calculator.wsdl"
 

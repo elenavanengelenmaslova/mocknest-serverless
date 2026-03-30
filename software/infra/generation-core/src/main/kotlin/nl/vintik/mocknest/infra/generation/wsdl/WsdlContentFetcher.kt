@@ -11,6 +11,8 @@ import okio.ForwardingSource
 import okio.Source
 import okio.buffer
 import java.io.IOException
+import java.net.InetAddress
+import java.net.URI
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -31,7 +33,7 @@ private const val MAX_BODY_BYTES = 10L * 1024 * 1024 // 10 MiB
  */
 class WsdlContentFetcher(
     private val timeoutMs: Long = DEFAULT_TIMEOUT_MS,
-    private val urlSafetyValidator: (String) -> Unit = { SafeUrlResolver.validateUrlSafety(it) }
+    private val urlSafetyValidator: (String) -> List<InetAddress> = { SafeUrlResolver.validateAndResolve(it) }
 ) : WsdlContentFetcherInterface {
 
     private val client: OkHttpClient by lazy {
@@ -47,13 +49,21 @@ class WsdlContentFetcher(
     override suspend fun fetch(url: String): String {
         logger.info { "Fetching WSDL from URL: ${SafeUrlResolver.sanitizeUrlForLogging(url)}" }
 
-        // Validate URL safety before any network call (SSRF protection)
-        runCatching {
+        // Validate URL safety and resolve DNS once (SSRF + DNS-rebinding protection)
+        val validatedAddresses = runCatching {
             urlSafetyValidator(url)
-        }.onFailure { e ->
+        }.getOrElse { e ->
             val msg = "URL failed safety validation: ${e.message}"
             logger.warn(e) { msg }
             throw WsdlFetchException(msg, e)
+        }
+
+        // Pin OkHttp to the validated IPs so DNS cannot rebind between check and use
+        val pinnedClient = if (validatedAddresses.isNotEmpty()) {
+            val host = URI(url.trim()).host
+            client.newBuilder().dns(PinnedDns(host, validatedAddresses)).build()
+        } else {
+            client
         }
 
         val request = runCatching {
@@ -69,7 +79,7 @@ class WsdlContentFetcher(
         }
 
         return runCatching {
-            client.newCall(request).executeAsync()
+            pinnedClient.newCall(request).executeAsync()
         }.fold(
             onSuccess = { body ->
                 validateXml(body, url)
@@ -103,6 +113,20 @@ class WsdlContentFetcher(
         if (!looksLikeXml) {
             throw WsdlFetchException("Response from $sanitizedUrl is not valid XML")
         }
+    }
+}
+
+/**
+ * OkHttp [Dns] that returns pre-resolved addresses for a single pinned hostname,
+ * preventing DNS rebinding between SSRF validation and the actual HTTP request.
+ */
+private class PinnedDns(
+    private val pinnedHost: String,
+    private val addresses: List<InetAddress>
+) : Dns {
+    override fun lookup(hostname: String): List<InetAddress> {
+        return if (hostname.equals(pinnedHost, ignoreCase = true)) addresses
+        else Dns.SYSTEM.lookup(hostname)
     }
 }
 

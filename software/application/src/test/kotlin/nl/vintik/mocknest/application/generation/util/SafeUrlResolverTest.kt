@@ -171,6 +171,47 @@ class SafeUrlResolverTest {
     }
 
     @Nested
+    inner class ValidateAndResolve {
+
+        @Test
+        fun `Given valid external IP URL When validating Then returns resolved addresses`() {
+            val addresses = SafeUrlResolver.validateAndResolve("https://8.8.8.8/api")
+            assertTrue(addresses.isNotEmpty(), "Should return at least one resolved address")
+        }
+
+        @Test
+        fun `Given loopback URL When validating Then throws UrlResolutionException`() {
+            val exception = assertFailsWith<UrlResolutionException> {
+                SafeUrlResolver.validateAndResolve("http://127.0.0.1/api")
+            }
+            assertTrue(exception.message!!.contains("unsafe address"))
+        }
+
+        @Test
+        fun `Given private IP URL When validating Then throws UrlResolutionException`() {
+            assertFailsWith<UrlResolutionException> {
+                SafeUrlResolver.validateAndResolve("http://192.168.1.1/api")
+            }
+        }
+
+        @Test
+        fun `Given FTP scheme When validating Then throws UrlResolutionException`() {
+            val exception = assertFailsWith<UrlResolutionException> {
+                SafeUrlResolver.validateAndResolve("ftp://example.com/file")
+            }
+            assertTrue(exception.message!!.contains("Unsupported URL scheme"))
+        }
+
+        @Test
+        fun `Given URL with no host When validating Then throws UrlResolutionException`() {
+            val exception = assertFailsWith<UrlResolutionException> {
+                SafeUrlResolver.validateAndResolve("http:///path")
+            }
+            assertTrue(exception.message!!.contains("no host"))
+        }
+    }
+
+    @Nested
     inner class Fetch {
 
         @Test

@@ -116,6 +116,35 @@ class SafeUrlResolver(
          * Validates a URL is safe to fetch (no SSRF to internal networks).
          * Throws [UrlResolutionException] if the URL targets a forbidden address.
          */
+        fun validateAndResolve(url: String): List<InetAddress> {
+            val uri = runCatching {
+                URI(url.trim())
+            }.getOrElse { e ->
+                throw UrlResolutionException("Invalid URL", e)
+            }
+
+            val scheme = uri.scheme?.lowercase()
+            if (scheme !in ALLOWED_SCHEMES) {
+                throw UrlResolutionException("Unsupported URL scheme: $scheme (only HTTP and HTTPS are allowed)")
+            }
+
+            val host = uri.host
+                ?: throw UrlResolutionException("URL has no host")
+
+            val addresses = runCatching {
+                InetAddress.getAllByName(host)
+            }.getOrElse { e ->
+                throw UrlResolutionException("Cannot resolve host: $host", e)
+            }
+
+            for (address in addresses) {
+                if (isUnsafeAddress(address)) {
+                    throw UrlResolutionException("URL targets an unsafe address: $host")
+                }
+            }
+            return addresses.toList()
+        }
+
         fun validateUrlSafety(url: String) {
             val uri = runCatching {
                 URI(url.trim())
