@@ -118,6 +118,7 @@ dependencies {
     // Add Kover dependencies for aggregation
     kover(project(":software:domain"))
     kover(project(":software:application"))
+    kover(project(":software:infra:generation-core"))
     kover(project(":software:infra:aws:runtime"))
     kover(project(":software:infra:aws:mocknest"))
     kover(project(":software:infra:aws:generation"))

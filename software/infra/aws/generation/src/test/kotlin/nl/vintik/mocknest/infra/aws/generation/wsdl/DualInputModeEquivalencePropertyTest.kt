@@ -10,6 +10,7 @@ import nl.vintik.mocknest.application.generation.parsers.WsdlSpecificationParser
 import nl.vintik.mocknest.application.generation.wsdl.WsdlParser
 import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducer
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
+import nl.vintik.mocknest.infra.generation.wsdl.WsdlContentFetcher
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Tag

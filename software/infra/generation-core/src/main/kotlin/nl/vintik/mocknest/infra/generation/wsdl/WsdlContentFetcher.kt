@@ -1,4 +1,4 @@
-package nl.vintik.mocknest.infra.aws.generation.wsdl
+package nl.vintik.mocknest.infra.generation.wsdl
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.suspendCancellableCoroutine

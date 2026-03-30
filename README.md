@@ -40,7 +40,7 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 ## Features
 
 ### Current Features
-- **Serverless WireMock Runtime**: Full WireMock API running on AWS Lambda
+- **Serverless Mock Runtime**: WireMock compatible API running on AWS Lambda
 - **Persistent Mock Storage**: Mock definitions stored in Amazon S3
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
 - **AI-Assisted Mock Generation**: Intelligent mock creation from REST, SOAP/WSDL, and GraphQL API specifications using Bedrock with a configurable model, defaulted to Amazon Nova Pro

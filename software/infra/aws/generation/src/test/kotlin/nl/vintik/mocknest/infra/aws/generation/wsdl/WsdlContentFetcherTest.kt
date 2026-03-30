@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import nl.vintik.mocknest.infra.generation.wsdl.WsdlContentFetcher
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue

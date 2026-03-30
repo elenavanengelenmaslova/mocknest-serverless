@@ -8,7 +8,7 @@ import nl.vintik.mocknest.application.generation.wsdl.WsdlParser
 import nl.vintik.mocknest.application.generation.wsdl.WsdlParserInterface
 import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducer
 import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducerInterface
-import nl.vintik.mocknest.infra.aws.generation.wsdl.WsdlContentFetcher
+import nl.vintik.mocknest.infra.generation.wsdl.WsdlContentFetcher
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 

@@ -9,6 +9,9 @@ dependencies {
     api(project(":software:domain"))
     api(project(":software:application"))
 
+    // Generic infra (non-AWS) generation utilities — includes WsdlContentFetcher
+    implementation(project(":software:infra:generation-core"))
+
     // Spring Boot - exclude embedded servers (no web starter, just core)
     api("org.springframework.boot:spring-boot-starter") {
         exclude(group = "org.springframework.boot", module = "spring-boot-starter-tomcat")
