@@ -24,6 +24,13 @@ class WsdlParser : WsdlParserInterface {
         val document = runCatching {
             val factory = DocumentBuilderFactory.newInstance().apply {
                 isNamespaceAware = true
+                // Prevent XXE attacks
+                setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+                setFeature("http://xml.org/sax/features/external-general-entities", false)
+                setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+                setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+                isXIncludeAware = false
+                isExpandEntityReferences = false
             }
             val builder = factory.newDocumentBuilder()
             builder.parse(InputSource(StringReader(wsdlXml)))
