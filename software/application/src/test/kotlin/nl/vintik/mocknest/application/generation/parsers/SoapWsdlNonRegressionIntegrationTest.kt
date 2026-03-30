@@ -178,6 +178,7 @@ class SoapWsdlNonRegressionIntegrationTest {
             val result = openApiValidator.validate(validOpenApiMock, spec)
 
             // Then — OpenAPI validator should still work correctly
+            assertTrue(result.isValid, "OpenAPIMockValidator should validate the provided OpenAPI mock")
             // (SoapMockValidator should return valid() for non-WSDL specs)
             val soapResult = soapValidator.validate(validOpenApiMock, spec)
             assertTrue(soapResult.isValid, "SoapMockValidator should return valid() for non-WSDL spec")

@@ -128,7 +128,7 @@ class SoapMockValidator : MockValidatorInterface {
         }
 
         if (action == null) {
-            return listOf("SOAPAction '${action}' does not match any operation in the WSDL")
+            return listOf("Missing SOAPAction header")
         }
 
         // Strip surrounding quotes if present
