@@ -173,4 +173,107 @@ class WsdlSpecificationParserTest {
             coVerify(exactly = 0) { contentFetcher.fetch(any()) }
         }
     }
+
+    @Nested
+    inner class ValidateMethod {
+
+        @Test
+        fun `Given valid WSDL inline XML When validating Then should return valid result`() = runTest {
+            // Given
+            val wsdlXml = loadWsdl("simple-soap11.wsdl")
+
+            // When
+            val result = parser.validate(wsdlXml, SpecificationFormat.WSDL)
+
+            // Then
+            assertTrue(result.isValid)
+            assertTrue(result.errors.isEmpty())
+        }
+
+        @Test
+        fun `Given malformed WSDL inline XML When validating Then should return invalid result with error`() = runTest {
+            // Given
+            val malformedXml = loadWsdl("malformed.wsdl")
+
+            // When
+            val result = parser.validate(malformedXml, SpecificationFormat.WSDL)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(result.errors.isNotEmpty())
+        }
+
+        @Test
+        fun `Given WSDL with no operations When validating Then should return invalid result`() = runTest {
+            // Given
+            val noOpsXml = loadWsdl("invalid-no-operations.wsdl")
+
+            // When
+            val result = parser.validate(noOpsXml, SpecificationFormat.WSDL)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(result.errors.isNotEmpty())
+        }
+
+        @Test
+        fun `Given wrong format When validating Then should throw IllegalArgumentException`() = runTest {
+            // Given / When / Then
+            assertFailsWith<IllegalArgumentException> {
+                parser.validate("content", SpecificationFormat.OPENAPI_3)
+            }
+        }
+    }
+
+    @Nested
+    inner class ExtractMetadataMethod {
+
+        @Test
+        fun `Given valid SOAP 1_1 WSDL When extracting metadata Then should return correct metadata`() = runTest {
+            // Given
+            val wsdlXml = loadWsdl("simple-soap11.wsdl")
+
+            // When
+            val metadata = parser.extractMetadata(wsdlXml, SpecificationFormat.WSDL)
+
+            // Then
+            assertEquals("HelloService", metadata.title)
+            assertEquals("1.0", metadata.version)
+            assertEquals(SpecificationFormat.WSDL, metadata.format)
+            assertTrue(metadata.endpointCount > 0)
+        }
+
+        @Test
+        fun `Given calculator WSDL When extracting metadata Then should return correct operation count`() = runTest {
+            // Given
+            val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+
+            // When
+            val metadata = parser.extractMetadata(wsdlXml, SpecificationFormat.WSDL)
+
+            // Then
+            assertEquals("CalculatorService", metadata.title)
+            assertEquals(3, metadata.endpointCount) // Add, Subtract, Multiply
+        }
+
+        @Test
+        fun `Given WSDL with XSD types When extracting metadata Then should return correct schema count`() = runTest {
+            // Given
+            val wsdlXml = loadWsdl("complex-types-soap11.wsdl")
+
+            // When
+            val metadata = parser.extractMetadata(wsdlXml, SpecificationFormat.WSDL)
+
+            // Then
+            assertTrue(metadata.schemaCount > 0)
+        }
+
+        @Test
+        fun `Given wrong format When extracting metadata Then should throw IllegalArgumentException`() = runTest {
+            // Given / When / Then
+            assertFailsWith<IllegalArgumentException> {
+                parser.extractMetadata("content", SpecificationFormat.GRAPHQL)
+            }
+        }
+    }
 }

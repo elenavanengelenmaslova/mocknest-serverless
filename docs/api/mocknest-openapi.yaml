@@ -55,8 +55,7 @@ paths:
         - OpenAPI 3.x (fully tested)
         - Swagger 2.0 (experimental - supported but not extensively tested)
         - GraphQL (via introspection endpoint URL or pre-fetched introspection JSON)
-
-        **Current Limitations**: SOAP API generation is not yet supported.
+        - WSDL/SOAP 1.1 and SOAP 1.2 (via inline XML content or remote URL)
       tags:
         - AI Generation
       requestBody:
@@ -86,6 +85,72 @@ paths:
                   specificationUrl: "https://example.com/graphql"
                   format: GRAPHQL
                   description: "Generate mocks for user and product queries, returning realistic test data with consistent IDs across related operations"
+                  options:
+                    enableValidation: true
+              soap-generation-url:
+                summary: Generate mocks from WSDL URL (SOAP 1.1)
+                value:
+                  namespace:
+                    apiName: calculator
+                    client: null
+                  specificationUrl: "http://www.dneonline.com/calculator.asmx?WSDL"
+                  format: WSDL
+                  description: "Generate mocks for all calculator operations (Add, Subtract, Multiply, Divide) with realistic integer inputs and outputs"
+                  options:
+                    enableValidation: true
+              soap-generation-inline:
+                summary: Generate mocks from inline WSDL XML content (SOAP 1.1)
+                value:
+                  namespace:
+                    apiName: calculator
+                    client: null
+                  specification: |
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                                      xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+                                      xmlns:tns="http://tempuri.org/"
+                                      xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                                      targetNamespace="http://tempuri.org/"
+                                      name="CalculatorService">
+                      <wsdl:types>
+                        <xsd:schema targetNamespace="http://tempuri.org/">
+                          <xsd:element name="Add">
+                            <xsd:complexType><xsd:sequence>
+                              <xsd:element name="intA" type="xsd:int"/>
+                              <xsd:element name="intB" type="xsd:int"/>
+                            </xsd:sequence></xsd:complexType>
+                          </xsd:element>
+                          <xsd:element name="AddResponse">
+                            <xsd:complexType><xsd:sequence>
+                              <xsd:element name="AddResult" type="xsd:int"/>
+                            </xsd:sequence></xsd:complexType>
+                          </xsd:element>
+                        </xsd:schema>
+                      </wsdl:types>
+                      <wsdl:message name="AddSoapIn"><wsdl:part name="parameters" element="tns:Add"/></wsdl:message>
+                      <wsdl:message name="AddSoapOut"><wsdl:part name="parameters" element="tns:AddResponse"/></wsdl:message>
+                      <wsdl:portType name="CalculatorSoap">
+                        <wsdl:operation name="Add">
+                          <wsdl:input message="tns:AddSoapIn"/>
+                          <wsdl:output message="tns:AddSoapOut"/>
+                        </wsdl:operation>
+                      </wsdl:portType>
+                      <wsdl:binding name="CalculatorSoap" type="tns:CalculatorSoap">
+                        <soap:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+                        <wsdl:operation name="Add">
+                          <soap:operation soapAction="http://tempuri.org/Add"/>
+                          <wsdl:input><soap:body use="literal"/></wsdl:input>
+                          <wsdl:output><soap:body use="literal"/></wsdl:output>
+                        </wsdl:operation>
+                      </wsdl:binding>
+                      <wsdl:service name="CalculatorService">
+                        <wsdl:port name="CalculatorSoap" binding="tns:CalculatorSoap">
+                          <soap:address location="http://www.dneonline.com/calculator.asmx"/>
+                        </wsdl:port>
+                      </wsdl:service>
+                    </wsdl:definitions>
+                  format: WSDL
+                  description: "Generate mocks for the Add operation returning realistic integer results"
                   options:
                     enableValidation: true
       responses:
@@ -194,6 +259,50 @@ paths:
                         status: "available"
                         photoUrls:
                           - "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+              soap-generation-response:
+                summary: Generated SOAP WireMock mappings (SOAP 1.1 calculator)
+                value:
+                  mappings:
+                    - priority: 1
+                      persistent: true
+                      request:
+                        method: POST
+                        headers:
+                          SOAPAction:
+                            equalTo: "http://tempuri.org/Add"
+                      response:
+                        status: 200
+                        headers:
+                          Content-Type: "text/xml; charset=utf-8"
+                        body: |
+                          <?xml version="1.0" encoding="utf-8"?>
+                          <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                            <soap:Body>
+                              <AddResponse xmlns="http://tempuri.org/">
+                                <AddResult>42</AddResult>
+                              </AddResponse>
+                            </soap:Body>
+                          </soap:Envelope>
+                    - priority: 1
+                      persistent: true
+                      request:
+                        method: POST
+                        headers:
+                          SOAPAction:
+                            equalTo: "http://tempuri.org/Subtract"
+                      response:
+                        status: 200
+                        headers:
+                          Content-Type: "text/xml; charset=utf-8"
+                        body: |
+                          <?xml version="1.0" encoding="utf-8"?>
+                          <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                            <soap:Body>
+                              <SubtractResponse xmlns="http://tempuri.org/">
+                                <SubtractResult>10</SubtractResult>
+                              </SubtractResponse>
+                            </soap:Body>
+                          </soap:Envelope>
         '400':
           description: Invalid specification or parameters
           content:

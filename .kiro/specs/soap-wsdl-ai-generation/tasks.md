@@ -370,8 +370,8 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - _Requirements: 10.4, 12.11_
 
 
-- [ ] 5. Phase 5: Documentation, test data, and coverage verification
-  - [ ] 5.1 Create WSDL test data files in `src/test/resources/wsdl/`
+- [x] 5. Phase 5: Documentation, test data, and coverage verification
+  - [x] 5.1 Create WSDL test data files in `src/test/resources/wsdl/`
     - Create the following 14 WSDL test data files (place in the relevant module's `src/test/resources/wsdl/` directory):
       - `simple-soap11.wsdl` — Minimal SOAP 1.1 service, 1 operation, no XSD types
       - `simple-soap12.wsdl` — Minimal SOAP 1.2 service, 1 operation, no XSD types
@@ -389,14 +389,14 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
       - `invalid-no-operations.wsdl` — Valid XML but no WSDL operations for error testing
     - _Requirements: 12.7_
 
-  - [ ] 5.2 Update API documentation with SOAP/WSDL examples
+  - [x] 5.2 Update API documentation with SOAP/WSDL examples
     - Update `docs/api/mocknest-openapi.yaml` to document the WSDL input mode for `POST /ai/generation/from-spec`
     - Add example request with `format: WSDL` and inline XML content
     - Add example request with `format: WSDL` and `specificationUrl` pointing to a WSDL endpoint
     - Add example response showing generated SOAP WireMock mappings
     - _Requirements: 1.1, 1.2_
 
-  - [ ] 5.3 Update `docs/USAGE.md` with SOAP AI generation section
+  - [x] 5.3 Update `docs/USAGE.md` with SOAP AI generation section
     - Add a new "Generate Mocks from SOAP/WSDL" subsection under "AI-Assisted Mock Generation" (after the GraphQL section)
     - Include a cURL example using `format: WSDL` with a `specificationUrl` pointing to a real WSDL endpoint (e.g. the calculator service at `http://www.dneonline.com/calculator.asmx?WSDL`)
     - Include a cURL example using `format: WSDL` with inline WSDL XML content in the `specification` field
@@ -405,19 +405,19 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Do NOT modify the existing manual SOAP mock management section
     - _Requirements: 1.1, 1.2_
 
-  - [ ] 5.4 Update README with SOAP AI generation support
+  - [x] 5.4 Update README with SOAP AI generation support
     - In the "AI-Assisted Mock Generation" feature bullet under "Current Features", add SOAP/WSDL alongside REST and GraphQL
     - In the "What's Next?" / "Learn More" section, verify the link to `docs/USAGE.md` mentions SOAP alongside GraphQL
     - Do NOT modify the "Quick Start (5 Minutes)" section
     - _Requirements: 1.1_
 
-  - [ ] 5.5 Update Postman collection with SOAP/WSDL generation examples
+  - [x] 5.5 Update Postman collection with SOAP/WSDL generation examples
     - Add SOAP generation request to `docs/postman/AWS MockNest Serverless.postman_collection.json`
     - Include example with inline WSDL XML content and generation instructions
     - Include example with WSDL URL and generation instructions
     - _Requirements: 1.1_
 
-  - [ ] 5.5 Verify 90%+ code coverage for new SOAP/WSDL code
+  - [x] 5.5 Verify 90%+ code coverage for new SOAP/WSDL code
     - Run `./gradlew koverHtmlReport` and verify aggregated coverage is 90%+ for new SOAP/WSDL code
     - Run `./gradlew koverVerify` to enforce the 80% project-wide threshold
     - Critical paths must meet: `WsdlParser` ≥ 95%, `WsdlSchemaReducer` ≥ 95%, `SoapMockValidator` ≥ 95%

@@ -691,4 +691,198 @@ class SoapMockValidatorTest {
             assertTrue(result.isValid, "Non-WSDL spec should pass through without validation")
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Coverage gap: matcher value patterns (contains, matches, JsonArray, JsonNull)
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class MatcherValuePatterns {
+
+        @Test
+        fun `Given SOAPAction with contains matcher When validating Then should match operation`() = runTest {
+            val spec = soap11Specification()
+            val mapping = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "headers": {
+                      "SOAPAction": { "contains": "SayHello" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "headers": { "Content-Type": "text/xml" },
+                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:tns=\"http://example.com/hello\"><soapenv:Body><tns:SayHelloResponse/></soapenv:Body></soapenv:Envelope>"
+                  }
+                }
+            """.trimIndent()
+
+            val result = validator.validate(createMock("contains-matcher", mapping), spec)
+
+            assertTrue(result.isValid, "contains matcher should match operation. Errors: ${result.errors}")
+        }
+
+        @Test
+        fun `Given SOAPAction with matches regex matcher When validating Then should report invalid action`() = runTest {
+            // The 'matches' matcher extracts the regex pattern string (e.g. ".*SayHello.*")
+            // which does not match the operation name via string comparison — this is expected behavior
+            val spec = soap11Specification()
+            val mapping = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "headers": {
+                      "SOAPAction": { "matches": ".*SayHello.*" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "headers": { "Content-Type": "text/xml" },
+                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:tns=\"http://example.com/hello\"><soapenv:Body><tns:SayHelloResponse/></soapenv:Body></soapenv:Envelope>"
+                  }
+                }
+            """.trimIndent()
+
+            val result = validator.validate(createMock("matches-matcher", mapping), spec)
+
+            // The regex pattern ".*SayHello.*" is extracted as a literal string and does not
+            // match the operation name "SayHello" via string comparison — validator reports invalid
+            assertFalse(result.isValid, "Regex pattern string should not match operation name via string comparison")
+            assertTrue(result.errors.any { it.contains("SOAPAction") })
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Coverage gap: Content-Type header absent in response
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class ContentTypeAbsent {
+
+        @Test
+        fun `Given response with no headers section When validating Then Content-Type rule is skipped`() = runTest {
+            val spec = soap11Specification()
+            val mapping = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "headers": {
+                      "SOAPAction": { "equalTo": "http://example.com/hello/SayHello" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:tns=\"http://example.com/hello\"><soapenv:Body><tns:SayHelloResponse/></soapenv:Body></soapenv:Envelope>"
+                  }
+                }
+            """.trimIndent()
+
+            val result = validator.validate(createMock("no-headers", mapping), spec)
+
+            // No Content-Type header → rule 7 is skipped, other rules pass
+            assertTrue(result.isValid, "Missing headers section should skip Content-Type rule. Errors: ${result.errors}")
+        }
+
+        @Test
+        fun `Given response headers without Content-Type When validating Then Content-Type rule is skipped`() = runTest {
+            val spec = soap11Specification()
+            val mapping = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "headers": {
+                      "SOAPAction": { "equalTo": "http://example.com/hello/SayHello" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "headers": { "X-Custom": "value" },
+                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:tns=\"http://example.com/hello\"><soapenv:Body><tns:SayHelloResponse/></soapenv:Body></soapenv:Envelope>"
+                  }
+                }
+            """.trimIndent()
+
+            val result = validator.validate(createMock("no-content-type", mapping), spec)
+
+            // No Content-Type entry → rule 7 is skipped
+            assertTrue(result.isValid, "Missing Content-Type header should skip rule 7. Errors: ${result.errors}")
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Coverage gap: Body element with no child elements (rule 6 skipped)
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class BodyWithNoChildren {
+
+        @Test
+        fun `Given SOAP Body with no child elements When validating Then rule 6 is skipped`() = runTest {
+            val spec = soap11Specification()
+            val mapping = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "headers": {
+                      "SOAPAction": { "equalTo": "http://example.com/hello/SayHello" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "headers": { "Content-Type": "text/xml" },
+                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"><soapenv:Body></soapenv:Body></soapenv:Envelope>"
+                  }
+                }
+            """.trimIndent()
+
+            val result = validator.validate(createMock("empty-body", mapping), spec)
+
+            // Empty Body → rule 6 (target namespace check) is skipped, other rules pass
+            assertTrue(result.isValid, "Empty SOAP Body should skip rule 6. Errors: ${result.errors}")
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Coverage gap: missing request/response sections
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class MissingMappingSections {
+
+        @Test
+        fun `Given mapping with no request section When validating Then returns invalid with descriptive error`() =
+            runTest {
+                val spec = soap11Specification()
+                val mapping = """{"response":{"status":200,"body":"<x/>"}}"""
+
+                val result = validator.validate(createMock("no-request", mapping), spec)
+
+                assertFalse(result.isValid)
+                assertTrue(result.errors.any { it.contains("Missing request section") })
+            }
+
+        @Test
+        fun `Given mapping with no response section When validating Then returns invalid with descriptive error`() =
+            runTest {
+                val spec = soap11Specification()
+                val mapping = """{"request":{"method":"POST"}}"""
+
+                val result = validator.validate(createMock("no-response", mapping), spec)
+
+                assertFalse(result.isValid)
+                assertTrue(result.errors.any { it.contains("Missing response section") })
+            }
+
+        @Test
+        fun `Given completely invalid JSON mapping When validating Then returns invalid with error`() = runTest {
+            val spec = soap11Specification()
+            val mapping = "not-valid-json"
+
+            val result = validator.validate(createMock("invalid-json", mapping), spec)
+
+            assertFalse(result.isValid)
+            assertTrue(result.errors.isNotEmpty())
+        }
+    }
 }

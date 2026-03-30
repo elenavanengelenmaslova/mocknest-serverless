@@ -1866,6 +1866,86 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Generate SOAP Mocks from WSDL URL",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"namespace\": {\n    \"apiName\": \"calculator\",\n    \"client\": null\n  },\n  \"specificationUrl\": \"http://www.dneonline.com/calculator.asmx?WSDL\",\n  \"format\": \"WSDL\",\n  \"description\": \"Generate mocks for all calculator operations (Add, Subtract, Multiply, Divide) with realistic integer inputs and outputs\",\n  \"options\": {\n    \"enableValidation\": true\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/ai/generation/from-spec",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "ai",
+            "generation",
+            "from-spec"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generate SOAP Mocks from Inline WSDL XML",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "AWS API Key",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"namespace\": {\n    \"apiName\": \"calculator\",\n    \"client\": null\n  },\n  \"specification\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?><wsdl:definitions xmlns:wsdl=\\\"http://schemas.xmlsoap.org/wsdl/\\\" xmlns:soap=\\\"http://schemas.xmlsoap.org/wsdl/soap/\\\" xmlns:tns=\\\"http://tempuri.org/\\\" xmlns:xsd=\\\"http://www.w3.org/2001/XMLSchema\\\" targetNamespace=\\\"http://tempuri.org/\\\" name=\\\"CalculatorService\\\"><wsdl:types><xsd:schema targetNamespace=\\\"http://tempuri.org/\\\"><xsd:element name=\\\"Add\\\"><xsd:complexType><xsd:sequence><xsd:element name=\\\"intA\\\" type=\\\"xsd:int\\\"/><xsd:element name=\\\"intB\\\" type=\\\"xsd:int\\\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\\\"AddResponse\\\"><xsd:complexType><xsd:sequence><xsd:element name=\\\"AddResult\\\" type=\\\"xsd:int\\\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></wsdl:types><wsdl:message name=\\\"AddSoapIn\\\"><wsdl:part name=\\\"parameters\\\" element=\\\"tns:Add\\\"/></wsdl:message><wsdl:message name=\\\"AddSoapOut\\\"><wsdl:part name=\\\"parameters\\\" element=\\\"tns:AddResponse\\\"/></wsdl:message><wsdl:portType name=\\\"CalculatorSoap\\\"><wsdl:operation name=\\\"Add\\\"><wsdl:input message=\\\"tns:AddSoapIn\\\"/><wsdl:output message=\\\"tns:AddSoapOut\\\"/></wsdl:operation></wsdl:portType><wsdl:binding name=\\\"CalculatorSoap\\\" type=\\\"tns:CalculatorSoap\\\"><soap:binding transport=\\\"http://schemas.xmlsoap.org/soap/http\\\"/><wsdl:operation name=\\\"Add\\\"><soap:operation soapAction=\\\"http://tempuri.org/Add\\\"/><wsdl:input><soap:body use=\\\"literal\\\"/></wsdl:input><wsdl:output><soap:body use=\\\"literal\\\"/></wsdl:output></wsdl:operation></wsdl:binding><wsdl:service name=\\\"CalculatorService\\\"><wsdl:port name=\\\"CalculatorSoap\\\" binding=\\\"tns:CalculatorSoap\\\"><soap:address location=\\\"http://www.dneonline.com/calculator.asmx\\\"/></wsdl:port></wsdl:service></wsdl:definitions>\",\n  \"format\": \"WSDL\",\n  \"description\": \"Generate a mock for the Add operation that returns realistic integer results\",\n  \"options\": {\n    \"enableValidation\": true\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/ai/generation/from-spec",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "ai",
+            "generation",
+            "from-spec"
+          ]
+        }
+      },
+      "response": []
     }
   ],
   "variable": [
