@@ -18,6 +18,7 @@ import nl.vintik.mocknest.domain.generation.SpecificationFormat
 import org.w3c.dom.Element
 import org.xml.sax.InputSource
 import java.io.StringReader
+import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 
 private val logger = KotlinLogging.logger {}
@@ -188,8 +189,16 @@ class SoapMockValidator : MockValidatorInterface {
         return runCatching {
             val factory = DocumentBuilderFactory.newInstance().apply {
                 isNamespaceAware = true
+                setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+                setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+                setFeature("http://xml.org/sax/features/external-general-entities", false)
+                setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+                setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+                isXIncludeAware = false
+                isExpandEntityReferences = false
             }
             val builder = factory.newDocumentBuilder()
+            builder.setEntityResolver { _, _ -> InputSource(StringReader("")) }
             val doc = builder.parse(InputSource(StringReader(xml)))
             doc.documentElement?.let { ParsedXmlResult(it, null) }
         }.fold(
