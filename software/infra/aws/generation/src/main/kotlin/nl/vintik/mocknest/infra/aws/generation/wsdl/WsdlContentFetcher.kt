@@ -54,11 +54,17 @@ class WsdlContentFetcher(
             throw WsdlFetchException(msg, e)
         }
 
-        val request = Request.Builder()
-            .url(url)
-            .get()
-            .header("Accept", "text/xml, application/xml, */*")
-            .build()
+        val request = runCatching {
+            Request.Builder()
+                .url(url)
+                .get()
+                .header("Accept", "text/xml, application/xml, */*")
+                .build()
+        }.getOrElse { e ->
+            val msg = "Invalid WSDL URL format"
+            logger.warn(e) { msg }
+            throw WsdlFetchException(msg, e)
+        }
 
         return runCatching {
             client.newCall(request).executeAsync()
