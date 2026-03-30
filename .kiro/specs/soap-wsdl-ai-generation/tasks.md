@@ -130,7 +130,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Implement `SpecificationParserInterface` with constructor accepting `WsdlContentFetcherInterface`, `WsdlParserInterface`, `WsdlSchemaReducerInterface`
     - Implement `supports(format)` returning true for `SpecificationFormat.WSDL`
     - Implement `parse(content, format)`: if content is an HTTP URL delegate to `contentFetcher.fetch()`, otherwise treat as inline XML; call `wsdlParser.parse()` then `schemaReducer.reduce()`; convert `CompactWsdl` to `APISpecification` (each operation → `EndpointDefinition` with POST method, SOAPAction in metadata, `prettyPrint()` output as `rawContent`)
-    - _Requirements: 1.1, 1.3, 3.8, 4.8, 10.5, 11.2_
+    - _Requirements: 1.1, 1.3, 3.8, 4.8, 10.4, 11.2_
 
   - [x] 2.11 Write unit tests for `WsdlSpecificationParser` using inline XML content
     - Create test file in `software/application/src/test/kotlin/`
@@ -287,7 +287,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Define `@Configuration` class with Spring beans: `wsdlContentFetcher()`, `wsdlParser()`, `wsdlSchemaReducer()`, `wsdlSpecificationParser(contentFetcher, wsdlParser, schemaReducer)`, `soapMockValidator()`
     - `WsdlSpecificationParser` bean implements `SpecificationParserInterface` — auto-registered via `List<SpecificationParserInterface>` injection in `CompositeSpecificationParserImpl`
     - `SoapMockValidator` bean implements `MockValidatorInterface` — auto-registered via `CompositeMockValidator`
-    - _Requirements: 10.5, 11.1, 11.6_
+    - _Requirements: 10.4, 11.1, 11.6_
 
 
 - [x] 4. Phase 4: Integration — Wire components, end-to-end flows, and non-regression
@@ -295,13 +295,13 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Verify `CompositeSpecificationParserImpl` uses `List<SpecificationParserInterface>` injection
     - Confirm `WsdlSpecificationParser` Spring bean is picked up automatically via `SoapGenerationConfig`
     - Verify `SpecificationFormat.WSDL` routes to `WsdlSpecificationParser` and not to REST or GraphQL parsers
-    - _Requirements: 1.3, 10.5_
+    - _Requirements: 1.3, 10.4_
 
   - [x] 4.2 Register `SoapMockValidator` in the validator registry
     - Verify `CompositeMockValidator` (or equivalent) uses `List<MockValidatorInterface>` injection
     - Confirm `SoapMockValidator` Spring bean is picked up automatically via `SoapGenerationConfig`
     - Verify SOAP mocks are routed to `SoapMockValidator` for validation
-    - _Requirements: 7.1, 10.5_
+    - _Requirements: 7.1, 10.4_
 
   - [x] 4.3 Write property test: Property-8 (Bounded Retry Attempts)
     - Create property test in `software/application/src/test/kotlin/` or `software/infra/aws/generation/src/test/kotlin/`
@@ -322,7 +322,7 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - **Property 9: WireMock Mapping Compatibility**
     - **Validates: Requirements 10.1**
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("Property-9")`
-    - _Requirements: 10.1, 10.2, 12.7_
+    - _Requirements: 10.1, 12.7_
 
   - [x] 4.5 Write property test: Property-10 (REST/GraphQL Non-Regression)
     - Use `@ParameterizedTest @MethodSource` with existing OpenAPI and GraphQL specification examples
@@ -350,15 +350,16 @@ This plan breaks down the SOAP/WSDL AI generation feature into discrete, actiona
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("integration")`
     - _Requirements: 8.3, 8.6, 12.6_
 
-  - [x] 4.8 Write LocalStack integration test: inline XML → S3 persistence
+  - [x] 4.8 Write integration test: inline XML → generation → validation
     - Create integration test in `software/infra/aws/generation/src/test/kotlin/`
-    - Use LocalStack TestContainers with S3 (follow existing LocalStack test patterns with `@BeforeAll`/`@AfterAll`)
     - Use inline WSDL XML from `calculator-soap11.wsdl` as input
-    - Mock AI service to return a valid SOAP mock
-    - Run complete flow: inline WSDL XML → parsing → reduction → AI generation (mocked) → `SoapMockValidator` → `GenerationStorageInterface` → S3 persistence
-    - Verify generated mocks are retrievable from S3 and match expected WireMock mapping structure
+    - Run complete flow: inline WSDL XML → `WsdlSpecificationParser` → `WsdlSchemaReducer` → `APISpecification` → simulated AI generation → `SoapMockValidator`
+    - Verify all generated mocks pass `SoapMockValidator`
+    - Verify WireMock mapping structure (method, request, response fields present)
+    - Verify invalid mocks are correctly rejected by `SoapMockValidator`
+    - No S3 persistence — generation is synchronous and returns mocks directly
     - Tag with `@Tag("soap-wsdl-ai-generation")` and `@Tag("integration")`
-    - _Requirements: 10.1, 10.2, 12.9_
+    - _Requirements: 10.1, 12.9_
 
   - [x] 4.9 Write REST/GraphQL non-regression integration tests
     - Create or update integration tests verifying existing OpenAPI and GraphQL generation still works after WSDL support is added

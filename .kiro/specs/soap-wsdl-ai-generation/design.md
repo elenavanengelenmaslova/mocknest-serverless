@@ -4,7 +4,7 @@
 
 This design extends the existing AI mock generation flow to support SOAP web services through WSDL document parsing. The feature enables developers to provide a WSDL document — either as inline XML content or as a remote URL — parse it into a compact representation suitable for AI consumption, generate WireMock-compatible SOAP mock mappings using AI, and validate the generated output against the WSDL with automatic retry/correction.
 
-The design follows clean architecture principles and reuses existing patterns from the REST and GraphQL AI generation flows, including the Koog-based agent orchestration, validation-retry loop, and persistence mechanisms. SOAP requests are handled as HTTP POST requests with XML payloads, matching on the `SOAPAction` header (SOAP 1.1) or `action` parameter in `Content-Type` (SOAP 1.2). Both SOAP 1.1 and SOAP 1.2 are supported.
+The design follows clean architecture principles and reuses existing patterns from the REST and GraphQL AI generation flows, including the Koog-based agent orchestration and validation-retry loop. Generation is synchronous — mocks are returned directly without S3 persistence. SOAP requests are handled as HTTP POST requests with XML payloads, matching on the `SOAPAction` header (SOAP 1.1) or `action` parameter in `Content-Type` (SOAP 1.2). Both SOAP 1.1 and SOAP 1.2 are supported.
 
 The primary test path is **inline XML content**. URL-based fetching is validated manually during development; all automated tests use inline WSDL XML from test resource files.
 
@@ -35,6 +35,8 @@ flowchart TB
         AI[AIModelServiceInterface]
         BEDROCK[Amazon Bedrock]
     end
+
+    %% Note: generation is synchronous — no S3 persistence for SOAP mock generation
 
     subgraph Domain["Domain Layer"]
         COMPACT[CompactWsdl]
@@ -68,7 +70,7 @@ The SOAP/WSDL feature integrates with the existing AI generation flow:
 2. **Agent Orchestration**: Reuses `MockGenerationFunctionalAgent` without modification
 3. **Parser Registration**: Adds `WsdlSpecificationParser` to `CompositeSpecificationParserImpl`
 4. **Validation Loop**: Adds `SoapMockValidator` alongside `OpenAPIMockValidator` and `GraphQLMockValidator`
-5. **Persistence**: Generated mocks use existing `GenerationStorageInterface`
+5. **Return**: Generated mocks are returned synchronously — no S3 persistence for generation
 
 ### Sequence Diagram: End-to-End Flow
 
@@ -82,7 +84,6 @@ sequenceDiagram
     participant Reducer as WsdlSchemaReducer
     participant AI as AIModelService
     participant Validator as SoapMockValidator
-    participant Storage as GenerationStorageInterface
 
     User->>Agent: generateFromSpecWithDescription(request)
     Agent->>Parser: parse(content, WSDL)
@@ -103,7 +104,6 @@ sequenceDiagram
     Agent->>Validator: validate(mock, specification)
     alt Validation passes
         Validator-->>Agent: Valid
-        Agent->>Storage: Persist mocks
         Agent-->>User: GenerationResult.success
     else Validation fails
         Validator-->>Agent: Errors

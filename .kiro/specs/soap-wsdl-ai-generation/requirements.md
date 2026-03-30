@@ -151,17 +151,16 @@ SOAP requests are handled as HTTP POST requests with XML payloads, matching on t
 4. IF no SOAP binding namespace is found, THEN THE WSDL_Parser SHALL default to SOAP 1.1 and include a warning in the parse result
 5. THE Compact_WSDL SHALL carry the detected SOAP version so that THE SOAP_Mock_Generator and THE SOAP_Validator can apply version-specific rules without re-parsing the WSDL
 
-### Requirement 10: Integration with Existing Persistence and Runtime
+### Requirement 10: Integration with Existing Runtime
 
-**User Story:** As a developer, I want generated SOAP mocks to be persisted and served by the existing runtime, so that SOAP mocks work seamlessly with the rest of the system.
+**User Story:** As a developer, I want generated SOAP mocks to be compatible with the existing runtime, so that SOAP mocks work seamlessly with the rest of the system.
 
 #### Acceptance Criteria
 
-1. THE SOAP_Mock_Generator SHALL produce WireMock_Mapping JSON that is compatible with the existing persistence model
-2. THE AI_Generation_Flow SHALL persist generated SOAP mocks using the existing `GenerationStorageInterface`
-3. THE WireMock runtime SHALL serve SOAP mocks using its existing HTTP POST matching and XML body matching capabilities
-4. THE AI_Generation_Flow SHALL preserve existing REST and GraphQL mock generation behavior without regression
-5. THE `SpecificationFormat.WSDL` value SHALL already exist in the domain model (it is present in the codebase) and THE `CompositeSpecificationParserImpl` SHALL register the new `WSDLSpecificationParser` automatically via the existing parser registration mechanism
+1. THE SOAP_Mock_Generator SHALL produce WireMock_Mapping JSON that is compatible with the existing WireMock mapping format
+2. THE WireMock runtime SHALL serve SOAP mocks using its existing HTTP POST matching and XML body matching capabilities
+3. THE AI_Generation_Flow SHALL preserve existing REST and GraphQL mock generation behavior without regression
+4. THE `SpecificationFormat.WSDL` value SHALL already exist in the domain model (it is present in the codebase) and THE `CompositeSpecificationParserImpl` SHALL register the new `WSDLSpecificationParser` automatically via the existing parser registration mechanism
 
 ### Requirement 11: Clean Architecture and Module Boundaries
 
@@ -193,7 +192,7 @@ SOAP requests are handled as HTTP POST requests with XML payloads, matching on t
 6. THE test suite SHALL include unit tests for the retry/correction loop with both success and failure outcomes using inline XML content as the specification source
 7. THE test suite SHALL include property-based tests using `@ParameterizedTest` with a minimum of 10 diverse WSDL test data files (stored as inline XML in `src/test/resources/`) covering simple services, complex services with multiple port types, services with XSD complex types, SOAP 1.1 services, SOAP 1.2 services, services with multiple operations, and services with nested XSD types — all exercised via the inline XML content input path
 8. THE test suite SHALL include an integration test that exercises the complete inline XML content path end-to-end: inline WSDL XML → parsing → reduction → AI generation → validation → WireMock mapping output
-9. THE test suite SHALL include integration tests using LocalStack TestContainers to validate end-to-end WSDL parsing and mock persistence with S3 storage using inline XML content as input
+9. THE test suite SHALL include an integration test that exercises the complete inline XML path end-to-end using LocalStack: inline WSDL XML → parsing → reduction → AI generation (mocked) → `SoapMockValidator` → valid mock output, without S3 persistence
 10. THE test suite SHALL include an integration test that exercises the URL-based input path end-to-end using a mock HTTP server to serve the WSDL document, verifying that URL fetching, parsing, and generation produce the same result as the equivalent inline XML content test
 11. THE test suite SHALL verify that REST and GraphQL AI generation continue to work without regression after WSDL support is added
 12. ALL tests in the test suite SHALL be mandatory with no tests marked as optional or skipped
