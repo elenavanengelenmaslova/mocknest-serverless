@@ -78,12 +78,12 @@ class WsdlContentFetcher(
                 val msg = when (exception) {
                     is WsdlFetchException -> throw exception
                     is java.net.SocketTimeoutException ->
-                        "Timeout fetching WSDL from $url after ${timeoutMs}ms"
+                        "Timeout fetching WSDL from ${SafeUrlResolver.sanitizeUrlForLogging(url)} after ${timeoutMs}ms"
                     is java.net.UnknownHostException ->
                         "Network failure fetching WSDL: ${exception.message}"
                     is IOException ->
                         "Network failure fetching WSDL: ${exception.message}"
-                    else -> "Failed to fetch WSDL from $url: ${exception.message}"
+                    else -> "Failed to fetch WSDL from ${SafeUrlResolver.sanitizeUrlForLogging(url)}: ${exception.message}"
                 }
                 logger.error(exception) { msg }
                 throw WsdlFetchException(msg, exception)
@@ -92,13 +92,14 @@ class WsdlContentFetcher(
     }
 
     private fun validateXml(body: String, url: String) {
+        val sanitizedUrl = SafeUrlResolver.sanitizeUrlForLogging(url)
         if (body.isBlank()) {
-            throw WsdlFetchException("Response from $url is not valid XML: empty response body")
+            throw WsdlFetchException("Response from $sanitizedUrl is not valid XML: empty response body")
         }
         val trimmed = body.trimStart()
         val looksLikeXml = trimmed.startsWith("<?xml") || trimmed.startsWith("<")
         if (!looksLikeXml) {
-            throw WsdlFetchException("Response from $url is not valid XML")
+            throw WsdlFetchException("Response from $sanitizedUrl is not valid XML")
         }
     }
 }
@@ -117,7 +118,7 @@ private suspend fun Call.executeAsync(): String = suspendCancellableCoroutine { 
             response.use { resp ->
                 if (!resp.isSuccessful) {
                     continuation.resumeWithException(
-                        WsdlFetchException("HTTP ${resp.code} fetching WSDL from ${resp.request.url}")
+                        WsdlFetchException("HTTP ${resp.code} fetching WSDL from ${SafeUrlResolver.sanitizeUrlForLogging(resp.request.url.toString())}")
                     )
                 } else {
                     val body = resp.body.string()
