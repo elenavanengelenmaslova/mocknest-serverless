@@ -57,7 +57,8 @@ class WsdlSchemaReducerTest {
             val result = parseAndReduce("complex-types-soap11.wsdl")
             // Order is referenced by GetOrderResponse.order field
             // Customer is referenced by Order.customer field
-            assertTrue(result.xsdTypes.containsKey("Order") || result.xsdTypes.containsKey("GetOrderResponse"))
+            assertTrue(result.xsdTypes.containsKey("GetOrderResponse"))
+            assertTrue(result.xsdTypes.containsKey("Order"))
         }
     }
 
