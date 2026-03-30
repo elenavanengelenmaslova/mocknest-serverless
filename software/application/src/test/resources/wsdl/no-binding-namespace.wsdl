@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:tns="http://example.com/nobinding"
+                  targetNamespace="http://example.com/nobinding"
+                  name="NoBindingService">
+  <wsdl:types/>
+  <wsdl:message name="DoItRequest">
+    <wsdl:part name="parameters" element="tns:DoIt"/>
+  </wsdl:message>
+  <wsdl:message name="DoItResponse">
+    <wsdl:part name="parameters" element="tns:DoItResponse"/>
+  </wsdl:message>
+  <wsdl:portType name="NoBindingPortType">
+    <wsdl:operation name="DoIt">
+      <wsdl:input message="tns:DoItRequest"/>
+      <wsdl:output message="tns:DoItResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="NoBindingBinding" type="tns:NoBindingPortType">
+    <wsdl:operation name="DoIt">
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="NoBindingService">
+    <wsdl:port name="NoBindingPort" binding="tns:NoBindingBinding">
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

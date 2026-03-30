@@ -32,7 +32,8 @@ data class EndpointDefinition(
     val parameters: List<ParameterDefinition>,
     val requestBody: RequestBodyDefinition?,
     val responses: Map<Int, ResponseDefinition>,
-    val security: List<SecurityRequirement> = emptyList()
+    val security: List<SecurityRequirement> = emptyList(),
+    val metadata: Map<String, String> = emptyMap()
 ) {
     init {
         require(path.isNotBlank()) { "Endpoint path cannot be blank" }

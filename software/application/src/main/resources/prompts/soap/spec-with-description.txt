@@ -1,0 +1,99 @@
+You are an expert API mock generator. Generate WireMock JSON mappings based on this SOAP/WSDL API specification and enhancement description:
+
+API Specification Summary:
+- Title: {{SPEC_TITLE}}
+- Version: {{SPEC_VERSION}}
+- Operations: {{ENDPOINT_COUNT}}
+- Key operations: {{KEY_ENDPOINTS}}
+
+Namespace:
+- API Name: {{API_NAME}}{{CLIENT_SECTION}}
+
+Enhancement Description: {{DESCRIPTION}}
+
+Requirements:
+- Generate WireMock mappings that follow the SOAP/WSDL specification structure
+- CRITICAL: Every mapping MUST include `"persistent": true` to ensure mocks survive Lambda cold starts and are stored in S3
+- Enhance the mappings based on the description (add error cases, specific data, behaviors, etc.)
+- Include realistic XML response data that matches both the schema and description
+
+SOAP request matching rules (IMPORTANT):
+- ALL SOAP requests MUST use POST method — never GET, PUT, DELETE, or any other method
+- For SOAP 1.1: match on the `SOAPAction` header using the exact soapAction value from the Key operations list
+  - Example: `"headers": { "SOAPAction": { "equalTo": "http://example.com/service/OperationName" } }`
+- For SOAP 1.2: match on the `action` parameter inside the `Content-Type` header
+  - Example: `"headers": { "Content-Type": { "contains": "action=\"http://example.com/service/OperationName\"" } }`
+- Use `urlPath` for the service endpoint path
+- Each mapping MUST target a different operation via its SOAPAction or action parameter
+
+SOAP response format rules (IMPORTANT):
+- ALL SOAP responses MUST be valid XML SOAP envelopes
+- For SOAP 1.1: use envelope namespace `http://schemas.xmlsoap.org/soap/envelope/`
+  - Response Content-Type MUST be `text/xml; charset=utf-8`
+  - Example envelope:
+    ```xml
+    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="TARGET_NAMESPACE">
+      <soapenv:Body>
+        <tns:OperationNameResponse>
+          <!-- response fields here -->
+        </tns:OperationNameResponse>
+      </soapenv:Body>
+    </soapenv:Envelope>
+    ```
+- For SOAP 1.2: use envelope namespace `http://www.w3.org/2003/05/soap-envelope`
+  - Response Content-Type MUST be `application/soap+xml; charset=utf-8`
+  - Example envelope:
+    ```xml
+    <soapenv:Envelope xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope" xmlns:tns="TARGET_NAMESPACE">
+      <soapenv:Body>
+        <tns:OperationNameResponse>
+          <!-- response fields here -->
+        </tns:OperationNameResponse>
+      </soapenv:Body>
+    </soapenv:Envelope>
+    ```
+- The element inside `<soapenv:Body>` MUST use the target namespace from the compact WSDL
+- NEVER return a bare XML document without a SOAP Envelope wrapper
+- NEVER use JSON as the response body — SOAP responses are always XML
+- Response HTTP status code is always 200 for successful SOAP responses
+
+SOAP fault format (for error scenarios):
+- SOAP 1.1 fault:
+  ```xml
+  <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+    <soapenv:Body>
+      <soapenv:Fault>
+        <faultcode>soapenv:Client</faultcode>
+        <faultstring>Error description</faultstring>
+      </soapenv:Fault>
+    </soapenv:Body>
+  </soapenv:Envelope>
+  ```
+- SOAP 1.2 fault:
+  ```xml
+  <soapenv:Envelope xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope">
+    <soapenv:Body>
+      <soapenv:Fault>
+        <soapenv:Code><soapenv:Value>soapenv:Sender</soapenv:Value></soapenv:Code>
+        <soapenv:Reason><soapenv:Text>Error description</soapenv:Text></soapenv:Reason>
+      </soapenv:Fault>
+    </soapenv:Body>
+  </soapenv:Envelope>
+  ```
+
+- Return only a JSON array of WireMock mappings.
+- Each item MUST be a valid WireMock stub mapping object and MUST include these required top-level fields:
+ {
+ "request": { ... },
+ "response": { ... },
+ "persistent": true
+ }
+- Optional WireMock top-level fields are allowed when needed (e.g., "priority").
+- "persistent": true MUST be placed at the top level of the mapping object
+- NEVER place "persistent" inside "response" or "request"
+- NEVER include unknown fields inside "response" (WireMock will reject them)
+- Only use fields defined in the WireMock stub mapping schema below. Any field not in this schema will be rejected.
+
+{{WIREMOCK_SCHEMA}}
+
+- Do not include any explanatory text, only the JSON array.

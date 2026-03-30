@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/MultiService",
+    "headers": {
+      "SOAPAction": {
+        "equalTo": "http://example.com/multi/Operation1"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/xml; charset=utf-8"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><Operation1Response xmlns=\"http://example.com/multi\"><Result>success</Result></Operation1Response></soap:Body></soap:Envelope>"
+  },
+  "persistent": true
+}

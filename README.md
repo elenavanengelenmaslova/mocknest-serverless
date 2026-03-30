@@ -43,7 +43,7 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 - **Serverless WireMock Runtime**: Full WireMock API running on AWS Lambda
 - **Persistent Mock Storage**: Mock definitions stored in Amazon S3
 - **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
-- **AI-Assisted Mock Generation**: Intelligent mock creation from REST and GraphQL API specifications using Bedrock with a configurable model, defaulted to Amazon Nova Pro
+- **AI-Assisted Mock Generation**: Intelligent mock creation from REST, SOAP/WSDL, and GraphQL API specifications using Bedrock with a configurable model, defaulted to Amazon Nova Pro
 - **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR) or deploy via SAM
 - **Performance Optimized**: Lambda SnapStart enabled for reduced cold start latency
 
@@ -160,7 +160,7 @@ To use MockNest with your application:
 3. Your app will now call mocks instead of real services
 
 **Learn More**
-- **More Examples**: See [docs/USAGE.md](docs/USAGE.md) for SOAP, GraphQL, and advanced AI generation
+- **More Examples**: See [docs/USAGE.md](docs/USAGE.md) for SOAP/WSDL, GraphQL, and advanced AI generation
 - **Postman Collection**: Import from [docs/postman/](docs/postman/) for ready-to-use examples
 - **OpenAPI Specification**: Full API reference at [docs/api/mocknest-openapi.yaml](docs/api/mocknest-openapi.yaml)
 - **SAR Guide**: Read [README-SAR.md](README-SAR.md) for detailed deployment and configuration options
