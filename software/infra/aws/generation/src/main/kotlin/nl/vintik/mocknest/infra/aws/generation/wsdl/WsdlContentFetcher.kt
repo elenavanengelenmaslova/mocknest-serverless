@@ -11,6 +11,10 @@ import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import okio.Buffer
+import okio.ForwardingSource
+import okio.Source
+import okio.buffer
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
@@ -19,6 +23,7 @@ import kotlin.coroutines.resumeWithException
 private val logger = KotlinLogging.logger {}
 
 private const val DEFAULT_TIMEOUT_MS = 30_000L
+private const val MAX_BODY_BYTES = 10L * 1024 * 1024 // 10 MiB
 
 /**
  * OkHttp-based implementation of [WsdlContentFetcherInterface].
@@ -121,7 +126,23 @@ private suspend fun Call.executeAsync(): String = suspendCancellableCoroutine { 
                         WsdlFetchException("HTTP ${resp.code} fetching WSDL from ${SafeUrlResolver.sanitizeUrlForLogging(resp.request.url.toString())}")
                     )
                 } else {
-                    val body = resp.body.string()
+                    val contentLength = resp.body.contentLength()
+                    if (contentLength > MAX_BODY_BYTES) {
+                        continuation.resumeWithException(
+                            IOException(
+                                "WSDL response Content-Length ($contentLength bytes) exceeds maximum allowed size of ${MAX_BODY_BYTES / (1024 * 1024)} MiB"
+                            )
+                        )
+                        return
+                    }
+                    val body = try {
+                        SizeLimitedSource(resp.body.source(), MAX_BODY_BYTES)
+                            .buffer()
+                            .readString(Charsets.UTF_8)
+                    } catch (e: IOException) {
+                        continuation.resumeWithException(e)
+                        return
+                    }
                     continuation.resume(body)
                 }
             }
@@ -129,4 +150,24 @@ private suspend fun Call.executeAsync(): String = suspendCancellableCoroutine { 
     })
 
     continuation.invokeOnCancellation { cancel() }
+}
+
+/**
+ * Okio [ForwardingSource] that throws [IOException] if the total bytes read exceed [maxBytes].
+ */
+private class SizeLimitedSource(delegate: Source, private val maxBytes: Long) : ForwardingSource(delegate) {
+    private var bytesRead = 0L
+
+    override fun read(sink: Buffer, byteCount: Long): Long {
+        val result = super.read(sink, byteCount)
+        if (result != -1L) {
+            bytesRead += result
+            if (bytesRead > maxBytes) {
+                throw IOException(
+                    "WSDL response body exceeds maximum allowed size of ${maxBytes / (1024 * 1024)} MiB"
+                )
+            }
+        }
+        return result
+    }
 }
