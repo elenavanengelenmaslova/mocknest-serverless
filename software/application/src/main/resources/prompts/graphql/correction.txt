@@ -24,6 +24,12 @@ GraphQL-specific corrections (IMPORTANT):
   - Error: `{ "errors": [{ "message": "...", "locations": [...], "path": [...] }] }`
 - If the error is "Type incompatibility" (list vs object): ensure list fields return arrays and object fields return objects as defined in the schema
 
+Non-overlapping constraint (CRITICAL):
+- If the original set contained multiple mappings for the same operation name with the same matcher, keep ONLY ONE mapping per operation.
+- The corrected output MUST NOT contain two mappings with the same operation name matcher.
+- If asked to correct a duplicate, remove the duplicate entirely rather than trying to differentiate it.
+- Prefer keeping the success stub over the error stub when deduplicating.
+
 GraphQL request matching rules (IMPORTANT):
 - GraphQL requests are always POST requests with a JSON body containing `query` or `mutation` fields
 - Use `bodyPatterns` with `matchesJsonPath` to match specific GraphQL operations by operation name
