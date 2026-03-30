@@ -13,8 +13,6 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 private val logger = KotlinLogging.logger {}
 
-private const val WSDL_NS = "http://schemas.xmlsoap.org/wsdl/"
-private const val XSD_NS = "http://www.w3.org/2001/XMLSchema"
 private const val SOAP_11_BINDING_NS = "http://schemas.xmlsoap.org/wsdl/soap/"
 private const val SOAP_12_BINDING_NS = "http://schemas.xmlsoap.org/wsdl/soap12/"
 
@@ -177,6 +175,7 @@ class WsdlParser : WsdlParserInterface {
         val result = mutableMapOf<String, String>()
         val bindingElements = getElementsByLocalName(root, "binding")
         for (binding in bindingElements) {
+            val portTypeName = binding.getAttribute("type").stripPrefix()
             val bindingOps = getElementsByLocalName(binding, "operation")
             for (bindingOp in bindingOps) {
                 val opName = bindingOp.getAttribute("name")
@@ -185,8 +184,8 @@ class WsdlParser : WsdlParserInterface {
                     .filterIsInstance<Element>()
                     .firstOrNull { it.localName == "operation" }
                 val soapAction = soapOp?.getAttribute("soapAction") ?: ""
-                if (opName.isNotBlank()) {
-                    result[opName] = soapAction
+                if (opName.isNotBlank() && portTypeName.isNotBlank()) {
+                    result["$portTypeName#$opName"] = soapAction
                 }
             }
         }
@@ -200,7 +199,7 @@ class WsdlParser : WsdlParserInterface {
     ): List<ParsedOperation> {
         return portTypes.flatMap { portType ->
             portType.operations.map { op ->
-                val soapAction = soapActions[op.name] ?: ""
+                val soapAction = soapActions["${portType.name}#${op.name}"] ?: ""
                 val inputMsgName = messages[op.inputMessageName]?.elementName
                     ?.takeIf { it.isNotBlank() } ?: op.inputMessageName
                 val outputMsgName = messages[op.outputMessageName]?.elementName
