@@ -285,10 +285,10 @@ class SoapMockValidator : MockValidatorInterface {
             .firstOrNull { it.key.equals("Content-Type", ignoreCase = true) }
             ?: return listOf("Response headers are missing the required 'Content-Type' header")
 
-        val contentType = contentTypeEntry.value.jsonPrimitive.content
+        val contentType = extractMatcherValue(contentTypeEntry.value)
         val expectedContentType = soapVersion.contentType
 
-        return if (!contentType.contains(expectedContentType, ignoreCase = true)) {
+        return if (!(contentType?.contains(expectedContentType, ignoreCase = true)?: false)) {
             listOf("Content-Type header '$contentType' does not match SOAP version. Expected: $expectedContentType")
         } else {
             emptyList()

@@ -3,14 +3,9 @@ package nl.vintik.mocknest.infra.aws.generation.wsdl
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.suspendCancellableCoroutine
 import nl.vintik.mocknest.application.generation.util.SafeUrlResolver
-import nl.vintik.mocknest.application.generation.util.UrlResolutionException
 import nl.vintik.mocknest.application.generation.wsdl.WsdlContentFetcherInterface
 import nl.vintik.mocknest.domain.generation.WsdlFetchException
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
+import okhttp3.*
 import okio.Buffer
 import okio.ForwardingSource
 import okio.Source
@@ -54,7 +49,7 @@ class WsdlContentFetcher(
         runCatching {
             urlSafetyValidator(url)
         }.onFailure { e ->
-            val msg = "URL targets an unsafe address: ${e.message}"
+            val msg = "URL failed safety validation: ${e.message}"
             logger.warn(e) { msg }
             throw WsdlFetchException(msg, e)
         }

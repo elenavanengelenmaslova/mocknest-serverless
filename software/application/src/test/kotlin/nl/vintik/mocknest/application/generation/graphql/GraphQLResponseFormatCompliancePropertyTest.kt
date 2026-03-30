@@ -2,8 +2,10 @@ package nl.vintik.mocknest.application.generation.graphql
 
 import kotlinx.serialization.json.*
 import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
@@ -137,13 +139,14 @@ class GraphQLResponseFormatCompliancePropertyTest {
         val mockJson = loadMock(filename)
 
         // When
-        val response = mockJson["wireMockMapping"]!!.jsonObject["response"]!!.jsonObject
-        val status = response["status"]!!.jsonPrimitive.int
+        val mockJsonMappingResponse = mockJson["wireMockMapping"]?.jsonObject["response"]
+        assertNotNull(mockJsonMappingResponse)
+        val response = mockJsonMappingResponse.jsonObject
+        val status = response["status"]
+        assertNotNull(status)
+        val statusInt = status.jsonPrimitive.int
 
         // Then - GraphQL always returns HTTP 200, errors are in the response body
-        assertTrue(
-            status == 200,
-            "[$filename] GraphQL mock response HTTP status should be 200 (errors go in response body, not HTTP status)"
-        )
+        assertEquals(200,statusInt, "[$filename] GraphQL mock response HTTP status should be 200 (errors go in response body, not HTTP status)")
     }
 }
