@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import kotlin.test.assertEquals
@@ -181,14 +182,12 @@ class SoapWireMockMappingCompatibilityPropertyTest {
         val response = mockJson["response"]!!.jsonObject
 
         // Then — response status must be a valid HTTP status code
+        val status = response["status"]
+        assertNotNull(status){"[$filename] WireMock response must contain 'status' key"}
+        val statusInt = status.jsonPrimitive.content.toInt()
         assertTrue(
-            response.containsKey("status"),
-            "[$filename] WireMock response must contain 'status' key"
-        )
-        val status = response["status"]!!.jsonPrimitive.content.toInt()
-        assertTrue(
-            status in 100..599,
-            "[$filename] WireMock response status $status should be a valid HTTP status code"
+            statusInt in 100..599,
+            "[$filename] WireMock response status $statusInt should be a valid HTTP status code"
         )
     }
 
