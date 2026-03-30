@@ -46,7 +46,8 @@ class WsdlSchemaReducer : WsdlSchemaReducerInterface {
             soapVersion = parsedWsdl.soapVersion,
             portTypes = portTypes,
             operations = operations,
-            xsdTypes = xsdTypes
+            xsdTypes = xsdTypes,
+            serviceAddress = parsedWsdl.servicePortAddresses.firstOrNull()
         )
 
         logger.info {

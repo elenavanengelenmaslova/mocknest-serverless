@@ -10,7 +10,8 @@ data class CompactWsdl(
     val soapVersion: SoapVersion,
     val portTypes: List<WsdlPortType>,
     val operations: List<WsdlOperation>,
-    val xsdTypes: Map<String, WsdlXsdType>
+    val xsdTypes: Map<String, WsdlXsdType>,
+    val serviceAddress: String? = null
 ) {
     init {
         require(serviceName.isNotBlank()) { "Service name cannot be blank" }

@@ -8,6 +8,7 @@ import nl.vintik.mocknest.application.generation.wsdl.WsdlParserInterface
 import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducerInterface
 import nl.vintik.mocknest.domain.generation.*
 import org.springframework.http.HttpMethod
+import java.net.URI
 
 private val logger = KotlinLogging.logger {}
 
@@ -97,12 +98,24 @@ class WsdlSpecificationParser(
         }
     }
 
+    private fun serviceAddressPath(compactWsdl: CompactWsdl): String {
+        val address = compactWsdl.serviceAddress
+        if (!address.isNullOrBlank()) {
+            runCatching {
+                val path = URI(address).path
+                if (!path.isNullOrBlank() && path != "/") return path
+            }
+        }
+        return "/${compactWsdl.serviceName}"
+    }
+
     private fun convertToAPISpecification(compactWsdl: CompactWsdl): APISpecification {
         logger.debug { "Converting CompactWsdl to APISpecification: service=${compactWsdl.serviceName}, operations=${compactWsdl.operations.size}" }
 
+        val endpointPath = serviceAddressPath(compactWsdl)
         val endpoints = compactWsdl.operations.map { operation ->
             EndpointDefinition(
-                path = "/${compactWsdl.serviceName}",
+                path = endpointPath,
                 method = HttpMethod.POST,
                 operationId = operation.name,
                 summary = operation.name,
