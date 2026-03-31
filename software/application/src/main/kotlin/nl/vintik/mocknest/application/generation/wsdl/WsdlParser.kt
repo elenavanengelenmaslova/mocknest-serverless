@@ -129,14 +129,16 @@ class WsdlParser : WsdlParserInterface {
 
         return when {
             hasSoap11 && hasSoap12 -> {
-                warnings.add("Both SOAP 1.1 and SOAP 1.2 bindings found; defaulting to SOAP_1_1")
-                Pair(SoapVersion.SOAP_1_1, warnings)
+                throw WsdlParsingException(
+                    "Mixed SOAP 1.1 and SOAP 1.2 bindings are not supported in a single WSDL"
+                )
             }
             hasSoap12 -> Pair(SoapVersion.SOAP_1_2, warnings)
             hasSoap11 -> Pair(SoapVersion.SOAP_1_1, warnings)
             else -> {
-                warnings.add("Defaulted to SOAP_1_1: no binding namespace found")
-                Pair(SoapVersion.SOAP_1_1, warnings)
+                throw WsdlParsingException(
+                    "No SOAP binding namespace found; non-SOAP WSDL bindings are not supported"
+                )
             }
         }
     }
@@ -224,12 +226,37 @@ class WsdlParser : WsdlParserInterface {
         for (typesEl in typesElements) {
             val schemas = getElementsByLocalName(typesEl, "schema")
             for (schema in schemas) {
+                // Named complexType definitions
                 val complexTypes = getElementsByLocalName(schema, "complexType")
                 for (complexType in complexTypes) {
                     val typeName = complexType.getAttribute("name")
                     if (typeName.isBlank()) continue
                     val fields = extractXsdFields(complexType)
                     result[typeName] = ParsedXsdType(name = typeName, fields = fields)
+                }
+
+                // Top-level xsd:element declarations (document-literal / wrapped style)
+                val topLevelElements = schema.childNodes.toList()
+                    .filterIsInstance<Element>()
+                    .filter { it.localName == "element" }
+                for (element in topLevelElements) {
+                    val elementName = element.getAttribute("name")
+                    if (elementName.isBlank() || elementName in result) continue
+
+                    // Inline complexType child
+                    val inlineComplexType = element.childNodes.toList()
+                        .filterIsInstance<Element>()
+                        .firstOrNull { it.localName == "complexType" }
+                    if (inlineComplexType != null) {
+                        val fields = extractXsdFields(inlineComplexType)
+                        result[elementName] = ParsedXsdType(name = elementName, fields = fields)
+                    } else {
+                        // type= attribute referencing a named complexType
+                        val typeRef = element.getAttribute("type").stripPrefix().takeIf { it.isNotBlank() }
+                        if (typeRef != null && typeRef in result) {
+                            result[elementName] = ParsedXsdType(name = elementName, fields = result[typeRef]!!.fields)
+                        }
+                    }
                 }
             }
         }

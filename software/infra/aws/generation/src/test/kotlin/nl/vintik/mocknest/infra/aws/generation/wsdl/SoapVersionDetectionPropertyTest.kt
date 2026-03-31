@@ -3,11 +3,15 @@ package nl.vintik.mocknest.infra.aws.generation.wsdl
 import nl.vintik.mocknest.application.generation.wsdl.WsdlParser
 import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducer
 import nl.vintik.mocknest.domain.generation.SoapVersion
+import nl.vintik.mocknest.domain.generation.WsdlParsingException
 import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import java.util.stream.Stream
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 /**
  * Property 5: SOAP Version Detection Correctness
@@ -36,15 +40,25 @@ class SoapVersionDetectionPropertyTest {
             VersionTestCase("multi-operation-soap11.wsdl", SoapVersion.SOAP_1_1),
             VersionTestCase("multi-operation-soap12.wsdl", SoapVersion.SOAP_1_2),
             VersionTestCase("calculator-soap11.wsdl", SoapVersion.SOAP_1_1),
-            VersionTestCase("weather-soap12.wsdl", SoapVersion.SOAP_1_2),
-            // mixed-version.wsdl has both SOAP 1.1 and 1.2 bindings; parser defaults to SOAP_1_1
-            VersionTestCase("mixed-version.wsdl", SoapVersion.SOAP_1_1)
+            VersionTestCase("weather-soap12.wsdl", SoapVersion.SOAP_1_2)
         )
     }
 
     private fun loadWsdl(filename: String): String =
         this::class.java.getResource("/wsdl/$filename")?.readText()
             ?: throw IllegalArgumentException("WSDL test file not found: $filename")
+
+    @Test
+    fun `Property 5 - Mixed SOAP versions should be rejected`() {
+        val wsdlXml = loadWsdl("mixed-version.wsdl")
+        val ex = assertFailsWith<WsdlParsingException> {
+            wsdlParser.parse(wsdlXml)
+        }
+        assertTrue(
+            ex.message?.contains("Mixed SOAP 1.1 and SOAP 1.2") == true,
+            "Exception should mention mixed SOAP versions, got: ${ex.message}"
+        )
+    }
 
     @ParameterizedTest
     @MethodSource("versionTestCases")

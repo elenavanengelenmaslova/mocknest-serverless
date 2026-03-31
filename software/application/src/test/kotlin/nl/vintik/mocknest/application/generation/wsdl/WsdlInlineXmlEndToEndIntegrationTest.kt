@@ -160,6 +160,7 @@ class WsdlInlineXmlEndToEndIntegrationTest {
         val targetNamespace = spec.metadata["targetNamespace"] ?: ""
         val firstOperation = spec.endpoints.first()
         val soapAction = firstOperation.metadata["soapAction"] ?: ""
+        val endpointPath = firstOperation.path
 
         val validSoapMock = GeneratedMock(
             id = UUID.randomUUID().toString(),
@@ -169,7 +170,7 @@ class WsdlInlineXmlEndToEndIntegrationTest {
                 {
                   "request": {
                     "method": "POST",
-                    "urlPath": "/calculator",
+                    "urlPath": "$endpointPath",
                     "headers": {
                       "SOAPAction": { "equalTo": "$soapAction" }
                     }

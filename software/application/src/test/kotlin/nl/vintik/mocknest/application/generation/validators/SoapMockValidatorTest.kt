@@ -234,6 +234,68 @@ class SoapMockValidatorTest {
     }
 
     // -------------------------------------------------------------------------
+    // Rule 1b: Request URL/path matches endpoint path
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class Rule1bUrlPath {
+
+        @Test
+        fun `Given correct SOAPAction but wrong urlPath When validating Then rule 1b fails`() = runTest {
+            val spec = soap11Specification()
+            val mapping = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "urlPath": "/wrong-path",
+                    "headers": {
+                      "SOAPAction": { "equalTo": "http://example.com/hello/SayHello" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "headers": { "Content-Type": "text/xml; charset=utf-8" },
+                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:tns=\"http://example.com/hello\"><soapenv:Body><tns:SayHelloResponse><tns:greeting>Hello</tns:greeting></tns:SayHelloResponse></soapenv:Body></soapenv:Envelope>"
+                  }
+                }
+            """.trimIndent()
+
+            val result = validator.validate(createMock("wrong-path", mapping), spec)
+
+            assertFalse(result.isValid, "Mock with wrong URL path should fail validation")
+            assertTrue(
+                result.errors.any { it.contains("URL path") && it.contains("/wrong-path") },
+                "Error should mention wrong URL path. Errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given correct urlPath When validating Then rule 1b passes`() = runTest {
+            val spec = soap11Specification()
+            val mapping = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "urlPath": "/hello",
+                    "headers": {
+                      "SOAPAction": { "equalTo": "http://example.com/hello/SayHello" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "headers": { "Content-Type": "text/xml; charset=utf-8" },
+                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:tns=\"http://example.com/hello\"><soapenv:Body><tns:SayHelloResponse><tns:greeting>Hello</tns:greeting></tns:SayHelloResponse></soapenv:Body></soapenv:Envelope>"
+                  }
+                }
+            """.trimIndent()
+
+            val result = validator.validate(createMock("correct-path", mapping), spec)
+
+            assertTrue(result.isValid, "Mock with correct URL path should pass. Errors: ${result.errors}")
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Rule 2: SOAPAction references a valid operation
     // -------------------------------------------------------------------------
 

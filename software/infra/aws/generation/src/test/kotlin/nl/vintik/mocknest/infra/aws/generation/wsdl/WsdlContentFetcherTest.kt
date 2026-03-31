@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import nl.vintik.mocknest.infra.generation.wsdl.WsdlContentFetcher
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
@@ -67,8 +68,7 @@ class WsdlContentFetcherTest {
             val result = fetcher.fetch("${baseUrl()}/service.wsdl")
 
             // Then
-            assertTrue(result.contains("HelloService"), "Should contain service name from WSDL")
-            assertTrue(result.contains("wsdl:definitions"), "Should contain WSDL definitions element")
+            assertEquals(wsdlContent, result, "Fetched content must exactly match the original WSDL")
         }
 
         @Test
@@ -89,8 +89,7 @@ class WsdlContentFetcherTest {
             val result = fetcher.fetch("${baseUrl()}/calculator.wsdl")
 
             // Then
-            assertTrue(result.isNotBlank())
-            assertTrue(result.contains("wsdl:definitions"))
+            assertEquals(wsdlContent, result, "Fetched content must exactly match the original WSDL")
         }
 
         @Test

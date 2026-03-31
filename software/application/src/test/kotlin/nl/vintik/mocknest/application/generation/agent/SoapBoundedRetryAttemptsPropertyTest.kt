@@ -109,21 +109,23 @@ class SoapBoundedRetryAttemptsPropertyTest {
     // Property 8: Bounded Retry Attempts
     // ─────────────────────────────────────────────────────────────────────────
 
-    @ParameterizedTest(name = "Property 8 - Given maxRetries={0} When SOAP AI always returns invalid mocks Then agent completes without infinite loop")
+    /**
+     * Tests that the agent completes and returns a result when the strategy returns success.
+     * Note: The internal retry loop is encapsulated inside the Koog strategy (mocked here).
+     * For tests that exercise the actual validation-retry loop, see [SoapValidationRetryIntegrationTest].
+     */
+    @ParameterizedTest(name = "Property 8 - Given maxRetries={0} When strategy returns success Then agent completes without hanging")
     @ValueSource(ints = [0, 1, 2, 3])
-    fun `Property 8 - Given maxRetries N When SOAP AI always returns invalid mocks Then agent completes and returns a result`(
+    fun `Property 8 - Given maxRetries N When strategy returns success Then agent completes and returns a result`(
         maxRetries: Int
     ) = runTest {
-        // Given — AI service always returns a result (strategy is mocked at the top level)
+        // Given — AI service always returns a result (strategy is mocked at the top level;
+        // the internal retry loop lives inside the strategy and is tested by SoapValidationRetryIntegrationTest)
         coEvery {
             aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), any())
         } returns GenerationResult.success("job-soap-bounded-$maxRetries", emptyList())
 
-        val invalidMock = buildInvalidSoapMock()
-        val mockValidator: MockValidatorInterface = mockk()
-        coEvery { mockValidator.validate(invalidMock, any()) } returns MockValidationResult.invalid(
-            listOf("Request method must be POST, found: GET", "Response body is not well-formed XML")
-        )
+        val mockValidator: MockValidatorInterface = mockk(relaxed = true)
 
         val parser: SpecificationParserInterface = mockk()
         coEvery { parser.parse(any(), any()) } returns buildSoapSpecification()

@@ -112,13 +112,16 @@ class RoundTripIntegrityPropertyTest {
 
         fun flushOperation() {
             if (currentOpName.isNotBlank()) {
+                check(portTypes.isNotEmpty()) {
+                    "Cannot build operation '$currentOpName': no portTypes parsed from prettyPrint output"
+                }
                 operations.add(
                     WsdlOperation(
                         name = currentOpName,
                         soapAction = currentOpSoapAction,
                         inputMessage = currentOpInput.ifBlank { currentOpName },
                         outputMessage = currentOpOutput.ifBlank { "${currentOpName}Response" },
-                        portTypeName = portTypes.firstOrNull()?.name ?: ""
+                        portTypeName = portTypes.first().name
                     )
                 )
                 currentOpName = ""

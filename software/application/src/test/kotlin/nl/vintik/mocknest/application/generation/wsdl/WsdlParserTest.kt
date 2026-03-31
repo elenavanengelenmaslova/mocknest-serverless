@@ -106,31 +106,62 @@ class WsdlParserTest {
     inner class MixedVersionParsing {
 
         @Test
-        fun `Given WSDL with both SOAP versions When parsing Then should default to SOAP_1_1`() {
-            val result = parser.parse(loadWsdl("mixed-version.wsdl"))
-            assertEquals(SoapVersion.SOAP_1_1, result.soapVersion)
-        }
-
-        @Test
-        fun `Given WSDL with both SOAP versions When parsing Then should include warning`() {
-            val result = parser.parse(loadWsdl("mixed-version.wsdl"))
-            assertTrue(result.warnings.any { it.contains("SOAP 1.1") && it.contains("SOAP 1.2") })
+        fun `Given WSDL with both SOAP versions When parsing Then should throw WsdlParsingException`() {
+            val ex = assertFailsWith<WsdlParsingException> {
+                parser.parse(loadWsdl("mixed-version.wsdl"))
+            }
+            assertTrue(
+                ex.message?.contains("Mixed SOAP 1.1 and SOAP 1.2") == true,
+                "Exception should mention mixed SOAP versions, got: ${ex.message}"
+            )
         }
     }
 
     @Nested
-    inner class DefaultSoapVersion {
+    inner class NonSoapBindingRejection {
 
         @Test
-        fun `Given WSDL with no binding namespace When parsing Then should default to SOAP_1_1`() {
-            val result = parser.parse(loadWsdl("no-binding-namespace.wsdl"))
-            assertEquals(SoapVersion.SOAP_1_1, result.soapVersion)
+        fun `Given WSDL with no SOAP binding namespace When parsing Then should throw WsdlParsingException`() {
+            val ex = assertFailsWith<WsdlParsingException> {
+                parser.parse(loadWsdl("no-binding-namespace.wsdl"))
+            }
+            assertTrue(
+                ex.message?.contains("No SOAP binding namespace") == true,
+                "Exception should mention missing SOAP binding namespace, got: ${ex.message}"
+            )
+        }
+    }
+
+    @Nested
+    inner class DocumentLiteralElementParsing {
+
+        @Test
+        fun `Given document-literal WSDL with top-level xsd elements When parsing Then should capture element types`() {
+            val result = parser.parse(loadWsdl("document-literal-soap11.wsdl"))
+            assertTrue(
+                result.xsdTypes.containsKey("GetOrder"),
+                "Should capture top-level xsd:element 'GetOrder' as a type. Found types: ${result.xsdTypes.keys}"
+            )
+            assertTrue(
+                result.xsdTypes.containsKey("GetOrderResponse"),
+                "Should capture top-level xsd:element 'GetOrderResponse' as a type. Found types: ${result.xsdTypes.keys}"
+            )
         }
 
         @Test
-        fun `Given WSDL with no binding namespace When parsing Then should include warning`() {
-            val result = parser.parse(loadWsdl("no-binding-namespace.wsdl"))
-            assertTrue(result.warnings.any { it.contains("SOAP_1_1") || it.contains("no binding") })
+        fun `Given document-literal WSDL with top-level xsd elements When parsing Then element fields should be preserved`() {
+            val result = parser.parse(loadWsdl("document-literal-soap11.wsdl"))
+            val getOrderType = result.xsdTypes["GetOrder"]
+            assertNotNull(getOrderType, "GetOrder type must be present")
+            assertEquals(2, getOrderType.fields.size, "GetOrder should have 2 fields")
+            assertTrue(
+                getOrderType.fields.any { it.name == "orderId" },
+                "GetOrder should have 'orderId' field"
+            )
+            assertTrue(
+                getOrderType.fields.any { it.name == "customerId" },
+                "GetOrder should have 'customerId' field"
+            )
         }
     }
 

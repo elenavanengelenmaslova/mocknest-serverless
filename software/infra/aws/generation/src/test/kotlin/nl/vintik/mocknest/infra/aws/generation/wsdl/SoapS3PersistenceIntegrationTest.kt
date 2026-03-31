@@ -54,7 +54,7 @@ class SoapS3PersistenceIntegrationTest {
             {
               "request": {
                 "method": "POST",
-                "urlPath": "/CalculatorService",
+                "urlPath": "/calculator-service",
                 "headers": {
                   "SOAPAction": { "equalTo": "http://example.com/calculator-service/$operationName" }
                 }

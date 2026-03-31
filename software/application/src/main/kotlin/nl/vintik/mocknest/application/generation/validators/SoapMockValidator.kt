@@ -58,6 +58,9 @@ class SoapMockValidator : MockValidatorInterface {
                 errors.add("Request method must be POST, found: ${method ?: "null"}")
             }
 
+            // Rule 1b: Request URL/path must match an endpoint path from the specification
+            errors.addAll(validateUrlPath(requestNode, specification.endpoints))
+
             // Rule 2: SOAPAction / action in Content-Type references a valid operation
             errors.addAll(validateSoapAction(requestNode, soapVersion, specification.endpoints))
 
@@ -101,6 +104,25 @@ class SoapMockValidator : MockValidatorInterface {
     }
 
     /**
+     * Rule 1b: Request URL/path must match an endpoint path from the specification.
+     */
+    private fun validateUrlPath(
+        requestNode: JsonObject,
+        endpoints: List<EndpointDefinition>
+    ): List<String> {
+        val urlPath = requestNode["urlPath"]?.jsonPrimitive?.content
+            ?: requestNode["url"]?.jsonPrimitive?.content
+            ?: return emptyList() // no URL/path in mapping — skip (e.g. urlPattern matchers)
+
+        val expectedPaths = endpoints.map { it.path }.toSet()
+        return if (urlPath !in expectedPaths) {
+            listOf("Request URL path '$urlPath' does not match any endpoint path in the WSDL. Expected one of: $expectedPaths")
+        } else {
+            emptyList()
+        }
+    }
+
+    /**
      * Rule 2: SOAPAction header (SOAP 1.1) or action in Content-Type (SOAP 1.2) references a valid operation.
      */
     private fun validateSoapAction(
@@ -129,7 +151,10 @@ class SoapMockValidator : MockValidatorInterface {
         }
 
         if (action == null) {
-            return listOf("Missing SOAPAction header")
+            return when (soapVersion) {
+                SoapVersion.SOAP_1_1 -> listOf("Missing SOAPAction header")
+                SoapVersion.SOAP_1_2 -> listOf("Missing action parameter in Content-Type header")
+            }
         }
 
         // Strip surrounding quotes if present

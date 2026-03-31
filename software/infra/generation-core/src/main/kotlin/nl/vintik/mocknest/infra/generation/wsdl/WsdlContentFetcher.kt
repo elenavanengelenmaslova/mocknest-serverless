@@ -30,7 +30,7 @@ private const val MAX_BODY_BYTES = 10L * 1024 * 1024 // 10 MiB
  *
  * @param timeoutMs HTTP request timeout in milliseconds (default 30 seconds)
  * @param urlSafetyValidator Optional override for URL safety validation. Defaults to
- *   [SafeUrlResolver.validateUrlSafety]. Pass a no-op lambda in tests to allow localhost URLs.
+ *   [SafeUrlResolver.validateAndResolve]. Pass a no-op lambda in tests to allow localhost URLs.
  */
 class WsdlContentFetcher(
     private val timeoutMs: Long = DEFAULT_TIMEOUT_MS,
