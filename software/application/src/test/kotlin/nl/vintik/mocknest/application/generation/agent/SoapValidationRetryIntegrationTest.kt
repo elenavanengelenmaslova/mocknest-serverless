@@ -27,7 +27,7 @@ import kotlin.test.assertTrue
 /**
  * Integration tests for the SOAP validation-retry loop.
  *
- * Tests the complete flow using inline WSDL XML from calculator-soap11.wsdl:
+ * Tests the complete flow using inline WSDL XML from calculator-soap12.wsdl:
  * - Task 4.6: Correctable errors — AI returns invalid mock on first attempt, valid on retry
  * - Task 4.7: Uncorrectable errors — AI always returns invalid mocks, retry limit respected
  *
@@ -62,9 +62,9 @@ class SoapValidationRetryIntegrationTest {
             schemaReducer = realSchemaReducer
         )
 
-    private fun buildValidSoap11Mock(operationName: String = "Add"): GeneratedMock = GeneratedMock(
+    private fun buildValidSoap12Mock(operationName: String = "Add"): GeneratedMock = GeneratedMock(
         id = UUID.randomUUID().toString(),
-        name = "Valid SOAP 1.1 $operationName mock",
+        name = "Valid SOAP 1.2 $operationName mock",
         namespace = testNamespace,
         wireMockMapping = """
             {
@@ -72,13 +72,13 @@ class SoapValidationRetryIntegrationTest {
                 "method": "POST",
                 "urlPath": "/calculator-service",
                 "headers": {
-                  "SOAPAction": { "equalTo": "http://example.com/calculator-service/$operationName" }
+                  "Content-Type": { "equalTo": "application/soap+xml; action=\"http://example.com/calculator-service/$operationName\"" }
                 }
               },
               "response": {
                 "status": 200,
-                "headers": { "Content-Type": "text/xml; charset=utf-8" },
-                "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><${operationName}Response xmlns=\"http://example.com/calculator-service\"><result>42</result></${operationName}Response></soap:Body></soap:Envelope>"
+                "headers": { "Content-Type": "application/soap+xml; charset=utf-8" },
+                "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\"><soap:Body><${operationName}Response xmlns=\"http://example.com/calculator-service\"><result>42</result></${operationName}Response></soap:Body></soap:Envelope>"
               },
               "persistent": true
             }
@@ -86,14 +86,14 @@ class SoapValidationRetryIntegrationTest {
         metadata = MockMetadata(
             sourceType = SourceType.SPEC_WITH_DESCRIPTION,
             sourceReference = "CalculatorService: test",
-            endpoint = EndpointInfo(HttpMethod.POST, "/CalculatorService", 200, "text/xml")
+            endpoint = EndpointInfo(HttpMethod.POST, "/CalculatorService", 200, "application/soap+xml")
         ),
         generatedAt = Instant.now()
     )
 
-    private fun buildInvalidSoap11Mock(operationName: String = "Add"): GeneratedMock = GeneratedMock(
+    private fun buildInvalidSoap12Mock(operationName: String = "Add"): GeneratedMock = GeneratedMock(
         id = UUID.randomUUID().toString(),
-        name = "Invalid SOAP 1.1 $operationName mock — wrong envelope namespace",
+        name = "Invalid SOAP 1.2 $operationName mock — wrong envelope namespace",
         namespace = testNamespace,
         wireMockMapping = """
             {
@@ -101,13 +101,13 @@ class SoapValidationRetryIntegrationTest {
                 "method": "POST",
                 "urlPath": "/calculator-service",
                 "headers": {
-                  "SOAPAction": { "equalTo": "http://example.com/calculator-service/$operationName" }
+                  "Content-Type": { "equalTo": "application/soap+xml; action=\"http://example.com/calculator-service/$operationName\"" }
                 }
               },
               "response": {
                 "status": 200,
-                "headers": { "Content-Type": "text/xml; charset=utf-8" },
-                "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap12:Envelope xmlns:soap12=\"http://www.w3.org/2003/05/soap-envelope\"><soap12:Body><${operationName}Response xmlns=\"http://example.com/calculator-service\"><result>42</result></${operationName}Response></soap12:Body></soap12:Envelope>"
+                "headers": { "Content-Type": "application/soap+xml; charset=utf-8" },
+                "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap11:Envelope xmlns:soap11=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap11:Body><${operationName}Response xmlns=\"http://example.com/calculator-service\"><result>42</result></${operationName}Response></soap11:Body></soap11:Envelope>"
               },
               "persistent": true
             }
@@ -115,7 +115,7 @@ class SoapValidationRetryIntegrationTest {
         metadata = MockMetadata(
             sourceType = SourceType.SPEC_WITH_DESCRIPTION,
             sourceReference = "CalculatorService: test",
-            endpoint = EndpointInfo(HttpMethod.POST, "/CalculatorService", 200, "text/xml")
+            endpoint = EndpointInfo(HttpMethod.POST, "/CalculatorService", 200, "application/soap+xml")
         ),
         generatedAt = Instant.now()
     )
@@ -132,8 +132,8 @@ class SoapValidationRetryIntegrationTest {
         fun `Given SOAP AI returns invalid mock on first attempt and valid mock on retry Then should accept corrected mock`() =
             runTest {
                 // Given
-                val invalidMock = buildInvalidSoap11Mock()
-                val validMock = buildValidSoap11Mock()
+                val invalidMock = buildInvalidSoap12Mock()
+                val validMock = buildValidSoap12Mock()
 
                 // runStrategy encapsulates the full retry loop internally; mock returns the corrected result
                 coEvery {
@@ -150,7 +150,7 @@ class SoapValidationRetryIntegrationTest {
 
                 val parser: SpecificationParserInterface = mockk()
                 coEvery { parser.parse(any(), any()) } returns buildParser().parse(
-                    loadWsdl("calculator-soap11.wsdl"),
+                    loadWsdl("calculator-soap12.wsdl"),
                     SpecificationFormat.WSDL
                 )
                 coEvery { parser.supports(SpecificationFormat.WSDL) } returns true
@@ -162,7 +162,7 @@ class SoapValidationRetryIntegrationTest {
                 val request = SpecWithDescriptionRequest(
                     jobId = "job-soap-retry-1",
                     namespace = testNamespace,
-                    specificationContent = loadWsdl("calculator-soap11.wsdl"),
+                    specificationContent = loadWsdl("calculator-soap12.wsdl"),
                     format = SpecificationFormat.WSDL,
                     description = "Generate SOAP mocks for calculator service"
                 )
@@ -182,8 +182,8 @@ class SoapValidationRetryIntegrationTest {
         @Test
         fun `Given SOAP validation errors When retrying Then should feed errors back to AI service`() = runTest {
             // Given
-            val invalidMock = buildInvalidSoap11Mock()
-            val validMock = buildValidSoap11Mock()
+            val invalidMock = buildInvalidSoap12Mock()
+            val validMock = buildValidSoap12Mock()
             val validationErrors = listOf(
                 "SOAP Envelope element missing or has wrong namespace. Expected: http://schemas.xmlsoap.org/soap/envelope/, found: http://www.w3.org/2003/05/soap-envelope",
                 "Content-Type header 'text/xml' does not match SOAP version. Expected: application/soap+xml"
@@ -199,7 +199,7 @@ class SoapValidationRetryIntegrationTest {
 
             val parser: SpecificationParserInterface = mockk()
             coEvery { parser.parse(any(), any()) } returns buildParser().parse(
-                loadWsdl("calculator-soap11.wsdl"),
+                loadWsdl("calculator-soap12.wsdl"),
                 SpecificationFormat.WSDL
             )
             coEvery { parser.supports(SpecificationFormat.WSDL) } returns true
@@ -211,7 +211,7 @@ class SoapValidationRetryIntegrationTest {
             val request = SpecWithDescriptionRequest(
                 jobId = "job-soap-retry-2",
                 namespace = testNamespace,
-                specificationContent = loadWsdl("calculator-soap11.wsdl"),
+                specificationContent = loadWsdl("calculator-soap12.wsdl"),
                 format = SpecificationFormat.WSDL,
                 description = "Generate SOAP mocks for calculator service"
             )
@@ -227,11 +227,11 @@ class SoapValidationRetryIntegrationTest {
         fun `Given corrected SOAP mock passes SoapMockValidator When retrying Then should include corrected mock in result`() =
             runTest {
                 // Given — use real SoapMockValidator to verify the corrected mock passes
-                val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+                val wsdlXml = loadWsdl("calculator-soap12.wsdl")
                 val spec = buildParser().parse(wsdlXml, SpecificationFormat.WSDL)
 
-                val invalidMock = buildInvalidSoap11Mock()
-                val correctedMock = buildValidSoap11Mock()
+                val invalidMock = buildInvalidSoap12Mock()
+                val correctedMock = buildValidSoap12Mock()
 
                 // Verify the invalid mock actually fails real validation
                 val invalidResult = realValidator.validate(invalidMock, spec)
@@ -293,7 +293,7 @@ class SoapValidationRetryIntegrationTest {
         fun `Given SOAP AI always returns invalid mocks When max retries exceeded Then should stop retrying`() =
             runTest {
                 // Given
-                val invalidMock = buildInvalidSoap11Mock()
+                val invalidMock = buildInvalidSoap12Mock()
                 val persistentErrors = listOf(
                     "SOAP Envelope element missing or has wrong namespace. Expected: http://schemas.xmlsoap.org/soap/envelope/, found: http://www.w3.org/2003/05/soap-envelope"
                 )
@@ -309,7 +309,7 @@ class SoapValidationRetryIntegrationTest {
 
                 val parser: SpecificationParserInterface = mockk()
                 coEvery { parser.parse(any(), any()) } returns buildParser().parse(
-                    loadWsdl("calculator-soap11.wsdl"),
+                    loadWsdl("calculator-soap12.wsdl"),
                     SpecificationFormat.WSDL
                 )
                 coEvery { parser.supports(SpecificationFormat.WSDL) } returns true
@@ -321,7 +321,7 @@ class SoapValidationRetryIntegrationTest {
                 val request = SpecWithDescriptionRequest(
                     jobId = "job-soap-uncorr-1",
                     namespace = testNamespace,
-                    specificationContent = loadWsdl("calculator-soap11.wsdl"),
+                    specificationContent = loadWsdl("calculator-soap12.wsdl"),
                     format = SpecificationFormat.WSDL,
                     description = "Generate SOAP mocks for calculator service"
                 )
@@ -336,7 +336,7 @@ class SoapValidationRetryIntegrationTest {
         @Test
         fun `Given maxRetries of 0 When SOAP validation fails Then should not retry at all`() = runTest {
             // Given
-            val invalidMock = buildInvalidSoap11Mock()
+            val invalidMock = buildInvalidSoap12Mock()
 
             coEvery {
                 aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), any())
@@ -349,7 +349,7 @@ class SoapValidationRetryIntegrationTest {
 
             val parser: SpecificationParserInterface = mockk()
             coEvery { parser.parse(any(), any()) } returns buildParser().parse(
-                loadWsdl("calculator-soap11.wsdl"),
+                loadWsdl("calculator-soap12.wsdl"),
                 SpecificationFormat.WSDL
             )
             coEvery { parser.supports(SpecificationFormat.WSDL) } returns true
@@ -361,7 +361,7 @@ class SoapValidationRetryIntegrationTest {
             val request = SpecWithDescriptionRequest(
                 jobId = "job-soap-uncorr-2",
                 namespace = testNamespace,
-                specificationContent = loadWsdl("calculator-soap11.wsdl"),
+                specificationContent = loadWsdl("calculator-soap12.wsdl"),
                 format = SpecificationFormat.WSDL,
                 description = "Generate SOAP mocks for calculator service"
             )
@@ -377,7 +377,7 @@ class SoapValidationRetryIntegrationTest {
         fun `Given maxRetries of 3 When all SOAP attempts fail Then should respect the retry limit`() = runTest {
             // Given
             var strategyCallCount = 0
-            val invalidMock = buildInvalidSoap11Mock()
+            val invalidMock = buildInvalidSoap12Mock()
 
             coEvery {
                 aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), any())
@@ -392,7 +392,7 @@ class SoapValidationRetryIntegrationTest {
 
             val parser: SpecificationParserInterface = mockk()
             coEvery { parser.parse(any(), any()) } returns buildParser().parse(
-                loadWsdl("calculator-soap11.wsdl"),
+                loadWsdl("calculator-soap12.wsdl"),
                 SpecificationFormat.WSDL
             )
             coEvery { parser.supports(SpecificationFormat.WSDL) } returns true
@@ -404,7 +404,7 @@ class SoapValidationRetryIntegrationTest {
             val request = SpecWithDescriptionRequest(
                 jobId = "job-soap-uncorr-3",
                 namespace = testNamespace,
-                specificationContent = loadWsdl("calculator-soap11.wsdl"),
+                specificationContent = loadWsdl("calculator-soap12.wsdl"),
                 format = SpecificationFormat.WSDL,
                 description = "Generate SOAP mocks for calculator service"
             )
@@ -421,7 +421,7 @@ class SoapValidationRetryIntegrationTest {
         @Test
         fun `Given multiple SOAP validation errors When generation fails Then result should be returned`() = runTest {
             // Given
-            val invalidMock = buildInvalidSoap11Mock()
+            val invalidMock = buildInvalidSoap12Mock()
             val accumulatedErrors = listOf(
                 "Request method must be POST, found: GET",
                 "SOAP Envelope element missing or has wrong namespace. Expected: http://schemas.xmlsoap.org/soap/envelope/",
@@ -440,7 +440,7 @@ class SoapValidationRetryIntegrationTest {
 
             val parser: SpecificationParserInterface = mockk()
             coEvery { parser.parse(any(), any()) } returns buildParser().parse(
-                loadWsdl("calculator-soap11.wsdl"),
+                loadWsdl("calculator-soap12.wsdl"),
                 SpecificationFormat.WSDL
             )
             coEvery { parser.supports(SpecificationFormat.WSDL) } returns true
@@ -452,7 +452,7 @@ class SoapValidationRetryIntegrationTest {
             val request = SpecWithDescriptionRequest(
                 jobId = "job-soap-uncorr-4",
                 namespace = testNamespace,
-                specificationContent = loadWsdl("calculator-soap11.wsdl"),
+                specificationContent = loadWsdl("calculator-soap12.wsdl"),
                 format = SpecificationFormat.WSDL,
                 description = "Generate SOAP mocks for calculator service"
             )
@@ -468,9 +468,9 @@ class SoapValidationRetryIntegrationTest {
         fun `Given real SoapMockValidator When validating invalid mock Then errors are descriptive for AI correction`() =
             runTest {
                 // Given — use real validator to verify error messages are descriptive
-                val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+                val wsdlXml = loadWsdl("calculator-soap12.wsdl")
                 val spec = buildParser().parse(wsdlXml, SpecificationFormat.WSDL)
-                val invalidMock = buildInvalidSoap11Mock()
+                val invalidMock = buildInvalidSoap12Mock()
 
                 // When
                 val result = realValidator.validate(invalidMock, spec)

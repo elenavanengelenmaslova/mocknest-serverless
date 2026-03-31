@@ -13,32 +13,31 @@ Requirements:
 - Fix all validation errors listed for each mock.
 - CRITICAL: Every mapping MUST include `"persistent": true` at the top level of the mapping object
 
-SOAP-specific corrections (IMPORTANT):
+SOAP 1.2 specific corrections (IMPORTANT):
 - If the error is "Request method must be POST": change the `request.method` to `"POST"` — SOAP always uses POST
 - If the error is "SOAPAction does not match any operation in the WSDL":
-  - For SOAP 1.1: update the `SOAPAction` header value to exactly match one of the valid operation soapAction values from the WSDL
-  - For SOAP 1.2: update the `action` parameter in the `Content-Type` header to match a valid operation name
-- If the error is "Response body is not well-formed XML": replace the response body with a valid XML SOAP envelope
+  - Update the `action` parameter in the `Content-Type` header to match a valid operation name
+  - Do NOT use a `SOAPAction` header — SOAP 1.2 uses the `action` parameter in `Content-Type`
+- If the error is "Response body is not well-formed XML": replace the response body with a valid XML SOAP 1.2 envelope
 - If the error is "SOAP Envelope element missing or has wrong namespace":
-  - For SOAP 1.1: use `xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"` on the root Envelope element
-  - For SOAP 1.2: use `xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope"` on the root Envelope element
+  - Use `xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope"` on the root Envelope element
   - Ensure the root element is named `Envelope` (not `Envelope1`, `soap:Envelope` without namespace, etc.)
 - If the error is "SOAP Body element missing inside Envelope": add `<soapenv:Body>...</soapenv:Body>` as a direct child of the Envelope element
 - If the error is "Response body element namespace does not match WSDL targetNamespace":
   - The element inside `<soapenv:Body>` must use the correct target namespace from the WSDL
   - Add the correct namespace declaration: `xmlns:tns="TARGET_NAMESPACE"` and prefix the body element with `tns:`
 - If the error is "Content-Type header does not match SOAP version":
-  - For SOAP 1.1: set response Content-Type to `text/xml; charset=utf-8`
-  - For SOAP 1.2: set response Content-Type to `application/soap+xml; charset=utf-8`
+  - Set response Content-Type to `application/soap+xml; charset=utf-8`
 
-SOAP request matching rules (IMPORTANT):
+SOAP 1.2 request matching rules (IMPORTANT):
 - ALL SOAP requests MUST use POST method
-- For SOAP 1.1: match on the `SOAPAction` header with the exact soapAction value
-- For SOAP 1.2: match on the `action` parameter inside the `Content-Type` header
+- Match on the `action` parameter inside the `Content-Type` header
+- Do NOT use a `SOAPAction` header
 - Use `urlPath` for the service endpoint path
 
-SOAP response format rules (IMPORTANT):
-- ALL SOAP responses MUST be valid XML SOAP envelopes with the correct namespace
+SOAP 1.2 response format rules (IMPORTANT):
+- ALL SOAP responses MUST be valid XML SOAP 1.2 envelopes with namespace `http://www.w3.org/2003/05/soap-envelope`
+- Response Content-Type MUST be `application/soap+xml; charset=utf-8`
 - The element inside `<soapenv:Body>` MUST use the target namespace from the WSDL
 - NEVER return a bare XML document without a SOAP Envelope wrapper
 - NEVER use JSON as the response body

@@ -43,12 +43,12 @@ class SoapS3PersistenceIntegrationTest {
         this::class.java.getResource("/wsdl/$filename")?.readText()
             ?: error("WSDL test resource not found: $filename")
 
-    private fun buildValidSoap11Mock(
+    private fun buildValidSoap12Mock(
         namespace: MockNamespace,
         operationName: String = "Add"
     ): GeneratedMock = GeneratedMock(
         id = UUID.randomUUID().toString(),
-        name = "SOAP 1.1 $operationName mock",
+        name = "SOAP 1.2 $operationName mock",
         namespace = namespace,
         wireMockMapping = """
             {
@@ -56,13 +56,13 @@ class SoapS3PersistenceIntegrationTest {
                 "method": "POST",
                 "urlPath": "/calculator-service",
                 "headers": {
-                  "SOAPAction": { "equalTo": "http://example.com/calculator-service/$operationName" }
+                  "Content-Type": { "equalTo": "application/soap+xml; action=\"http://example.com/calculator-service/$operationName\"" }
                 }
               },
               "response": {
                 "status": 200,
-                "headers": { "Content-Type": "text/xml; charset=utf-8" },
-                "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><${operationName}Response xmlns=\"http://example.com/calculator-service\"><result>42</result></${operationName}Response></soap:Body></soap:Envelope>"
+                "headers": { "Content-Type": "application/soap+xml; charset=utf-8" },
+                "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\"><soap:Body><${operationName}Response xmlns=\"http://example.com/calculator-service\"><result>42</result></${operationName}Response></soap:Body></soap:Envelope>"
               },
               "persistent": true
             }
@@ -70,7 +70,7 @@ class SoapS3PersistenceIntegrationTest {
         metadata = MockMetadata(
             sourceType = SourceType.SPEC_WITH_DESCRIPTION,
             sourceReference = "CalculatorService: test",
-            endpoint = EndpointInfo(HttpMethod.POST, "/CalculatorService", 200, "text/xml")
+            endpoint = EndpointInfo(HttpMethod.POST, "/CalculatorService", 200, "application/soap+xml")
         ),
         generatedAt = Instant.now()
     )
@@ -78,7 +78,7 @@ class SoapS3PersistenceIntegrationTest {
     @Test
     fun `Given inline WSDL XML When running complete flow Then generated mocks pass validation`() = runTest {
         // Given — parse inline WSDL XML
-        val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+        val wsdlXml = loadWsdl("calculator-soap12.wsdl")
         val namespace = MockNamespace(apiName = "calculator-api")
 
         val spec = specParser.parse(wsdlXml, SpecificationFormat.WSDL)
@@ -87,7 +87,7 @@ class SoapS3PersistenceIntegrationTest {
 
         // Simulate AI generation — produce valid SOAP mocks
         val generatedMocks = spec.endpoints.map { endpoint ->
-            buildValidSoap11Mock(namespace, endpoint.operationId ?: "Add")
+            buildValidSoap12Mock(namespace, endpoint.operationId ?: "Add")
         }
         assertTrue(generatedMocks.isNotEmpty(), "Should have generated mocks")
 
@@ -111,7 +111,7 @@ class SoapS3PersistenceIntegrationTest {
     @Test
     fun `Given inline WSDL XML When parsing spec Then specification has correct format and endpoints`() = runTest {
         // Given
-        val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+        val wsdlXml = loadWsdl("calculator-soap12.wsdl")
 
         // When
         val spec = specParser.parse(wsdlXml, SpecificationFormat.WSDL)
@@ -129,11 +129,11 @@ class SoapS3PersistenceIntegrationTest {
     @Test
     fun `Given SOAP mock When validated Then WireMock mapping structure is correct`() = runTest {
         // Given
-        val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+        val wsdlXml = loadWsdl("calculator-soap12.wsdl")
         val namespace = MockNamespace(apiName = "calculator-api")
 
         val spec = specParser.parse(wsdlXml, SpecificationFormat.WSDL)
-        val mock = buildValidSoap11Mock(namespace, "Add")
+        val mock = buildValidSoap12Mock(namespace, "Add")
 
         // When
         val validationResult = soapValidator.validate(mock, spec)
@@ -151,14 +151,14 @@ class SoapS3PersistenceIntegrationTest {
     @Test
     fun `Given multiple SOAP operations When all mocks generated Then all pass validation`() = runTest {
         // Given — calculator has Add, Subtract, Multiply operations
-        val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+        val wsdlXml = loadWsdl("calculator-soap12.wsdl")
         val namespace = MockNamespace(apiName = "calculator-api")
 
         val spec = specParser.parse(wsdlXml, SpecificationFormat.WSDL)
         val operationNames = spec.endpoints.mapNotNull { it.operationId }
         assertTrue(operationNames.isNotEmpty(), "Calculator WSDL should have operations")
 
-        val mocks = operationNames.map { opName -> buildValidSoap11Mock(namespace, opName) }
+        val mocks = operationNames.map { opName -> buildValidSoap12Mock(namespace, opName) }
 
         // When / Then — all mocks pass validation
         mocks.forEach { mock ->
@@ -171,7 +171,7 @@ class SoapS3PersistenceIntegrationTest {
     @Test
     fun `Given invalid SOAP mock When validated Then should fail validation`() = runTest {
         // Given
-        val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+        val wsdlXml = loadWsdl("calculator-soap12.wsdl")
         val namespace = MockNamespace(apiName = "calculator-api")
         val spec = specParser.parse(wsdlXml, SpecificationFormat.WSDL)
 

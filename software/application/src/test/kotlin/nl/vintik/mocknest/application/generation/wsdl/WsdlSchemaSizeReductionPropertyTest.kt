@@ -29,14 +29,14 @@ class WsdlSchemaSizeReductionPropertyTest {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "multi-operation-soap11.wsdl",
-        "multi-porttype-soap11.wsdl",
-        "complex-types-soap11.wsdl",
+        "multi-operation-soap12.wsdl",
+        "multi-porttype-soap12.wsdl",
+        "complex-types-soap12.wsdl",
         "multi-operation-soap12.wsdl",
         "large-service.wsdl",
-        "calculator-soap11.wsdl",
+        "calculator-soap12.wsdl",
         "weather-soap12.wsdl",
-        "nested-xsd-soap11.wsdl"
+        "nested-xsd-soap12.wsdl"
     ])
     fun `Given a multi-operation WSDL When reducing to CompactWsdl Then prettyPrint length is less than raw WSDL length`(filename: String) {
         val rawWsdlXml = loadWsdl(filename)

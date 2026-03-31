@@ -100,7 +100,7 @@ class SoapMockValidator : MockValidatorInterface {
 
     private fun resolveSoapVersion(specification: APISpecification): SoapVersion {
         val versionName = specification.metadata["soapVersion"]
-        return runCatching { SoapVersion.valueOf(versionName ?: "") }.getOrDefault(SoapVersion.SOAP_1_1)
+        return runCatching { SoapVersion.valueOf(versionName ?: "") }.getOrDefault(SoapVersion.SOAP_1_2)
     }
 
     /**

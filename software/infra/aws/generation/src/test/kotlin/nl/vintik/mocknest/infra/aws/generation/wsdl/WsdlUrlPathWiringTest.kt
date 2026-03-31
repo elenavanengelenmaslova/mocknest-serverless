@@ -57,7 +57,7 @@ class WsdlUrlPathWiringTest {
         @Test
         fun `Given HTTP URL content When parsing Then should delegate to content fetcher`() = runTest {
             // Given
-            val wsdlContent = loadWsdl("simple-soap11.wsdl")
+            val wsdlContent = loadWsdl("simple-soap12.wsdl")
             wireMockServer.stubFor(
                 get(urlEqualTo("/service.wsdl"))
                     .willReturn(
@@ -84,7 +84,7 @@ class WsdlUrlPathWiringTest {
         @Test
         fun `Given HTTP URL content When parsing Then should produce same result as inline XML`() = runTest {
             // Given
-            val wsdlContent = loadWsdl("calculator-soap11.wsdl")
+            val wsdlContent = loadWsdl("calculator-soap12.wsdl")
             wireMockServer.stubFor(
                 get(urlEqualTo("/calculator.wsdl"))
                     .willReturn(
@@ -122,7 +122,7 @@ class WsdlUrlPathWiringTest {
             // Given
             val mockFetcher: WsdlContentFetcherInterface = mockk(relaxed = true)
             val parser = WsdlSpecificationParser(mockFetcher, WsdlParser(), WsdlSchemaReducer())
-            val wsdlXml = loadWsdl("simple-soap11.wsdl")
+            val wsdlXml = loadWsdl("simple-soap12.wsdl")
 
             // When
             parser.parse(wsdlXml, SpecificationFormat.WSDL)
@@ -137,7 +137,7 @@ class WsdlUrlPathWiringTest {
                 // Given
                 val mockFetcher: WsdlContentFetcherInterface = mockk(relaxed = true)
                 val parser = WsdlSpecificationParser(mockFetcher, WsdlParser(), WsdlSchemaReducer())
-                val wsdlXml = loadWsdl("multi-operation-soap11.wsdl")
+                val wsdlXml = loadWsdl("multi-operation-soap12.wsdl")
 
                 // When
                 parser.parse(wsdlXml, SpecificationFormat.WSDL)

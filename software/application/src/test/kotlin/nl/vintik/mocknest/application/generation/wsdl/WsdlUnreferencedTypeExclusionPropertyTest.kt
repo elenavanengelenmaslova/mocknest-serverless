@@ -66,11 +66,11 @@ class WsdlUnreferencedTypeExclusionPropertyTest {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "unreferenced-types-soap11.wsdl",
-        "complex-types-soap11.wsdl",
-        "nested-xsd-soap11.wsdl",
+        "unreferenced-types-soap12.wsdl",
+        "complex-types-soap12.wsdl",
+        "nested-xsd-soap12.wsdl",
         "large-service.wsdl",
-        "multi-porttype-soap11.wsdl"
+        "multi-porttype-soap12.wsdl"
     ])
     fun `Given a WSDL with XSD types When reducing to CompactWsdl Then unreferenced types are absent from xsdTypes`(filename: String) {
         val wsdlXml = loadWsdl(filename)
@@ -96,11 +96,11 @@ class WsdlUnreferencedTypeExclusionPropertyTest {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "unreferenced-types-soap11.wsdl",
-        "complex-types-soap11.wsdl",
-        "nested-xsd-soap11.wsdl",
+        "unreferenced-types-soap12.wsdl",
+        "complex-types-soap12.wsdl",
+        "nested-xsd-soap12.wsdl",
         "large-service.wsdl",
-        "multi-porttype-soap11.wsdl"
+        "multi-porttype-soap12.wsdl"
     ])
     fun `Given a WSDL with XSD types When reducing to CompactWsdl Then only reachable types appear in xsdTypes`(filename: String) {
         val wsdlXml = loadWsdl(filename)
@@ -123,8 +123,8 @@ class WsdlUnreferencedTypeExclusionPropertyTest {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "unreferenced-types-soap11.wsdl",
-        "complex-types-soap11.wsdl"
+        "unreferenced-types-soap12.wsdl",
+        "complex-types-soap12.wsdl"
     ])
     fun `Given a WSDL with known unreferenced types When reducing to CompactWsdl Then at least one type is excluded`(filename: String) {
         val wsdlXml = loadWsdl(filename)

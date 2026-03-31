@@ -55,7 +55,7 @@ class WsdlUrlPathIntegrationTest {
     @Test
     fun `Given WSDL URL When fetching and parsing Then WsdlContentFetcher performs GET and returns XML`() = runTest {
         // Given
-        val wsdlContent = loadWsdl("calculator-soap11.wsdl")
+        val wsdlContent = loadWsdl("calculator-soap12.wsdl")
         wireMockServer.stubFor(
             get(urlEqualTo("/calculator.wsdl"))
                 .willReturn(
@@ -80,7 +80,7 @@ class WsdlUrlPathIntegrationTest {
     fun `Given same WSDL content When parsing via URL and inline Then should produce equivalent APISpecification`() =
         runTest {
             // Given
-            val wsdlContent = loadWsdl("calculator-soap11.wsdl")
+            val wsdlContent = loadWsdl("calculator-soap12.wsdl")
             wireMockServer.stubFor(
                 get(urlEqualTo("/calculator.wsdl"))
                     .willReturn(

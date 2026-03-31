@@ -128,13 +128,16 @@ class WsdlParser : WsdlParserInterface {
         }
 
         return when {
-            hasSoap11 && hasSoap12 -> {
-                throw WsdlParsingException(
-                    "Mixed SOAP 1.1 and SOAP 1.2 bindings are not supported in a single WSDL"
-                )
+            hasSoap12 -> {
+                if (hasSoap11) {
+                    warnings.add("WSDL contains both SOAP 1.1 and SOAP 1.2 bindings; selecting SOAP 1.2 only")
+                    logger.info { "Mixed SOAP versions detected; selecting SOAP 1.2, ignoring SOAP 1.1 bindings" }
+                }
+                Pair(SoapVersion.SOAP_1_2, warnings)
             }
-            hasSoap12 -> Pair(SoapVersion.SOAP_1_2, warnings)
-            hasSoap11 -> Pair(SoapVersion.SOAP_1_1, warnings)
+            hasSoap11 -> {
+                throw WsdlParsingException("Only SOAP 1.2 is supported")
+            }
             else -> {
                 throw WsdlParsingException(
                     "No SOAP binding namespace found; non-SOAP WSDL bindings are not supported"
@@ -180,14 +183,20 @@ class WsdlParser : WsdlParserInterface {
         val result = mutableMapOf<String, String>()
         val bindingElements = getElementsByLocalName(root, "binding")
         for (binding in bindingElements) {
+            // Only extract from SOAP 1.2 bindings
+            val isSoap12 = binding.childNodes.toList()
+                .filterIsInstance<Element>()
+                .any { it.namespaceURI == SOAP_12_BINDING_NS }
+            if (!isSoap12) continue
+
             val portTypeName = binding.getAttribute("type").stripPrefix()
             val bindingOps = getElementsByLocalName(binding, "operation")
             for (bindingOp in bindingOps) {
                 val opName = bindingOp.getAttribute("name")
-                // Look for soap:operation or soap12:operation child
+                // Look for soap12:operation child
                 val soapOp = bindingOp.childNodes.toList()
                     .filterIsInstance<Element>()
-                    .firstOrNull { it.localName == "operation" }
+                    .firstOrNull { it.localName == "operation" && it.namespaceURI == SOAP_12_BINDING_NS }
                 val soapAction = soapOp?.getAttribute("soapAction") ?: ""
                 if (opName.isNotBlank() && portTypeName.isNotBlank()) {
                     result["$portTypeName#$opName"] = soapAction
@@ -286,9 +295,10 @@ class WsdlParser : WsdlParserInterface {
         for (service in serviceElements) {
             val ports = getElementsByLocalName(service, "port")
             for (port in ports) {
+                // Only extract addresses from SOAP 1.2 ports
                 val addressEl = port.childNodes.toList()
                     .filterIsInstance<Element>()
-                    .firstOrNull { it.localName == "address" }
+                    .firstOrNull { it.localName == "address" && it.namespaceURI == SOAP_12_BINDING_NS }
                 val location = addressEl?.getAttribute("location")
                 if (!location.isNullOrBlank()) {
                     addresses.add(location)
@@ -299,25 +309,14 @@ class WsdlParser : WsdlParserInterface {
     }
 
     private fun extractBindingDetails(root: Element, defaultSoapVersion: SoapVersion): List<ParsedBindingDetail> {
-        return getElementsByLocalName(root, "binding").map { bindingEl ->
+        return getElementsByLocalName(root, "binding").mapNotNull { bindingEl ->
             val name = bindingEl.getAttribute("name")
             val portTypeRef = bindingEl.getAttribute("type").stripPrefix()
-            // Detect per-binding SOAP version
-            val bindingVersion = run {
-                var soap11 = false
-                var soap12 = false
-                bindingEl.childNodes.toList().filterIsInstance<Element>().forEach { child ->
-                    when (child.namespaceURI) {
-                        SOAP_11_BINDING_NS -> soap11 = true
-                        SOAP_12_BINDING_NS -> soap12 = true
-                    }
-                }
-                when {
-                    soap12 && !soap11 -> SoapVersion.SOAP_1_2
-                    else -> SoapVersion.SOAP_1_1
-                }
-            }
-            ParsedBindingDetail(name = name, portTypeName = portTypeRef, soapVersion = bindingVersion)
+            // Only include SOAP 1.2 bindings
+            val isSoap12 = bindingEl.childNodes.toList().filterIsInstance<Element>()
+                .any { it.namespaceURI == SOAP_12_BINDING_NS }
+            if (!isSoap12) return@mapNotNull null
+            ParsedBindingDetail(name = name, portTypeName = portTypeRef, soapVersion = SoapVersion.SOAP_1_2)
         }
     }
 

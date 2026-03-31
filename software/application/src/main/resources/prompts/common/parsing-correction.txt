@@ -1,0 +1,27 @@
+Your previous response could not be parsed into valid WireMock mappings.
+
+Parsing error: {{PARSING_ERROR}}
+
+API Specification Context:
+- Title: {{SPEC_TITLE}}
+- Version: {{SPEC_VERSION}}
+- Operations: {{ENDPOINT_COUNT}}
+
+Namespace:
+- API Name: {{API_NAME}}{{CLIENT_SECTION}}
+
+Please regenerate the WireMock mappings. Return ONLY a valid JSON array of WireMock stub mapping objects.
+
+Requirements:
+- Return ONLY a JSON array — no explanatory text, no markdown code fences, no comments.
+- Each item MUST be a valid WireMock stub mapping object with these required top-level fields:
+  {
+    "request": { ... },
+    "response": { ... },
+    "persistent": true
+  }
+- The array MUST contain at least one mapping.
+- CRITICAL: Every mapping MUST include `"persistent": true` at the top level.
+- Only use fields defined in the WireMock stub mapping schema below.
+
+{{WIREMOCK_SCHEMA}}

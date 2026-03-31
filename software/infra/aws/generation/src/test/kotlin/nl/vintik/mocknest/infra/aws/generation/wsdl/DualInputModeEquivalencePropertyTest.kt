@@ -59,10 +59,10 @@ class DualInputModeEquivalencePropertyTest {
 
         @JvmStatic
         fun wsdlFiles(): Stream<String> = Stream.of(
-            "simple-soap11.wsdl",
             "simple-soap12.wsdl",
-            "multi-operation-soap11.wsdl",
-            "calculator-soap11.wsdl",
+            "simple-soap12.wsdl",
+            "multi-operation-soap12.wsdl",
+            "calculator-soap12.wsdl",
             "weather-soap12.wsdl"
         )
     }

@@ -53,7 +53,7 @@ class WsdlContentFetcherTest {
         @Test
         fun `Given valid WSDL URL When fetching Then should return raw WSDL XML`() = runTest {
             // Given
-            val wsdlContent = loadWsdl("simple-soap11.wsdl")
+            val wsdlContent = loadWsdl("simple-soap12.wsdl")
             wireMockServer.stubFor(
                 get(urlEqualTo("/service.wsdl"))
                     .willReturn(
@@ -74,7 +74,7 @@ class WsdlContentFetcherTest {
         @Test
         fun `Given valid WSDL URL When fetching Then should return content matching original`() = runTest {
             // Given
-            val wsdlContent = loadWsdl("calculator-soap11.wsdl")
+            val wsdlContent = loadWsdl("calculator-soap12.wsdl")
             wireMockServer.stubFor(
                 get(urlEqualTo("/calculator.wsdl"))
                     .willReturn(
@@ -95,7 +95,7 @@ class WsdlContentFetcherTest {
         @Test
         fun `Given valid WSDL URL When fetching Then should send User-Agent and Accept headers`() = runTest {
             // Given
-            val wsdlContent = loadWsdl("simple-soap11.wsdl")
+            val wsdlContent = loadWsdl("simple-soap12.wsdl")
             wireMockServer.stubFor(
                 get(urlEqualTo("/headers-check.wsdl"))
                     .willReturn(

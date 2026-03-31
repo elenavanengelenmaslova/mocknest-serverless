@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/unreferenced"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/unreferenced"
+                  name="UnreferencedService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/unreferenced">
+      <xsd:complexType name="Ping">
+        <xsd:sequence>
+          <xsd:element name="message" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="PingResponse">
+        <xsd:sequence>
+          <xsd:element name="reply" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="OrphanType1">
+        <xsd:sequence>
+          <xsd:element name="field1" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="OrphanType2">
+        <xsd:sequence>
+          <xsd:element name="field2" type="xsd:int"/>
+        </xsd:sequence>
+      </xsd:complexType>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="PingRequest">
+    <wsdl:part name="parameters" element="tns:Ping"/>
+  </wsdl:message>
+  <wsdl:message name="PingResponse">
+    <wsdl:part name="parameters" element="tns:PingResponse"/>
+  </wsdl:message>
+  <wsdl:portType name="UnreferencedPortType">
+    <wsdl:operation name="Ping">
+      <wsdl:input message="tns:PingRequest"/>
+      <wsdl:output message="tns:PingResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="UnreferencedBinding" type="tns:UnreferencedPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="Ping">
+      <soap12:operation soapAction="http://example.com/unreferenced/Ping"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="UnreferencedService">
+    <wsdl:port name="UnreferencedPort" binding="tns:UnreferencedBinding">
+      <soap12:address location="http://example.com/unreferenced"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

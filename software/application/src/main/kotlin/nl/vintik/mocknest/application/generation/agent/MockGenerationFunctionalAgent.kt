@@ -23,6 +23,7 @@ data class MockGenerationContext(
     val mocks: List<GeneratedMock> = emptyList(),
     val attempt: Int = 1,
     val errors: List<String> = emptyList(),
+    val parseFailure: Boolean = false,
 )
 
 /**
@@ -56,14 +57,24 @@ class MockGenerationFunctionalAgent(
                 appendPrompt { user(prompt) }
                 requestLLM()
             }
-            val textResponse = (response as? Message.Assistant)?.content ?: ""
-            val mocks = aiModelService.parseModelResponse(
-                textResponse,
-                ctx.request.namespace,
-                SourceType.SPEC_WITH_DESCRIPTION,
-                "${ctx.specification.title}: ${ctx.request.description}"
-            )
-            ctx.copy(mocks = mocks)
+            val textResponse = (response as? Message.Assistant)?.content
+            if (textResponse == null) {
+                val errorMsg = "Unexpected LLM response type: ${response::class.simpleName}"
+                logger.error { "Parse failure for jobId=${ctx.request.jobId}: $errorMsg" }
+                return@node ctx.copy(mocks = emptyList(), errors = listOf(errorMsg), parseFailure = true)
+            }
+            runCatching {
+                val mocks = aiModelService.parseModelResponse(
+                    textResponse,
+                    ctx.request.namespace,
+                    SourceType.SPEC_WITH_DESCRIPTION,
+                    "${ctx.specification.title}: ${ctx.request.description}"
+                )
+                ctx.copy(mocks = mocks)
+            }.getOrElse { e ->
+                logger.error(e) { "Parse failure for jobId=${ctx.request.jobId}: ${e.message}" }
+                ctx.copy(mocks = emptyList(), errors = listOf(e.message ?: "Model response parsing failed"), parseFailure = true)
+            }
         }
 
         // Node 3: Validation
@@ -79,32 +90,63 @@ class MockGenerationFunctionalAgent(
             ctx.copy(errors = errors)
         }
 
-        // Node 4: AI-Powered Correction
+        // Node 4: AI-Powered Correction (handles both validation errors and parse failures)
         val correctNode by node<MockGenerationContext, MockGenerationContext>("correct") { ctx ->
-            val invalidInput = ctx.mocks.map { it to mockValidator.validate(it, ctx.specification) }
-                .filter { !it.second.isValid }
-                .map { it.first to it.second.errors }
+            val correctionPrompt = if (ctx.parseFailure) {
+                // Parse failure: use parsing-correction prompt to regenerate
+                promptBuilder.buildParsingCorrectionPrompt(
+                    parsingError = ctx.errors.joinToString("; "),
+                    namespace = ctx.request.namespace,
+                    specification = ctx.specification
+                )
+            } else {
+                // Validation failure: use existing correction prompt
+                val invalidInput = ctx.mocks.map { it to mockValidator.validate(it, ctx.specification) }
+                    .filter { !it.second.isValid }
+                    .map { it.first to it.second.errors }
+                promptBuilder.buildCorrectionPrompt(
+                    invalidMocks = invalidInput,
+                    namespace = ctx.request.namespace,
+                    specification = ctx.specification,
+                    format = ctx.specification.format
+                )
+            }
 
-            val correctionPrompt = promptBuilder.buildCorrectionPrompt(
-                invalidMocks = invalidInput,
-                namespace = ctx.request.namespace,
-                specification = ctx.specification,
-                format = ctx.specification.format
-            )
             val response = llm.writeSession {
                 appendPrompt { user(correctionPrompt) }
                 requestLLM()
             }
-            val textResponse = (response as? Message.Assistant)?.content ?: ""
-            val correctedMocks = aiModelService.parseModelResponse(
-                textResponse,
-                ctx.request.namespace,
-                SourceType.REFINEMENT,
-                "Correction for ${ctx.request.namespace.displayName()}"
-            )
+            val textResponse = (response as? Message.Assistant)?.content
+            if (textResponse == null) {
+                val errorMsg = "Unexpected LLM response type during correction: ${response::class.simpleName}"
+                logger.error { "Parse failure during correction for jobId=${ctx.request.jobId}: $errorMsg" }
+                return@node ctx.copy(
+                    mocks = if (ctx.parseFailure) emptyList() else ctx.mocks.filter { mockValidator.validate(it, ctx.specification).isValid },
+                    errors = listOf(errorMsg),
+                    parseFailure = true,
+                    attempt = ctx.attempt + 1
+                )
+            }
 
-            val validMocks = ctx.mocks.filter { mockValidator.validate(it, ctx.specification).isValid }
-            ctx.copy(mocks = validMocks + correctedMocks, attempt = ctx.attempt + 1)
+            runCatching {
+                val correctedMocks = aiModelService.parseModelResponse(
+                    textResponse,
+                    ctx.request.namespace,
+                    SourceType.REFINEMENT,
+                    "Correction for ${ctx.request.namespace.displayName()}"
+                )
+                val validMocks = if (ctx.parseFailure) emptyList() else ctx.mocks.filter { mockValidator.validate(it, ctx.specification).isValid }
+                ctx.copy(mocks = validMocks + correctedMocks, attempt = ctx.attempt + 1, parseFailure = false, errors = emptyList())
+            }.getOrElse { e ->
+                logger.error(e) { "Parse failure during correction for jobId=${ctx.request.jobId}: ${e.message}" }
+                val validMocks = if (ctx.parseFailure) emptyList() else ctx.mocks.filter { mockValidator.validate(it, ctx.specification).isValid }
+                ctx.copy(
+                    mocks = validMocks,
+                    errors = listOf(e.message ?: "Correction response parsing failed"),
+                    parseFailure = true,
+                    attempt = ctx.attempt + 1
+                )
+            }
         }
 
         // Transitions
@@ -113,7 +155,10 @@ class MockGenerationFunctionalAgent(
 
         // If validation is disabled, go straight to finish
         edge(generateNode forwardTo nodeFinish onCondition { ctx -> !ctx.request.options.enableValidation }
-                transformed { ctx -> GenerationResult.success(ctx.request.jobId, ctx.mocks) }
+                transformed { ctx ->
+                    if (ctx.mocks.isEmpty()) GenerationResult.failure(ctx.request.jobId, ctx.errors.firstOrNull() ?: "No mocks generated")
+                    else GenerationResult.success(ctx.request.jobId, ctx.mocks)
+                }
         )
 
         // Otherwise, go to validateNode
@@ -123,10 +168,10 @@ class MockGenerationFunctionalAgent(
             validateNode forwardTo nodeFinish
                 onCondition { ctx -> ctx.errors.isEmpty() || ctx.attempt > maxRetries }
                 transformed { ctx ->
-            GenerationResult.success(
-                ctx.request.jobId,
-                ctx.mocks.filter { m -> !mockValidator.validate(m, ctx.specification).isFatal })
-        }
+                    val finalMocks = ctx.mocks.filter { m -> !mockValidator.validate(m, ctx.specification).isFatal }
+                    if (finalMocks.isEmpty()) GenerationResult.failure(ctx.request.jobId, ctx.errors.firstOrNull() ?: "No valid mocks generated")
+                    else GenerationResult.success(ctx.request.jobId, finalMocks)
+                }
         )
 
         edge(validateNode forwardTo correctNode onCondition { ctx -> ctx.errors.isNotEmpty() && ctx.attempt <= maxRetries })

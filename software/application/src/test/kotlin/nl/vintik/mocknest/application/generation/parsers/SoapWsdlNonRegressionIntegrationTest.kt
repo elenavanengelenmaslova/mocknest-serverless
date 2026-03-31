@@ -376,7 +376,7 @@ class SoapWsdlNonRegressionIntegrationTest {
         @Test
         fun `Given WSDL spec When OpenAPIMockValidator validates SOAP mock Then returns valid`() = runTest {
             // Given
-            val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+            val wsdlXml = loadWsdl("calculator-soap12.wsdl")
             val spec = wsdlParser.parse(wsdlXml, SpecificationFormat.WSDL)
 
             // Then — wsdlParser.parse must produce a valid WSDL spec

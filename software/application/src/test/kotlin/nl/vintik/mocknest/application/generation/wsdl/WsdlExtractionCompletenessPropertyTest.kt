@@ -31,15 +31,15 @@ class WsdlExtractionCompletenessPropertyTest {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "simple-soap11.wsdl",
         "simple-soap12.wsdl",
-        "multi-operation-soap11.wsdl",
-        "multi-porttype-soap11.wsdl",
-        "complex-types-soap11.wsdl",
-        "nested-xsd-soap11.wsdl",
+        "simple-soap12.wsdl",
+        "multi-operation-soap12.wsdl",
+        "multi-porttype-soap12.wsdl",
+        "complex-types-soap12.wsdl",
+        "nested-xsd-soap12.wsdl",
         "multi-operation-soap12.wsdl",
         "large-service.wsdl",
-        "calculator-soap11.wsdl",
+        "calculator-soap12.wsdl",
         "weather-soap12.wsdl"
     ])
     fun `Given any valid WSDL When parsing and reducing Then all operation names from ParsedWsdl appear in CompactWsdl`(filename: String) {
@@ -62,15 +62,15 @@ class WsdlExtractionCompletenessPropertyTest {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "simple-soap11.wsdl",
         "simple-soap12.wsdl",
-        "multi-operation-soap11.wsdl",
-        "multi-porttype-soap11.wsdl",
-        "complex-types-soap11.wsdl",
-        "nested-xsd-soap11.wsdl",
+        "simple-soap12.wsdl",
+        "multi-operation-soap12.wsdl",
+        "multi-porttype-soap12.wsdl",
+        "complex-types-soap12.wsdl",
+        "nested-xsd-soap12.wsdl",
         "multi-operation-soap12.wsdl",
         "large-service.wsdl",
-        "calculator-soap11.wsdl",
+        "calculator-soap12.wsdl",
         "weather-soap12.wsdl"
     ])
     fun `Given any valid WSDL When parsing and reducing Then all SOAPAction values from ParsedWsdl appear in CompactWsdl`(filename: String) {
@@ -93,15 +93,15 @@ class WsdlExtractionCompletenessPropertyTest {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "simple-soap11.wsdl",
         "simple-soap12.wsdl",
-        "multi-operation-soap11.wsdl",
-        "multi-porttype-soap11.wsdl",
-        "complex-types-soap11.wsdl",
-        "nested-xsd-soap11.wsdl",
+        "simple-soap12.wsdl",
+        "multi-operation-soap12.wsdl",
+        "multi-porttype-soap12.wsdl",
+        "complex-types-soap12.wsdl",
+        "nested-xsd-soap12.wsdl",
         "multi-operation-soap12.wsdl",
         "large-service.wsdl",
-        "calculator-soap11.wsdl",
+        "calculator-soap12.wsdl",
         "weather-soap12.wsdl"
     ])
     fun `Given any valid WSDL When parsing and reducing Then all XSD types referenced by operations appear in CompactWsdl`(filename: String) {
@@ -130,15 +130,15 @@ class WsdlExtractionCompletenessPropertyTest {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "simple-soap11.wsdl",
         "simple-soap12.wsdl",
-        "multi-operation-soap11.wsdl",
-        "multi-porttype-soap11.wsdl",
-        "complex-types-soap11.wsdl",
-        "nested-xsd-soap11.wsdl",
+        "simple-soap12.wsdl",
+        "multi-operation-soap12.wsdl",
+        "multi-porttype-soap12.wsdl",
+        "complex-types-soap12.wsdl",
+        "nested-xsd-soap12.wsdl",
         "multi-operation-soap12.wsdl",
         "large-service.wsdl",
-        "calculator-soap11.wsdl",
+        "calculator-soap12.wsdl",
         "weather-soap12.wsdl"
     ])
     fun `Given any valid WSDL When parsing and reducing Then CompactWsdl operations is non-empty`(filename: String) {
@@ -156,15 +156,15 @@ class WsdlExtractionCompletenessPropertyTest {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "simple-soap11.wsdl",
         "simple-soap12.wsdl",
-        "multi-operation-soap11.wsdl",
-        "multi-porttype-soap11.wsdl",
-        "complex-types-soap11.wsdl",
-        "nested-xsd-soap11.wsdl",
+        "simple-soap12.wsdl",
+        "multi-operation-soap12.wsdl",
+        "multi-porttype-soap12.wsdl",
+        "complex-types-soap12.wsdl",
+        "nested-xsd-soap12.wsdl",
         "multi-operation-soap12.wsdl",
         "large-service.wsdl",
-        "calculator-soap11.wsdl",
+        "calculator-soap12.wsdl",
         "weather-soap12.wsdl"
     ])
     fun `Given any valid WSDL When parsing and reducing Then CompactWsdl serviceName is non-blank`(filename: String) {
@@ -182,15 +182,15 @@ class WsdlExtractionCompletenessPropertyTest {
 
     @ParameterizedTest
     @ValueSource(strings = [
-        "simple-soap11.wsdl",
         "simple-soap12.wsdl",
-        "multi-operation-soap11.wsdl",
-        "multi-porttype-soap11.wsdl",
-        "complex-types-soap11.wsdl",
-        "nested-xsd-soap11.wsdl",
+        "simple-soap12.wsdl",
+        "multi-operation-soap12.wsdl",
+        "multi-porttype-soap12.wsdl",
+        "complex-types-soap12.wsdl",
+        "nested-xsd-soap12.wsdl",
         "multi-operation-soap12.wsdl",
         "large-service.wsdl",
-        "calculator-soap11.wsdl",
+        "calculator-soap12.wsdl",
         "weather-soap12.wsdl"
     ])
     fun `Given any valid WSDL When parsing and reducing Then CompactWsdl targetNamespace is non-blank`(filename: String) {

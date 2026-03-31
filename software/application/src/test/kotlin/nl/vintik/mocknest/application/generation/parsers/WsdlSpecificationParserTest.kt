@@ -40,33 +40,33 @@ class WsdlSpecificationParserTest {
             ?: throw IllegalArgumentException("WSDL test file not found: $filename")
 
     @Nested
-    inner class Soap11InlineParsing {
+    inner class Soap12InlineParsing {
 
         @Test
-        fun `Given SOAP 1_1 inline WSDL XML When parsing Then should return APISpecification with POST endpoints and SOAPAction metadata`() =
+        fun `Given SOAP 1_2 inline WSDL XML When parsing Then should return APISpecification with POST endpoints and SOAPAction metadata`() =
             runTest {
                 // Given
-                val wsdlXml = loadWsdl("simple-soap11.wsdl")
+                val wsdlXml = loadWsdl("simple-soap12.wsdl")
 
                 // When
                 val spec = parser.parse(wsdlXml, SpecificationFormat.WSDL)
 
                 // Then
                 assertEquals(SpecificationFormat.WSDL, spec.format)
-                assertEquals("HelloService", spec.title)
+                assertEquals("GreetService", spec.title)
                 assertTrue(spec.endpoints.isNotEmpty())
 
                 val endpoint = spec.endpoints.first()
                 assertEquals(HttpMethod.POST, endpoint.method)
                 assertNotNull(endpoint.metadata["soapAction"])
-                assertEquals("http://example.com/hello/SayHello", endpoint.metadata["soapAction"])
-                assertEquals("SayHello", endpoint.operationId)
+                assertEquals("http://example.com/greet/Greet", endpoint.metadata["soapAction"])
+                assertEquals("Greet", endpoint.operationId)
             }
 
         @Test
-        fun `Given SOAP 1_1 inline WSDL XML When parsing Then should not call content fetcher`() = runTest {
+        fun `Given SOAP 1_2 inline WSDL XML When parsing Then should not call content fetcher`() = runTest {
             // Given
-            val wsdlXml = loadWsdl("simple-soap11.wsdl")
+            val wsdlXml = loadWsdl("simple-soap12.wsdl")
 
             // When
             parser.parse(wsdlXml, SpecificationFormat.WSDL)
@@ -77,7 +77,7 @@ class WsdlSpecificationParserTest {
     }
 
     @Nested
-    inner class Soap12InlineParsing {
+    inner class Soap12InlineParsingVersion {
 
         @Test
         fun `Given SOAP 1_2 inline WSDL XML When parsing Then should propagate SOAP version in APISpecification`() =
@@ -146,7 +146,7 @@ class WsdlSpecificationParserTest {
         fun `Given valid inline WSDL XML When parsing Then rawContent should equal compactWsdl prettyPrint output`() =
             runTest {
                 // Given
-                val wsdlXml = loadWsdl("simple-soap11.wsdl")
+                val wsdlXml = loadWsdl("simple-soap12.wsdl")
 
                 // When
                 val spec = parser.parse(wsdlXml, SpecificationFormat.WSDL)
@@ -164,7 +164,7 @@ class WsdlSpecificationParserTest {
         @Test
         fun `Given inline WSDL XML When parsing Then should not call content fetcher`() = runTest {
             // Given
-            val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+            val wsdlXml = loadWsdl("calculator-soap12.wsdl")
 
             // When
             parser.parse(wsdlXml, SpecificationFormat.WSDL)
@@ -180,7 +180,7 @@ class WsdlSpecificationParserTest {
         @Test
         fun `Given valid WSDL inline XML When validating Then should return valid result`() = runTest {
             // Given
-            val wsdlXml = loadWsdl("simple-soap11.wsdl")
+            val wsdlXml = loadWsdl("simple-soap12.wsdl")
 
             // When
             val result = parser.validate(wsdlXml, SpecificationFormat.WSDL)
@@ -229,15 +229,15 @@ class WsdlSpecificationParserTest {
     inner class ExtractMetadataMethod {
 
         @Test
-        fun `Given valid SOAP 1_1 WSDL When extracting metadata Then should return correct metadata`() = runTest {
+        fun `Given valid SOAP 1_2 WSDL When extracting metadata Then should return correct metadata`() = runTest {
             // Given
-            val wsdlXml = loadWsdl("simple-soap11.wsdl")
+            val wsdlXml = loadWsdl("simple-soap12.wsdl")
 
             // When
             val metadata = parser.extractMetadata(wsdlXml, SpecificationFormat.WSDL)
 
             // Then
-            assertEquals("HelloService", metadata.title)
+            assertEquals("GreetService", metadata.title)
             assertEquals("1.0", metadata.version)
             assertEquals(SpecificationFormat.WSDL, metadata.format)
             assertTrue(metadata.endpointCount > 0)
@@ -246,7 +246,7 @@ class WsdlSpecificationParserTest {
         @Test
         fun `Given calculator WSDL When extracting metadata Then should return correct operation count`() = runTest {
             // Given
-            val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+            val wsdlXml = loadWsdl("calculator-soap12.wsdl")
 
             // When
             val metadata = parser.extractMetadata(wsdlXml, SpecificationFormat.WSDL)
@@ -259,7 +259,7 @@ class WsdlSpecificationParserTest {
         @Test
         fun `Given WSDL with XSD types When extracting metadata Then should return correct schema count`() = runTest {
             // Given
-            val wsdlXml = loadWsdl("complex-types-soap11.wsdl")
+            val wsdlXml = loadWsdl("complex-types-soap12.wsdl")
 
             // When
             val metadata = parser.extractMetadata(wsdlXml, SpecificationFormat.WSDL)

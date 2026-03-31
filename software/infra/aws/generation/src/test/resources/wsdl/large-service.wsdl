@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
-                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
                   xmlns:tns="http://example.com/enterprise"
                   xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                   targetNamespace="http://example.com/enterprise"
@@ -146,47 +146,47 @@
     </wsdl:operation>
   </wsdl:portType>
   <wsdl:binding name="CustomerBinding" type="tns:CustomerPortType">
-    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
     <wsdl:operation name="CreateCustomer">
-      <soap:operation soapAction="http://example.com/enterprise/CreateCustomer"/>
-      <wsdl:input><soap:body use="literal"/></wsdl:input>
-      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <soap12:operation soapAction="http://example.com/enterprise/CreateCustomer"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
     </wsdl:operation>
     <wsdl:operation name="GetCustomer">
-      <soap:operation soapAction="http://example.com/enterprise/GetCustomer"/>
-      <wsdl:input><soap:body use="literal"/></wsdl:input>
-      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <soap12:operation soapAction="http://example.com/enterprise/GetCustomer"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
     </wsdl:operation>
   </wsdl:binding>
   <wsdl:binding name="OrderBinding" type="tns:OrderPortType">
-    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
     <wsdl:operation name="CreateOrder">
-      <soap:operation soapAction="http://example.com/enterprise/CreateOrder"/>
-      <wsdl:input><soap:body use="literal"/></wsdl:input>
-      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <soap12:operation soapAction="http://example.com/enterprise/CreateOrder"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
     </wsdl:operation>
     <wsdl:operation name="GetOrder">
-      <soap:operation soapAction="http://example.com/enterprise/GetOrder"/>
-      <wsdl:input><soap:body use="literal"/></wsdl:input>
-      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <soap12:operation soapAction="http://example.com/enterprise/GetOrder"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
     </wsdl:operation>
     <wsdl:operation name="SearchProducts">
-      <soap:operation soapAction="http://example.com/enterprise/SearchProducts"/>
-      <wsdl:input><soap:body use="literal"/></wsdl:input>
-      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <soap12:operation soapAction="http://example.com/enterprise/SearchProducts"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
     </wsdl:operation>
     <wsdl:operation name="ProcessPayment">
-      <soap:operation soapAction="http://example.com/enterprise/ProcessPayment"/>
-      <wsdl:input><soap:body use="literal"/></wsdl:input>
-      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <soap12:operation soapAction="http://example.com/enterprise/ProcessPayment"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
     </wsdl:operation>
   </wsdl:binding>
   <wsdl:service name="EnterpriseService">
     <wsdl:port name="CustomerPort" binding="tns:CustomerBinding">
-      <soap:address location="http://example.com/enterprise/customer"/>
+      <soap12:address location="http://example.com/enterprise/customer"/>
     </wsdl:port>
     <wsdl:port name="OrderPort" binding="tns:OrderBinding">
-      <soap:address location="http://example.com/enterprise/order"/>
+      <soap12:address location="http://example.com/enterprise/order"/>
     </wsdl:port>
   </wsdl:service>
 </wsdl:definitions>

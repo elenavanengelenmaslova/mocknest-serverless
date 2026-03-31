@@ -35,11 +35,9 @@ class SoapVersionDetectionPropertyTest {
     companion object {
         @JvmStatic
         fun versionTestCases(): Stream<VersionTestCase> = Stream.of(
-            VersionTestCase("simple-soap11.wsdl", SoapVersion.SOAP_1_1),
             VersionTestCase("simple-soap12.wsdl", SoapVersion.SOAP_1_2),
-            VersionTestCase("multi-operation-soap11.wsdl", SoapVersion.SOAP_1_1),
             VersionTestCase("multi-operation-soap12.wsdl", SoapVersion.SOAP_1_2),
-            VersionTestCase("calculator-soap11.wsdl", SoapVersion.SOAP_1_1),
+            VersionTestCase("calculator-soap12.wsdl", SoapVersion.SOAP_1_2),
             VersionTestCase("weather-soap12.wsdl", SoapVersion.SOAP_1_2)
         )
     }
@@ -49,14 +47,26 @@ class SoapVersionDetectionPropertyTest {
             ?: throw IllegalArgumentException("WSDL test file not found: $filename")
 
     @Test
-    fun `Property 5 - Mixed SOAP versions should be rejected`() {
+    fun `Property 5 - Mixed SOAP versions should select SOAP 1_2`() {
         val wsdlXml = loadWsdl("mixed-version.wsdl")
+        val parsedWsdl = wsdlParser.parse(wsdlXml)
+        val compactWsdl = schemaReducer.reduce(parsedWsdl)
+        assertEquals(
+            SoapVersion.SOAP_1_2,
+            compactWsdl.soapVersion,
+            "Mixed SOAP version WSDL should select SOAP 1.2"
+        )
+    }
+
+    @Test
+    fun `Property 5 - SOAP 1_1 only WSDL should be rejected`() {
+        val wsdlXml = loadWsdl("simple-soap11.wsdl")
         val ex = assertFailsWith<WsdlParsingException> {
             wsdlParser.parse(wsdlXml)
         }
         assertTrue(
-            ex.message?.contains("Mixed SOAP 1.1 and SOAP 1.2") == true,
-            "Exception should mention mixed SOAP versions, got: ${ex.message}"
+            ex.message?.contains("Only SOAP 1.2 is supported") == true,
+            "Exception should say only SOAP 1.2 is supported, got: ${ex.message}"
         )
     }
 

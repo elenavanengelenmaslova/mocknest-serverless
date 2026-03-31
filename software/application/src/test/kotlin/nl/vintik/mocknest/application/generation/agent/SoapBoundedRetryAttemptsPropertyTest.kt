@@ -56,7 +56,7 @@ class SoapBoundedRetryAttemptsPropertyTest {
             ?: error("WSDL test resource not found: $filename")
 
     private fun buildSoapSpecification(): APISpecification {
-        val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+        val wsdlXml = loadWsdl("calculator-soap12.wsdl")
         val parsedWsdl = WsdlParser().parse(wsdlXml)
         val compactWsdl = WsdlSchemaReducer().reduce(parsedWsdl)
         return APISpecification(
@@ -100,7 +100,7 @@ class SoapBoundedRetryAttemptsPropertyTest {
         SpecWithDescriptionRequest(
             jobId = jobId,
             namespace = MockNamespace(apiName = "calculator-api"),
-            specificationContent = loadWsdl("calculator-soap11.wsdl"),
+            specificationContent = loadWsdl("calculator-soap12.wsdl"),
             format = SpecificationFormat.WSDL,
             description = "Generate SOAP mocks for retry test (maxRetries=$maxRetries)"
         )

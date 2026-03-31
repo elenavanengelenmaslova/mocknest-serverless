@@ -46,10 +46,10 @@ class WsdlInlineXmlEndToEndIntegrationTest {
             ?: throw IllegalArgumentException("WSDL test file not found: $filename")
 
     @Test
-    fun `Given SOAP 1_1 inline WSDL When running full pipeline Then should produce valid APISpecification`() =
+    fun `Given SOAP 1_2 inline WSDL When running full pipeline Then should produce valid APISpecification`() =
         runTest {
             // Given
-            val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+            val wsdlXml = loadWsdl("calculator-soap12.wsdl")
 
             // When — parse inline XML
             val spec = parser.parse(wsdlXml, SpecificationFormat.WSDL)
@@ -64,10 +64,10 @@ class WsdlInlineXmlEndToEndIntegrationTest {
         }
 
     @Test
-    fun `Given SOAP 1_1 inline WSDL When running full pipeline Then rawContent should equal prettyPrint output`() =
+    fun `Given SOAP 1_2 inline WSDL When running full pipeline Then rawContent should equal prettyPrint output`() =
         runTest {
             // Given
-            val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+            val wsdlXml = loadWsdl("calculator-soap12.wsdl")
 
             // When
             val spec = parser.parse(wsdlXml, SpecificationFormat.WSDL)
@@ -83,10 +83,10 @@ class WsdlInlineXmlEndToEndIntegrationTest {
         }
 
     @Test
-    fun `Given SOAP 1_1 inline WSDL When running full pipeline Then endpoint count should match WSDL operations`() =
+    fun `Given SOAP 1_2 inline WSDL When running full pipeline Then endpoint count should match WSDL operations`() =
         runTest {
             // Given
-            val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+            val wsdlXml = loadWsdl("calculator-soap12.wsdl")
 
             // When
             val spec = parser.parse(wsdlXml, SpecificationFormat.WSDL)
@@ -101,9 +101,9 @@ class WsdlInlineXmlEndToEndIntegrationTest {
         }
 
     @Test
-    fun `Given SOAP 1_1 inline WSDL When building prompt Then should produce non-empty prompt`() = runTest {
+    fun `Given SOAP 1_2 inline WSDL When building prompt Then should produce non-empty prompt`() = runTest {
         // Given
-        val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+        val wsdlXml = loadWsdl("calculator-soap12.wsdl")
         val spec = parser.parse(wsdlXml, SpecificationFormat.WSDL)
         val namespace = MockNamespace(apiName = "calculator")
 
@@ -120,7 +120,7 @@ class WsdlInlineXmlEndToEndIntegrationTest {
     }
 
     @Test
-    fun `Given SOAP 1_2 inline WSDL When running full pipeline Then should produce valid APISpecification`() =
+    fun `Given weather SOAP 1_2 inline WSDL When running full pipeline Then should produce valid APISpecification`() =
         runTest {
             // Given
             val wsdlXml = loadWsdl("weather-soap12.wsdl")
@@ -138,7 +138,7 @@ class WsdlInlineXmlEndToEndIntegrationTest {
         }
 
     @Test
-    fun `Given SOAP 1_2 inline WSDL When running full pipeline Then rawContent should equal prettyPrint output`() =
+    fun `Given weather SOAP 1_2 inline WSDL When running full pipeline Then rawContent should equal prettyPrint output`() =
         runTest {
             // Given
             val wsdlXml = loadWsdl("weather-soap12.wsdl")
@@ -153,9 +153,9 @@ class WsdlInlineXmlEndToEndIntegrationTest {
         }
 
     @Test
-    fun `Given SOAP 1_1 mock When validating against parsed spec Then valid mock should pass`() = runTest {
+    fun `Given SOAP 1_2 mock When validating against parsed spec Then valid mock should pass`() = runTest {
         // Given
-        val wsdlXml = loadWsdl("calculator-soap11.wsdl")
+        val wsdlXml = loadWsdl("calculator-soap12.wsdl")
         val spec = parser.parse(wsdlXml, SpecificationFormat.WSDL)
         val targetNamespace = spec.metadata["targetNamespace"] ?: ""
         val firstOperation = spec.endpoints.first()
@@ -172,27 +172,27 @@ class WsdlInlineXmlEndToEndIntegrationTest {
                     "method": "POST",
                     "urlPath": "$endpointPath",
                     "headers": {
-                      "SOAPAction": { "equalTo": "$soapAction" }
+                      "Content-Type": { "equalTo": "application/soap+xml; action=\"$soapAction\"" }
                     }
                   },
                   "response": {
                     "status": 200,
                     "headers": {
-                      "Content-Type": "text/xml"
+                      "Content-Type": "application/soap+xml"
                     },
-                    "body": "<?xml version=\"1.0\"?><soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><AddResponse xmlns=\"$targetNamespace\"><AddResult>42</AddResult></AddResponse></soap:Body></soap:Envelope>"
+                    "body": "<?xml version=\"1.0\"?><soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\"><soap:Body><AddResponse xmlns=\"$targetNamespace\"><AddResult>42</AddResult></AddResponse></soap:Body></soap:Envelope>"
                   },
                   "persistent": true
                 }
             """.trimIndent(),
             metadata = MockMetadata(
                 sourceType = SourceType.SPEC_WITH_DESCRIPTION,
-                sourceReference = "calculator-soap11.wsdl",
+                sourceReference = "calculator-soap12.wsdl",
                 endpoint = EndpointInfo(
                     method = HttpMethod.POST,
                     path = "/calculator",
                     statusCode = 200,
-                    contentType = "text/xml"
+                    contentType = "application/soap+xml"
                 )
             ),
             generatedAt = Instant.now()
@@ -204,7 +204,7 @@ class WsdlInlineXmlEndToEndIntegrationTest {
         // Then
         assertTrue(
             result.isValid,
-            "Valid SOAP 1.1 mock should pass validation. Errors: ${result.errors}"
+            "Valid SOAP 1.2 mock should pass validation. Errors: ${result.errors}"
         )
     }
 }

@@ -425,16 +425,13 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 
 ## Cost Information
 
-MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.amazon.com/free/) limits for typical development and testing scenarios. The serverless, pay-as-you-go architecture means you only pay for what you use.
+MockNest Serverless uses a serverless, pay-as-you-go architecture — you only pay for the AWS resources you consume.
 
-**Core Services**: AWS Lambda, API Gateway, S3, SQS, CloudWatch, and IAM  
-**AI Services**: Amazon Bedrock (pay-per-use when generating mocks)
+**Core Runtime** (Lambda, API Gateway, S3, SQS, CloudWatch, IAM): For light development and testing usage, these services may stay within [AWS Free Tier](https://aws.amazon.com/free/) limits. Free tier eligibility is time-limited (12 months for most services) and usage-dependent — check the [AWS Free Tier page](https://aws.amazon.com/free/) for current limits.
 
-Most development and testing scenarios stay within free tier limits, resulting in $0 monthly cost for core functionality.
+**AI Mock Generation** (Amazon Bedrock): Bedrock has no free tier. Every AI generation request incurs a cost based on input/output tokens. See [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) for current rates. If you don't use AI features, you pay nothing for Bedrock.
 
-For detailed cost analysis, service breakdowns, and optimization tips, see our comprehensive [Cost Guide](docs/COST.md).
-
-For a comparison with alternative mocking solutions and competitive analysis, see [Market Analysis](docs/MARKET_ANALYSIS.md).
+For detailed cost breakdown and monitoring tips, see the [Cost Guide](docs/COST.md).
 
 ## Troubleshooting
 ### Common Issues

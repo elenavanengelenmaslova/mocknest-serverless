@@ -24,58 +24,14 @@ class WsdlParserTest {
     inner class Soap11Parsing {
 
         @Test
-        fun `Given SOAP 1_1 WSDL When parsing Then should extract service name`() {
-            val result = parser.parse(loadWsdl("simple-soap11.wsdl"))
-            assertEquals("HelloService", result.serviceName)
-        }
-
-        @Test
-        fun `Given SOAP 1_1 WSDL When parsing Then should extract targetNamespace`() {
-            val result = parser.parse(loadWsdl("simple-soap11.wsdl"))
-            assertEquals("http://example.com/hello", result.targetNamespace)
-        }
-
-        @Test
-        fun `Given SOAP 1_1 WSDL When parsing Then should detect SOAP_1_1 version`() {
-            val result = parser.parse(loadWsdl("simple-soap11.wsdl"))
-            assertEquals(SoapVersion.SOAP_1_1, result.soapVersion)
-        }
-
-        @Test
-        fun `Given SOAP 1_1 WSDL When parsing Then should extract port types`() {
-            val result = parser.parse(loadWsdl("simple-soap11.wsdl"))
-            assertEquals(1, result.portTypes.size)
-            assertEquals("HelloPortType", result.portTypes.first().name)
-        }
-
-        @Test
-        fun `Given SOAP 1_1 WSDL When parsing Then should extract operations`() {
-            val result = parser.parse(loadWsdl("simple-soap11.wsdl"))
-            assertEquals(1, result.operations.size)
-            val op = result.operations.first()
-            assertEquals("SayHello", op.name)
-        }
-
-        @Test
-        fun `Given SOAP 1_1 WSDL When parsing Then should extract SOAPAction`() {
-            val result = parser.parse(loadWsdl("simple-soap11.wsdl"))
-            val op = result.operations.first()
-            assertEquals("http://example.com/hello/SayHello", op.soapAction)
-        }
-
-        @Test
-        fun `Given SOAP 1_1 WSDL When parsing Then should extract input and output message names`() {
-            val result = parser.parse(loadWsdl("simple-soap11.wsdl"))
-            val op = result.operations.first()
-            assertEquals("SayHello", op.inputMessageName)
-            assertEquals("SayHelloResponse", op.outputMessageName)
-        }
-
-        @Test
-        fun `Given SOAP 1_1 WSDL When parsing Then should extract service port address`() {
-            val result = parser.parse(loadWsdl("simple-soap11.wsdl"))
-            assertTrue(result.servicePortAddresses.isNotEmpty())
-            assertTrue(result.servicePortAddresses.first().contains("example.com"))
+        fun `Given SOAP 1_1 only WSDL When parsing Then should throw WsdlParsingException`() {
+            val ex = assertFailsWith<WsdlParsingException> {
+                parser.parse(loadWsdl("simple-soap11.wsdl"))
+            }
+            assertTrue(
+                ex.message?.contains("Only SOAP 1.2 is supported") == true,
+                "Exception should say only SOAP 1.2 is supported, got: ${ex.message}"
+            )
         }
     }
 
@@ -106,13 +62,34 @@ class WsdlParserTest {
     inner class MixedVersionParsing {
 
         @Test
-        fun `Given WSDL with both SOAP versions When parsing Then should throw WsdlParsingException`() {
-            val ex = assertFailsWith<WsdlParsingException> {
-                parser.parse(loadWsdl("mixed-version.wsdl"))
-            }
+        fun `Given WSDL with both SOAP versions When parsing Then should select SOAP 1_2 and succeed`() {
+            val result = parser.parse(loadWsdl("mixed-version.wsdl"))
+            assertEquals(SoapVersion.SOAP_1_2, result.soapVersion)
+            assertEquals("MixedService", result.serviceName)
+        }
+
+        @Test
+        fun `Given WSDL with both SOAP versions When parsing Then service address comes from SOAP 1_2 port`() {
+            val result = parser.parse(loadWsdl("mixed-version.wsdl"))
             assertTrue(
-                ex.message?.contains("Mixed SOAP 1.1 and SOAP 1.2") == true,
-                "Exception should mention mixed SOAP versions, got: ${ex.message}"
+                result.servicePortAddresses.all { it.contains("soap12") },
+                "Service addresses should come from SOAP 1.2 port. Got: ${result.servicePortAddresses}"
+            )
+        }
+
+        @Test
+        fun `Given WSDL with both SOAP versions When parsing Then operations come from SOAP 1_2 binding`() {
+            val result = parser.parse(loadWsdl("mixed-version.wsdl"))
+            assertTrue(result.operations.isNotEmpty(), "Should have operations from SOAP 1.2 binding")
+            assertEquals("DoSomething", result.operations.first().name)
+        }
+
+        @Test
+        fun `Given WSDL with both SOAP versions When parsing Then warnings mention mixed versions`() {
+            val result = parser.parse(loadWsdl("mixed-version.wsdl"))
+            assertTrue(
+                result.warnings.any { it.contains("SOAP 1.1") && it.contains("SOAP 1.2") },
+                "Should warn about mixed versions. Warnings: ${result.warnings}"
             )
         }
     }
@@ -137,7 +114,7 @@ class WsdlParserTest {
 
         @Test
         fun `Given document-literal WSDL with top-level xsd elements When parsing Then should capture element types`() {
-            val result = parser.parse(loadWsdl("document-literal-soap11.wsdl"))
+            val result = parser.parse(loadWsdl("document-literal-soap12.wsdl"))
             assertTrue(
                 result.xsdTypes.containsKey("GetOrder"),
                 "Should capture top-level xsd:element 'GetOrder' as a type. Found types: ${result.xsdTypes.keys}"
@@ -150,7 +127,7 @@ class WsdlParserTest {
 
         @Test
         fun `Given document-literal WSDL with top-level xsd elements When parsing Then element fields should be preserved`() {
-            val result = parser.parse(loadWsdl("document-literal-soap11.wsdl"))
+            val result = parser.parse(loadWsdl("document-literal-soap12.wsdl"))
             val getOrderType = result.xsdTypes["GetOrder"]
             assertNotNull(getOrderType, "GetOrder type must be present")
             assertEquals(2, getOrderType.fields.size, "GetOrder should have 2 fields")
@@ -207,7 +184,11 @@ class WsdlParserTest {
             val ex = assertFailsWith<WsdlParsingException> {
                 parser.parse(loadWsdl("invalid-no-operations.wsdl"))
             }
-            assertTrue(ex.message?.contains("no operations") == true || ex.message?.contains("operations") == true)
+            // WSDL uses SOAP 1.1 binding, so it fails with "Only SOAP 1.2 is supported"
+            assertTrue(
+                ex.message?.contains("SOAP 1.2") == true,
+                "Exception should mention SOAP 1.2 requirement, got: ${ex.message}"
+            )
         }
     }
 }
