@@ -27,6 +27,10 @@ NON-OVERLAPPING STUB RULES (CRITICAL):
 - Never generate two stubs that only differ by response while sharing the same request matcher.
 - Prefer one high-quality success stub per operation unless the enhancement description explicitly requires distinct scenarios.
 - Do NOT generate both a "success stub" and an "error stub" for the same operation with the same matcher — this creates nondeterministic WireMock behavior.
+- Never return an empty array.
+- Generate exactly one success stub per key operation by default.
+- If an extra scenario would overlap, omit the extra scenario, not the operation.
+- Add error stubs only when explicitly requested and only if the request matcher can differ.
 
 GraphQL request matching rules (IMPORTANT):
 - GraphQL requests are always POST requests with a JSON body containing `query` or `mutation` fields.

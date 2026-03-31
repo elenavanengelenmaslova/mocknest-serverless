@@ -27,6 +27,12 @@ SOAP 1.2 request matching rules (IMPORTANT):
 - Generate one primary success stub per SOAP operation unless the description explicitly requires additional scenarios (e.g., error cases, multiple test inputs)
 - Never generate multiple stubs for the same SOAP operation unless request matchers are mutually exclusive (e.g., different XPath body matches or different action values)
 - Prefer matching by URL path + POST method + Content-Type action parameter. Add XPath body matchers only when needed to disambiguate between stubs sharing the same endpoint and action
+- Unless otherwise specified:
+    - Generate exactly one mapping per SOAP operation unless request matchers are truly different.
+    - Do not use a wildcard-nested matcher like "matches": ".*" inside matchesXPath.
+- If an XPath uses namespace prefixes, include xPathNamespaces.
+- Preserve WSDL scalar types exactly.
+- Do not emit duplicate mappings.
 
 SOAP 1.2 response format rules (IMPORTANT):
 - ALL SOAP responses MUST be valid XML SOAP 1.2 envelopes
