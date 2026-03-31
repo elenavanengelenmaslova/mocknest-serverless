@@ -21,22 +21,19 @@ Requirements:
 
 NON-OVERLAPPING STUB RULES (CRITICAL):
 - GraphQL stubs must be NON-OVERLAPPING.
-- Generate exactly ONE mapping per GraphQL operation unless the description explicitly requires distinct scenarios with mutually exclusive request matchers.
 - Never generate more than one stub for the same operation name unless the request matchers are explicitly mutually exclusive.
 - If a success case and an error case are both desired for the same operation, they MUST differ by request matcher, such as different variable values or different query content.
 - Never generate two stubs that only differ by response while sharing the same request matcher.
-- Prefer one high-quality success stub per operation unless the enhancement description explicitly requires distinct scenarios.
 - Do NOT generate both a "success stub" and an "error stub" for the same operation with the same matcher — this creates nondeterministic WireMock behavior.
 - Never return an empty array.
-- Generate exactly one success stub per key operation by default.
 - If an extra scenario would overlap, omit the extra scenario, not the operation.
 - Add error stubs only when explicitly requested and only if the request matcher can differ.
 
-OPERATION LIMIT (CRITICAL — prevents output truncation):
-- If the schema has more than 20 operations, generate mocks ONLY for operations explicitly mentioned in the Enhancement Description.
-- If the Enhancement Description does not specify particular operations, pick the 10–15 most representative or commonly used operations from the Key operations list.
-- NEVER attempt to generate a mapping for every operation in a large schema — the response will be truncated and unusable.
-- Prefer fewer, high-quality mappings over many shallow ones.
+WHICH OPERATIONS TO GENERATE (CRITICAL — read this before generating):
+- Generate mocks ONLY for operations explicitly mentioned in the Enhancement Description.
+- If the Enhancement Description does not specify particular operations, generate mocks for the first 5 operations from the Key operations list above.
+- NEVER generate a mapping for every operation in the Key operations list — this will produce output that is too large.
+- One high-quality mapping per selected operation. No more.
 
 GraphQL request matching rules (IMPORTANT):
 - GraphQL requests are always POST requests with a JSON body containing `query` or `mutation` fields.
