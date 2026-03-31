@@ -11,36 +11,48 @@ Requirements:
 - Return only a JSON array containing the corrected WireMock mappings.
 - Each mapping should be a complete, valid WireMock JSON object.
 - Fix all validation errors listed for each mock.
-- IMPORTANT: All GraphQL mocks MUST use POST method and target the /{{NAMESPACE}}/graphql endpoint (GraphQL-over-HTTP pattern)
-- CRITICAL: Every mapping MUST include `"persistent": true` at the top level of the mapping object
+- The returned JSON must be valid and parseable.
+- Do not return markdown or explanatory text.
+- Never return an empty array when mocks were provided for correction.
+- IMPORTANT: All GraphQL mocks MUST use POST method and MUST target the /{{NAMESPACE}}/graphql endpoint.
+- CRITICAL: Every mapping MUST include `"persistent": true` at the top level of the mapping object.
 
 GraphQL-specific corrections (IMPORTANT):
-- If the error is "Operation not found in schema": verify the operation name matches exactly (case-sensitive) a query or mutation defined in the schema, and update the `bodyPatterns` matcher accordingly
-- If the error is "Argument type mismatch": correct the argument value in the request body matcher to use the type defined in the schema (String → string, Int → integer, Boolean → boolean, Float → decimal number)
-- If the error is "Missing required response field": add all required fields for the return type as defined in the schema, including nested required fields recursively
-- If the error is "Invalid enum value": replace the enum value with one of the valid values defined in the schema for that enum type
-- If the error is "Response format issue" (missing data/errors fields): wrap the response body in the correct GraphQL response envelope:
+- If the error is `Failed to extract GraphQL operation from WireMock mapping`: ensure the request contains `bodyPatterns` with a `matchesJsonPath` matcher for the exact GraphQL operation name.
+- If the error is `Operation '...' not found in schema`: verify the operation name matches exactly (case-sensitive) a query or mutation defined in the schema, and update both the `bodyPatterns` matcher and the response `data` key accordingly.
+- If the error is `Missing required argument: '...'`: add the missing argument in the request body matcher with the correct type.
+- If the error is `Unexpected argument: '...' not defined in schema`: remove that argument from the request body matcher.
+- If the error is `Argument '...' must be a string/integer/number/boolean/object/array/null`: correct the argument value to the required type defined in the schema.
+- If the error is `Response must contain 'data' or 'errors' field (GraphQL response format)`: wrap the response body in the correct GraphQL response envelope:
   - Success: `{ "data": { "<operationName>": { ... } } }`
-  - Error: `{ "errors": [{ "message": "...", "locations": [...], "path": [...] }] }`
-- If the error is "Type incompatibility" (list vs object): ensure list fields return arrays and object fields return objects as defined in the schema
+  - Error: `{ "errors": [{ "message": "...", "locations": [...], "path": ["<operationName>"] }] }`
+  - Partial: `{ "data": { ... }, "errors": [...] }`
+- If the error is `Response 'errors' field must be an array`: make `errors` an array.
+- If the error is `Missing required field: '...'`: add all required fields for the return type as defined in the schema, including nested required fields recursively.
+- If the error is `Field '...' must be an object/array/string/integer/number/boolean/null`: ensure the response field shape and scalar type match the schema.
+- If the error indicates an invalid enum value: replace the enum value with one of the valid values defined in the schema for that enum type.
 
 Non-overlapping constraint (CRITICAL):
 - If the original set contained multiple mappings for the same operation name with the same matcher, keep ONLY ONE mapping per operation.
 - The corrected output MUST NOT contain two mappings with the same operation name matcher.
 - If asked to correct a duplicate, remove the duplicate entirely rather than trying to differentiate it.
 - Prefer keeping the success stub over the error stub when deduplicating.
+- Never return two mappings that only differ by response while sharing the same request matcher.
 
 GraphQL request matching rules (IMPORTANT):
-- GraphQL requests are always POST requests with a JSON body containing `query` or `mutation` fields
-- Use `bodyPatterns` with `matchesJsonPath` to match specific GraphQL operations by operation name
-- Do NOT use `urlPath`, `urlPattern`, or path parameters — GraphQL has a single endpoint
-- Do NOT use query parameters for operation routing — use `bodyPatterns` instead
+- GraphQL requests are always POST requests with a JSON body containing `query` or `mutation` fields.
+- Every corrected mapping MUST include `"urlPath": "/{{NAMESPACE}}/graphql"`.
+- Use `bodyPatterns` with `matchesJsonPath` to match specific GraphQL operations by exact operation name.
+- Use this matcher shape: `{ "matchesJsonPath": "$[?(@.operationName == 'ExactOperationName')]" }`
+- Do NOT use `urlPattern`, `urlPathPattern`, query parameters, or path parameters for GraphQL routing.
+- Use additional body matchers only when strictly necessary to make scenarios mutually exclusive.
 
 GraphQL response format rules (IMPORTANT):
-- ALL GraphQL responses MUST follow the GraphQL response specification with `data` or `errors` fields
-- NEVER return a bare JSON object or array as the response body
-- Response HTTP status code is always 200 for GraphQL (even for errors)
-- Include `Content-Type: application/json` header in all responses
+- ALL GraphQL responses MUST follow the GraphQL response specification with `data` or `errors` fields.
+- NEVER return a bare JSON object or array as the response body.
+- Response HTTP status code is always 200 for GraphQL (even for errors).
+- Include `Content-Type: application/json` header in all responses.
 
 - Maintain the same structure and intent as the original mocks.
+- Correct only what is needed to satisfy the schema and validation rules.
 - Do not include any explanatory text, only the JSON array.
