@@ -14,6 +14,11 @@ Namespace:
 Enhancement Description: {{DESCRIPTION}}
 
 Requirements:
+
+JSON VALIDATION (CRITICAL):
+- CRITICAL: Return ONLY valid, parseable JSON. Common pitfalls to avoid: missing commas between array elements, unclosed brackets/braces, trailing commas, unescaped quotes in strings.
+- Validate your JSON syntax before returning. Each mapping object must be properly closed and separated by commas.
+
 - IMPORTANT: All GraphQL mocks MUST use POST method and target the /{{NAMESPACE}}/graphql endpoint (GraphQL-over-HTTP pattern).
 - CRITICAL: Every mapping MUST include top-level `"persistent": true` to ensure mocks survive Lambda cold starts and are stored in S3.
 - Enhance the mappings based on the description (use specific data, behaviors, and naming from the description).
@@ -31,15 +36,18 @@ NON-OVERLAPPING STUB RULES (CRITICAL):
 
 WHICH OPERATIONS TO GENERATE (CRITICAL — read this before generating):
 - Generate mocks ONLY for operations explicitly mentioned in the Enhancement Description.
-- If the Enhancement Description does not specify particular operations, generate mocks for the first 5 operations from the Key operations list above.
+- If the Enhancement Description does not specify particular operations, you MUST generate mocks for EXACTLY the first 5 operations from the Key operations list above. DO NOT generate more than 5 operations by default.
+- Count carefully: 1st operation, 2nd operation, 3rd operation, 4th operation, 5th operation. Stop after the 5th operation.
 - NEVER generate a mapping for every operation in the Key operations list — this will produce output that is too large.
 - One high-quality mapping per selected operation. No more.
 
 GraphQL request matching rules (IMPORTANT):
 - GraphQL requests are always POST requests with a JSON body containing `query` or `mutation` fields.
 - Use `bodyPatterns` with `matchesJsonPath` on `operationName` as the primary matcher:
-  - Example: `{ "matchesJsonPath": "$..[?(@.operationName == 'user')]" }` — where 'user' is an exact name from Key operations
+  - Example: `{ "matchesJsonPath": "$[?(@.operationName == 'user')]" }` — where 'user' is an exact name from Key operations
+  - CRITICAL: Do NOT use the `..` recursive descent operator in JSONPath expressions. Use `$[?(...)]` syntax instead of `$..[?(...)]` syntax.
   - Or match by query content: `{ "matchesJsonPath": "$[?(@.query =~ /.*user.*/)]" }`
+- CRITICAL: JSONPath comparison operators MUST have consistent spacing. Use `== 'value'` (with space before ==) not `=='value'` (no space). Example: `$[?(@.operationName == 'pokemon')]`
 - You may add extra body matchers on variables or query content only when needed to make scenarios non-overlapping.
 - Do NOT use `urlPath`, `urlPattern`, `urlPathPattern`, `queryParameters`, or path parameters for GraphQL routing — GraphQL has a single endpoint.
 
@@ -75,4 +83,5 @@ Schema-based field validation rules (IMPORTANT):
 
 {{WIREMOCK_SCHEMA}}
 
+- Before returning, verify: (1) JSON is valid and parseable, (2) operation count matches requirements (5 by default), (3) JSONPath uses `$[?(...)]` not `$..[?(...)]`, (4) comparison operators have proper spacing
 - Do not include any explanatory text, only the JSON array.

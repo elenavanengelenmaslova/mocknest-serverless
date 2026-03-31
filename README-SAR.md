@@ -229,7 +229,7 @@ MockNest Serverless uses a pay-as-you-go architecture — you only pay for the A
 
 **Core Runtime** (Lambda, API Gateway, S3, SQS, CloudWatch, IAM): Pay-as-you-go. See [AWS Free Tier](https://aws.amazon.com/free/) for current eligibility and limits.
 
-**AI Mock Generation** (Amazon Bedrock): Pay-as-you-go. You pay nothing for Bedrock if you don't use MockNest's AI generation endpoints. See [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) for details.
+**AI Mock Generation** (Amazon Bedrock): Pay-as-you-go. You pay nothing for Bedrock if you do not use MockNest's AI generation endpoints. See [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) for details.
 
 For a detailed cost breakdown, see the [Cost Guide](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/COST.md).
 
