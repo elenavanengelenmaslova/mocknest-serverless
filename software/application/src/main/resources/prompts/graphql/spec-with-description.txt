@@ -32,6 +32,12 @@ NON-OVERLAPPING STUB RULES (CRITICAL):
 - If an extra scenario would overlap, omit the extra scenario, not the operation.
 - Add error stubs only when explicitly requested and only if the request matcher can differ.
 
+OPERATION LIMIT (CRITICAL — prevents output truncation):
+- If the schema has more than 20 operations, generate mocks ONLY for operations explicitly mentioned in the Enhancement Description.
+- If the Enhancement Description does not specify particular operations, pick the 10–15 most representative or commonly used operations from the Key operations list.
+- NEVER attempt to generate a mapping for every operation in a large schema — the response will be truncated and unusable.
+- Prefer fewer, high-quality mappings over many shallow ones.
+
 GraphQL request matching rules (IMPORTANT):
 - GraphQL requests are always POST requests with a JSON body containing `query` or `mutation` fields.
 - Use `bodyPatterns` with `matchesJsonPath` on `operationName` as the primary matcher:

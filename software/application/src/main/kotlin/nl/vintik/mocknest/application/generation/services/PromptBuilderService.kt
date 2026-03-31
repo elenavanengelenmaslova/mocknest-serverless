@@ -39,7 +39,14 @@ class PromptBuilderService {
         }
         val template = loadTemplate(promptPath)
         
-        val keyEndpoints = specification.endpoints
+        val allEndpoints = specification.endpoints
+        val keyEndpoints = allEndpoints
+            .let { endpoints ->
+                if (endpoints.size > 50) {
+                    logger.info { "Capping key endpoints list from ${endpoints.size} to 50 for prompt size control" }
+                    endpoints.take(50)
+                } else endpoints
+            }
             .joinToString("\n") { endpoint ->
                 val response200 = endpoint.responses[200] ?: endpoint.responses[201]
                 val responseType = response200?.schema?.type?.name ?: "OBJECT"
@@ -48,6 +55,11 @@ class PromptBuilderService {
                 } else {
                     "- ${endpoint.method} ${endpoint.path} (Returns: $responseType)"
                 }
+            }
+            .let { list ->
+                if (allEndpoints.size > 50) {
+                    "$list\n... and ${allEndpoints.size - 50} more operations (generate mocks only for operations mentioned in the description)"
+                } else list
             }
         
         val clientSection = namespace.client?.let { "\n- Client: $it" } ?: ""

@@ -1,6 +1,6 @@
 # MockNest Serverless - Cost Guide
 
-MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.amazon.com/free/) limits for typical development and testing scenarios. You pay only for the AWS resources you use in your own account.
+MockNest Serverless uses a serverless, pay-as-you-go architecture — you only pay for the AWS resources you consume in your own account.
 
 ## AWS Services Used
 
@@ -49,13 +49,9 @@ MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.am
 - **No base cost**: Only charged when generating mocks
 - **Inference Profiles**: Supports cross-region and geo-specific profiles
 
-## AWS Free Tier Alignment
+## Core Services and Free Tier
 
-MockNest Serverless is specifically architected to maximize [AWS Free Tier](https://aws.amazon.com/free/) usage for core runtime functionality.
-
-### Core Services and Free Tier
-
-The following AWS services are used by MockNest, with links to current pricing and free tier details:
+The following AWS services are used by MockNest. See each service's pricing page for current free tier eligibility and limits:
 
 - **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)**: Compute runtime for serving mocks
 - **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)**: HTTP routing and API key authentication
@@ -63,14 +59,11 @@ The following AWS services are used by MockNest, with links to current pricing a
 - **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**: Dead Letter Queue for failed Lambda invocations
 - **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)**: Logging and monitoring
 
-**Typical Development Usage**: Most development and testing scenarios stay well within AWS Free Tier limits for these core services.
+## AI Services (Pay-Per-Use)
 
-### AI Services (Optional, Pay-Per-Use)
-
-- **[Amazon Bedrock](https://aws.amazon.com/bedrock/pricing/)**: AI-powered mock generation (no free tier)
-  - **Pay only when you use it**: Bedrock charges are incurred only when you call AI generation endpoints
-  - **No charges for core runtime**: If you don't use AI features, you pay nothing for Bedrock
-  - **Cost control**: AI generation is optional and can be disabled entirely
+- **[Amazon Bedrock](https://aws.amazon.com/bedrock/pricing/)**: AI-powered mock generation
+  - Pay-as-you-go — you pay nothing for Bedrock if you do not use MockNest's AI generation endpoints
+  - See [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) for current rates
 
 ## Cost Optimization Features
 
@@ -94,46 +87,40 @@ MockNest includes several built-in cost optimization features:
 
 ### Development Team (5 developers)
 
-**Monthly Usage Estimate**:
-- API calls and Lambda invocations stay well within free tier limits
+- API calls and Lambda invocations within typical development patterns
 - S3 storage typically under 100 MB
 - CloudWatch logs under 500 MB
-
-**Expected Cost**: $0.00 (within free tier)
+- Check [AWS Free Tier](https://aws.amazon.com/free/) for current eligibility
 
 ### CI/CD Integration Testing
 
-**Monthly Usage Estimate**:
-- Higher API call volume but still within free tier limits
-- Moderate S3 storage usage
-- Standard CloudWatch logging
+- Higher API call volume from automated test runs
+- Monitor usage via [AWS Cost Explorer](https://aws.amazon.com/aws-cost-management/aws-cost-explorer/)
 
-**Expected Cost**: $0.00 (within free tier)
+### AI Mock Generation
 
-### Heavy AI Usage (100 AI generations/month)
+- Bedrock costs scale with the number and complexity of generation requests
+- See [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) for per-token rates
+- You pay nothing for Bedrock if you don't call AI generation endpoints
 
-**Monthly Usage Estimate**:
-- Core services remain within free tier ($0.00)
-- Bedrock usage varies based on specification complexity
+## Estimating and Monitoring Your Costs
 
-**Total**: Bedrock costs only, core infrastructure free
+MockNest doesn't return cost data in its API, but you can use these AWS tools to understand and track your spending:
 
-### Production-Scale Testing (exceeding free tier)
+- [AWS Pricing Calculator](https://calculator.aws/) — estimate costs before you deploy, based on expected usage of Lambda, API Gateway, S3, and Bedrock
+- [AWS Cost Explorer](https://aws.amazon.com/aws-cost-management/aws-cost-explorer/) — track actual costs after deployment, broken down by service
+- [AWS Free Tier Dashboard](https://console.aws.amazon.com/billing/home#/freetier) — monitor your free tier usage and see how close you are to limits
+- [AWS Lambda Power Tuning](https://github.com/alexcasalboni/aws-lambda-power-tuning) — optimize your Lambda memory/cost tradeoff by running real invocations and comparing actual cost per invocation across memory configurations
+- [CloudWatch billing alarms](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/monitor_estimated_charges_with_cloudwatch.html) — set up alerts so you're notified if costs exceed a threshold
 
-## Usage Scenarios
+All MockNest resources are tagged with `Application: MockNest-Serverless` for easy filtering in Cost Explorer.
 
-**Typical Development**: Most development and testing scenarios stay within AWS Free Tier limits, resulting in $0 monthly cost.
+## Summary
 
-**Heavy AI Usage**: Core infrastructure remains free, with costs only for Amazon Bedrock when generating mocks.
+- **Core runtime**: Pay-as-you-go. See [AWS Free Tier](https://aws.amazon.com/free/) for eligibility.
+- **AI generation**: Pay-as-you-go via [Amazon Bedrock](https://aws.amazon.com/bedrock/pricing/). You pay nothing if you don't use AI endpoints.
+- **Monitor costs**: Use [AWS Cost Explorer](https://aws.amazon.com/aws-cost-management/aws-cost-explorer/) and [AWS Pricing Calculator](https://calculator.aws/).
 
-**Production-Scale Testing**: Costs scale predictably with usage beyond free tier limits, typically under $5/month.
+## Getting Help
 
-## Getting Help with Costs
-
-**AWS Resources**:
-- [AWS Pricing Calculator](https://calculator.aws/) - Estimate costs for your usage
-- [AWS Cost Explorer](https://aws.amazon.com/aws-cost-management/aws-cost-explorer/) - Monitor actual usage
-- [AWS Free Tier Dashboard](https://console.aws.amazon.com/billing/home#/freetier) - Track free tier usage
-
-**MockNest Resources**:
-- [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues) - Report cost-related questions
+- [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues) — report cost-related questions or concerns
