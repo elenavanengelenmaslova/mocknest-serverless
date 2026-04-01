@@ -49,7 +49,9 @@ GraphQL request matching rules (IMPORTANT):
   - Or match by query content: `{ "matchesJsonPath": "$[?(@.query =~ /.*user.*/)]" }`
 - CRITICAL: JSONPath comparison operators MUST have consistent spacing. Use `== 'value'` (with space before ==) not `=='value'` (no space). Example: `$[?(@.operationName == 'pokemon')]`
 - You may add extra body matchers on variables or query content only when needed to make scenarios non-overlapping.
-- Do NOT use `urlPath`, `urlPattern`, `urlPathPattern`, `queryParameters`, or path parameters for GraphQL routing — GraphQL has a single endpoint.
+- Every mapping MUST include `"urlPath": "/{{NAMESPACE}}/graphql"`.
+- Do NOT use `urlPattern`, `urlPathPattern`, `queryParameters`, or path parameters for GraphQL routing.
+- Use `bodyPatterns` only to distinguish GraphQL operations on the shared endpoint.
 
 GraphQL response format rules (IMPORTANT):
 - ALL GraphQL responses MUST follow the GraphQL response specification:
