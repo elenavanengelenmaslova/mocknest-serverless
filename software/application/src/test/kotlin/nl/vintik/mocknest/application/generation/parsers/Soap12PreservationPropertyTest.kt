@@ -1,7 +1,6 @@
 package nl.vintik.mocknest.application.generation.parsers
 
 import io.mockk.clearAllMocks
-import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.application.generation.wsdl.WsdlContentFetcherInterface

@@ -7,7 +7,6 @@ import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.application.generation.wsdl.WsdlContentFetcherInterface
 import nl.vintik.mocknest.application.generation.wsdl.WsdlParser
 import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducer
-import nl.vintik.mocknest.domain.generation.SoapVersion
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
 import nl.vintik.mocknest.domain.generation.WsdlParsingException
 import org.junit.jupiter.api.AfterEach
@@ -15,11 +14,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 @Tag("soap-wsdl-ai-generation")
 @Tag("unit")
