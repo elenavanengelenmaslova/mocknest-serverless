@@ -3,7 +3,6 @@ package nl.vintik.mocknest.infra.generation.wsdl
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.application.generation.util.UrlResolutionException
-import nl.vintik.mocknest.domain.generation.WsdlFetchException
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest

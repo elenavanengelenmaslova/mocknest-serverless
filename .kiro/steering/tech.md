@@ -98,6 +98,20 @@ Guidelines for AI-assisted code generation and review:
   private lateinit var lambdaHandler: MockNestLambdaHandler
   ```
 
+  Instead of this:
+  ```kotlin
+    val ex = kotlin.test.assertFailsWith<nl.vintik.mocknest.domain.generation.WsdlFetchException> {
+            fetcher.fetch("${baseUrl()}/empty-addresses.wsdl")
+    }
+  ```
+
+  Do this:
+  ```kotlin
+    val ex = assertFailsWith<WsdlFetchException> {
+        fetcher.fetch("${baseUrl()}/empty-addresses.wsdl")
+    }
+  ```
+
 ## Kotlin Idioms
 
 **Prefer Kotlin idioms** for error handling and resource management:
@@ -263,6 +277,23 @@ Comprehensive guidelines for unit test creation and maintenance.
   ```
 
 - Prefer specific argument matching over `any()` when the exact values matter for the test
+- Avoid asserting true on equality checks, use assertEquals instead
+- On nullable properties first check they are not null, instead of this:
+  ```kotlin
+   assertTrue(
+            ex.message?.contains("no addresses", ignoreCase = true) == true,
+            "Should fail with clear error when no addresses returned"
+        )
+  ```
+  Do this:
+  ```kotlin
+   val message = ex.message
+        assertNotNull(message)
+        assertTrue (
+            message.contains("no addresses", ignoreCase = true),
+            "Should fail with clear error when no addresses returned"
+        )
+  ```
 
 ## Coroutine Testing
 
