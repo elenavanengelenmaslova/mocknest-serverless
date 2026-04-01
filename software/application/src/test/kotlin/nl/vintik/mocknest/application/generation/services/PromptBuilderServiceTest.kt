@@ -406,8 +406,8 @@ class PromptBuilderServiceTest {
             val prompt = promptBuilder.buildCorrectionPrompt(invalidMocks, namespace, null, SpecificationFormat.GRAPHQL)
 
             // GraphQL correction prompt contains GraphQL-specific correction rules
-            assertTrue(prompt.contains("Operation not found in schema"))
-            assertTrue(prompt.contains("GraphQL-over-HTTP"))
+            assertTrue(prompt.contains("Operation '...' not found in schema"))
+            assertTrue(prompt.contains("GraphQL requests are always POST requests"))
             assertTrue(prompt.contains("bodyPatterns"))
         }
 
@@ -511,10 +511,10 @@ class PromptBuilderServiceTest {
 
             // REST still loads REST correction template
             assertFalse(restPrompt.contains("SOAPAction"))
-            assertFalse(restPrompt.contains("GraphQL-over-HTTP"))
+            assertFalse(restPrompt.contains("GraphQL requests are always POST requests"))
 
             // GraphQL still loads GraphQL correction template
-            assertTrue(graphqlPrompt.contains("GraphQL-over-HTTP"))
+            assertTrue(graphqlPrompt.contains("GraphQL requests are always POST requests"))
             assertFalse(graphqlPrompt.contains("SOAPAction"))
         }
     }
