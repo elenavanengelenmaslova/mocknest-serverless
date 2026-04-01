@@ -40,12 +40,14 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 ## Features
 
 ### Current Features
-- **Serverless WireMock Runtime**: Full WireMock API running on AWS Lambda
-- **Persistent Mock Storage**: Mock definitions stored in Amazon S3
-- **Protocol Support**: REST, SOAP, and GraphQL-over-HTTP APIs
-- **AI-Assisted Mock Generation**: Intelligent mock creation from REST and GraphQL API specifications using Bedrock with a configurable model, defaulted to Amazon Nova Pro
-- **Easy Deployment**: One-click deployment via AWS Serverless Application Repository (SAR) or deploy via SAM
-- **Performance Optimized**: Lambda SnapStart enabled for reduced cold start latency
+- **Serve Mock Responses**: Call mocked REST, SOAP, and GraphQL endpoints like real APIs — from tests, apps, or CI/CD pipelines
+- **Manage Mocks via API (CRUD)**: Create, update, and delete individual mock definitions through a simple REST interface or Postman
+- **WireMock-Compatible Mock Format**: Mock definitions use the WireMock mapping format — reuse existing WireMock stubs or leverage the WireMock ecosystem directly
+- **Import & Export Mock Sets**: Bulk-import mappings from JSON to replicate environments or onboard quickly
+- **Persistent Across Deployments**: Mock definitions survive Lambda cold starts and redeployments via Amazon S3
+- **AI-Assisted Mock Generation**: Generate realistic, consistent mocks from OpenAPI, WSDL/SOAP, or GraphQL specs using Amazon Bedrock (configurable model, defaults to Amazon Nova Pro)
+- **One-Click Deployment**: Deploy via AWS Serverless Application Repository (SAR) or build from source with SAM
+- **Low Latency**: Lambda SnapStart minimises cold start times
 
 ### Planned Features
 See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslova/projects/3) 
@@ -160,7 +162,7 @@ To use MockNest with your application:
 3. Your app will now call mocks instead of real services
 
 **Learn More**
-- **More Examples**: See [docs/USAGE.md](docs/USAGE.md) for SOAP, GraphQL, and advanced AI generation
+- **More Examples**: See [docs/USAGE.md](docs/USAGE.md) for SOAP/WSDL, GraphQL, and advanced AI generation
 - **Postman Collection**: Import from [docs/postman/](docs/postman/) for ready-to-use examples
 - **OpenAPI Specification**: Full API reference at [docs/api/mocknest-openapi.yaml](docs/api/mocknest-openapi.yaml)
 - **SAR Guide**: Read [README-SAR.md](README-SAR.md) for detailed deployment and configuration options
@@ -423,16 +425,13 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 
 ## Cost Information
 
-MockNest Serverless is designed to operate within [AWS Free Tier](https://aws.amazon.com/free/) limits for typical development and testing scenarios. The serverless, pay-as-you-go architecture means you only pay for what you use.
+MockNest Serverless uses a serverless, pay-as-you-go architecture — you only pay for the AWS resources you consume.
 
-**Core Services**: AWS Lambda, API Gateway, S3, SQS, CloudWatch, and IAM  
-**AI Services**: Amazon Bedrock (pay-per-use when generating mocks)
+**Core Runtime** (Lambda, API Gateway, S3, SQS, CloudWatch, IAM): Pay-as-you-go. See [AWS Free Tier](https://aws.amazon.com/free/) for current eligibility and limits.
 
-Most development and testing scenarios stay within free tier limits, resulting in $0 monthly cost for core functionality.
+**AI Mock Generation** (Amazon Bedrock): Pay-as-you-go. You pay nothing for Bedrock if you don't use MockNest's AI generation endpoints. See [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) for details.
 
-For detailed cost analysis, service breakdowns, and optimization tips, see our comprehensive [Cost Guide](docs/COST.md).
-
-For a comparison with alternative mocking solutions and competitive analysis, see [Market Analysis](docs/MARKET_ANALYSIS.md).
+For a detailed cost breakdown and monitoring tips, see the [Cost Guide](docs/COST.md).
 
 ## Troubleshooting
 ### Common Issues

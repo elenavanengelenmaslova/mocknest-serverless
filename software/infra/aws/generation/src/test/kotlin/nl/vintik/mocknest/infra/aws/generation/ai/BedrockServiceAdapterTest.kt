@@ -10,11 +10,13 @@ import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.domain.generation.MockNamespace
+import nl.vintik.mocknest.domain.generation.ModelResponseParsingException
 import nl.vintik.mocknest.domain.generation.SourceType
 import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
@@ -149,10 +151,29 @@ class BedrockServiceAdapterTest {
         }
 
         @Test
-        fun `Given total garbage When parsing model response Then should return empty list`() {
+        fun `Given total garbage When parsing model response Then should throw ModelResponseParsingException`() {
             val response = "No JSON here at all"
-            val mocks = adapter.parseModelResponse(response, MockNamespace("api"), SourceType.SPEC_WITH_DESCRIPTION, "ref")
-            assertTrue(mocks.isEmpty())
+            assertThrows(ModelResponseParsingException::class.java) {
+                adapter.parseModelResponse(response, MockNamespace("api"), SourceType.SPEC_WITH_DESCRIPTION, "ref")
+            }
+        }
+
+        @Test
+        fun `Given explicit empty JSON array When parsing model response Then should throw ModelResponseParsingException`() {
+            val response = "[]"
+            val ex = assertThrows(ModelResponseParsingException::class.java) {
+                adapter.parseModelResponse(response, MockNamespace("api"), SourceType.SPEC_WITH_DESCRIPTION, "ref")
+            }
+            assertTrue(ex.message!!.contains("empty"))
+        }
+
+        @Test
+        fun `Given blank response When parsing model response Then should throw ModelResponseParsingException`() {
+            val response = "   "
+            val ex = assertThrows(ModelResponseParsingException::class.java) {
+                adapter.parseModelResponse(response, MockNamespace("api"), SourceType.SPEC_WITH_DESCRIPTION, "ref")
+            }
+            assertTrue(ex.message!!.contains("Blank"))
         }
     }
 }

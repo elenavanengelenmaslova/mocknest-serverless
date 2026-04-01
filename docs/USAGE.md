@@ -29,6 +29,7 @@ You can manage mocks in two ways:
   - [Call Generated Pet API by Status](#call-generated-pet-api-by-status)
   - [Call Generated Pet API by Tags](#call-generated-pet-api-by-tags)
   - [Generate Mocks from GraphQL Schema (via Introspection)](#generate-mocks-from-graphql-schema-via-introspection)
+  - [Generate Mocks from SOAP/WSDL](#generate-mocks-from-soapwsdl)
 - [Administrative Operations](#administrative-operations)
   - [Get All Mappings](#get-all-mappings)
   - [Get File Content](#get-file-content)
@@ -785,6 +786,97 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 - `format`: Must be `GRAPHQL` for GraphQL APIs
 - `description`: Natural language description guiding the AI generation
 - `options.enableValidation`: Validate generated mocks against the GraphQL schema
+
+
+### Generate Mocks from SOAP/WSDL
+
+MockNest Serverless supports generating WireMock SOAP mock mappings from WSDL documents. Both SOAP 1.1 and SOAP 1.2 are supported. You can provide the WSDL as a remote URL or as inline XML content.
+
+#### Generate from WSDL URL
+
+**Description**: Generates SOAP mocks by fetching the WSDL from a remote URL. The system parses the WSDL, extracts all operations, and generates WireMock mappings that match on `SOAPAction` (SOAP 1.1) or `action` in `Content-Type` (SOAP 1.2).
+
+**Command**:
+```bash
+curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "namespace": {
+    "apiName": "calculator",
+    "client": null
+  },
+  "specificationUrl": "http://www.dneonline.com/calculator.asmx?WSDL",
+  "format": "WSDL",
+  "description": "Generate mocks for all calculator operations (Add, Subtract, Multiply, Divide) with realistic integer inputs and outputs",
+  "options": {
+    "enableValidation": true
+  }
+}'
+```
+
+**Key Parameters**:
+- `specificationUrl`: URL of the WSDL endpoint (the system fetches it automatically)
+- `format`: Must be `WSDL` for SOAP/WSDL APIs
+- `description`: Natural language instructions guiding the AI generation
+- `options.enableValidation`: Validates generated SOAP mocks (envelope namespace, SOAPAction, Content-Type, etc.)
+
+#### Generate from Inline WSDL XML
+
+**Description**: Generates SOAP mocks from inline WSDL XML content provided directly in the request body. Useful when the WSDL is not publicly accessible or when you want to test with a local WSDL.
+
+**Command**:
+```bash
+curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "namespace": {
+    "apiName": "calculator",
+    "client": null
+  },
+  "specification": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><wsdl:definitions xmlns:wsdl=\"http://schemas.xmlsoap.org/wsdl/\" xmlns:soap=\"http://schemas.xmlsoap.org/wsdl/soap/\" xmlns:tns=\"http://tempuri.org/\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" targetNamespace=\"http://tempuri.org/\" name=\"CalculatorService\"><wsdl:types><xsd:schema targetNamespace=\"http://tempuri.org/\"><xsd:element name=\"Add\"><xsd:complexType><xsd:sequence><xsd:element name=\"intA\" type=\"xsd:int\"/><xsd:element name=\"intB\" type=\"xsd:int\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\"AddResponse\"><xsd:complexType><xsd:sequence><xsd:element name=\"AddResult\" type=\"xsd:int\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></wsdl:types><wsdl:message name=\"AddSoapIn\"><wsdl:part name=\"parameters\" element=\"tns:Add\"/></wsdl:message><wsdl:message name=\"AddSoapOut\"><wsdl:part name=\"parameters\" element=\"tns:AddResponse\"/></wsdl:message><wsdl:portType name=\"CalculatorSoap\"><wsdl:operation name=\"Add\"><wsdl:input message=\"tns:AddSoapIn\"/><wsdl:output message=\"tns:AddSoapOut\"/></wsdl:operation></wsdl:portType><wsdl:binding name=\"CalculatorSoap\" type=\"tns:CalculatorSoap\"><soap:binding transport=\"http://schemas.xmlsoap.org/soap/http\"/><wsdl:operation name=\"Add\"><soap:operation soapAction=\"http://tempuri.org/Add\"/><wsdl:input><soap:body use=\"literal\"/></wsdl:input><wsdl:output><soap:body use=\"literal\"/></wsdl:output></wsdl:operation></wsdl:binding><wsdl:service name=\"CalculatorService\"><wsdl:port name=\"CalculatorSoap\" binding=\"tns:CalculatorSoap\"><soap:address location=\"http://www.dneonline.com/calculator.asmx\"/></wsdl:port></wsdl:service></wsdl:definitions>",
+  "format": "WSDL",
+  "description": "Generate a mock for the Add operation that returns realistic integer results",
+  "options": {
+    "enableValidation": true
+  }
+}'
+```
+
+**Expected Response** (200 OK):
+```json
+{
+  "mappings": [
+    {
+      "priority": 1,
+      "persistent": true,
+      "request": {
+        "method": "POST",
+        "headers": {
+          "SOAPAction": {
+            "equalTo": "http://tempuri.org/Add"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "text/xml; charset=utf-8"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><AddResponse xmlns=\"http://tempuri.org/\"><AddResult>42</AddResult></AddResponse></soap:Body></soap:Envelope>"
+      }
+    }
+  ]
+}
+```
+
+**Key Parameters**:
+- `specification`: Inline WSDL XML content as a string
+- `format`: Must be `WSDL` for SOAP/WSDL APIs
+- `description`: Natural language instructions guiding the AI generation
+- Generated mocks match on `SOAPAction` header (SOAP 1.1) or `action` in `Content-Type` (SOAP 1.2)
+- Response bodies are valid SOAP envelopes with the correct namespace for the detected SOAP version
 
 
 ## Administrative Operations

@@ -91,12 +91,13 @@ To measure cold start performance, use CloudWatch Logs Insights:
 
 ```
 filter @type = "REPORT"
-| parse @message /Init Duration: (?<init_duration>\S+) ms/
-| filter init_duration > 0
-| stats avg(init_duration) as avg_cold_start, 
-        min(init_duration) as min_cold_start, 
-        max(init_duration) as max_cold_start,
-        count() as cold_start_count
+| parse @message /Restore Duration: (?<restore_duration>.*?) ms/
+| filter ispresent(restore_duration)
+| fields @duration + restore_duration as cold_start_duration
+| stats avg(cold_start_duration) as avg_cold_start,
+        min(cold_start_duration) as min_cold_start,
+        max(cold_start_duration) as max_cold_start,
+        count(*) as cold_start_count
 ```
 
-This shows average, minimum, and maximum cold start times with SnapStart enabled.
+This shows average, minimum, and maximum SnapStart cold-start durations for cold-start invocations only. For SnapStart, cold-start duration is Restore Duration + Duration.

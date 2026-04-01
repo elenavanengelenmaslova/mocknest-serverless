@@ -12,7 +12,12 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
-import nl.vintik.mocknest.domain.generation.*
+import nl.vintik.mocknest.domain.generation.GeneratedMock
+import nl.vintik.mocknest.domain.generation.EndpointInfo
+import nl.vintik.mocknest.domain.generation.MockMetadata
+import nl.vintik.mocknest.domain.generation.MockNamespace
+import nl.vintik.mocknest.domain.generation.ModelResponseParsingException
+import nl.vintik.mocknest.domain.generation.SourceType
 import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
 import org.springframework.http.HttpMethod
 import java.time.Instant
@@ -65,10 +70,17 @@ class BedrockServiceAdapter(
         sourceType: SourceType,
         sourceReference: String
     ): List<GeneratedMock> {
+        if (response.isBlank()) {
+            logger.error { "Blank model response received" }
+            throw ModelResponseParsingException("Blank model response")
+        }
+
         // Try to parse as raw JSON first
         runCatching {
             val jsonNode = mapper.readTree(response)
             return processJsonNode(jsonNode, namespace, sourceType, sourceReference)
+        }.onFailure { e ->
+            if (e is ModelResponseParsingException) throw e
         }
 
         // If raw parsing fails, it might be wrapped in Markdown or contain explanatory text.
@@ -81,12 +93,12 @@ class BedrockServiceAdapter(
                 val jsonNode = mapper.readTree(json)
                 return processJsonNode(jsonNode, namespace, sourceType, sourceReference)
             }.onFailure { e ->
+                if (e is ModelResponseParsingException) throw e
                 logger.warn(e) { "Failed to parse JSON extracted from Markdown block" }
             }
         }
 
         // Fallback: try to extract the first/largest JSON-like block using regex.
-        // We use a greedy match for the content to handle nested structures.
         val jsonPattern = Regex("""(\[[\s\S]*\]|\{[\s\S]*\})""")
         val match = jsonPattern.find(response)
 
@@ -95,12 +107,14 @@ class BedrockServiceAdapter(
                 val jsonNode = mapper.readTree(match.value)
                 return processJsonNode(jsonNode, namespace, sourceType, sourceReference)
             }.onFailure { e ->
+                if (e is ModelResponseParsingException) throw e
                 logger.error(e) { "Failed to parse extracted JSON from model response" }
+                throw ModelResponseParsingException("Invalid JSON in model response", e)
             }
         }
 
-        logger.error { "No valid JSON found in model response: $response" }
-        return emptyList()
+        logger.error { "No valid JSON found in model response" }
+        throw ModelResponseParsingException("No JSON found in model response")
     }
 
     private fun processJsonNode(
@@ -109,13 +123,16 @@ class BedrockServiceAdapter(
         sourceType: SourceType,
         sourceReference: String
     ): List<GeneratedMock> {
-        return if (jsonNode.isArray) {
-            (0 until jsonNode.size()).map { i ->
+        if (jsonNode.isArray) {
+            if (jsonNode.size() == 0) {
+                logger.error { "Model returned an explicit empty JSON array" }
+                throw ModelResponseParsingException("Model returned an empty JSON array — no mappings generated")
+            }
+            return (0 until jsonNode.size()).map { i ->
                 createGeneratedMock(jsonNode.get(i), namespace, sourceType, sourceReference, i)
             }
-        } else {
-            listOf(createGeneratedMock(jsonNode, namespace, sourceType, sourceReference, 0))
         }
+        return listOf(createGeneratedMock(jsonNode, namespace, sourceType, sourceReference, 0))
     }
 
     internal fun createGeneratedMock(

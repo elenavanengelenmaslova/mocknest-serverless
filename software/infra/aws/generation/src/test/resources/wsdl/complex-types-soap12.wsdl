@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/orders"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/orders"
+                  name="OrderService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/orders">
+      <xsd:complexType name="GetOrder">
+        <xsd:sequence>
+          <xsd:element name="orderId" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="GetOrderResponse">
+        <xsd:sequence>
+          <xsd:element name="order" type="tns:Order"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="Order">
+        <xsd:sequence>
+          <xsd:element name="id" type="xsd:string"/>
+          <xsd:element name="status" type="xsd:string"/>
+          <xsd:element name="customer" type="tns:Customer"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="Customer">
+        <xsd:sequence>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="email" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="UnreferencedType">
+        <xsd:sequence>
+          <xsd:element name="data" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="GetOrderRequest">
+    <wsdl:part name="parameters" element="tns:GetOrder"/>
+  </wsdl:message>
+  <wsdl:message name="GetOrderResponse">
+    <wsdl:part name="parameters" element="tns:GetOrderResponse"/>
+  </wsdl:message>
+  <wsdl:portType name="OrderPortType">
+    <wsdl:operation name="GetOrder">
+      <wsdl:input message="tns:GetOrderRequest"/>
+      <wsdl:output message="tns:GetOrderResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="OrderBinding" type="tns:OrderPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="GetOrder">
+      <soap12:operation soapAction="http://example.com/orders/GetOrder"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="OrderService">
+    <wsdl:port name="OrderPort" binding="tns:OrderBinding">
+      <soap12:address location="http://example.com/orders"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

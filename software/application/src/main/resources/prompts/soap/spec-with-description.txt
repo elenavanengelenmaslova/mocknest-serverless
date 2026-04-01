@@ -1,0 +1,86 @@
+You are an expert API mock generator. Generate WireMock JSON mappings based on this SOAP/WSDL API specification and enhancement description:
+
+API Specification Summary:
+- Title: {{SPEC_TITLE}}
+- Version: {{SPEC_VERSION}}
+- Operations: {{ENDPOINT_COUNT}}
+- Key operations: {{KEY_ENDPOINTS}}
+
+Namespace:
+- API Name: {{API_NAME}}{{CLIENT_SECTION}}
+
+Enhancement Description: {{DESCRIPTION}}
+
+Requirements:
+- Generate WireMock mappings that follow the SOAP/WSDL specification structure
+- CRITICAL: Every mapping MUST include `"persistent": true` to ensure mocks survive Lambda cold starts and are stored in S3
+- Enhance the mappings based on the description (add error cases, specific data, behaviors, etc.)
+- Include realistic XML response data that matches both the schema and description
+
+SOAP 1.2 request matching rules (IMPORTANT):
+- ALL SOAP requests MUST use POST method — never GET, PUT, DELETE, or any other method
+- Match on the `action` parameter inside the `Content-Type` header using the exact soapAction value from the Key operations list
+  - Example: `"headers": { "Content-Type": { "contains": "action=\"http://example.com/service/OperationName\"" } }`
+- Do NOT use a `SOAPAction` header — SOAP 1.2 uses the `action` parameter in `Content-Type` instead
+- Use `urlPath` for the service endpoint path
+- The `urlPath` MUST use the format `/{{NAMESPACE}}/` followed by the WSDL service path suffix
+  - Example: If WSDL service path is `/calculator.asmx`, use `"urlPath": "/{{NAMESPACE}}/calculator.asmx"`
+- Each mapping MUST target a different operation via its action parameter
+- Generate one primary success stub per SOAP operation unless the description explicitly requires additional scenarios (e.g., error cases, multiple test inputs)
+- Never generate multiple stubs for the same SOAP operation unless request matchers are mutually exclusive (e.g., different XPath body matches or different action values)
+- Prefer matching by URL path + POST method + Content-Type action parameter. Add XPath body matchers only when needed to disambiguate between stubs sharing the same endpoint and action
+- Unless otherwise specified:
+    - Generate exactly one mapping per SOAP operation unless request matchers are truly different.
+    - Do not use a wildcard-nested matcher like "matches": ".*" inside matchesXPath.
+- If an XPath matcher uses namespace prefixes (e.g., `soap:Envelope`), you MUST include the `xPathNamespaces` field in the request matcher to define those prefixes
+  - Example: `"xPathNamespaces": { "soap": "http://www.w3.org/2003/05/soap-envelope" }`
+- Preserve WSDL scalar types exactly.
+- Do not emit duplicate mappings.
+
+SOAP 1.2 response format rules (IMPORTANT):
+- ALL SOAP responses MUST be valid XML SOAP 1.2 envelopes
+- Use envelope namespace `http://www.w3.org/2003/05/soap-envelope`
+- Response Content-Type MUST be `application/soap+xml; charset=utf-8`
+- Example envelope:
+  ```xml
+  <soapenv:Envelope xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope" xmlns:tns="TARGET_NAMESPACE">
+    <soapenv:Body>
+      <tns:OperationNameResponse>
+        <!-- response fields here -->
+      </tns:OperationNameResponse>
+    </soapenv:Body>
+  </soapenv:Envelope>
+  ```
+- The element inside `<soapenv:Body>` MUST use the target namespace from the compact WSDL
+- NEVER return a bare XML document without a SOAP Envelope wrapper
+- NEVER use JSON as the response body — SOAP responses are always XML
+- Response HTTP status code is always 200 for successful SOAP responses
+
+SOAP 1.2 fault format (for error scenarios):
+  ```xml
+  <soapenv:Envelope xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope">
+    <soapenv:Body>
+      <soapenv:Fault>
+        <soapenv:Code><soapenv:Value>soapenv:Sender</soapenv:Value></soapenv:Code>
+        <soapenv:Reason><soapenv:Text>Error description</soapenv:Text></soapenv:Reason>
+      </soapenv:Fault>
+    </soapenv:Body>
+  </soapenv:Envelope>
+  ```
+
+- Return only a JSON array of WireMock mappings.
+- Each item MUST be a valid WireMock stub mapping object and MUST include these required top-level fields:
+ {
+ "request": { ... },
+ "response": { ... },
+ "persistent": true
+ }
+- Optional WireMock top-level fields are allowed when needed (e.g., "priority").
+- "persistent": true MUST be placed at the top level of the mapping object
+- NEVER place "persistent" inside "response" or "request"
+- NEVER include unknown fields inside "response" (WireMock will reject them)
+- Only use fields defined in the WireMock stub mapping schema below. Any field not in this schema will be rejected.
+
+{{WIREMOCK_SCHEMA}}
+
+- Do not include any explanatory text, only the JSON array.

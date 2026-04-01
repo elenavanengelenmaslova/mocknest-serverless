@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/WeatherService",
+    "headers": {
+      "Content-Type": {
+        "contains": "action=\"http://example.com/weather/GetForecast\""
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/soap+xml; charset=utf-8"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap12:Envelope xmlns:soap12=\"http://www.w3.org/2003/05/soap-envelope\"><soap12:Body><GetForecastResponse xmlns=\"http://example.com/weather\"><Forecast>Partly cloudy</Forecast><HighTemp>25.0</HighTemp></GetForecastResponse></soap12:Body></soap12:Envelope>"
+  },
+  "persistent": true
+}

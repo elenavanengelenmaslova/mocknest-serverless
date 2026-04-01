@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/CalculatorService",
+    "headers": {
+      "SOAPAction": {
+        "equalTo": "http://tempuri.org/Add"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/xml; charset=utf-8"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><AddResponse xmlns=\"http://tempuri.org/\"><AddResult>15</AddResult></AddResponse></soap:Body></soap:Envelope>"
+  },
+  "persistent": true
+}

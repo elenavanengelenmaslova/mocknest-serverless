@@ -1,0 +1,55 @@
+You are an expert API mock generator. The following WireMock SOAP mappings failed validation against the WSDL specification.
+
+{{SPEC_CONTEXT}}Namespace:
+- API Name: {{API_NAME}}{{CLIENT_SECTION}}
+
+Please correct ALL of the following mocks to fix their respective errors:
+
+{{MOCKS_WITH_ERRORS}}
+
+Requirements:
+- Return only a JSON array containing the corrected WireMock mappings.
+- Each mapping should be a complete, valid WireMock JSON object.
+- Fix all validation errors listed for each mock.
+- CRITICAL: Every mapping MUST include `"persistent": true` at the top level of the mapping object
+
+SOAP 1.2 specific corrections (IMPORTANT):
+- If the error is "Request method must be POST": change the `request.method` to `"POST"` — SOAP always uses POST
+- If the error is "Request URL path does not match any endpoint path in the WSDL":
+  - Update the `urlPath` to use the format `/{{NAMESPACE}}/` followed by the WSDL service path suffix
+  - Preserve the WSDL service path suffix exactly as it appears in the WSDL
+  - Example: Change `"/calculator.asmx"` to `"/{{NAMESPACE}}/calculator.asmx"`
+- If the error is "SOAPAction does not match any operation in the WSDL":
+  - Update the `action` parameter in the `Content-Type` header to match a valid operation name
+  - Do NOT use a `SOAPAction` header — SOAP 1.2 uses the `action` parameter in `Content-Type`
+- If the error is "Response body is not well-formed XML": replace the response body with a valid XML SOAP 1.2 envelope
+- If the error is "SOAP Envelope element missing or has wrong namespace":
+  - Use `xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope"` on the root Envelope element
+  - Ensure the root element is named `Envelope` (not `Envelope1`, `soap:Envelope` without namespace, etc.)
+- If the error is "SOAP Body element missing inside Envelope": add `<soapenv:Body>...</soapenv:Body>` as a direct child of the Envelope element
+- If the error is "Response body element namespace does not match WSDL targetNamespace":
+  - The element inside `<soapenv:Body>` must use the correct target namespace from the WSDL
+  - Add the correct namespace declaration: `xmlns:tns="TARGET_NAMESPACE"` and prefix the body element with `tns:`
+- If the error is "Content-Type header does not match SOAP version":
+  - Set response Content-Type to `application/soap+xml; charset=utf-8`
+- If the error mentions XPath matching failures and the request uses XPath matchers with namespace prefixes:
+  - Add the `xPathNamespaces` field to the request matcher
+  - Define all namespace prefixes used in XPath expressions
+  - Example: `"xPathNamespaces": { "soap": "http://www.w3.org/2003/05/soap-envelope" }`
+
+SOAP 1.2 request matching rules (IMPORTANT):
+- ALL SOAP requests MUST use POST method
+- Match on the `action` parameter inside the `Content-Type` header
+- Do NOT use a `SOAPAction` header
+- Use `urlPath` for the service endpoint path
+- The `urlPath` MUST use the format `/{{NAMESPACE}}/` followed by the WSDL service path suffix
+
+SOAP 1.2 response format rules (IMPORTANT):
+- ALL SOAP responses MUST be valid XML SOAP 1.2 envelopes with namespace `http://www.w3.org/2003/05/soap-envelope`
+- Response Content-Type MUST be `application/soap+xml; charset=utf-8`
+- The element inside `<soapenv:Body>` MUST use the target namespace from the WSDL
+- NEVER return a bare XML document without a SOAP Envelope wrapper
+- NEVER use JSON as the response body
+
+- Maintain the same structure and intent as the original mocks.
+- Do not include any explanatory text, only the JSON array.

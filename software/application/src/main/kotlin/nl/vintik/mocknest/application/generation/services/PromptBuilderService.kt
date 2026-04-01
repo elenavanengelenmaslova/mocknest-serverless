@@ -34,6 +34,7 @@ class PromptBuilderService {
     ): String {
         val promptPath = when (format) {
             SpecificationFormat.GRAPHQL -> "/prompts/graphql/spec-with-description.txt"
+            SpecificationFormat.WSDL -> "/prompts/soap/spec-with-description.txt"
             else -> "/prompts/rest/spec-with-description.txt"
         }
         val template = loadTemplate(promptPath)
@@ -76,6 +77,7 @@ class PromptBuilderService {
     ): String {
         val promptPath = when (format) {
             SpecificationFormat.GRAPHQL -> "/prompts/graphql/correction.txt"
+            SpecificationFormat.WSDL -> "/prompts/soap/correction.txt"
             else -> "/prompts/rest/correction.txt"
         }
         val template = loadTemplate(promptPath)
@@ -107,6 +109,28 @@ ${errors.joinToString("\n") { "- $it" }}"""
             .replace("{{CLIENT_SECTION}}", clientSection)
             .replace("{{MOCKS_WITH_ERRORS}}", mocksWithErrors)
             .replace("{{NAMESPACE}}", namespace.displayName())
+    }
+
+    /**
+     * Builds a prompt for retrying after a model response parsing failure.
+     */
+    fun buildParsingCorrectionPrompt(
+        parsingError: String,
+        namespace: MockNamespace,
+        specification: APISpecification?
+    ): String {
+        val template = loadTemplate("/prompts/common/parsing-correction.txt")
+        val clientSection = namespace.client?.let { "\n- Client: $it" } ?: ""
+        val wireMockSchema = loadTemplate("/prompts/wiremock-stub-schema.yaml")
+
+        return template
+            .replace("{{PARSING_ERROR}}", parsingError)
+            .replace("{{SPEC_TITLE}}", specification?.title ?: "Unknown")
+            .replace("{{SPEC_VERSION}}", specification?.version ?: "Unknown")
+            .replace("{{ENDPOINT_COUNT}}", (specification?.endpoints?.size ?: 0).toString())
+            .replace("{{API_NAME}}", namespace.apiName)
+            .replace("{{CLIENT_SECTION}}", clientSection)
+            .replace("{{WIREMOCK_SCHEMA}}", wireMockSchema)
     }
 
     /**

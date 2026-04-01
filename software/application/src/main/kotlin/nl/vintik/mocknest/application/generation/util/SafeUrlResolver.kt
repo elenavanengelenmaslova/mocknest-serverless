@@ -1,9 +1,13 @@
 package nl.vintik.mocknest.application.generation.util
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import java.net.ConnectException
 import java.net.HttpURLConnection
 import java.net.InetAddress
+import java.net.SocketTimeoutException
 import java.net.URI
+import java.net.UnknownHostException
+import javax.net.ssl.SSLException
 
 private val logger = KotlinLogging.logger {}
 
@@ -58,9 +62,21 @@ class SafeUrlResolver(
                 output.toString(Charsets.UTF_8.name())
             }
         }.getOrElse { e ->
+            val sanitized = sanitizeUrlForLogging(normalizedUrl)
             when (e) {
                 is UrlResolutionException -> throw e
-                else -> throw UrlResolutionException("Failed to fetch URL: ${sanitizeUrlForLogging(normalizedUrl)}", e)
+                is SocketTimeoutException ->
+                    throw UrlResolutionException("Timeout fetching URL: $sanitized after ${connectTimeoutMs}ms", e)
+                is UnknownHostException ->
+                    throw UrlResolutionException("Cannot resolve host for URL: $sanitized", e)
+                is ConnectException ->
+                    throw UrlResolutionException("Connection refused for URL: $sanitized", e)
+                is SSLException ->
+                    throw UrlResolutionException("SSL/TLS error fetching URL: $sanitized — ${e.message}", e)
+                is java.io.IOException ->
+                    throw UrlResolutionException("Network error fetching URL: $sanitized — ${e.message}", e)
+                else ->
+                    throw UrlResolutionException("Unexpected error fetching URL: $sanitized (${e.javaClass.simpleName}: ${e.message})", e)
             }
         }
     }
@@ -116,6 +132,35 @@ class SafeUrlResolver(
          * Validates a URL is safe to fetch (no SSRF to internal networks).
          * Throws [UrlResolutionException] if the URL targets a forbidden address.
          */
+        fun validateAndResolve(url: String): List<InetAddress> {
+            val uri = runCatching {
+                URI(url.trim())
+            }.getOrElse { e ->
+                throw UrlResolutionException("Invalid URL", e)
+            }
+
+            val scheme = uri.scheme?.lowercase()
+            if (scheme !in ALLOWED_SCHEMES) {
+                throw UrlResolutionException("Unsupported URL scheme: $scheme (only HTTP and HTTPS are allowed)")
+            }
+
+            val host = uri.host
+                ?: throw UrlResolutionException("URL has no host")
+
+            val addresses = runCatching {
+                InetAddress.getAllByName(host)
+            }.getOrElse { e ->
+                throw UrlResolutionException("Cannot resolve host: $host", e)
+            }
+
+            for (address in addresses) {
+                if (isUnsafeAddress(address)) {
+                    throw UrlResolutionException("URL targets an unsafe address: $host")
+                }
+            }
+            return addresses.toList()
+        }
+
         fun validateUrlSafety(url: String) {
             val uri = runCatching {
                 URI(url.trim())
