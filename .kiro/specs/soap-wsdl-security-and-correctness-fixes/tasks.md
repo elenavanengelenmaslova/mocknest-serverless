@@ -72,24 +72,26 @@
 ## Priority 2: Correctness Fixes
 
 
-- [ ] 4. Write bug condition exploration test for mixed SOAP version misattribution
-  - **Property 1: Bug Condition** - Mixed SOAP 1.1/1.2 Port Misattribution
+- [x] 4. Write bug condition exploration test for multiple port type service address misattribution
+  - **Property 1: Bug Condition** - Multiple SOAP 1.2 Port Types with Different Service Addresses
   - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
   - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
-  - **GOAL**: Surface counterexamples that demonstrate all operations get same path/version
-  - **Scoped PBT Approach**: Load multi-porttype-soap12.wsdl with both SOAP 1.1 and 1.2 bindings
-  - Test that WsdlSpecificationParser assigns same service address and SOAP version to all operations
-  - Verify all operations have first service address regardless of their actual binding
+  - **GOAL**: Surface counterexamples that demonstrate all operations get same service address
+  - **SCOPE**: We ONLY support SOAP 1.2 - this bug is about multiple SOAP 1.2 port types with different service addresses
+  - **Scoped PBT Approach**: Load multi-porttype-soap12.wsdl with multiple SOAP 1.2 bindings and different service addresses
+  - Test that WsdlSpecificationParser assigns same service address to all operations
+  - Verify all operations have first service address regardless of their actual binding's service address
   - Run test on UNFIXED code
   - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
-  - Document counterexamples found (e.g., "SOAP 1.1 operation assigned SOAP 1.2 version and wrong path")
+  - Document counterexamples found (e.g., "GetProduct operation assigned /multiport/user instead of /multiport/product")
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 2.1_
 
-- [ ] 5. Write preservation property tests for SOAP version parsing (BEFORE implementing fix)
+- [x] 5. Write preservation property tests for SOAP 1.2 port type parsing (BEFORE implementing fix)
   - **Property 2: Preservation** - SOAP 1.2-Only WSDL Parsing
   - **IMPORTANT**: Follow observation-first methodology
+  - **SCOPE**: We ONLY support SOAP 1.2
   - Observe behavior on UNFIXED code for SOAP 1.2-only WSDLs (should parse correctly)
   - Write property-based tests capturing observed correct parsing behavior
   - Test with 10+ SOAP 1.2-only WSDL files
@@ -99,53 +101,57 @@
   - Mark task complete when tests are written, run, and passing on unfixed code
   - _Requirements: 2.1, 2.2_
 
-- [ ] 6. Fix mixed SOAP version misattribution
+- [x] 6. Fix multiple port type service address misattribution
 
-  - [ ] 6.1 Enhance ParsedWsdl to include binding-to-port mapping
+  - [x] 6.1 Enhance ParsedWsdl to include binding-to-port mapping
     - Add operationBindings: Map<String, ParsedBindingDetail> to ParsedWsdl
     - Key format: "portTypeName#operationName"
-    - Value: binding details including SOAP version and service address
+    - Value: binding details including service address
     - Update ParsedBindingDetail to include serviceAddress field
-    - _Bug_Condition: isBugCondition_Bug2(input) where WSDL contains both SOAP 1.1 and 1.2 bindings_
-    - _Expected_Behavior: Each operation has correct path and SOAP version from its binding_
+    - **SCOPE**: We ONLY support SOAP 1.2 - all bindings are SOAP 1.2
+    - _Bug_Condition: isBugCondition_Bug2(input) where WSDL contains multiple SOAP 1.2 bindings with different service addresses_
+    - _Expected_Behavior: Each operation has correct service address from its binding_
     - _Preservation: SOAP 1.2-only WSDLs continue to parse correctly_
     - _Requirements: 2.1, 2.2_
 
-  - [ ] 6.2 Update WsdlParser to extract per-binding service addresses
+  - [x] 6.2 Update WsdlParser to extract per-binding service addresses
     - Modify extractBindingDetails() to extract service port addresses per binding
     - Map each binding to its service address from <wsdl:port> elements
     - Return Map<String, ParsedBindingDetail> with service address included
     - Update buildOperations() to create operationBindings map
+    - **SCOPE**: We ONLY support SOAP 1.2
     - _Requirements: 2.1_
 
-  - [ ] 6.3 Update WsdlSpecificationParser for per-operation resolution
+  - [x] 6.3 Update WsdlSpecificationParser for per-operation resolution
     - Remove single serviceAddressPath() call
     - For each operation, look up binding in compactWsdl.operationBindings
-    - Extract service address and SOAP version from binding
-    - Create endpoint with operation-specific path and version
+    - Extract service address from binding
+    - Create endpoint with operation-specific path
+    - **SCOPE**: We ONLY support SOAP 1.2 - no version resolution needed
     - _Requirements: 2.1_
 
-  - [ ] 6.4 Write unit tests for per-operation binding resolution
-    - Test WSDL with multiple bindings and different service addresses
+  - [x] 6.4 Write unit tests for per-operation binding resolution
+    - Test WSDL with multiple SOAP 1.2 bindings and different service addresses
     - Test operation-to-binding mapping correctness
-    - Test per-operation SOAP version assignment
+    - Test per-operation service address assignment
     - Follow Given-When-Then naming convention
     - _Requirements: 2.1_
 
-  - [ ] 6.5 Write property-based tests for WSDL parsing
+  - [x] 6.5 Write property-based tests for WSDL parsing
     - Create 10-20 diverse WSDL test files covering simple, complex, nested, large scenarios
     - Use @ParameterizedTest with @ValueSource to test all files
-    - Verify properties: all operations extracted, all types captured, correct version assignment
+    - Verify properties: all operations extracted, all types captured, correct service address assignment
+    - **SCOPE**: All test files use SOAP 1.2 only
     - _Requirements: 2.1_
 
-  - [ ] 6.6 Verify bug condition exploration test now passes
-    - **Property 1: Expected Behavior** - Per-Operation SOAP Version and Path
+  - [x] 6.6 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Per-Operation Service Address
     - **IMPORTANT**: Re-run the SAME test from task 4 - do NOT write a new test
     - Run bug condition exploration test from step 4
     - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
     - _Requirements: 2.1_
 
-  - [ ] 6.7 Verify preservation tests still pass
+  - [x] 6.7 Verify preservation tests still pass
     - **Property 2: Preservation** - SOAP 1.2-Only Parsing Maintained
     - **IMPORTANT**: Re-run the SAME tests from task 5 - do NOT write new tests
     - Run preservation property tests from step 5
@@ -225,22 +231,23 @@
   - **DO NOT attempt to fix the test or the code when it fails**
   - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
   - **GOAL**: Surface counterexamples that demonstrate parser accepts non-SOAP WSDLs
+  - **SCOPE**: We ONLY support SOAP 1.2 - reject all other protocols and SOAP versions
   - **Scoped PBT Approach**: Create WSDL with only HTTP bindings (no SOAP namespace)
-  - Test that WsdlParser returns SOAP 1.1 with warning instead of throwing exception
-  - Verify parser silently defaults to SOAP 1.1 for non-SOAP bindings
+  - Test that WsdlParser silently defaults instead of throwing exception
+  - Verify parser accepts non-SOAP bindings
   - Run test on UNFIXED code
   - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
-  - Document counterexamples found (e.g., "HTTP-only WSDL parsed as SOAP 1.1 instead of throwing exception")
+  - Document counterexamples found (e.g., "HTTP-only WSDL accepted instead of throwing exception")
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 4.1_
 
 - [ ] 11. Write preservation property tests for SOAP WSDL parsing (BEFORE implementing fix)
-  - **Property 2: Preservation** - Valid SOAP WSDL Parsing
+  - **Property 2: Preservation** - Valid SOAP 1.2 WSDL Parsing
   - **IMPORTANT**: Follow observation-first methodology
+  - **SCOPE**: We ONLY support SOAP 1.2
   - Observe behavior on UNFIXED code for valid SOAP 1.2 WSDLs (should parse successfully)
-  - Observe behavior on UNFIXED code for mixed SOAP 1.1/1.2 WSDLs (should select SOAP 1.2 with warning)
   - Write property-based tests capturing observed parsing behavior
-  - Test with 10+ valid SOAP WSDL files
+  - Test with 10+ valid SOAP 1.2 WSDL files
   - Run tests on UNFIXED code
   - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline parsing to preserve)
   - Mark task complete when tests are written, run, and passing on unfixed code
@@ -251,29 +258,38 @@
   - [ ] 12.1 Update detectSoapVersion() to throw exception for non-SOAP WSDLs
     - Remove SOAP 1.1 fallback when no SOAP bindings found
     - Throw WsdlParsingException with clear message: "No SOAP binding namespace found; non-SOAP WSDL bindings are not supported"
-    - Keep existing SOAP 1.2 selection logic when both versions present
-    - Update error message for SOAP 1.1 rejection to "Only SOAP 1.2 is supported"
-    - _Bug_Condition: isBugCondition_Bug4(input) where WSDL contains only HTTP bindings_
+    - Reject SOAP 1.1 bindings with clear message: "Only SOAP 1.2 is supported"
+    - **SCOPE**: We ONLY support SOAP 1.2 - reject all other versions and protocols
+    - _Bug_Condition: isBugCondition_Bug4(input) where WSDL contains only HTTP bindings or SOAP 1.1_
     - _Expected_Behavior: Parser throws WsdlParsingException with clear message_
     - _Preservation: Valid SOAP 1.2 WSDLs continue to parse successfully_
     - _Requirements: 4.1, 4.2_
 
-  - [ ] 12.2 Write unit tests for non-SOAP WSDL rejection
+  - [ ] 12.2 Document SOAP 1.2-only support in project documentation
+    - Add section to README.md under "Supported Protocols" or "SOAP/WSDL Support"
+    - Clearly state: "MockNest Serverless supports SOAP 1.2 only. SOAP 1.1 is not supported."
+    - Add to docs/USAGE.md or create docs/LIMITATIONS.md if it doesn't exist
+    - Document that WSDLs with SOAP 1.1 bindings will be rejected with clear error message
+    - Include rationale: simplified implementation, modern standard, reduced complexity
+    - _Requirements: 4.1_
+
+  - [ ] 12.3 Write unit tests for non-SOAP WSDL rejection
     - Test WSDL with only HTTP bindings throws exception
+    - Test WSDL with SOAP 1.1 bindings throws exception with "Only SOAP 1.2 is supported"
     - Test WSDL with no bindings throws exception
     - Test exception message clarity
     - Test valid SOAP 1.2 WSDLs still parse correctly
     - Follow Given-When-Then naming convention
     - _Requirements: 4.1_
 
-  - [ ] 12.3 Verify bug condition exploration test now passes
+  - [ ] 12.4 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - Non-SOAP WSDL Rejection
     - **IMPORTANT**: Re-run the SAME test from task 10 - do NOT write a new test
     - Run bug condition exploration test from step 10
     - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
     - _Requirements: 4.1_
 
-  - [ ] 12.4 Verify preservation tests still pass
+  - [ ] 12.5 Verify preservation tests still pass
     - **Property 2: Preservation** - Valid SOAP Parsing Maintained
     - **IMPORTANT**: Re-run the SAME tests from task 11 - do NOT write new tests
     - Run preservation property tests from step 11
@@ -523,12 +539,13 @@
   - [ ] 24.1 Add missing unit tests for WsdlParser
     - Test top-level element extraction with inline complexType
     - Test top-level element extraction with type reference
-    - Test mixed SOAP version detection and rejection
-    - Test non-SOAP WSDL rejection
+    - Test non-SOAP WSDL rejection (HTTP bindings only)
+    - Test SOAP 1.1 rejection with clear error message
     - Test edge cases: empty schemas, missing namespaces, malformed XML
     - Follow Given-When-Then naming convention
     - Use MockK for mocking dependencies
     - Target 90%+ line coverage for WsdlParser
+    - **SCOPE**: We ONLY support SOAP 1.2
     - _Bug_Condition: isBugCondition_Bug12(input) where SOAP/WSDL coverage < 80%_
     - _Expected_Behavior: Comprehensive test coverage ≥ 85% for SOAP/WSDL_
     - _Preservation: Existing tests continue to pass_
@@ -596,66 +613,7 @@
 ## Priority 3: Quality Fixes
 
 
-- [ ] 25. Write bug condition exploration test for incorrect SOAP 1.2 error message
-  - **Property 1: Bug Condition** - Incorrect SOAP 1.2 Error Message
-  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
-  - **DO NOT attempt to fix the test or the code when it fails**
-  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
-  - **GOAL**: Surface counterexamples that demonstrate wrong error message for SOAP 1.2
-  - **Scoped PBT Approach**: Create SOAP 1.2 mock without action parameter in Content-Type
-  - Test that SoapMockValidator returns error "Missing SOAPAction header" (SOAP 1.1 terminology)
-  - Verify error message does not reflect SOAP 1.2 specification
-  - Run test on UNFIXED code
-  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
-  - Document counterexamples found (e.g., "SOAP 1.2 validation returns 'Missing SOAPAction header' instead of 'Missing action parameter in Content-Type header'")
-  - Mark task complete when test is written, run, and failure is documented
-  - _Requirements: 7.1_
-
-- [ ] 26. Write preservation property tests for SOAP error messages (BEFORE implementing fix)
-  - **Property 2: Preservation** - SOAP 1.1 Error Messages
-  - **IMPORTANT**: Follow observation-first methodology
-  - Observe behavior on UNFIXED code for SOAP 1.1 validation errors (should return correct messages)
-  - Observe behavior on UNFIXED code for other SOAP validation rules (should return appropriate messages)
-  - Write property-based tests capturing observed error message behavior
-  - Test with various SOAP 1.1 validation scenarios
-  - Run tests on UNFIXED code
-  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline error messages to preserve)
-  - Mark task complete when tests are written, run, and passing on unfixed code
-  - _Requirements: 7.1, 7.2_
-
-- [ ] 27. Fix incorrect SOAP 1.2 error message
-
-  - [ ] 27.1 Update validateSoapAction() error message for SOAP 1.2
-    - Change error message from "Missing SOAPAction header" to "Missing action parameter in Content-Type header"
-    - Keep SOAP 1.1 error message unchanged: "Missing SOAPAction header"
-    - Use when expression to return version-specific error messages
-    - _Bug_Condition: isBugCondition_Bug7(input) where SOAP 1.2 mock missing action parameter_
-    - _Expected_Behavior: Error message says "Missing action parameter in Content-Type header"_
-    - _Preservation: SOAP 1.1 error messages remain unchanged_
-    - _Requirements: 7.1, 7.2_
-
-  - [ ] 27.2 Write unit tests for SOAP 1.2 error message accuracy
-    - Test SOAP 1.2 validation with missing action parameter
-    - Test error message text matches SOAP 1.2 specification
-    - Test SOAP 1.1 validation error messages unchanged
-    - Follow Given-When-Then naming convention
-    - _Requirements: 7.1_
-
-  - [ ] 27.3 Verify bug condition exploration test now passes
-    - **Property 1: Expected Behavior** - SOAP 1.2 Error Message Accuracy
-    - **IMPORTANT**: Re-run the SAME test from task 25 - do NOT write a new test
-    - Run bug condition exploration test from step 25
-    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
-    - _Requirements: 7.1_
-
-  - [ ] 27.4 Verify preservation tests still pass
-    - **Property 2: Preservation** - SOAP 1.1 Error Messages Maintained
-    - **IMPORTANT**: Re-run the SAME tests from task 26 - do NOT write new tests
-    - Run preservation property tests from step 26
-    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
-
-
-- [ ] 28. Write bug condition exploration test for KDoc mismatch
+- [ ] 25. Write bug condition exploration test for KDoc mismatch
   - **Property 1: Bug Condition** - KDoc Mismatch
   - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -670,7 +628,7 @@
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 8.1_
 
-- [ ] 29. Write preservation property tests for configuration functionality (BEFORE implementing fix)
+- [ ] 26. Write preservation property tests for configuration functionality (BEFORE implementing fix)
   - **Property 2: Preservation** - Configuration Functionality
   - **IMPORTANT**: Follow observation-first methodology
   - Observe behavior on UNFIXED code for SoapGenerationConfig in application context (should work correctly)
@@ -682,9 +640,9 @@
   - Mark task complete when tests are written, run, and passing on unfixed code
   - _Requirements: 8.1_
 
-- [ ] 30. Fix KDoc mismatch
+- [ ] 27. Fix KDoc mismatch
 
-  - [ ] 30.1 Update SoapGenerationConfig KDoc to reflect actual implementation
+  - [ ] 27.1 Update SoapGenerationConfig KDoc to reflect actual implementation
     - Remove reference to auto-registration via List<MockValidatorInterface>
     - Document explicit composition in AIGenerationConfiguration.compositeMockValidator
     - Clarify that SoapMockValidator is manually composed, not auto-registered
@@ -693,21 +651,21 @@
     - _Preservation: Configuration functionality continues to work correctly_
     - _Requirements: 8.1_
 
-  - [ ] 30.2 Verify bug condition exploration test now passes
+  - [ ] 27.2 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - KDoc Accuracy
-    - **IMPORTANT**: Re-run the SAME test from task 28 - do NOT write a new test
-    - Run bug condition exploration test from step 28
+    - **IMPORTANT**: Re-run the SAME test from task 25 - do NOT write a new test
+    - Run bug condition exploration test from step 25
     - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
     - _Requirements: 8.1_
 
-  - [ ] 30.3 Verify preservation tests still pass
+  - [ ] 27.3 Verify preservation tests still pass
     - **Property 2: Preservation** - Configuration Functionality Maintained
-    - **IMPORTANT**: Re-run the SAME tests from task 29 - do NOT write new tests
-    - Run preservation property tests from step 29
+    - **IMPORTANT**: Re-run the SAME tests from task 26 - do NOT write new tests
+    - Run preservation property tests from step 26
     - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
 
 
-- [ ] 31. Write bug condition exploration test for cryptic test error
+- [ ] 28. Write bug condition exploration test for cryptic test error
   - **Property 1: Bug Condition** - Cryptic Test Error
   - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -767,7 +725,7 @@
     - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
 
 
-- [ ] 34. Write bug condition exploration test for weak content assertion
+- [ ] 31. Write bug condition exploration test for weak content assertion
   - **Property 1: Bug Condition** - Weak Content Assertion
   - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -782,7 +740,7 @@
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 10.1_
 
-- [ ] 35. Write preservation property tests for successful fetch validation (BEFORE implementing fix)
+- [ ] 32. Write preservation property tests for successful fetch validation (BEFORE implementing fix)
   - **Property 2: Preservation** - Successful Fetch Validation
   - **IMPORTANT**: Follow observation-first methodology
   - Observe behavior on UNFIXED code for successful WSDL fetches (should return valid XML)
@@ -794,9 +752,9 @@
   - Mark task complete when tests are written, run, and passing on unfixed code
   - _Requirements: 10.1, 10.2_
 
-- [ ] 36. Fix weak content assertion
+- [ ] 33. Fix weak content assertion
 
-  - [ ] 36.1 Replace weak assertions with exact equality check in WsdlContentFetcherTest
+  - [ ] 33.1 Replace weak assertions with exact equality check in WsdlContentFetcherTest
     - Remove assertTrue(result.isNotBlank())
     - Remove assertTrue(result.contains("<definitions"))
     - Add assertEquals(expectedWsdl, result) for exact content verification
@@ -807,29 +765,29 @@
     - _Preservation: Successful fetch validation continues to work_
     - _Requirements: 10.1, 10.2_
 
-  - [ ] 36.2 Write unit tests for exact content validation
+  - [ ] 33.2 Write unit tests for exact content validation
     - Test fetcher with exact content equality assertion
     - Test fetcher with truncated content fails validation
     - Test fetcher with rewritten content fails validation
     - Follow Given-When-Then naming convention
     - _Requirements: 10.1_
 
-  - [ ] 36.3 Verify bug condition exploration test now passes
+  - [ ] 33.3 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - Exact Content Validation
-    - **IMPORTANT**: Re-run the SAME test from task 34 - do NOT write a new test
-    - Run bug condition exploration test from step 34
+    - **IMPORTANT**: Re-run the SAME test from task 31 - do NOT write a new test
+    - Run bug condition exploration test from step 31
     - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
     - _Requirements: 10.1_
 
-  - [ ] 36.4 Verify preservation tests still pass
+  - [ ] 33.4 Verify preservation tests still pass
     - **Property 2: Preservation** - Successful Fetch Validation Maintained
-    - **IMPORTANT**: Re-run the SAME tests from task 35 - do NOT write new tests
-    - Run preservation property tests from step 35
+    - **IMPORTANT**: Re-run the SAME tests from task 32 - do NOT write new tests
+    - Run preservation property tests from step 32
     - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
 
 ## Final Verification
 
-- [ ] 37. Checkpoint - Ensure all tests pass
+- [ ] 34. Checkpoint - Ensure all tests pass
   - Run full test suite: ./gradlew test
   - Verify all bug condition exploration tests pass (confirms all bugs fixed)
   - Verify all preservation tests pass (confirms no regressions)

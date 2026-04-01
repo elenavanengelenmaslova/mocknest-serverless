@@ -205,4 +205,68 @@ class WsdlExtractionCompletenessPropertyTest {
             "[$filename] CompactWsdl.targetNamespace must be non-blank"
         )
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = [
+        "simple-soap12.wsdl",
+        "multi-operation-soap12.wsdl",
+        "multi-porttype-soap12.wsdl",
+        "complex-types-soap12.wsdl",
+        "nested-xsd-soap12.wsdl",
+        "large-service.wsdl",
+        "calculator-soap12.wsdl",
+        "weather-soap12.wsdl"
+    ])
+    fun `Given any valid WSDL When parsing and reducing Then operationBindings map is populated for all operations`(filename: String) {
+        val wsdlXml = loadWsdl(filename)
+        val parsedWsdl = parser.parse(wsdlXml)
+        val compactWsdl = reducer.reduce(parsedWsdl)
+
+        logger.info { "[$filename] Operations count: ${compactWsdl.operations.size}, operationBindings count: ${compactWsdl.operationBindings.size}" }
+
+        // For each operation, there should be a binding entry
+        compactWsdl.operations.forEach { operation ->
+            val bindingKey = "${operation.portTypeName}#${operation.name}"
+            assertNotNull(
+                compactWsdl.operationBindings[bindingKey],
+                "[$filename] Operation '${operation.name}' should have a binding entry at key '$bindingKey'"
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = [
+        "multi-porttype-soap12.wsdl"
+    ])
+    fun `Given WSDL with multiple port types and different service addresses When parsing and reducing Then each operation binding has correct service address`(filename: String) {
+        val wsdlXml = loadWsdl(filename)
+        val parsedWsdl = parser.parse(wsdlXml)
+        val compactWsdl = reducer.reduce(parsedWsdl)
+
+        logger.info { "[$filename] Checking per-operation service addresses" }
+
+        // For multi-porttype-soap12.wsdl:
+        // GetUser operation should have /multiport/user
+        // GetProduct operation should have /multiport/product
+        val getUserOp = compactWsdl.operations.find { it.name == "GetUser" }
+        val getProductOp = compactWsdl.operations.find { it.name == "GetProduct" }
+
+        assertNotNull(getUserOp, "GetUser operation should exist")
+        assertNotNull(getProductOp, "GetProduct operation should exist")
+
+        val getUserBinding = compactWsdl.operationBindings["${getUserOp.portTypeName}#${getUserOp.name}"]
+        val getProductBinding = compactWsdl.operationBindings["${getProductOp.portTypeName}#${getProductOp.name}"]
+
+        assertNotNull(getUserBinding, "GetUser should have binding")
+        assertNotNull(getProductBinding, "GetProduct should have binding")
+
+        assertTrue(
+            getUserBinding.serviceAddress.contains("/user"),
+            "[$filename] GetUser binding should have service address containing '/user', got: ${getUserBinding.serviceAddress}"
+        )
+        assertTrue(
+            getProductBinding.serviceAddress.contains("/product"),
+            "[$filename] GetProduct binding should have service address containing '/product', got: ${getProductBinding.serviceAddress}"
+        )
+    }
 }

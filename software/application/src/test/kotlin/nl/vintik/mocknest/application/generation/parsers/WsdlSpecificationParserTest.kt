@@ -276,4 +276,53 @@ class WsdlSpecificationParserTest {
             }
         }
     }
+
+    @Nested
+    @Tag("bug-condition-exploration")
+    inner class MultiplePortTypesMisattribution {
+
+        @Test
+        fun `Given WSDL with multiple SOAP 1_2 port types and different service addresses When parsing Then all operations should have correct per-binding service address`() =
+            runTest {
+                // Given - WSDL with two port types (UserPortType and ProductPortType) with different service addresses
+                val wsdlXml = loadWsdl("multi-porttype-soap12.wsdl")
+
+                // When
+                val spec = parser.parse(wsdlXml, SpecificationFormat.WSDL)
+
+                // Then - Bug Condition: All operations get same service address
+                // Expected behavior (after fix): Each operation should have its binding-specific service address
+                
+                // Find GetUser and GetProduct operations
+                val getUserEndpoint = spec.endpoints.find { it.operationId == "GetUser" }
+                val getProductEndpoint = spec.endpoints.find { it.operationId == "GetProduct" }
+                
+                assertNotNull(getUserEndpoint, "GetUser operation should be present")
+                assertNotNull(getProductEndpoint, "GetProduct operation should be present")
+
+                // EXPECTED BEHAVIOR (this test encodes the correct behavior):
+                // GetUser operation should use UserBinding with /multiport/user path
+                // GetProduct operation should use ProductBinding with /multiport/product path
+                
+                // Check GetUser operation
+                assertEquals(
+                    "/multiport/user",
+                    getUserEndpoint.path,
+                    "GetUser operation should use UserBinding service address /multiport/user"
+                )
+
+                // Check GetProduct operation
+                assertEquals(
+                    "/multiport/product",
+                    getProductEndpoint.path,
+                    "GetProduct operation should use ProductBinding service address /multiport/product"
+                )
+
+                // COUNTEREXAMPLE DOCUMENTATION:
+                // On UNFIXED code, this test will FAIL because:
+                // 1. WsdlSpecificationParser.serviceAddressPath() extracts first service address only
+                // 2. All operations receive same path regardless of their binding
+                // Expected failure: Both operations will have same path (likely /multiport/user - the first one)
+            }
+    }
 }

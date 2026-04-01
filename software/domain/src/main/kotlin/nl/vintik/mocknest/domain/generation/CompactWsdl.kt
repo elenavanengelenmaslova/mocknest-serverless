@@ -11,7 +11,8 @@ data class CompactWsdl(
     val portTypes: List<WsdlPortType>,
     val operations: List<WsdlOperation>,
     val xsdTypes: Map<String, WsdlXsdType>,
-    val serviceAddress: String? = null
+    val serviceAddress: String? = null,
+    val operationBindings: Map<String, OperationBinding> = emptyMap()
 ) {
     init {
         require(serviceName.isNotBlank()) { "Service name cannot be blank" }
@@ -119,5 +120,18 @@ data class WsdlXsdField(
     init {
         require(name.isNotBlank()) { "Field name cannot be blank" }
         require(type.isNotBlank()) { "Field type cannot be blank" }
+    }
+}
+
+/**
+ * Binding information for a specific operation.
+ * Maps an operation to its service address and SOAP version.
+ */
+data class OperationBinding(
+    val serviceAddress: String,
+    val soapVersion: SoapVersion
+) {
+    init {
+        require(serviceAddress.isNotBlank()) { "Service address cannot be blank" }
     }
 }
