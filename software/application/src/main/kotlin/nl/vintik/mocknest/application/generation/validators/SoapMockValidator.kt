@@ -59,7 +59,7 @@ class SoapMockValidator : MockValidatorInterface {
             }
 
             // Rule 1b: Request URL/path must match an endpoint path from the specification
-            errors.addAll(validateUrlPath(requestNode, specification.endpoints))
+            errors.addAll(validateUrlPath(requestNode, specification.endpoints, mock.namespace))
 
             // Rule 2: SOAPAction / action in Content-Type references a valid operation
             errors.addAll(validateSoapAction(requestNode, soapVersion, specification.endpoints))
@@ -108,14 +108,18 @@ class SoapMockValidator : MockValidatorInterface {
      */
     private fun validateUrlPath(
         requestNode: JsonObject,
-        endpoints: List<EndpointDefinition>
+        endpoints: List<EndpointDefinition>,
+        mockNamespace: nl.vintik.mocknest.domain.generation.MockNamespace
     ): List<String> {
         val urlPath = requestNode["urlPath"]?.jsonPrimitive?.content
             ?: requestNode["url"]?.jsonPrimitive?.content
             ?: return emptyList() // no URL/path in mapping — skip (e.g. urlPattern matchers)
 
         val expectedPaths = endpoints.map { it.path }.toSet()
-        return if (urlPath !in expectedPaths) {
+        val namespacedPaths = endpoints.map { "/${mockNamespace.displayName()}${it.path}" }.toSet()
+        val allValidPaths = expectedPaths + namespacedPaths
+        
+        return if (urlPath !in allValidPaths) {
             listOf("Request URL path '$urlPath' does not match any endpoint path in the WSDL. Expected one of: $expectedPaths")
         } else {
             emptyList()
