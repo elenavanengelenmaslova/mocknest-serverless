@@ -19,8 +19,9 @@ import org.springframework.context.annotation.Configuration
  * [WsdlSpecificationParser] is automatically registered in [nl.vintik.mocknest.application.generation.parsers.CompositeSpecificationParserImpl]
  * via the existing `List<SpecificationParserInterface>` injection.
  *
- * [SoapMockValidator] is automatically registered in [nl.vintik.mocknest.application.generation.validators.CompositeMockValidator]
- * via the existing `List<MockValidatorInterface>` injection.
+ * [SoapMockValidator] is explicitly composed in [nl.vintik.mocknest.infra.aws.generation.ai.config.AIGenerationConfiguration.compositeMockValidator]
+ * by passing it as a constructor parameter to [nl.vintik.mocknest.application.generation.validators.CompositeMockValidator].
+ * This explicit composition pattern avoids circular dependencies with `List<MockValidatorInterface>` injection.
  */
 @Configuration
 class SoapGenerationConfig {
@@ -63,7 +64,7 @@ class SoapGenerationConfig {
     }
 
     /**
-     * SOAP mock validator — auto-registered via List<MockValidatorInterface> injection.
+     * SOAP mock validator — explicitly composed in AIGenerationConfiguration.compositeMockValidator.
      */
     @Bean
     fun soapMockValidator(): SoapMockValidator {

@@ -482,7 +482,7 @@ MockNest Serverless can generate comprehensive mock suites from API specificatio
 
 ### Generate Mocks from OpenAPI Specification
 
-**Description**: Generates mocks for a petstore API from an OpenAPI specification. This example creates mocks for 3 pets with consistent data across multiple endpoints.
+**Description**: Generates mocks for a petstore API from an OpenAPI specification. This example creates mocks for 4 pets with consistent data across multiple endpoints, including a bird with a specific image.
 
 **Command**:
 ```bash
@@ -497,7 +497,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
   "specification": null,
   "specificationUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
   "format": "OPENAPI_3",
-  "description": "Generate mocks for 3 pets from the Petstore OpenAPI specification, pets enpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets accross endpoints, 1 pet is a dog with this image: https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg, this dog is available and a new pet and should have a tag with id=1 and name=new, we need to have api call to get all new pets and its that dog, the other two pets are available also but are not new",
+  "description": "Generate mocks for 4 pets, only GET endpoints. 1 pet is a bird with image: https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg, available, new, tag id=1 name=new. API call to get all new pets returns that bird. The other 3 pets are available but not new.",
   "options": {
     "enableValidation": true
   }
@@ -509,6 +509,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 {
   "mappings": [
     {
+      "persistent": true,
       "request": {
         "method": "GET",
         "urlPath": "/petstore/pet/findByStatus",
@@ -526,10 +527,10 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
         "jsonBody": [
           {
             "id": 1,
-            "name": "Buddy",
+            "name": "Birdy",
             "status": "available",
             "photoUrls": [
-              "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+              "https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg"
             ],
             "tags": [
               {
@@ -540,21 +541,135 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
           },
           {
             "id": 2,
-            "name": "Max",
-            "status": "available",
-            "photoUrls": [
-              "https://example.com/max.jpg"
-            ]
+            "name": "Doggo",
+            "status": "available"
           },
           {
             "id": 3,
-            "name": "Luna",
+            "name": "Kitty",
+            "status": "available"
+          },
+          {
+            "id": 4,
+            "name": "Bunny",
+            "status": "available"
+          }
+        ]
+      }
+    },
+    {
+      "persistent": true,
+      "request": {
+        "method": "GET",
+        "urlPath": "/petstore/pet/findByTags",
+        "queryParameters": {
+          "tags": {
+            "equalTo": "new"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": [
+          {
+            "id": 1,
+            "name": "Birdy",
             "status": "available",
             "photoUrls": [
-              "https://example.com/luna.jpg"
+              "https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg"
+            ],
+            "tags": [
+              {
+                "id": 1,
+                "name": "new"
+              }
             ]
           }
         ]
+      }
+    },
+    {
+      "persistent": true,
+      "request": {
+        "method": "GET",
+        "urlPath": "/petstore/pet/1"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": 1,
+          "name": "Birdy",
+          "status": "available",
+          "photoUrls": [
+            "https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg"
+          ],
+          "tags": [
+            {
+              "id": 1,
+              "name": "new"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "persistent": true,
+      "request": {
+        "method": "GET",
+        "urlPath": "/petstore/pet/2"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": 2,
+          "name": "Doggo",
+          "status": "available"
+        }
+      }
+    },
+    {
+      "persistent": true,
+      "request": {
+        "method": "GET",
+        "urlPath": "/petstore/pet/3"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": 3,
+          "name": "Kitty",
+          "status": "available"
+        }
+      }
+    },
+    {
+      "persistent": true,
+      "request": {
+        "method": "GET",
+        "urlPath": "/petstore/pet/4"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": 4,
+          "name": "Bunny",
+          "status": "available"
+        }
       }
     }
   ]
@@ -597,10 +712,10 @@ curl -X POST "${MOCKNEST_URL}/__admin/mappings/import" \
         "jsonBody": [
           {
             "id": 1,
-            "name": "Buddy",
+            "name": "Birdy",
             "status": "available",
             "photoUrls": [
-              "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+              "https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg"
             ],
             "tags": [
               {
@@ -611,19 +726,18 @@ curl -X POST "${MOCKNEST_URL}/__admin/mappings/import" \
           },
           {
             "id": 2,
-            "name": "Max",
-            "status": "available",
-            "photoUrls": [
-              "https://example.com/max.jpg"
-            ]
+            "name": "Doggo",
+            "status": "available"
           },
           {
             "id": 3,
-            "name": "Luna",
-            "status": "available",
-            "photoUrls": [
-              "https://example.com/luna.jpg"
-            ]
+            "name": "Kitty",
+            "status": "available"
+          },
+          {
+            "id": 4,
+            "name": "Bunny",
+            "status": "available"
           }
         ]
       }
@@ -646,10 +760,10 @@ curl -X POST "${MOCKNEST_URL}/__admin/mappings/import" \
         "jsonBody": [
           {
             "id": 1,
-            "name": "Buddy",
+            "name": "Birdy",
             "status": "available",
             "photoUrls": [
-              "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+              "https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg"
             ],
             "tags": [
               {
@@ -687,10 +801,10 @@ curl -X GET "${MOCKNEST_URL}/mocknest/petstore/pet/findByStatus?status=available
 [
   {
     "id": 1,
-    "name": "Buddy",
+    "name": "Birdy",
     "status": "available",
     "photoUrls": [
-      "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+      "https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg"
     ],
     "tags": [
       {
@@ -701,19 +815,18 @@ curl -X GET "${MOCKNEST_URL}/mocknest/petstore/pet/findByStatus?status=available
   },
   {
     "id": 2,
-    "name": "Max",
-    "status": "available",
-    "photoUrls": [
-      "https://example.com/max.jpg"
-    ]
+    "name": "Doggo",
+    "status": "available"
   },
   {
     "id": 3,
-    "name": "Luna",
-    "status": "available",
-    "photoUrls": [
-      "https://example.com/luna.jpg"
-    ]
+    "name": "Kitty",
+    "status": "available"
+  },
+  {
+    "id": 4,
+    "name": "Bunny",
+    "status": "available"
   }
 ]
 ```
@@ -737,10 +850,10 @@ curl -X GET "${MOCKNEST_URL}/mocknest/petstore/pet/findByTags?tags=new" \
 [
   {
     "id": 1,
-    "name": "Buddy",
+    "name": "Birdy",
     "status": "available",
     "photoUrls": [
-      "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
+      "https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg"
     ],
     "tags": [
       {
@@ -780,12 +893,136 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 }'
 ```
 
+**Expected Response** (200 OK):
+```json
+{
+  "mappings": [
+    {
+      "persistent": true,
+      "request": {
+        "method": "POST",
+        "urlPath": "/pokemon-graphql/graphql",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$[?(@.operationName == 'ability')]"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "data": {
+            "ability": [
+              {
+                "name": "Overgrow",
+                "effect": "The Pokémon's moves have a 10% increased chance of causing a critical hit.",
+                "description": "A power-boosting ability that increases the power of Grass-type moves by 30% when the Pokémon is at low health."
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
 **Key Parameters**:
 - `namespace.apiName`: Name prefix for the generated mock endpoints
 - `specificationUrl`: URL of the GraphQL endpoint (introspection query is sent automatically)
 - `format`: Must be `GRAPHQL` for GraphQL APIs
 - `description`: Natural language description guiding the AI generation
 - `options.enableValidation`: Validate generated mocks against the GraphQL schema
+
+#### Import Generated GraphQL Mappings
+
+**Description**: Imports the AI-generated GraphQL mappings into MockNest to make them available for testing.
+
+**Command**:
+```bash
+curl -X POST "${MOCKNEST_URL}/__admin/mappings/import" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "mappings": [
+    {
+      "persistent": true,
+      "request": {
+        "method": "POST",
+        "urlPath": "/pokemon-graphql/graphql",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$[?(@.operationName == '\''ability'\'')]"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "data": {
+            "ability": [
+              {
+                "name": "Overgrow",
+                "effect": "The Pokémon'\''s moves have a 10% increased chance of causing a critical hit.",
+                "description": "A power-boosting ability that increases the power of Grass-type moves by 30% when the Pokémon is at low health."
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}'
+```
+
+**Expected Response** (200 OK):
+Empty response with status 200 indicating successful import.
+
+**Key Parameters**:
+- `mappings`: Array of WireMock mapping definitions to import
+- Each mapping includes GraphQL-specific request matching using `matchesJsonPath` for operation names
+
+#### Test Generated GraphQL Mock
+
+**Description**: Calls the generated GraphQL mock to retrieve Pokemon ability information.
+
+**Command**:
+```bash
+curl -X POST "${MOCKNEST_URL}/mocknest/pokemon-graphql/graphql" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "operationName": "ability",
+  "query": "query ability { ability { name effect description } }"
+}'
+```
+
+**Expected Response** (200 OK):
+```json
+{
+  "data": {
+    "ability": [
+      {
+        "name": "Overgrow",
+        "effect": "The Pokémon's moves have a 10% increased chance of causing a critical hit.",
+        "description": "A power-boosting ability that increases the power of Grass-type moves by 30% when the Pokémon is at low health."
+      }
+    ]
+  }
+}
+```
+
+**Key Parameters**:
+- `Content-Type: application/json`: Required for GraphQL requests
+- `operationName`: The GraphQL operation name used for matching
+- `query`: The GraphQL query string
+- Response: GraphQL data response structure matching the schema
 
 
 ### Generate Mocks from SOAP/WSDL
@@ -857,22 +1094,59 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 {
   "mappings": [
     {
-      "priority": 1,
       "persistent": true,
       "request": {
         "method": "POST",
+        "urlPath": "/webservice/calculator.asmx",
         "headers": {
-          "SOAPAction": {
-            "equalTo": "http://tempuri.org/Add"
+          "Content-Type": {
+            "contains": "action=\"http://tempuri.org/Add\""
           }
-        }
+        },
+        "bodyPatterns": [
+          {
+            "matchesXPath": "//soapenv:Envelope/soapenv:Body/tns:Add",
+            "xPathNamespaces": {
+              "soapenv": "http://www.w3.org/2003/05/soap-envelope",
+              "tns": "http://tempuri.org/"
+            }
+          }
+        ]
       },
       "response": {
         "status": 200,
         "headers": {
-          "Content-Type": "text/xml; charset=utf-8"
+          "Content-Type": "application/soap+xml; charset=utf-8"
         },
-        "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?><soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><AddResponse xmlns=\"http://tempuri.org/\"><AddResult>42</AddResult></AddResponse></soap:Body></soap:Envelope>"
+        "body": "<soapenv:Envelope xmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:tns=\"http://tempuri.org/\"><soapenv:Body><tns:AddResponse><tns:AddResult>15</tns:AddResult></tns:AddResponse></soapenv:Body></soapenv:Envelope>"
+      }
+    },
+    {
+      "persistent": true,
+      "request": {
+        "method": "POST",
+        "urlPath": "/webservice/calculator.asmx",
+        "headers": {
+          "Content-Type": {
+            "contains": "action=\"http://tempuri.org/Subtract\""
+          }
+        },
+        "bodyPatterns": [
+          {
+            "matchesXPath": "//soapenv:Envelope/soapenv:Body/tns:Subtract",
+            "xPathNamespaces": {
+              "soapenv": "http://www.w3.org/2003/05/soap-envelope",
+              "tns": "http://tempuri.org/"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/soap+xml; charset=utf-8"
+        },
+        "body": "<soapenv:Envelope xmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:tns=\"http://tempuri.org/\"><soapenv:Body><tns:SubtractResponse><tns:SubtractResult>5</tns:SubtractResult></tns:SubtractResponse></soapenv:Body></soapenv:Envelope>"
       }
     }
   ]
@@ -883,8 +1157,9 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 - `specification`: Inline WSDL XML content as a string
 - `format`: Must be `WSDL` for SOAP/WSDL APIs
 - `description`: Natural language instructions guiding the AI generation
-- Generated mocks match on `SOAPAction` header (SOAP 1.1) or `action` in `Content-Type` (SOAP 1.2)
-- Response bodies are valid SOAP envelopes with the correct namespace for the detected SOAP version
+- Generated mocks match on `action` parameter in `Content-Type` header (SOAP 1.2 specification)
+- Response bodies are valid SOAP 1.2 envelopes with namespace `http://www.w3.org/2003/05/soap-envelope`
+- Response Content-Type is `application/soap+xml; charset=utf-8` (SOAP 1.2 standard)
 
 
 ## Administrative Operations

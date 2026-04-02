@@ -1026,7 +1026,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"namespace\": {\n        \"apiName\": \"petstore\",\n        \"client\": null\n    },\n    \"specification\": null,\n    \"specificationUrl\": \"https://petstore3.swagger.io/api/v3/openapi.json\",\n    \"format\": \"OPENAPI_3\",\n    \"description\": \"Generate mocks for 3 pets from the Petstore OpenAPI specification, pets enpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets accross endpoints, 1 pet is a dog with this image: https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg, this dog is available and a new pet and should have a tag with id=1 and name=new, we need to have api call to get all new pets and its that dog, the other two pets are available also but are not new\",\n    \"options\": {\n        \"enableValidation\": true\n    }\n}",
+              "raw": "{\n    \"namespace\": {\n        \"apiName\": \"petstore\",\n        \"client\": null\n    },\n    \"specification\": null,\n    \"specificationUrl\": \"https://petstore3.swagger.io/api/v3/openapi.json\",\n    \"format\": \"OPENAPI_3\",\n    \"description\": \"Generate mocks for 4 pets, only GET endpoints. 1 pet is a bird with image: https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg, available, new, tag id=1 name=new. API call to get all new pets returns that bird. The other 3 pets are available but not new.\",\n    \"options\": {\n        \"enableValidation\": true\n    }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1050,52 +1050,52 @@
           "_postman_previewlanguage": null,
           "header": [
             {
-              "key": "Content-Type",
+              "key": ":status",
+              "value": 200
+            },
+            {
+              "key": "content-type",
               "value": "application/json"
             },
             {
-              "key": "Content-Length",
-              "value": "1818"
+              "key": "content-length",
+              "value": "2162"
             },
             {
-              "key": "Connection",
-              "value": "keep-alive"
+              "key": "date",
+              "value": "Thu, 02 Apr 2026 20:15:09 GMT"
             },
             {
-              "key": "Date",
-              "value": "Fri, 13 Mar 2026 05:39:04 GMT"
+              "key": "x-amzn-trace-id",
+              "value": "Root=1-69cece47-64b82de64f344d1957c70f71"
             },
             {
-              "key": "X-Amzn-Trace-Id",
-              "value": "Root=1-69b3a2e8-781db7ff3ac39d40075fc6de"
-            },
-            {
-              "key": "x-amzn-RequestId",
-              "value": "5c9c42cb-0250-4cdb-9a85-bdfc2dcafc4a"
+              "key": "x-amzn-requestid",
+              "value": "a5c9132c-0981-43d9-85b4-ed0fb97a6274"
             },
             {
               "key": "x-amz-apigw-id",
-              "value": "aJZkYER-DoEEELw="
+              "value": "bNUrPFhSjoEEIvg="
             },
             {
-              "key": "X-Cache",
+              "key": "x-cache",
               "value": "Miss from cloudfront"
             },
             {
-              "key": "Via",
-              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+              "key": "via",
+              "value": "1.1 d68e89909aab7edcb0ec1e7115a56f0a.cloudfront.net (CloudFront)"
             },
             {
-              "key": "X-Amz-Cf-Pop",
+              "key": "x-amz-cf-pop",
               "value": "AMS56-P1"
             },
             {
-              "key": "X-Amz-Cf-Id",
-              "value": "SLdYMG3UXkoLqASiVHz65ebOAx_XVyWMv2IAe2U2uN0amTJz9igFTw=="
+              "key": "x-amz-cf-id",
+              "value": "9JAjTXiPnr93BgDKHE9jc41NsX3qGT-tU9_ietiHg4tyMRM5uvte5w=="
             }
           ],
           "cookie": [],
-          "body": "{\n    \"mappings\": [\n        {\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/findByStatus\",\n                \"queryParameters\": {\n                    \"status\": {\n                        \"equalTo\": \"available\"\n                    }\n                }\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": [\n                    {\n                        \"id\": 1,\n                        \"name\": \"Buddy\",\n                        \"status\": \"available\",\n                        \"photoUrls\": [\n                            \"https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg\"\n                        ],\n                        \"tags\": [\n                            {\n                                \"id\": 1,\n                                \"name\": \"new\"\n                            }\n                        ]\n                    },\n                    {\n                        \"id\": 2,\n                        \"name\": \"Max\",\n                        \"status\": \"available\",\n                        \"photoUrls\": [\n                            \"https://example.com/max.jpg\"\n                        ]\n                    },\n                    {\n                        \"id\": 3,\n                        \"name\": \"Luna\",\n                        \"status\": \"available\",\n                        \"photoUrls\": [\n                            \"https://example.com/luna.jpg\"\n                        ]\n                    }\n                ]\n            },\n            \"persistent\": true\n        },\n        {\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/findByTags\",\n                \"queryParameters\": {\n                    \"tags\": {\n                        \"equalTo\": \"new\"\n                    }\n                }\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": [\n                    {\n                        \"id\": 1,\n                        \"name\": \"Buddy\",\n                        \"status\": \"available\",\n                        \"photoUrls\": [\n                            \"https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg\"\n                        ],\n                        \"tags\": [\n                            {\n                                \"id\": 1,\n                                \"name\": \"new\"\n                            }\n                        ]\n                    }\n                ]\n            },\n            \"persistent\": true\n        },\n        {\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/1\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": {\n                    \"id\": 1,\n                    \"name\": \"Buddy\",\n                    \"status\": \"available\",\n                    \"photoUrls\": [\n                        \"https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg\"\n                    ],\n                    \"tags\": [\n                        {\n                            \"id\": 1,\n                            \"name\": \"new\"\n                        }\n                    ]\n                }\n            },\n            \"persistent\": true\n        },\n        {\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/2\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": {\n                    \"id\": 2,\n                    \"name\": \"Max\",\n                    \"status\": \"available\",\n                    \"photoUrls\": [\n                        \"https://example.com/max.jpg\"\n                    ]\n                }\n            },\n            \"persistent\": true\n        },\n        {\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/3\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": {\n                    \"id\": 3,\n                    \"name\": \"Luna\",\n                    \"status\": \"available\",\n                    \"photoUrls\": [\n                        \"https://example.com/luna.jpg\"\n                    ]\n                }\n            },\n            \"persistent\": true\n        }\n    ]\n}"
+          "body": "{\n    \"mappings\": [\n        {\n            \"persistent\": true,\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/findByStatus\",\n                \"queryParameters\": {\n                    \"status\": {\n                        \"equalTo\": \"available\"\n                    }\n                }\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": [\n                    {\n                        \"id\": 1,\n                        \"name\": \"Birdy\",\n                        \"status\": \"available\",\n                        \"photoUrls\": [\n                            \"https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg\"\n                        ],\n                        \"tags\": [\n                            {\n                                \"id\": 1,\n                                \"name\": \"new\"\n                            }\n                        ]\n                    },\n                    {\n                        \"id\": 2,\n                        \"name\": \"Doggo\",\n                        \"status\": \"available\"\n                    },\n                    {\n                        \"id\": 3,\n                        \"name\": \"Kitty\",\n                        \"status\": \"available\"\n                    },\n                    {\n                        \"id\": 4,\n                        \"name\": \"Bunny\",\n                        \"status\": \"available\"\n                    }\n                ]\n            }\n        },\n        {\n            \"persistent\": true,\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/findByTags\",\n                \"queryParameters\": {\n                    \"tags\": {\n                        \"equalTo\": \"new\"\n                    }\n                }\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": [\n                    {\n                        \"id\": 1,\n                        \"name\": \"Birdy\",\n                        \"status\": \"available\",\n                        \"photoUrls\": [\n                            \"https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg\"\n                        ],\n                        \"tags\": [\n                            {\n                                \"id\": 1,\n                                \"name\": \"new\"\n                            }\n                        ]\n                    }\n                ]\n            }\n        },\n        {\n            \"persistent\": true,\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/1\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": {\n                    \"id\": 1,\n                    \"name\": \"Birdy\",\n                    \"status\": \"available\",\n                    \"photoUrls\": [\n                        \"https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg\"\n                    ],\n                    \"tags\": [\n                        {\n                            \"id\": 1,\n                            \"name\": \"new\"\n                        }\n                    ]\n                }\n            }\n        },\n        {\n            \"persistent\": true,\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/2\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": {\n                    \"id\": 2,\n                    \"name\": \"Doggo\",\n                    \"status\": \"available\"\n                }\n            }\n        },\n        {\n            \"persistent\": true,\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/3\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": {\n                    \"id\": 3,\n                    \"name\": \"Kitty\",\n                    \"status\": \"available\"\n                }\n            }\n        },\n        {\n            \"persistent\": true,\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/4\"\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": {\n                    \"id\": 4,\n                    \"name\": \"Bunny\",\n                    \"status\": \"available\"\n                }\n            }\n        },\n        {\n            \"persistent\": true,\n            \"request\": {\n                \"method\": \"GET\",\n                \"urlPath\": \"/petstore/pet/findByStatus\",\n                \"queryParameters\": {\n                    \"status\": {\n                        \"equalTo\": \"new\"\n                    }\n                }\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": [\n                    {\n                        \"id\": 1,\n                        \"name\": \"Birdy\",\n                        \"status\": \"new\",\n                        \"photoUrls\": [\n                            \"https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg\"\n                        ],\n                        \"tags\": [\n                            {\n                                \"id\": 1,\n                                \"name\": \"new\"\n                            }\n                        ]\n                    }\n                ]\n            }\n        }\n    ]\n}"
         }
       ]
     },
@@ -1288,52 +1288,52 @@
           "_postman_previewlanguage": null,
           "header": [
             {
-              "key": "Content-Type",
+              "key": ":status",
+              "value": 200
+            },
+            {
+              "key": "content-type",
               "value": "application/json"
             },
             {
-              "key": "Content-Length",
-              "value": "357"
+              "key": "content-length",
+              "value": "285"
             },
             {
-              "key": "Connection",
-              "value": "keep-alive"
+              "key": "date",
+              "value": "Thu, 02 Apr 2026 20:15:36 GMT"
             },
             {
-              "key": "Date",
-              "value": "Fri, 13 Mar 2026 05:39:14 GMT"
+              "key": "x-amzn-trace-id",
+              "value": "Root=1-69cece68-2543a9b268c214e8205dc803"
             },
             {
-              "key": "X-Amzn-Trace-Id",
-              "value": "Root=1-69b3a302-2ae231c92760fd2a161bc803"
-            },
-            {
-              "key": "x-amzn-RequestId",
-              "value": "271e5eca-ce5f-45ae-aa06-b2345e392984"
+              "key": "x-amzn-requestid",
+              "value": "d69114ba-a5da-40d2-b933-63f1a56dbb7e"
             },
             {
               "key": "x-amz-apigw-id",
-              "value": "aJZodH29DoEEQtg="
+              "value": "bNUwVHOGDoEEmvw="
             },
             {
-              "key": "X-Cache",
+              "key": "x-cache",
               "value": "Miss from cloudfront"
             },
             {
-              "key": "Via",
-              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+              "key": "via",
+              "value": "1.1 d68e89909aab7edcb0ec1e7115a56f0a.cloudfront.net (CloudFront)"
             },
             {
-              "key": "X-Amz-Cf-Pop",
+              "key": "x-amz-cf-pop",
               "value": "AMS56-P1"
             },
             {
-              "key": "X-Amz-Cf-Id",
-              "value": "ktpTiXbnCfaZ1wrKLQAsftmGa8z6F6rmHEvgGye7gjKSHOfUqxWFng=="
+              "key": "x-amz-cf-id",
+              "value": "WrS7KjIhPeaY5FHCPfWlU19IjVHOdWw7XtxLQlLnfcZZZkxXkS_Tmg=="
             }
           ],
           "cookie": [],
-          "body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Buddy\",\n        \"status\": \"available\",\n        \"photoUrls\": [\n            \"https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg\"\n        ],\n        \"tags\": [\n            {\n                \"id\": 1,\n                \"name\": \"new\"\n            }\n        ]\n    },\n    {\n        \"id\": 2,\n        \"name\": \"Max\",\n        \"status\": \"available\",\n        \"photoUrls\": [\n            \"https://example.com/max.jpg\"\n        ]\n    },\n    {\n        \"id\": 3,\n        \"name\": \"Luna\",\n        \"status\": \"available\",\n        \"photoUrls\": [\n            \"https://example.com/luna.jpg\"\n        ]\n    }\n]"
+          "body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Birdy\",\n        \"status\": \"available\",\n        \"photoUrls\": [\n            \"https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg\"\n        ],\n        \"tags\": [\n            {\n                \"id\": 1,\n                \"name\": \"new\"\n            }\n        ]\n    },\n    {\n        \"id\": 2,\n        \"name\": \"Doggo\",\n        \"status\": \"available\"\n    },\n    {\n        \"id\": 3,\n        \"name\": \"Kitty\",\n        \"status\": \"available\"\n    },\n    {\n        \"id\": 4,\n        \"name\": \"Bunny\",\n        \"status\": \"available\"\n    }\n]"
         }
       ]
     },
@@ -1405,52 +1405,52 @@
           "_postman_previewlanguage": null,
           "header": [
             {
-              "key": "Content-Type",
+              "key": ":status",
+              "value": 200
+            },
+            {
+              "key": "content-type",
               "value": "application/json"
             },
             {
-              "key": "Content-Length",
-              "value": "181"
+              "key": "content-length",
+              "value": "150"
             },
             {
-              "key": "Connection",
-              "value": "keep-alive"
+              "key": "date",
+              "value": "Thu, 02 Apr 2026 20:15:54 GMT"
             },
             {
-              "key": "Date",
-              "value": "Fri, 13 Mar 2026 05:39:18 GMT"
+              "key": "x-amzn-trace-id",
+              "value": "Root=1-69cece7a-7b4993ef7124cca932fe0def"
             },
             {
-              "key": "X-Amzn-Trace-Id",
-              "value": "Root=1-69b3a306-2cbcd8474750bd9f402dded8"
-            },
-            {
-              "key": "x-amzn-RequestId",
-              "value": "de23a322-556b-4e9b-8ffc-1949646482ab"
+              "key": "x-amzn-requestid",
+              "value": "0e40436a-507e-47ae-b1be-cf9d372bee70"
             },
             {
               "key": "x-amz-apigw-id",
-              "value": "aJZpDEr0joEEQuw="
+              "value": "bNUzOFC3joEEC-w="
             },
             {
-              "key": "X-Cache",
+              "key": "x-cache",
               "value": "Miss from cloudfront"
             },
             {
-              "key": "Via",
-              "value": "1.1 7ff1da112c5af7dbf1b5d2bdd60a9682.cloudfront.net (CloudFront)"
+              "key": "via",
+              "value": "1.1 d68e89909aab7edcb0ec1e7115a56f0a.cloudfront.net (CloudFront)"
             },
             {
-              "key": "X-Amz-Cf-Pop",
+              "key": "x-amz-cf-pop",
               "value": "AMS56-P1"
             },
             {
-              "key": "X-Amz-Cf-Id",
-              "value": "hMYaXwtUOuQ-yZS1oueu06WXIc2xA91q-6tAeOsTWc-qqRM0hvfBKg=="
+              "key": "x-amz-cf-id",
+              "value": "tswTETYljT1b3rIRC5LT9IgVcKWJ8wE60Vt15_zP_YTDNJX58GH8FQ=="
             }
           ],
           "cookie": [],
-          "body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Buddy\",\n        \"status\": \"available\",\n        \"photoUrls\": [\n            \"https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg\"\n        ],\n        \"tags\": [\n            {\n                \"id\": 1,\n                \"name\": \"new\"\n            }\n        ]\n    }\n]"
+          "body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Birdy\",\n        \"status\": \"available\",\n        \"photoUrls\": [\n            \"https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg\"\n        ],\n        \"tags\": [\n            {\n                \"id\": 1,\n                \"name\": \"new\"\n            }\n        ]\n    }\n]"
         }
       ]
     },

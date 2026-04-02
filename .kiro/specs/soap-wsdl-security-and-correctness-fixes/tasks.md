@@ -572,9 +572,9 @@
 
 ## Priority 3: Quality Fixes
 
-- [ ] 27. Fix KDoc mismatch
+- [x] 27. Fix KDoc mismatch
 
-  - [ ] 27.1 Update SoapGenerationConfig KDoc to reflect actual implementation
+  - [x] 27.1 Update SoapGenerationConfig KDoc to reflect actual implementation
     - Remove reference to auto-registration via List<MockValidatorInterface>
     - Document explicit composition in AIGenerationConfiguration.compositeMockValidator
     - Clarify that SoapMockValidator is manually composed, not auto-registered
@@ -583,9 +583,9 @@
     - _Preservation: Configuration functionality continues to work correctly_
     - _Requirements: 8.1_
 
-- [ ] 33. Fix cryptic test error
+- [x] 33. Fix cryptic test error
 
-  - [ ] 33.1 Add assertion before creating WsdlOperation in flushOperation()
+  - [x] 33.1 Add assertion before creating WsdlOperation in flushOperation()
     - Check if portTypeName is null or blank
     - Throw clear assertion failure with test context
     - Remove ?: "" fallback that violates domain invariants
@@ -595,9 +595,9 @@
     - _Preservation: Valid operations continue to flush correctly_
     - _Requirements: 9.1_
 
-- [ ] 33. Fix weak content assertion
+- [x] 33. Fix weak content assertion
 
-  - [ ] 33.1 Replace weak assertions with exact equality check in WsdlContentFetcherTest
+  - [x] 33.1 Replace weak assertions with exact equality check in WsdlContentFetcherTest
     - Remove assertTrue(result.isNotBlank())
     - Remove assertTrue(result.contains("<definitions"))
     - Add assertEquals(expectedWsdl, result) for exact content verification
@@ -608,6 +608,6 @@
     - _Preservation: Successful fetch validation continues to work_
     - _Requirements: 10.1, 10.2_
 
- - [ ] 34. A missing examples to USAGE for GraphQL mock generation ai endpoint (I beleive its not there yet otherwise replace), repeat example from my postman collection 
- - [ ] 35. Verify Webservices example in USAG match with my portman collection equivalent as postman collection is leading
- - [ ] 36. Check Usage has the same prompt as in my postman collection for Rest mock generation on ai enspoint, if it differece use one from postman collection
+ - [x] 34. A missing examples to USAGE for GraphQL mock generation ai endpoint (I beleive its not there yet otherwise replace), repeat example from my postman collection 
+ - [x] 35. Verify Webservices example in USAG match with my portman collection equivalent as postman collection is leading
+ - [x] 36. Check Usage has the same prompt as in my postman collection for Rest mock generation on ai enspoint, if it differece use one from postman collection
