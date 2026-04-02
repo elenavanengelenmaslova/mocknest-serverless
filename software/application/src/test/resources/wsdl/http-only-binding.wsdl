@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:http="http://schemas.xmlsoap.org/wsdl/http/"
+             xmlns:tns="http://example.com/httponly"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             targetNamespace="http://example.com/httponly"
+             name="HttpOnlyService">
+
+    <types>
+        <xsd:schema targetNamespace="http://example.com/httponly">
+            <xsd:element name="GetDataRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="id" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="GetDataResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="data" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:schema>
+    </types>
+
+    <message name="GetDataRequestMessage">
+        <part name="parameters" element="tns:GetDataRequest"/>
+    </message>
+
+    <message name="GetDataResponseMessage">
+        <part name="parameters" element="tns:GetDataResponse"/>
+    </message>
+
+    <portType name="HttpOnlyPortType">
+        <operation name="GetData">
+            <input message="tns:GetDataRequestMessage"/>
+            <output message="tns:GetDataResponseMessage"/>
+        </operation>
+    </portType>
+
+    <binding name="HttpOnlyBinding" type="tns:HttpOnlyPortType">
+        <http:binding verb="GET"/>
+        <operation name="GetData">
+            <http:operation location="/data"/>
+            <input>
+                <http:urlEncoded/>
+            </input>
+            <output>
+                <http:urlReplacement/>
+            </output>
+        </operation>
+    </binding>
+
+    <service name="HttpOnlyService">
+        <port name="HttpOnlyPort" binding="tns:HttpOnlyBinding">
+            <http:address location="http://example.com/api"/>
+        </port>
+    </service>
+
+</definitions>

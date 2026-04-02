@@ -310,6 +310,17 @@ The following WireMock capabilities have been validated in the serverless enviro
 
 For detailed memory sizing, cold start measurements, and tuning guidance, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
+### SOAP/WSDL Support
+
+**SOAP 1.2 Only**: MockNest Serverless supports SOAP 1.2 exclusively. SOAP 1.1 is not supported.
+
+- **AI-Assisted Mock Generation**: When generating mocks from WSDL specifications using the AI generation endpoint, only SOAP 1.2 WSDLs are accepted
+- **Manual Mock Creation**: You can manually create and serve SOAP 1.1 mocks using the standard WireMock admin API, but AI generation from WSDL 1.1 specifications will be rejected
+- **Error Handling**: WSDLs with SOAP 1.1 bindings will be rejected with a clear error message: "Only SOAP 1.2 is supported"
+- **Non-SOAP WSDLs**: WSDLs with only HTTP bindings or other non-SOAP protocols will be rejected with: "No SOAP binding namespace found; non-SOAP WSDL bindings are not supported"
+
+**Rationale**: Supporting only SOAP 1.2 simplifies implementation, focuses on the modern SOAP standard, and reduces complexity in the AI generation pipeline. SOAP 1.2 is the current standard and is widely adopted in modern enterprise systems.
+
 ### AI Generation Timeout
 
 The default API Gateway REST API has a synchronous integration timeout of approximately 29 seconds. This constrains how many AI correction retries can complete within a single request. The `BedrockGenerationMaxRetries` parameter supports 0-2 retries, with 1 retry as the recommended default.

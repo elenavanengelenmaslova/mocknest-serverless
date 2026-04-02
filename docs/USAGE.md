@@ -790,11 +790,19 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 
 ### Generate Mocks from SOAP/WSDL
 
-MockNest Serverless supports generating WireMock SOAP mock mappings from WSDL documents. Both SOAP 1.1 and SOAP 1.2 are supported. You can provide the WSDL as a remote URL or as inline XML content.
+MockNest Serverless supports generating WireMock SOAP mock mappings from WSDL documents. **Only SOAP 1.2 is supported for AI-assisted mock generation**. SOAP 1.1 WSDLs will be rejected with a clear error message.
+
+You can provide the WSDL as a remote URL or as inline XML content.
+
+**Important**: 
+- **AI Generation**: Only SOAP 1.2 WSDLs are accepted for AI-assisted mock generation
+- **Manual Mocks**: You can manually create and serve SOAP 1.1 mocks using the standard WireMock admin API
+- **Error Handling**: SOAP 1.1 WSDLs will be rejected with: "Only SOAP 1.2 is supported"
+- **Non-SOAP WSDLs**: WSDLs with only HTTP bindings will be rejected with: "No SOAP binding namespace found; non-SOAP WSDL bindings are not supported"
 
 #### Generate from WSDL URL
 
-**Description**: Generates SOAP mocks by fetching the WSDL from a remote URL. The system parses the WSDL, extracts all operations, and generates WireMock mappings that match on `SOAPAction` (SOAP 1.1) or `action` in `Content-Type` (SOAP 1.2).
+**Description**: Generates SOAP mocks by fetching the WSDL from a remote URL. The system parses the WSDL (SOAP 1.2 only), extracts all operations, and generates WireMock mappings that match on the `action` parameter in the `Content-Type` header (SOAP 1.2 specification).
 
 **Command**:
 ```bash
