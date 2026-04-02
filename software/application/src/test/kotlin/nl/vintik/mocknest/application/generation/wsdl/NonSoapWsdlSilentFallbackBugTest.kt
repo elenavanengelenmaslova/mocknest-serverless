@@ -42,9 +42,6 @@ class NonSoapWsdlSilentFallbackBugTest {
             "Exception message should clearly indicate non-SOAP bindings are not supported. " +
                 "Actual message: $message"
         )
-
-        println("✓ Bug confirmed: Parser correctly rejects HTTP-only WSDL")
-        println("  Exception message: $message")
     }
 
     @Test
@@ -124,14 +121,11 @@ class NonSoapWsdlSilentFallbackBugTest {
         // Verify the exception message clearly indicates only SOAP 1.2 is supported
         val message = ex.message
         assertTrue(
-            message?.contains("SOAP 1.2", ignoreCase = true) == true ||
+            message?.contains("SOAP 1.2 bindings", ignoreCase = true) == true ||
                 message?.contains("not supported", ignoreCase = true) == true,
-            "Exception message should clearly indicate only SOAP 1.2 is supported. " +
+            "Exception message should clearly indicate only SOAP 1.2 bindings are supported. " +
                 "Actual message: $message"
         )
-
-        println("✓ Bug confirmed: Parser correctly rejects SOAP 1.1 WSDL")
-        println("  Exception message: $message")
     }
 
     @Test
@@ -187,8 +181,5 @@ class NonSoapWsdlSilentFallbackBugTest {
             "Exception message should indicate missing SOAP bindings. " +
                 "Actual message: $message"
         )
-
-        println("✓ Bug confirmed: Parser correctly rejects WSDL with no bindings")
-        println("  Exception message: $message")
     }
 }

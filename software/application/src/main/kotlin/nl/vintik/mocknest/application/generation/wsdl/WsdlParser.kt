@@ -140,7 +140,7 @@ class WsdlParser : WsdlParserInterface {
                 Pair(SoapVersion.SOAP_1_2, warnings)
             }
             hasSoap11 -> {
-                throw WsdlParsingException("Only SOAP 1.2 is supported")
+                throw WsdlParsingException("Only SOAP 1.2 bindings are supported")
             }
             else -> {
                 throw WsdlParsingException(

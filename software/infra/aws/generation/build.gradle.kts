@@ -13,16 +13,17 @@ dependencies {
     implementation(project(":software:infra:generation-core"))
 
     // Security: Force patched Netty version to fix HTTP Request Smuggling vulnerability
-    // CVE-2025-XXXXX: HTTP Request Smuggling in chunked transfer encoding
+    // CVE-2025-58056 / GHSA-fghv-69vj-qj49: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding
+    // Fixed in Netty 4.2.5.Final+
     constraints {
         implementation("io.netty:netty-codec-http:4.2.12.Final") {
-            because("Fixes HTTP Request Smuggling vulnerability in quoted strings within chunked transfer encoding")
+            because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
         }
         implementation("io.netty:netty-codec-http2:4.2.12.Final") {
-            because("Fixes HTTP Request Smuggling vulnerability in quoted strings within chunked transfer encoding")
+            because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
         }
         implementation("io.netty:netty-codec-http3:4.2.12.Final") {
-            because("Fixes HTTP Request Smuggling vulnerability in quoted strings within chunked transfer encoding")
+            because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
         }
     }
 
