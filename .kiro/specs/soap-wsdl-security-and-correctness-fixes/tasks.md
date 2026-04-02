@@ -158,7 +158,7 @@
     - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
 
 
-- [ ] 7. Write bug condition exploration test for missing URL validation
+- [x] 7. Write bug condition exploration test for missing URL validation
   - **Property 1: Bug Condition** - Missing URL/Path Validation
   - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -173,7 +173,7 @@
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 3.1_
 
-- [ ] 8. Write preservation property tests for SOAP mock validation (BEFORE implementing fix)
+- [x] 8. Write preservation property tests for SOAP mock validation (BEFORE implementing fix)
   - **Property 2: Preservation** - Valid Mock Validation
   - **IMPORTANT**: Follow observation-first methodology
   - Observe behavior on UNFIXED code for correctly formed SOAP mocks (should pass validation)

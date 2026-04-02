@@ -11,7 +11,7 @@ The AI intelligence system provides intelligent mock generation and maintenance 
 
 **Priority 1: Mock Generation from API Specifications**
 - `POST /ai/generation/from-spec` - Generate WireMock mappings from API specifications with optional instructions
-  - Supports OpenAPI/REST, SOAP (WSDL), GraphQL schemas, MCP (Model Context Protocol), and SSE (Server-Sent Events)
+  - Supports OpenAPI/REST, SOAP (WSDL 1.2 only for AI generation), GraphQL schemas, MCP (Model Context Protocol), and SSE (Server-Sent Events)
   - Accepts specification file and optional generation instructions
   - Returns WireMock-compatible mapping JSON
 

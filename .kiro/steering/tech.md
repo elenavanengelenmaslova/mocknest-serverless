@@ -9,7 +9,7 @@ This document contains development workflows, coding standards, testing practice
 MockNest Serverless follows a strict incremental development approach where each major feature must be fully completed, tested, and deployed before moving to the next:
 
 **Current Phase: AI Mock Generation from Specifications (Priority 1)**
-- Implement mock generation from API specifications (OpenAPI/REST, SOAP/WSDL, GraphQL, MCP, SSE)
+- Implement mock generation from API specifications (OpenAPI/REST, SOAP/WSDL (1.2 only for AI generation), GraphQL, MCP, SSE)
 - Support optional generation instructions
 - Complete comprehensive testing of implementation
 - Deploy and validate in AWS environment
@@ -602,7 +602,7 @@ Every task list MUST include a final verification task:
 
 **Current Priority: AI Mock Generation from Specifications (Priority 1)**
 - Focus exclusively on completing comprehensive testing of existing implementation
-- Ensure support for all target protocols (OpenAPI/REST, SOAP/WSDL, GraphQL, MCP, SSE)
+- Ensure support for all target protocols (OpenAPI/REST, SOAP/WSDL (1.2 only for AI generation), GraphQL, MCP, SSE)
 - Fix GitHub Actions build issues
 - Implement SAM template for AWS deployment
 - Deploy and validate in AWS environment
@@ -678,7 +678,7 @@ Recommended patterns for effective AI-assisted development.
 
 **Current Priority: AI Mock Generation from Specifications (Priority 1)**
 - Focus exclusively on completing comprehensive testing of mock generation implementation
-- Ensure support for all target protocols (OpenAPI/REST, SOAP/WSDL, GraphQL, MCP, SSE)
+- Ensure support for all target protocols (OpenAPI/REST, SOAP/WSDL (1.2 only for AI generation), GraphQL, MCP, SSE)
 - Fix any remaining issues in GitHub Actions build pipeline
 - Deploy and validate in AWS environment
 - Achieve target test coverage (90%+)

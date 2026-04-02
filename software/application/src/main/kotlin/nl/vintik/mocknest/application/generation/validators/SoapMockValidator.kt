@@ -111,9 +111,11 @@ class SoapMockValidator : MockValidatorInterface {
         endpoints: List<EndpointDefinition>,
         mockNamespace: nl.vintik.mocknest.domain.generation.MockNamespace
     ): List<String> {
-        val urlPath = requestNode["urlPath"]?.jsonPrimitive?.content
-            ?: requestNode["url"]?.jsonPrimitive?.content
-            ?: return emptyList() // no URL/path in mapping — skip (e.g. urlPattern matchers)
+        // Extract urlPath or url if they are simple strings (JsonPrimitive)
+        // Skip validation for matcher objects (e.g., { "matches": "..." })
+        val urlPath = requestNode["urlPath"]?.let { if (it is JsonPrimitive) it.content else null }
+            ?: requestNode["url"]?.let { if (it is JsonPrimitive) it.content else null }
+            ?: return emptyList() // no URL/path in mapping or it's a matcher — skip validation
 
         val expectedPaths = endpoints.map { it.path }.toSet()
         val namespacedPaths = endpoints.map { "/${mockNamespace.displayName()}${it.path}" }.toSet()

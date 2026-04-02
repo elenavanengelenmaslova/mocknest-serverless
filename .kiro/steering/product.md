@@ -40,7 +40,7 @@ MockNest Serverless provides an AWS-native serverless mock runtime with AI-power
 - Enables realistic integration and exploratory testing without relying on live external services
 
 **AI-Powered Mock Intelligence:**
-- **Specification-Based Generation**: Generates comprehensive mock suites from API specifications (OpenAPI, SOAP/WSDL, GraphQL, MCP, SSE) with optional customization instructions
+- **Specification-Based Generation**: Generates comprehensive mock suites from API specifications (OpenAPI (open api 3 and swagger 2), SOAP/WSDL (1.2 only for AI generation), GraphQL, MCP, SSE) with optional customization instructions
 - **Lenient Mock Mode**: Automatically generates mocks on-demand for unmatched requests based on API specifications, eliminating manual mock creation for exploratory testing
 - **Automated Mock Evolution**: Keeps mocks synchronized with evolving third-party APIs through spec updates and traffic analysis
 - **Traffic-Driven Insights**: Analyzes real API traffic patterns to identify mock coverage gaps and missing edge cases
@@ -84,7 +84,7 @@ The long-term goal is to eliminate the cognitive overhead of mock management by 
 **AI-Powered Mock Intelligence (Prioritized Features):**
 
 **Priority 1: Mock Generation from API Specifications**
-- AI-powered mock generation from API specifications (OpenAPI/REST, SOAP/WSDL, GraphQL schemas, MCP, SSE)
+- AI-powered mock generation from API specifications (OpenAPI/REST, SOAP/WSDL (1.2 only for AI generation), GraphQL schemas, MCP, SSE)
 - Support for optional generation instructions to customize mock behavior
 - Returns WireMock-compatible mapping JSON
 
@@ -127,7 +127,7 @@ The initial release focuses on validating the core idea with a working, deployab
 - Deployment using AWS SAM with a path toward publishing in the AWS Serverless Application Repository (SAR)
 
 **AI-Powered Intelligence (Current: Priority 1):**
-- **Priority 1 (Current)**: AI-assisted mock generation from API specifications (OpenAPI/REST, SOAP/WSDL, GraphQL, MCP, SSE)
+- **Priority 1 (Current)**: AI-assisted mock generation from API specifications (OpenAPI/REST, SOAP/WSDL (1.2 only for AI generation), GraphQL, MCP, SSE)
 - **Priority 2 (Future)**: Mock evolution for updated API specifications
 - **Priority 3 (Future)**: Lenient mock mode with auto-generation on demand
 - **Priority 4 (Future)**: Traffic analysis and mock gap detection
