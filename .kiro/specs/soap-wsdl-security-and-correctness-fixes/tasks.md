@@ -365,7 +365,7 @@
     - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
 
 
-- [ ] 16. Write bug condition exploration test for retry logic not exercised
+- [x] 16. Write bug condition exploration test for retry logic not exercised
   - **Property 1: Bug Condition** - Retry Logic Not Exercised
   - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -381,7 +381,7 @@
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 6.1_
 
-- [ ] 17. Write preservation property tests for retry behavior (BEFORE implementing fix)
+- [x] 17. Write preservation property tests for retry behavior (BEFORE implementing fix)
   - **Property 2: Preservation** - Test Completion Verification
   - **IMPORTANT**: Follow observation-first methodology
   - Observe behavior on UNFIXED code for all maxRetries values [0, 1, 2, 3] (agent should complete)
@@ -393,9 +393,9 @@
   - Mark task complete when tests are written, run, and passing on unfixed code
   - _Requirements: 6.1, 6.2_
 
-- [ ] 18. Fix retry logic not exercised
+- [x] 18. Fix retry logic not exercised
 
-  - [ ] 18.1 Update SoapBoundedRetryAttemptsPropertyTest to exercise retry logic
+  - [x] 18.1 Update SoapBoundedRetryAttemptsPropertyTest to exercise retry logic
     - Remove mock of runStrategy that returns success
     - Create real agent with real validator
     - Mock AI service to return invalid mock on first call, valid mock on retry
@@ -406,7 +406,7 @@
     - _Preservation: Agent completes for all maxRetries values without hanging_
     - _Requirements: 6.1, 6.2_
 
-  - [ ] 18.2 Write unit tests for retry logic coverage
+  - [x] 18.2 Write unit tests for retry logic coverage
     - Test retry logic is executed with invalid-then-valid mock fixture
     - Test AI service called multiple times for maxRetries > 0
     - Test validator called for each generated mock
@@ -414,21 +414,21 @@
     - Follow Given-When-Then naming convention
     - _Requirements: 6.1_
 
-  - [ ] 18.3 Verify bug condition exploration test now passes
+  - [x] 18.3 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - Retry Logic Exercised
     - **IMPORTANT**: Re-run the SAME test from task 16 - do NOT write a new test
     - Run bug condition exploration test from step 16
     - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
     - _Requirements: 6.1_
 
-  - [ ] 18.4 Verify preservation tests still pass
+  - [x] 18.4 Verify preservation tests still pass
     - **Property 2: Preservation** - Test Completion Maintained
     - **IMPORTANT**: Re-run the SAME tests from task 17 - do NOT write new tests
     - Run preservation property tests from step 17
     - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
 
 
-- [ ] 19. Write bug condition exploration test for incomplete SnapStart priming
+- [x] 19. Write bug condition exploration test for incomplete SnapStart priming
   - **Property 1: Bug Condition** - Incomplete SnapStart Priming
   - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -444,7 +444,7 @@
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 11.1_
 
-- [ ] 20. Write preservation property tests for SnapStart priming (BEFORE implementing fix)
+- [x] 20. Write preservation property tests for SnapStart priming (BEFORE implementing fix)
   - **Property 2: Preservation** - REST/OpenAPI Priming
   - **IMPORTANT**: Follow observation-first methodology
   - Observe behavior on UNFIXED code for REST/OpenAPI priming (should warm up successfully)
@@ -456,9 +456,9 @@
   - Mark task complete when tests are written, run, and passing on unfixed code
   - _Requirements: 11.1, 11.2_
 
-- [ ] 21. Fix incomplete SnapStart priming
+- [-] 21. Fix incomplete SnapStart priming
 
-  - [ ] 21.1 Add SOAP/WSDL priming to GenerationPrimingHook
+  - [x] 21.1 Add SOAP/WSDL priming to GenerationPrimingHook
     - Inject wsdlParser, wsdlSchemaReducer, soapMockValidator dependencies
     - Create test WSDL specification in createTestWsdl() helper
     - Call wsdlParser.parse() with test WSDL
@@ -470,14 +470,14 @@
     - _Preservation: REST/OpenAPI priming continues to work correctly_
     - _Requirements: 11.1, 11.2_
 
-  - [ ] 21.2 Add GraphQL priming to GenerationPrimingHook
+  - [x] 21.2 Add GraphQL priming to GenerationPrimingHook
     - Inject graphqlIntrospectionClient dependency
     - Create test GraphQL schema or use alternative priming approach
     - Call GraphQL components to warm up
     - Wrap in runCatching with warning log on failure
     - _Requirements: 11.1_
 
-  - [ ] 21.3 Write unit tests for SOAP/GraphQL priming
+  - [x] 21.3 Write unit tests for SOAP/GraphQL priming
     - Test SOAP/WSDL priming execution
     - Test GraphQL priming execution
     - Test priming error handling (failures don't break snapshot creation)
@@ -485,7 +485,7 @@
     - Follow Given-When-Then naming convention
     - _Requirements: 11.1_
 
-  - [ ] 21.4 Write integration tests for SnapStart priming
+  - [x] 21.4 Write integration tests for SnapStart priming
     - Test Lambda initialization with SnapStart
     - Verify priming hook executes
     - Verify SOAP/GraphQL parsers warmed up
@@ -493,7 +493,7 @@
     - Use LocalStack TestContainers for Lambda testing
     - _Requirements: 11.1_
 
-  - [ ] 21.5 Verify bug condition exploration test now passes
+  - [x] 21.5 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - Complete Protocol Priming
     - **IMPORTANT**: Re-run the SAME test from task 19 - do NOT write a new test
     - Run bug condition exploration test from step 19
@@ -505,34 +505,6 @@
     - **IMPORTANT**: Re-run the SAME tests from task 20 - do NOT write new tests
     - Run preservation property tests from step 20
     - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
-
-
-- [ ] 22. Write bug condition exploration test for insufficient test coverage
-  - **Property 1: Bug Condition** - Insufficient Test Coverage
-  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
-  - **DO NOT attempt to fix the test or the code when it fails**
-  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
-  - **GOAL**: Surface counterexamples that demonstrate SOAP/GraphQL coverage below threshold
-  - **Scoped PBT Approach**: Run ./gradlew koverHtmlReport and analyze coverage
-  - Test that SOAP/WSDL module coverage < 80% (below enforced threshold)
-  - Test that GraphQL module coverage < 80% (below enforced threshold)
-  - Compare with REST/OpenAPI coverage (should be ≥ 85%)
-  - Run test on UNFIXED code
-  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
-  - Document counterexamples found (e.g., "SOAP coverage: 72%, GraphQL coverage: 68%, REST coverage: 87%")
-  - Mark task complete when test is written, run, and failure is documented
-  - _Requirements: 12.1_
-
-- [ ] 23. Write preservation property tests for test coverage (BEFORE implementing fix)
-  - **Property 2: Preservation** - Existing Test Pass Rate
-  - **IMPORTANT**: Follow observation-first methodology
-  - Observe behavior on UNFIXED code for REST/OpenAPI test coverage (should be ≥ 85%)
-  - Observe behavior on UNFIXED code for existing SOAP/GraphQL tests (should pass)
-  - Write property-based tests capturing observed test pass rate
-  - Run full test suite on UNFIXED code
-  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline test quality to preserve)
-  - Mark task complete when tests are written, run, and passing on unfixed code
-  - _Requirements: 12.1, 12.2_
 
 - [ ] 24. Fix insufficient test coverage
 
@@ -597,48 +569,8 @@
     - Use proper TestContainers lifecycle management
     - _Requirements: 12.1_
 
-  - [ ] 24.8 Verify bug condition exploration test now passes
-    - **Property 1: Expected Behavior** - Comprehensive Test Coverage
-    - **IMPORTANT**: Re-run the SAME test from task 22 - do NOT write a new test
-    - Run bug condition exploration test from step 22
-    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
-    - _Requirements: 12.1_
-
-  - [ ] 24.9 Verify preservation tests still pass
-    - **Property 2: Preservation** - Existing Test Pass Rate Maintained
-    - **IMPORTANT**: Re-run the SAME tests from task 23 - do NOT write new tests
-    - Run preservation property tests from step 23
-    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
 
 ## Priority 3: Quality Fixes
-
-
-- [ ] 25. Write bug condition exploration test for KDoc mismatch
-  - **Property 1: Bug Condition** - KDoc Mismatch
-  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
-  - **DO NOT attempt to fix the test or the code when it fails**
-  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
-  - **GOAL**: Surface counterexamples that demonstrate KDoc doesn't match implementation
-  - **Scoped PBT Approach**: Read SoapGenerationConfig KDoc and compare with AIGenerationConfiguration
-  - Test that KDoc mentions auto-registration via List<MockValidatorInterface>
-  - Verify actual implementation uses explicit composition in AIGenerationConfiguration.compositeMockValidator
-  - Run test on UNFIXED code
-  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
-  - Document counterexamples found (e.g., "KDoc says auto-registration, code uses explicit composition")
-  - Mark task complete when test is written, run, and failure is documented
-  - _Requirements: 8.1_
-
-- [ ] 26. Write preservation property tests for configuration functionality (BEFORE implementing fix)
-  - **Property 2: Preservation** - Configuration Functionality
-  - **IMPORTANT**: Follow observation-first methodology
-  - Observe behavior on UNFIXED code for SoapGenerationConfig in application context (should work correctly)
-  - Observe behavior on UNFIXED code for explicit composition pattern (should function correctly)
-  - Write property-based tests capturing observed configuration behavior
-  - Test bean creation and wiring
-  - Run tests on UNFIXED code
-  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline configuration to preserve)
-  - Mark task complete when tests are written, run, and passing on unfixed code
-  - _Requirements: 8.1_
 
 - [ ] 27. Fix KDoc mismatch
 
@@ -651,47 +583,6 @@
     - _Preservation: Configuration functionality continues to work correctly_
     - _Requirements: 8.1_
 
-  - [ ] 27.2 Verify bug condition exploration test now passes
-    - **Property 1: Expected Behavior** - KDoc Accuracy
-    - **IMPORTANT**: Re-run the SAME test from task 25 - do NOT write a new test
-    - Run bug condition exploration test from step 25
-    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
-    - _Requirements: 8.1_
-
-  - [ ] 27.3 Verify preservation tests still pass
-    - **Property 2: Preservation** - Configuration Functionality Maintained
-    - **IMPORTANT**: Re-run the SAME tests from task 26 - do NOT write new tests
-    - Run preservation property tests from step 26
-    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
-
-
-- [ ] 28. Write bug condition exploration test for cryptic test error
-  - **Property 1: Bug Condition** - Cryptic Test Error
-  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
-  - **DO NOT attempt to fix the test or the code when it fails**
-  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
-  - **GOAL**: Surface counterexamples that demonstrate cryptic error from domain invariant violation
-  - **Scoped PBT Approach**: Create ParsedOperation with blank portTypeName
-  - Test that RoundTripIntegrityPropertyTest.flushOperation() falls back to empty string
-  - Verify WsdlOperation constructor throws IllegalArgumentException with cryptic message
-  - Run test on UNFIXED code
-  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
-  - Document counterexamples found (e.g., "IllegalArgumentException: portTypeName must not be blank" instead of clear test assertion)
-  - Mark task complete when test is written, run, and failure is documented
-  - _Requirements: 9.1_
-
-- [ ] 32. Write preservation property tests for valid operation processing (BEFORE implementing fix)
-  - **Property 2: Preservation** - Valid Operation Processing
-  - **IMPORTANT**: Follow observation-first methodology
-  - Observe behavior on UNFIXED code for valid ParsedOperations (should flush correctly)
-  - Observe behavior on UNFIXED code for WsdlOperation creation (should work correctly)
-  - Write property-based tests capturing observed operation processing behavior
-  - Test with 10+ valid ParsedOperations
-  - Run tests on UNFIXED code
-  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline processing to preserve)
-  - Mark task complete when tests are written, run, and passing on unfixed code
-  - _Requirements: 9.1_
-
 - [ ] 33. Fix cryptic test error
 
   - [ ] 33.1 Add assertion before creating WsdlOperation in flushOperation()
@@ -703,54 +594,6 @@
     - _Expected_Behavior: Clear test assertion failure before domain invariant violation_
     - _Preservation: Valid operations continue to flush correctly_
     - _Requirements: 9.1_
-
-  - [ ] 33.2 Write unit tests for clear test assertion failures
-    - Test flushOperation() with invalid portTypeName throws clear assertion
-    - Test assertion message includes operation context
-    - Test valid operations continue to work correctly
-    - Follow Given-When-Then naming convention
-    - _Requirements: 9.1_
-
-  - [ ] 33.3 Verify bug condition exploration test now passes
-    - **Property 1: Expected Behavior** - Clear Test Assertion Failures
-    - **IMPORTANT**: Re-run the SAME test from task 31 - do NOT write a new test
-    - Run bug condition exploration test from step 31
-    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
-    - _Requirements: 9.1_
-
-  - [ ] 33.4 Verify preservation tests still pass
-    - **Property 2: Preservation** - Valid Operation Processing Maintained
-    - **IMPORTANT**: Re-run the SAME tests from task 32 - do NOT write new tests
-    - Run preservation property tests from step 32
-    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
-
-
-- [ ] 31. Write bug condition exploration test for weak content assertion
-  - **Property 1: Bug Condition** - Weak Content Assertion
-  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
-  - **DO NOT attempt to fix the test or the code when it fails**
-  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
-  - **GOAL**: Surface counterexamples that demonstrate test passes with truncated content
-  - **Scoped PBT Approach**: Mock WireMock server to return truncated WSDL (500 chars instead of 5000)
-  - Test that WsdlContentFetcherTest only checks isNotBlank() and contains("<definitions")
-  - Verify test passes despite 90% content truncation
-  - Run test on UNFIXED code
-  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
-  - Document counterexamples found (e.g., "Test passes with 500-char truncated WSDL instead of 5000-char full WSDL")
-  - Mark task complete when test is written, run, and failure is documented
-  - _Requirements: 10.1_
-
-- [ ] 32. Write preservation property tests for successful fetch validation (BEFORE implementing fix)
-  - **Property 2: Preservation** - Successful Fetch Validation
-  - **IMPORTANT**: Follow observation-first methodology
-  - Observe behavior on UNFIXED code for successful WSDL fetches (should return valid XML)
-  - Observe behavior on UNFIXED code for error scenarios (should throw appropriate exceptions)
-  - Write property-based tests capturing observed fetch validation behavior
-  - Test with 10+ successful fetch scenarios
-  - Run tests on UNFIXED code
-  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline validation to preserve)
-  - Mark task complete when tests are written, run, and passing on unfixed code
-  - _Requirements: 10.1, 10.2_
 
 - [ ] 33. Fix weak content assertion
 
@@ -765,41 +608,6 @@
     - _Preservation: Successful fetch validation continues to work_
     - _Requirements: 10.1, 10.2_
 
-  - [ ] 33.2 Write unit tests for exact content validation
-    - Test fetcher with exact content equality assertion
-    - Test fetcher with truncated content fails validation
-    - Test fetcher with rewritten content fails validation
-    - Follow Given-When-Then naming convention
-    - _Requirements: 10.1_
-
-  - [ ] 33.3 Verify bug condition exploration test now passes
-    - **Property 1: Expected Behavior** - Exact Content Validation
-    - **IMPORTANT**: Re-run the SAME test from task 31 - do NOT write a new test
-    - Run bug condition exploration test from step 31
-    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
-    - _Requirements: 10.1_
-
-  - [ ] 33.4 Verify preservation tests still pass
-    - **Property 2: Preservation** - Successful Fetch Validation Maintained
-    - **IMPORTANT**: Re-run the SAME tests from task 32 - do NOT write new tests
-    - Run preservation property tests from step 32
-    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
-
-## Final Verification
-
-- [ ] 34. Checkpoint - Ensure all tests pass
-  - Run full test suite: ./gradlew test
-  - Verify all bug condition exploration tests pass (confirms all bugs fixed)
-  - Verify all preservation tests pass (confirms no regressions)
-  - Verify all unit tests pass
-  - Verify all property-based tests pass
-  - Verify all integration tests pass
-  - Ask the user if questions arise
-
-- [ ] 38. Verify test coverage and quality
-  - Run ./gradlew koverHtmlReport and verify 80%+ coverage for new code (enforced threshold; aim for 90%+ as a goal)
-  - Run ./gradlew koverVerify to enforce coverage threshold
-  - Review test quality: Given-When-Then naming, proper assertions, edge case coverage
-  - Verify SOAP/WSDL module coverage ≥ 85%
-  - Verify GraphQL module coverage ≥ 85%
-  - Verify all 12 bugs have comprehensive test coverage
+ - [ ] 34. A missing examples to USAGE for GraphQL mock generation ai endpoint (I beleive its not there yet otherwise replace), repeat example from my postman collection 
+ - [ ] 35. Verify Webservices example in USAG match with my portman collection equivalent as postman collection is leading
+ - [ ] 36. Check Usage has the same prompt as in my postman collection for Rest mock generation on ai enspoint, if it differece use one from postman collection

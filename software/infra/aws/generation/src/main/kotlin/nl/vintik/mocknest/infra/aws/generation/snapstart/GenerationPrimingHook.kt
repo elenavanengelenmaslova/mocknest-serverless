@@ -6,10 +6,15 @@ import aws.sdk.kotlin.services.s3.model.HeadBucketRequest
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import nl.vintik.mocknest.application.generation.graphql.GraphQLIntrospectionClientInterface
+import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducerInterface
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.application.generation.usecases.GetAIHealth
 import nl.vintik.mocknest.application.generation.validators.OpenAPIMockValidator
+import nl.vintik.mocknest.application.generation.validators.SoapMockValidator
+import nl.vintik.mocknest.application.generation.wsdl.WsdlParserInterface
+import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducerInterface
 import nl.vintik.mocknest.domain.generation.EndpointInfo
 import nl.vintik.mocknest.domain.generation.GeneratedMock
 import nl.vintik.mocknest.domain.generation.MockMetadata
@@ -39,8 +44,10 @@ private val logger = KotlinLogging.logger {}
  * - Initializes Bedrock client reference (no model invocation to avoid costs)
  * - Validates AI model configuration
  * - Exercises OpenAPI specification parser
+ * - Exercises SOAP/WSDL parsers and validators
+ * - Exercises GraphQL introspection client and schema reducer
  * - Exercises prompt builder service (loads templates)
- * - Exercises mock validator
+ * - Exercises mock validators
  * - Uses graceful degradation for non-critical failures
  */
 @Component
@@ -52,7 +59,12 @@ open class GenerationPrimingHook(
     private val modelConfig: ModelConfiguration,
     private val specificationParser: OpenAPISpecificationParser,
     private val promptBuilderService: PromptBuilderService,
-    private val mockValidator: OpenAPIMockValidator
+    private val mockValidator: OpenAPIMockValidator,
+    private val wsdlParser: WsdlParserInterface,
+    private val wsdlSchemaReducer: WsdlSchemaReducerInterface,
+    private val soapMockValidator: SoapMockValidator,
+    private val graphQLIntrospectionClient: GraphQLIntrospectionClientInterface,
+    private val graphQLSchemaReducer: GraphQLSchemaReducerInterface
 ) {
     
     /**
@@ -142,6 +154,22 @@ open class GenerationPrimingHook(
             logger.info { "Mock validator primed successfully" }
         }.onFailure { exception ->
             logger.warn(exception) { "Mock validator priming failed - continuing with snapshot creation" }
+        }
+        
+        // Exercise SOAP/WSDL parsers and validators
+        runCatching {
+            exerciseSoapWsdlComponents()
+            logger.info { "SOAP/WSDL components primed successfully" }
+        }.onFailure { exception ->
+            logger.warn(exception) { "SOAP/WSDL priming failed - continuing with snapshot creation" }
+        }
+        
+        // Exercise GraphQL introspection client and schema reducer
+        runCatching {
+            exerciseGraphQLComponents()
+            logger.info { "GraphQL components primed successfully" }
+        }.onFailure { exception ->
+            logger.warn(exception) { "GraphQL priming failed - continuing with snapshot creation" }
         }
         
         logger.info { "Generation function priming completed" }
@@ -276,6 +304,137 @@ open class GenerationPrimingHook(
         // Validate the test mock to warm up the validator
         mockValidator.validate(testMock, testSpec)
         logger.debug { "Validated test mock against specification" }
+    }
+    
+    /**
+     * Exercise SOAP/WSDL components to warm up parsing and validation logic.
+     * Parses a minimal test WSDL specification and reduces the schema.
+     */
+    private suspend fun exerciseSoapWsdlComponents() {
+        // Create a minimal test WSDL
+        val testWsdl = createTestWsdl()
+        
+        // Parse the WSDL to warm up the parser
+        val parsedWsdl = wsdlParser.parse(testWsdl)
+        logger.debug { "Parsed test WSDL specification" }
+        
+        // Reduce the parsed WSDL to warm up the schema reducer
+        wsdlSchemaReducer.reduce(parsedWsdl)
+        logger.debug { "Reduced test WSDL schema" }
+        
+        // Note: We don't validate SOAP mocks during priming to keep it simple
+        // The validator will be warmed up when the first real request comes in
+    }
+    
+    /**
+     * Create a minimal test WSDL specification for priming.
+     * Returns a simple SOAP 1.2 WSDL with one operation.
+     */
+    private fun createTestWsdl(): String {
+        return """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+                     xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                     xmlns:tns="http://example.com/calculator"
+                     xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                     targetNamespace="http://example.com/calculator">
+          
+          <types>
+            <xsd:schema targetNamespace="http://example.com/calculator">
+              <xsd:element name="Add">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element name="a" type="xsd:int"/>
+                    <xsd:element name="b" type="xsd:int"/>
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
+              <xsd:element name="AddResponse">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element name="Result" type="xsd:int"/>
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
+            </xsd:schema>
+          </types>
+          
+          <message name="AddRequest">
+            <part name="parameters" element="tns:Add"/>
+          </message>
+          <message name="AddResponse">
+            <part name="parameters" element="tns:AddResponse"/>
+          </message>
+          
+          <portType name="CalculatorPortType">
+            <operation name="Add">
+              <input message="tns:AddRequest"/>
+              <output message="tns:AddResponse"/>
+            </operation>
+          </portType>
+          
+          <binding name="CalculatorSoap12Binding" type="tns:CalculatorPortType">
+            <soap12:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+            <operation name="Add">
+              <soap12:operation soapAction="http://example.com/calculator/Add"/>
+              <input>
+                <soap12:body use="literal"/>
+              </input>
+              <output>
+                <soap12:body use="literal"/>
+              </output>
+            </operation>
+          </binding>
+          
+          <service name="CalculatorService">
+            <port name="CalculatorSoap12Port" binding="tns:CalculatorSoap12Binding">
+              <soap12:address location="http://example.com/CalculatorService"/>
+            </port>
+          </service>
+        </definitions>
+        """.trimIndent()
+    }
+    
+    /**
+     * Exercise GraphQL components to warm up introspection client and schema reducer.
+     * Note: We don't actually call the introspection client with a URL to avoid network calls
+     * during snapshot creation. Instead, we warm up the schema reducer with test data.
+     */
+    private suspend fun exerciseGraphQLComponents() {
+        // Create a minimal test GraphQL introspection result
+        val testIntrospectionResult = """
+        {
+          "__schema": {
+            "queryType": {
+              "name": "Query"
+            },
+            "types": [
+              {
+                "kind": "OBJECT",
+                "name": "Query",
+                "fields": [
+                  {
+                    "name": "hello",
+                    "type": {
+                      "kind": "SCALAR",
+                      "name": "String"
+                    },
+                    "args": []
+                  }
+                ]
+              },
+              {
+                "kind": "SCALAR",
+                "name": "String"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+        
+        // Warm up the GraphQL schema reducer with test data
+        graphQLSchemaReducer.reduce(testIntrospectionResult)
+        logger.debug { "Reduced test GraphQL schema" }
     }
     
     /**

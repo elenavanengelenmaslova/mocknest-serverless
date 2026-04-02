@@ -992,7 +992,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"namespace\": {\n        \"apiName\": \"petstore\",\n        \"client\": null\n    },\n    \"specification\": null,\n    \"specificationUrl\": \"https://petstore3.swagger.io/api/v3/openapi.json\",\n    \"format\": \"OPENAPI_3\",\n    \"description\": \"Generate mocks for 3 pets from the Petstore OpenAPI specification, pets enpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets accross endpoints, 1 pet is a dog with this image: https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg, this dog is available and a new pet and should have a tag with id=1 and name=new, we need to have api call to get all new pets and its that dog, the other two pets are available also but are not new\",\n    \"options\": {\n        \"enableValidation\": true\n    }\n}",
+          "raw": "{\n    \"namespace\": {\n        \"apiName\": \"petstore\",\n        \"client\": null\n    },\n    \"specification\": null,\n    \"specificationUrl\": \"https://petstore3.swagger.io/api/v3/openapi.json\",\n    \"format\": \"OPENAPI_3\",\n    \"description\": \"Generate mocks for 4 pets, only GET endpoints. 1 pet is a bird with image: https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg, available, new, tag id=1 name=new. API call to get all new pets returns that bird. The other 3 pets are available but not new.\",\n    \"options\": {\n        \"enableValidation\": true\n    }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -1455,6 +1455,280 @@
       ]
     },
     {
+      "name": "AI Generate Mocks GraphQL",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "let response = pm.response.json();",
+              "",
+              "// store the mappings array as a variable",
+              "pm.collectionVariables.set(\"generatedMappings\", JSON.stringify(response.mappings));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "API key",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"namespace\": {\n        \"apiName\": \"pokemon-graphql\",\n        \"client\": null\n    },\n    \"specification\": null,\n    \"specificationUrl\": \"https://graphql.pokeapi.co/v1beta2\",\n    \"format\": \"GRAPHQL\",\n    \"description\": \"Generate mocks for Pokemon queries such as pokemon details, moves, abilities, and item lookups with realistic but consistent test data.\",\n    \"options\": {\n        \"enableValidation\": false\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/ai/generation/from-spec",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "ai",
+            "generation",
+            "from-spec"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "AI Generate Mocks GraphQL",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "API key",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"namespace\": {\n        \"apiName\": \"pokemon-graphql\",\n        \"client\": null\n    },\n    \"specification\": null,\n    \"specificationUrl\": \"https://graphql.pokeapi.co/v1beta2\",\n    \"format\": \"GRAPHQL\",\n    \"description\": \"Generate mocks for Pokemon query operationName ability with realistic but consistent test data.\",\n    \"options\": {\n        \"enableValidation\": true\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/ai/generation/from-spec",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "ai",
+                "generation",
+                "from-spec"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": ":status",
+              "value": 200
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            },
+            {
+              "key": "content-length",
+              "value": "515"
+            },
+            {
+              "key": "date",
+              "value": "Thu, 02 Apr 2026 17:24:35 GMT"
+            },
+            {
+              "key": "x-amzn-trace-id",
+              "value": "Root=1-69cea64f-1560c73b10a648c47f922600"
+            },
+            {
+              "key": "x-amzn-requestid",
+              "value": "e8f5cd84-1001-4f27-8f51-b45194a8e172"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "bM7sgGPIjoEENfA="
+            },
+            {
+              "key": "x-cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "via",
+              "value": "1.1 559a9ef0c2c8fe8a490fa23a6cf716a0.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "x-amz-cf-pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "x-amz-cf-id",
+              "value": "RHwvcIM2M5Z-QYVq0BbLbMaLhgvmsTCXZJPF7DZx9lHdzPKKGH2_gQ=="
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"mappings\": [\n        {\n            \"persistent\": true,\n            \"request\": {\n                \"method\": \"POST\",\n                \"urlPath\": \"/pokemon-graphql/graphql\",\n                \"bodyPatterns\": [\n                    {\n                        \"matchesJsonPath\": \"$[?(@.operationName == 'ability')]\"\n                    }\n                ]\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/json\"\n                },\n                \"jsonBody\": {\n                    \"data\": {\n                        \"ability\": [\n                            {\n                                \"name\": \"Overgrow\",\n                                \"effect\": \"The Pokémon's moves have a 10% increased chance of causing a critical hit.\",\n                                \"description\": \"A power-boosting ability that increases the power of Grass-type moves by 30% when the Pokémon is at low health.\"\n                            }\n                        ]\n                    }\n                }\n            }\n        }\n    ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "AI Generate Mocks Webservices",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "let response = pm.response.json();",
+              "",
+              "// store the mappings array as a variable",
+              "pm.collectionVariables.set(\"generatedMappings\", JSON.stringify(response.mappings));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{api_key}}",
+            "description": "API key",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"namespace\": {\n    \"apiName\": \"webservice\",\n    \"client\": null\n  },\n  \"specificationUrl\": \"http://www.dneonline.com/calculator.asmx?WSDL\",\n  \"format\": \"WSDL\",\n  \"description\": \"Generate mocks for calculator operations (Add, Subtract) with realistic integer inputs and outputs\",\n  \"options\": {\n    \"enableValidation\": true\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{AWS_URL}}/ai/generation/from-spec",
+          "host": [
+            "{{AWS_URL}}"
+          ],
+          "path": [
+            "ai",
+            "generation",
+            "from-spec"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "AI Generate Mocks Webservices",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "description": "API key",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"namespace\": {\n    \"apiName\": \"webservice\",\n    \"client\": null\n  },\n  \"specificationUrl\": \"http://www.dneonline.com/calculator.asmx?WSDL\",\n  \"format\": \"WSDL\",\n  \"description\": \"Generate mocks for calculator operations (Add, Subtract) with realistic integer inputs and outputs\",\n  \"options\": {\n    \"enableValidation\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{AWS_URL}}/ai/generation/from-spec",
+              "host": [
+                "{{AWS_URL}}"
+              ],
+              "path": [
+                "ai",
+                "generation",
+                "from-spec"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": ":status",
+              "value": 200
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            },
+            {
+              "key": "content-length",
+              "value": "1377"
+            },
+            {
+              "key": "date",
+              "value": "Thu, 02 Apr 2026 17:23:40 GMT"
+            },
+            {
+              "key": "x-amzn-trace-id",
+              "value": "Root=1-69cea611-04516bdd4f38a4da4c32ac6b"
+            },
+            {
+              "key": "x-amzn-requestid",
+              "value": "4f327259-00c3-45f3-93fd-aaa236a8f87c"
+            },
+            {
+              "key": "x-amz-apigw-id",
+              "value": "bM7iwH8BDoEECSg="
+            },
+            {
+              "key": "x-cache",
+              "value": "Miss from cloudfront"
+            },
+            {
+              "key": "via",
+              "value": "1.1 e2b2960acb3b050648b3477a3e78810e.cloudfront.net (CloudFront)"
+            },
+            {
+              "key": "x-amz-cf-pop",
+              "value": "AMS56-P1"
+            },
+            {
+              "key": "x-amz-cf-id",
+              "value": "jEwVVWITzc_QkaDm6SH-Rh3gKOCtqx7LLEdQVWWyStOp_791Y1JWJQ=="
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"mappings\": [\n        {\n            \"persistent\": true,\n            \"request\": {\n                \"method\": \"POST\",\n                \"urlPath\": \"/webservice/calculator.asmx\",\n                \"headers\": {\n                    \"Content-Type\": {\n                        \"contains\": \"action=\\\"http://tempuri.org/Add\\\"\"\n                    }\n                },\n                \"bodyPatterns\": [\n                    {\n                        \"matchesXPath\": \"//soapenv:Envelope/soapenv:Body/tns:Add\",\n                        \"xPathNamespaces\": {\n                            \"soapenv\": \"http://www.w3.org/2003/05/soap-envelope\",\n                            \"tns\": \"http://tempuri.org/\"\n                        }\n                    }\n                ]\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/soap+xml; charset=utf-8\"\n                },\n                \"body\": \"<soapenv:Envelope xmlns:soapenv=\\\"http://www.w3.org/2003/05/soap-envelope\\\" xmlns:tns=\\\"http://tempuri.org/\\\"><soapenv:Body><tns:AddResponse><tns:AddResult>15</tns:AddResult></tns:AddResponse></soapenv:Body></soapenv:Envelope>\"\n            }\n        },\n        {\n            \"persistent\": true,\n            \"request\": {\n                \"method\": \"POST\",\n                \"urlPath\": \"/webservice/calculator.asmx\",\n                \"headers\": {\n                    \"Content-Type\": {\n                        \"contains\": \"action=\\\"http://tempuri.org/Subtract\\\"\"\n                    }\n                },\n                \"bodyPatterns\": [\n                    {\n                        \"matchesXPath\": \"//soapenv:Envelope/soapenv:Body/tns:Subtract\",\n                        \"xPathNamespaces\": {\n                            \"soapenv\": \"http://www.w3.org/2003/05/soap-envelope\",\n                            \"tns\": \"http://tempuri.org/\"\n                        }\n                    }\n                ]\n            },\n            \"response\": {\n                \"status\": 200,\n                \"headers\": {\n                    \"Content-Type\": \"application/soap+xml; charset=utf-8\"\n                },\n                \"body\": \"<soapenv:Envelope xmlns:soapenv=\\\"http://www.w3.org/2003/05/soap-envelope\\\" xmlns:tns=\\\"http://tempuri.org/\\\"><soapenv:Body><tns:SubtractResponse><tns:SubtractResult>5</tns:SubtractResult></tns:SubtractResponse></soapenv:Body></soapenv:Envelope>\"\n            }\n        }\n    ]\n}"
+        }
+      ]
+    },
+    {
       "name": "Get mappings",
       "protocolProfileBehavior": {
         "disableBodyPruning": true
@@ -1862,86 +2136,6 @@
           "path": [
             "__admin",
             "mappings"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Generate SOAP Mocks from WSDL URL",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{api_key}}",
-            "description": "AWS API Key",
-            "type": "text"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"namespace\": {\n    \"apiName\": \"calculator\",\n    \"client\": null\n  },\n  \"specificationUrl\": \"http://www.dneonline.com/calculator.asmx?WSDL\",\n  \"format\": \"WSDL\",\n  \"description\": \"Generate mocks for all calculator operations (Add, Subtract, Multiply, Divide) with realistic integer inputs and outputs\",\n  \"options\": {\n    \"enableValidation\": true\n  }\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{AWS_URL}}/ai/generation/from-spec",
-          "host": [
-            "{{AWS_URL}}"
-          ],
-          "path": [
-            "ai",
-            "generation",
-            "from-spec"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Generate SOAP Mocks from Inline WSDL XML",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{api_key}}",
-            "description": "AWS API Key",
-            "type": "text"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"namespace\": {\n    \"apiName\": \"calculator\",\n    \"client\": null\n  },\n  \"specification\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?><wsdl:definitions xmlns:wsdl=\\\"http://schemas.xmlsoap.org/wsdl/\\\" xmlns:soap=\\\"http://schemas.xmlsoap.org/wsdl/soap/\\\" xmlns:tns=\\\"http://tempuri.org/\\\" xmlns:xsd=\\\"http://www.w3.org/2001/XMLSchema\\\" targetNamespace=\\\"http://tempuri.org/\\\" name=\\\"CalculatorService\\\"><wsdl:types><xsd:schema targetNamespace=\\\"http://tempuri.org/\\\"><xsd:element name=\\\"Add\\\"><xsd:complexType><xsd:sequence><xsd:element name=\\\"intA\\\" type=\\\"xsd:int\\\"/><xsd:element name=\\\"intB\\\" type=\\\"xsd:int\\\"/></xsd:sequence></xsd:complexType></xsd:element><xsd:element name=\\\"AddResponse\\\"><xsd:complexType><xsd:sequence><xsd:element name=\\\"AddResult\\\" type=\\\"xsd:int\\\"/></xsd:sequence></xsd:complexType></xsd:element></xsd:schema></wsdl:types><wsdl:message name=\\\"AddSoapIn\\\"><wsdl:part name=\\\"parameters\\\" element=\\\"tns:Add\\\"/></wsdl:message><wsdl:message name=\\\"AddSoapOut\\\"><wsdl:part name=\\\"parameters\\\" element=\\\"tns:AddResponse\\\"/></wsdl:message><wsdl:portType name=\\\"CalculatorSoap\\\"><wsdl:operation name=\\\"Add\\\"><wsdl:input message=\\\"tns:AddSoapIn\\\"/><wsdl:output message=\\\"tns:AddSoapOut\\\"/></wsdl:operation></wsdl:portType><wsdl:binding name=\\\"CalculatorSoap\\\" type=\\\"tns:CalculatorSoap\\\"><soap:binding transport=\\\"http://schemas.xmlsoap.org/soap/http\\\"/><wsdl:operation name=\\\"Add\\\"><soap:operation soapAction=\\\"http://tempuri.org/Add\\\"/><wsdl:input><soap:body use=\\\"literal\\\"/></wsdl:input><wsdl:output><soap:body use=\\\"literal\\\"/></wsdl:output></wsdl:operation></wsdl:binding><wsdl:service name=\\\"CalculatorService\\\"><wsdl:port name=\\\"CalculatorSoap\\\" binding=\\\"tns:CalculatorSoap\\\"><soap:address location=\\\"http://www.dneonline.com/calculator.asmx\\\"/></wsdl:port></wsdl:service></wsdl:definitions>\",\n  \"format\": \"WSDL\",\n  \"description\": \"Generate a mock for the Add operation that returns realistic integer results\",\n  \"options\": {\n    \"enableValidation\": true\n  }\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{AWS_URL}}/ai/generation/from-spec",
-          "host": [
-            "{{AWS_URL}}"
-          ],
-          "path": [
-            "ai",
-            "generation",
-            "from-spec"
           ]
         }
       },
