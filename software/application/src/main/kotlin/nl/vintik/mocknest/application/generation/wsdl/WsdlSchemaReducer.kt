@@ -40,6 +40,20 @@ class WsdlSchemaReducer : WsdlSchemaReducerInterface {
 
         val xsdTypes = collectReachableTypes(referencedNames, parsedWsdl)
 
+        // Convert ParsedBindingDetail to OperationBinding for CompactWsdl
+        // Only include bindings with non-blank service addresses
+        val operationBindings = parsedWsdl.operationBindings.mapNotNull { (key, binding) ->
+            val resolvedAddress = binding.serviceAddress ?: parsedWsdl.servicePortAddresses.firstOrNull()
+            if (!resolvedAddress.isNullOrBlank()) {
+                key to nl.vintik.mocknest.domain.generation.OperationBinding(
+                    serviceAddress = resolvedAddress,
+                    soapVersion = binding.soapVersion
+                )
+            } else {
+                null
+            }
+        }.toMap()
+
         val compactWsdl = CompactWsdl(
             serviceName = parsedWsdl.serviceName,
             targetNamespace = parsedWsdl.targetNamespace,
@@ -47,7 +61,8 @@ class WsdlSchemaReducer : WsdlSchemaReducerInterface {
             portTypes = portTypes,
             operations = operations,
             xsdTypes = xsdTypes,
-            serviceAddress = parsedWsdl.servicePortAddresses.firstOrNull()
+            serviceAddress = parsedWsdl.servicePortAddresses.firstOrNull(),
+            operationBindings = operationBindings
         )
 
         logger.info {

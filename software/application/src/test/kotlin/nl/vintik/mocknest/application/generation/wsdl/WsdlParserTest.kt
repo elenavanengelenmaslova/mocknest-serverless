@@ -191,4 +191,76 @@ class WsdlParserTest {
             )
         }
     }
+
+    @Nested
+    inner class PerOperationBindingResolution {
+
+        @Test
+        fun `Given WSDL with multiple SOAP 1_2 bindings and different service addresses When parsing Then operationBindings map should be populated`() {
+            // Given
+            val wsdl = loadWsdl("multi-porttype-soap12.wsdl")
+
+            // When
+            val result = parser.parse(wsdl)
+
+            // Then
+            assertTrue(result.operationBindings.isNotEmpty(), "operationBindings should be populated")
+            assertEquals(2, result.operationBindings.size, "Should have 2 operation bindings")
+        }
+
+        @Test
+        fun `Given WSDL with multiple SOAP 1_2 bindings When parsing Then each operation should map to correct binding`() {
+            // Given
+            val wsdl = loadWsdl("multi-porttype-soap12.wsdl")
+
+            // When
+            val result = parser.parse(wsdl)
+
+            // Then
+            val getUserBinding = result.operationBindings["UserPortType#GetUser"]
+            val getProductBinding = result.operationBindings["ProductPortType#GetProduct"]
+
+            assertNotNull(getUserBinding, "GetUser operation should have binding")
+            assertNotNull(getProductBinding, "GetProduct operation should have binding")
+        }
+
+        @Test
+        fun `Given WSDL with multiple SOAP 1_2 bindings When parsing Then each binding should have correct service address`() {
+            // Given
+            val wsdl = loadWsdl("multi-porttype-soap12.wsdl")
+
+            // When
+            val result = parser.parse(wsdl)
+
+            // Then
+            val getUserBinding = result.operationBindings["UserPortType#GetUser"]
+            val getProductBinding = result.operationBindings["ProductPortType#GetProduct"]
+
+            assertNotNull(getUserBinding)
+            assertNotNull(getProductBinding)
+
+            assertEquals(
+                "http://example.com/multiport/user",
+                getUserBinding.serviceAddress,
+                "UserBinding should have /multiport/user service address"
+            )
+            assertEquals(
+                "http://example.com/multiport/product",
+                getProductBinding.serviceAddress,
+                "ProductBinding should have /multiport/product service address"
+            )
+        }
+
+        @Test
+        fun `Given WSDL with single SOAP 1_2 binding When parsing Then operationBindings should still be populated`() {
+            // Given
+            val wsdl = loadWsdl("simple-soap12.wsdl")
+
+            // When
+            val result = parser.parse(wsdl)
+
+            // Then
+            assertTrue(result.operationBindings.isNotEmpty(), "operationBindings should be populated even for single binding")
+        }
+    }
 }

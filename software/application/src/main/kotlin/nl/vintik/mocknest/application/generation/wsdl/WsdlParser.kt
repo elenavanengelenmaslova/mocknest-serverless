@@ -83,7 +83,10 @@ class WsdlParser : WsdlParserInterface {
         // Step 12: Extract binding details
         val bindingDetails = extractBindingDetails(document.documentElement, soapVersion)
 
-        // Step 13: Validate at least one operation found
+        // Step 13: Build operation bindings map
+        val operationBindings = buildOperationBindings(operations, bindingDetails)
+
+        // Step 14: Validate at least one operation found
         if (operations.isEmpty()) {
             throw WsdlParsingException("WSDL contains no operations")
         }
@@ -103,6 +106,7 @@ class WsdlParser : WsdlParserInterface {
             xsdTypes = xsdTypes,
             servicePortAddresses = servicePortAddresses,
             bindingDetails = bindingDetails,
+            operationBindings = operationBindings,
             warnings = warnings
         )
     }
@@ -229,6 +233,25 @@ class WsdlParser : WsdlParserInterface {
         }
     }
 
+    // buildOperationBindings currently returns the first matching binding by portTypeName,
+    // which may be incorrect if multiple ParsedBindingDetail entries share the same portTypeName.
+    // Future enhancement: disambiguate by binding name, SOAP version, or explicit matching criteria
+    // to correlate ParsedBindingDetail to ParsedOperation more precisely.
+    private fun buildOperationBindings(
+        operations: List<ParsedOperation>,
+        bindingDetails: List<ParsedBindingDetail>
+    ): Map<String, ParsedBindingDetail> {
+        val result = mutableMapOf<String, ParsedBindingDetail>()
+        for (operation in operations) {
+            val bindingKey = "${operation.portTypeName}#${operation.name}"
+            val binding = bindingDetails.find { it.portTypeName == operation.portTypeName }
+            if (binding != null) {
+                result[bindingKey] = binding
+            }
+        }
+        return result
+    }
+
     private fun extractXsdTypes(root: Element): Map<String, ParsedXsdType> {
         val result = mutableMapOf<String, ParsedXsdType>()
         val typesElements = getElementsByLocalName(root, "types")
@@ -309,6 +332,24 @@ class WsdlParser : WsdlParserInterface {
     }
 
     private fun extractBindingDetails(root: Element, defaultSoapVersion: SoapVersion): List<ParsedBindingDetail> {
+        // First, build a map of binding name to service address
+        val bindingToAddress = mutableMapOf<String, String>()
+        val serviceElements = getElementsByLocalName(root, "service")
+        for (service in serviceElements) {
+            val ports = getElementsByLocalName(service, "port")
+            for (port in ports) {
+                val bindingRef = port.getAttribute("binding").stripPrefix()
+                // Only extract addresses from SOAP 1.2 ports
+                val addressEl = port.childNodes.toList()
+                    .filterIsInstance<Element>()
+                    .firstOrNull { it.localName == "address" && it.namespaceURI == SOAP_12_BINDING_NS }
+                val location = addressEl?.getAttribute("location")
+                if (!location.isNullOrBlank() && bindingRef.isNotBlank()) {
+                    bindingToAddress[bindingRef] = location
+                }
+            }
+        }
+
         return getElementsByLocalName(root, "binding").mapNotNull { bindingEl ->
             val name = bindingEl.getAttribute("name")
             val portTypeRef = bindingEl.getAttribute("type").stripPrefix()
@@ -316,7 +357,13 @@ class WsdlParser : WsdlParserInterface {
             val isSoap12 = bindingEl.childNodes.toList().filterIsInstance<Element>()
                 .any { it.namespaceURI == SOAP_12_BINDING_NS }
             if (!isSoap12) return@mapNotNull null
-            ParsedBindingDetail(name = name, portTypeName = portTypeRef, soapVersion = SoapVersion.SOAP_1_2)
+            val serviceAddress = bindingToAddress[name]
+            ParsedBindingDetail(
+                name = name,
+                portTypeName = portTypeRef,
+                soapVersion = SoapVersion.SOAP_1_2,
+                serviceAddress = serviceAddress
+            )
         }
     }
 

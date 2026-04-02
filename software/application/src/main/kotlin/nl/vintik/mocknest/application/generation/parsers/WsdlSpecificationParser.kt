@@ -112,8 +112,21 @@ class WsdlSpecificationParser(
     private fun convertToAPISpecification(compactWsdl: CompactWsdl): APISpecification {
         logger.debug { "Converting CompactWsdl to APISpecification: service=${compactWsdl.serviceName}, operations=${compactWsdl.operations.size}" }
 
-        val endpointPath = serviceAddressPath(compactWsdl)
         val endpoints = compactWsdl.operations.map { operation ->
+            // Look up binding for this operation to get its specific service address
+            val bindingKey = "${operation.portTypeName}#${operation.name}"
+            val binding = compactWsdl.operationBindings[bindingKey]
+            
+            // Use operation-specific service address if available, otherwise fall back to default
+            val endpointPath = if (binding != null && binding.serviceAddress.isNotBlank()) {
+                runCatching {
+                    val path = URI(binding.serviceAddress).path
+                    if (!path.isNullOrBlank() && path != "/") path else "/${compactWsdl.serviceName}"
+                }.getOrElse { "/${compactWsdl.serviceName}" }
+            } else {
+                serviceAddressPath(compactWsdl)
+            }
+
             EndpointDefinition(
                 path = endpointPath,
                 method = HttpMethod.POST,

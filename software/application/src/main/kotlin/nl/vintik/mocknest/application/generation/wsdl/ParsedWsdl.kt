@@ -16,6 +16,7 @@ data class ParsedWsdl(
     val xsdTypes: Map<String, ParsedXsdType>,
     val servicePortAddresses: List<String>,
     val bindingDetails: List<ParsedBindingDetail>,
+    val operationBindings: Map<String, ParsedBindingDetail>,
     val warnings: List<String>
 )
 
@@ -68,5 +69,6 @@ data class ParsedXsdField(
 data class ParsedBindingDetail(
     val name: String,
     val portTypeName: String,
-    val soapVersion: SoapVersion
+    val soapVersion: SoapVersion,
+    val serviceAddress: String? = null
 )
