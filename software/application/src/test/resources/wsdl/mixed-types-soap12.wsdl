@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/mixed"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/mixed"
+                  name="MixedTypesService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/mixed">
+      <!-- Named complexType -->
+      <xsd:complexType name="Address">
+        <xsd:sequence>
+          <xsd:element name="street" type="xsd:string"/>
+          <xsd:element name="city" type="xsd:string"/>
+          <xsd:element name="zipCode" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      
+      <!-- Top-level element with inline complexType -->
+      <xsd:element name="CreateUser">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="username" type="xsd:string"/>
+            <xsd:element name="email" type="xsd:string"/>
+            <xsd:element name="address" type="tns:Address"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <!-- Another named complexType -->
+      <xsd:complexType name="UserInfo">
+        <xsd:sequence>
+          <xsd:element name="id" type="xsd:string"/>
+          <xsd:element name="username" type="xsd:string"/>
+          <xsd:element name="address" type="tns:Address"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      
+      <!-- Top-level element with type reference -->
+      <xsd:element name="CreateUserResponse" type="tns:UserInfo"/>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="CreateUserRequest">
+    <wsdl:part name="parameters" element="tns:CreateUser"/>
+  </wsdl:message>
+  <wsdl:message name="CreateUserResponse">
+    <wsdl:part name="parameters" element="tns:CreateUserResponse"/>
+  </wsdl:message>
+  <wsdl:portType name="UserPortType">
+    <wsdl:operation name="CreateUser">
+      <wsdl:input message="tns:CreateUserRequest"/>
+      <wsdl:output message="tns:CreateUserResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="UserBinding" type="tns:UserPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="CreateUser">
+      <soap12:operation soapAction="http://example.com/mixed/CreateUser"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="MixedTypesService">
+    <wsdl:port name="UserPort" binding="tns:UserBinding">
+      <soap12:address location="http://example.com/mixed"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

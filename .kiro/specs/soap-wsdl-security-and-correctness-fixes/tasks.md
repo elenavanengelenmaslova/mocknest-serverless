@@ -296,7 +296,7 @@
     - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
 
 
-- [ ] 13. Write bug condition exploration test for missing top-level XSD elements
+- [x] 13. Write bug condition exploration test for missing top-level XSD elements
   - **Property 1: Bug Condition** - Missing Top-Level XSD Elements
   - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -311,7 +311,7 @@
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 5.1_
 
-- [ ] 14. Write preservation property tests for XSD type extraction (BEFORE implementing fix)
+- [x] 14. Write preservation property tests for XSD type extraction (BEFORE implementing fix)
   - **Property 2: Preservation** - Named ComplexType Extraction
   - **IMPORTANT**: Follow observation-first methodology
   - Observe behavior on UNFIXED code for WSDLs with named complexType definitions (should capture correctly)
@@ -323,9 +323,9 @@
   - Mark task complete when tests are written, run, and passing on unfixed code
   - _Requirements: 5.1, 5.2_
 
-- [ ] 15. Fix missing top-level XSD elements
+- [x] 15. Fix missing top-level XSD elements
 
-  - [ ] 15.1 Update extractXsdTypes() to capture top-level elements
+  - [x] 15.1 Update extractXsdTypes() to capture top-level elements
     - After processing named complexType definitions, process top-level xsd:element declarations
     - Filter schema children for localName == "element"
     - For each element, check for inline complexType child
@@ -336,7 +336,7 @@
     - _Preservation: Named complexType definitions continue to be captured correctly_
     - _Requirements: 5.1, 5.2_
 
-  - [ ] 15.2 Write unit tests for top-level element extraction
+  - [x] 15.2 Write unit tests for top-level element extraction
     - Test top-level element with inline complexType
     - Test top-level element with type reference
     - Test mixed named complexTypes and top-level elements
@@ -344,21 +344,21 @@
     - Follow Given-When-Then naming convention
     - _Requirements: 5.1_
 
-  - [ ] 15.3 Write property-based tests for WSDL type extraction
+  - [x] 15.3 Write property-based tests for WSDL type extraction
     - Create 10-20 diverse WSDL test files with various type patterns
     - Test document-literal, RPC-style, nested types, inline types
     - Use @ParameterizedTest with @ValueSource
     - Verify all types captured correctly
     - _Requirements: 5.1_
 
-  - [ ] 15.4 Verify bug condition exploration test now passes
+  - [x] 15.4 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - Top-Level Element Extraction
     - **IMPORTANT**: Re-run the SAME test from task 13 - do NOT write a new test
     - Run bug condition exploration test from step 13
     - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
     - _Requirements: 5.1_
 
-  - [ ] 15.5 Verify preservation tests still pass
+  - [x] 15.5 Verify preservation tests still pass
     - **Property 2: Preservation** - Named ComplexType Extraction Maintained
     - **IMPORTANT**: Re-run the SAME tests from task 14 - do NOT write new tests
     - Run preservation property tests from step 14

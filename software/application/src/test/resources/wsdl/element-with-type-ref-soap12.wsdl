@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/typeref"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/typeref"
+                  name="TypeRefService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/typeref">
+      <!-- Named complexType definition -->
+      <xsd:complexType name="PersonType">
+        <xsd:sequence>
+          <xsd:element name="firstName" type="xsd:string"/>
+          <xsd:element name="lastName" type="xsd:string"/>
+          <xsd:element name="age" type="xsd:int"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      
+      <!-- Top-level element with type reference -->
+      <xsd:element name="GetPerson" type="tns:PersonType"/>
+      
+      <!-- Top-level element with inline complexType -->
+      <xsd:element name="GetPersonResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="person" type="tns:PersonType"/>
+            <xsd:element name="found" type="xsd:boolean"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="GetPersonRequest">
+    <wsdl:part name="parameters" element="tns:GetPerson"/>
+  </wsdl:message>
+  <wsdl:message name="GetPersonResponse">
+    <wsdl:part name="parameters" element="tns:GetPersonResponse"/>
+  </wsdl:message>
+  <wsdl:portType name="PersonPortType">
+    <wsdl:operation name="GetPerson">
+      <wsdl:input message="tns:GetPersonRequest"/>
+      <wsdl:output message="tns:GetPersonResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="PersonBinding" type="tns:PersonPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="GetPerson">
+      <soap12:operation soapAction="http://example.com/typeref/GetPerson"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="TypeRefService">
+    <wsdl:port name="PersonPort" binding="tns:PersonBinding">
+      <soap12:address location="http://example.com/typeref"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
