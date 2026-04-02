@@ -233,6 +233,10 @@ class WsdlParser : WsdlParserInterface {
         }
     }
 
+    // buildOperationBindings currently returns the first matching binding by portTypeName,
+    // which may be incorrect if multiple ParsedBindingDetail entries share the same portTypeName.
+    // Future enhancement: disambiguate by binding name, SOAP version, or explicit matching criteria
+    // to correlate ParsedBindingDetail to ParsedOperation more precisely.
     private fun buildOperationBindings(
         operations: List<ParsedOperation>,
         bindingDetails: List<ParsedBindingDetail>

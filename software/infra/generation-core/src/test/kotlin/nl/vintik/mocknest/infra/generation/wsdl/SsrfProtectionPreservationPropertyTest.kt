@@ -2,8 +2,8 @@ package nl.vintik.mocknest.infra.generation.wsdl
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.test.runTest
+import nl.vintik.mocknest.application.generation.util.SafeUrlResolver
 import nl.vintik.mocknest.application.generation.util.UrlResolutionException
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -28,11 +28,6 @@ private val logger = KotlinLogging.logger {}
  * when implementing the DNS pinning fix for Bug 1 (SSRF/DNS rebinding vulnerability).
  */
 class SsrfProtectionPreservationPropertyTest {
-
-    @AfterEach
-    fun tearDown() {
-        // Clean up any test resources if needed
-    }
 
     /**
      * Property 2a: Safe External URLs - Successful Fetch
@@ -64,7 +59,7 @@ class SsrfProtectionPreservationPropertyTest {
         val result = runCatching {
             // This will validate the URL but may fail on actual fetch
             // We only care that SSRF validation passes
-            nl.vintik.mocknest.application.generation.util.SafeUrlResolver.validateAndResolve(url)
+            SafeUrlResolver.validateAndResolve(url)
         }
 
         // Then: Validation should either succeed OR fail with DNS resolution error (not SSRF rejection)
@@ -121,7 +116,7 @@ class SsrfProtectionPreservationPropertyTest {
         val exception = assertFailsWith<UrlResolutionException>(
             message = "Internal/private URL should be rejected: $url"
         ) {
-            nl.vintik.mocknest.application.generation.util.SafeUrlResolver.validateAndResolve(url)
+            SafeUrlResolver.validateAndResolve(url)
         }
 
         // Verify the exception message indicates unsafe address
@@ -149,7 +144,7 @@ class SsrfProtectionPreservationPropertyTest {
         val exception = assertFailsWith<UrlResolutionException>(
             message = "Multicast address should be rejected: $url"
         ) {
-            nl.vintik.mocknest.application.generation.util.SafeUrlResolver.validateAndResolve(url)
+            SafeUrlResolver.validateAndResolve(url)
         }
 
         // Verify the exception message indicates unsafe address
@@ -185,7 +180,7 @@ class SsrfProtectionPreservationPropertyTest {
         val exception = assertFailsWith<UrlResolutionException>(
             message = "IPv6 ULA address should be rejected: $url"
         ) {
-            nl.vintik.mocknest.application.generation.util.SafeUrlResolver.validateAndResolve(url)
+            SafeUrlResolver.validateAndResolve(url)
         }
 
         // Verify the exception message indicates unsafe address
@@ -222,7 +217,7 @@ class SsrfProtectionPreservationPropertyTest {
         val exception = assertFailsWith<UrlResolutionException>(
             message = "Unsupported scheme should be rejected: $url"
         ) {
-            nl.vintik.mocknest.application.generation.util.SafeUrlResolver.validateAndResolve(url)
+            SafeUrlResolver.validateAndResolve(url)
         }
 
         // Verify the exception message indicates unsupported scheme or invalid URL
@@ -259,7 +254,7 @@ class SsrfProtectionPreservationPropertyTest {
         val exception = assertFailsWith<UrlResolutionException>(
             message = "Malformed URL should be rejected: $url"
         ) {
-            nl.vintik.mocknest.application.generation.util.SafeUrlResolver.validateAndResolve(url)
+            SafeUrlResolver.validateAndResolve(url)
         }
 
         // Verify the exception was thrown (message content may vary)
