@@ -64,6 +64,8 @@ configurations {
         
         // Exclude Redis client - not used
         exclude(group = "io.lettuce")
+        
+        // Exclude Reactor Netty - not needed in runtime module (generation module keeps it for patched Netty)
         exclude(group = "io.projectreactor.netty")
         
         // Exclude Kotlin compiler and reflection (use minimal reflection)

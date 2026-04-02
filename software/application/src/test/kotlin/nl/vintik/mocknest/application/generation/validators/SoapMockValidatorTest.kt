@@ -17,6 +17,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
 import org.springframework.http.HttpMethod
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -1448,6 +1449,242 @@ class SoapMockValidatorTest {
             val result = validator.validate(createMock("non-soap", mapping), spec)
 
             assertTrue(result.isValid, "Non-SOAP spec should pass through without SOAP validation")
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Bug Condition Exploration: Missing URL/Path Validation (Bug 3)
+    // -------------------------------------------------------------------------
+    // **Property 1: Bug Condition** - Missing URL/Path Validation
+    // **Validates: Requirements 3.1**
+    //
+    // CRITICAL: This test MUST FAIL on unfixed code - failure confirms the bug exists
+    // DO NOT attempt to fix the test or the code when it fails
+    // NOTE: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+    // GOAL: Surface counterexamples that demonstrate validator accepts wrong URL paths
+    //
+    // Bug Description: SoapMockValidator validates SOAPAction but not the request URL/path.
+    // When a mock has the correct SOAPAction header but an incorrect urlPath, the validation
+    // passes even though the mock will never match requests to the correct endpoint path.
+    //
+    // EXPECTED OUTCOME on UNFIXED code: Test FAILS because validator incorrectly accepts
+    // mocks with wrong URL paths as long as SOAPAction is correct.
+    //
+    // EXPECTED OUTCOME on FIXED code: Test PASSES because validator now checks URL path
+    // and rejects mocks with incorrect paths.
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @Tag("bug-condition-exploration")
+    @Tag("property-based-test")
+    inner class MissingUrlValidationBugCondition {
+
+        @Test
+        fun `Given correct SOAPAction but wrong urlPath When validating Then should fail validation`() = runTest {
+            // This test encodes the EXPECTED behavior: mocks with wrong URL paths should be REJECTED
+            // On UNFIXED code, this test will FAIL because the validator only checks SOAPAction
+            // On FIXED code, this test will PASS because the validator checks both SOAPAction and URL path
+            
+            val spec = soap11Specification() // Uses /hello as the WSDL path
+            
+            // Mock has correct SOAPAction but WRONG urlPath
+            // Expected behavior: This should be REJECTED (validation should fail)
+            // Buggy behavior: This will be ACCEPTED (validation passes despite wrong path)
+            val mapping = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "urlPath": "/WrongService",
+                    "headers": {
+                      "SOAPAction": { "equalTo": "http://example.com/hello/SayHello" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "headers": { "Content-Type": "text/xml; charset=utf-8" },
+                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:tns=\"http://example.com/hello\"><soapenv:Body><tns:SayHelloResponse><tns:greeting>Hello</tns:greeting></tns:SayHelloResponse></soapenv:Body></soapenv:Envelope>"
+                  }
+                }
+            """.trimIndent()
+
+            val mock = createMock("wrong-path-correct-action", mapping)
+            val result = validator.validate(mock, spec)
+
+            // EXPECTED BEHAVIOR: Mock with wrong URL path should be REJECTED
+            // This assertion will FAIL on unfixed code (bug exists), confirming the bug
+            // This assertion will PASS on fixed code (bug fixed), confirming the fix works
+            assertFalse(
+                result.isValid,
+                "Mock with urlPath '/WrongService' should fail validation for spec with path '/hello'. " +
+                "Bug: Validator only checks SOAPAction, not URL path."
+            )
+            
+            // Verify the error message mentions the URL path mismatch
+            assertTrue(
+                result.errors.any { it.contains("URL path") && it.contains("/WrongService") },
+                "Error should mention wrong URL path. Actual errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given correct action but wrong urlPath for SOAP 1_2 When validating Then should fail validation`() = runTest {
+            // Test with SOAP 1.2 to verify the bug affects both SOAP versions
+            val spec = soap12Specification() // Uses /greet as the WSDL path
+            
+            // Mock has correct action in Content-Type but WRONG urlPath
+            val mapping = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "urlPath": "/CalculatorService",
+                    "headers": {
+                      "Content-Type": { "equalTo": "application/soap+xml; action=\"http://example.com/greet/Greet\"" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "headers": { "Content-Type": "application/soap+xml; charset=utf-8" },
+                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:tns=\"http://example.com/greet\"><soapenv:Body><tns:GreetResponse><tns:message>Hello</tns:message></tns:GreetResponse></soapenv:Body></soapenv:Envelope>"
+                  }
+                }
+            """.trimIndent()
+
+            val mock = createMock("wrong-path-correct-action-soap12", mapping)
+            val result = validator.validate(mock, spec)
+
+            // EXPECTED BEHAVIOR: Mock with wrong URL path should be REJECTED for SOAP 1.2 too
+            assertFalse(
+                result.isValid,
+                "Mock with urlPath '/CalculatorService' should fail validation for spec with path '/greet'. " +
+                "Bug affects SOAP 1.2 as well."
+            )
+            
+            assertTrue(
+                result.errors.any { it.contains("URL path") && it.contains("/CalculatorService") },
+                "Error should mention wrong URL path. Actual errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given multiple endpoints and wrong urlPath When validating Then should fail with clear error`() = runTest {
+            // Test with multiple endpoints to verify error message lists all valid paths
+            val spec = APISpecification(
+                format = SpecificationFormat.WSDL,
+                version = "1.0",
+                title = "MultiService",
+                endpoints = listOf(
+                    EndpointDefinition(
+                        path = "/calculator.asmx",
+                        method = HttpMethod.POST,
+                        operationId = "Add",
+                        summary = "Add operation",
+                        parameters = emptyList(),
+                        requestBody = null,
+                        responses = mapOf(
+                            200 to ResponseDefinition(
+                                statusCode = 200,
+                                description = "SOAP response",
+                                schema = JsonSchema(type = JsonSchemaType.STRING)
+                            )
+                        ),
+                        metadata = mapOf("soapAction" to "http://example.com/calculator/Add")
+                    ),
+                    EndpointDefinition(
+                        path = "/weather.asmx",
+                        method = HttpMethod.POST,
+                        operationId = "GetWeather",
+                        summary = "Get weather operation",
+                        parameters = emptyList(),
+                        requestBody = null,
+                        responses = mapOf(
+                            200 to ResponseDefinition(
+                                statusCode = 200,
+                                description = "SOAP response",
+                                schema = JsonSchema(type = JsonSchemaType.STRING)
+                            )
+                        ),
+                        metadata = mapOf("soapAction" to "http://example.com/weather/GetWeather")
+                    )
+                ),
+                schemas = emptyMap(),
+                metadata = mapOf(
+                    "soapVersion" to "SOAP_1_2",
+                    "targetNamespace" to "http://example.com/multi"
+                ),
+                rawContent = loadWsdl("simple-soap12.wsdl")
+            )
+            
+            // Mock has correct action but path that doesn't match any endpoint
+            val mapping = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "urlPath": "/nonexistent.asmx",
+                    "headers": {
+                      "Content-Type": { "equalTo": "application/soap+xml; action=\"http://example.com/calculator/Add\"" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "headers": { "Content-Type": "application/soap+xml; charset=utf-8" },
+                    "body": "<soapenv:Envelope xmlns:soapenv=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:tns=\"http://example.com/multi\"><soapenv:Body><tns:AddResponse><tns:result>42</tns:result></tns:AddResponse></soapenv:Body></soapenv:Envelope>"
+                  }
+                }
+            """.trimIndent()
+
+            val mock = createMock("wrong-path-multi-endpoints", mapping)
+            val result = validator.validate(mock, spec)
+
+            // EXPECTED BEHAVIOR: Mock with wrong URL path should be REJECTED
+            assertFalse(
+                result.isValid,
+                "Mock with urlPath '/nonexistent.asmx' should fail validation. " +
+                "Expected paths: /calculator.asmx or /weather.asmx"
+            )
+            
+            // Verify error message lists the expected paths
+            val error = result.errors.find { it.contains("URL path") }
+            assertNotNull(error, "Should have URL path error. Actual errors: ${result.errors}")
+            assertTrue(
+                error.contains("/calculator.asmx") || error.contains("/weather.asmx"),
+                "Error should list valid endpoint paths. Error: $error"
+            )
+        }
+
+        @Test
+        fun `Given url matcher instead of urlPath When validating Then should skip URL validation`() = runTest {
+            // Edge case: When using url matcher patterns instead of urlPath, validation should skip URL check
+            // This is acceptable because url matchers can use regex patterns that are hard to validate
+            val spec = soap12Specification()
+            
+            val mapping = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "url": { "matches": "/greet.*" },
+                    "headers": {
+                      "Content-Type": { "equalTo": "application/soap+xml; action=\"http://example.com/greet/Greet\"" }
+                    }
+                  },
+                  "response": {
+                    "status": 200,
+                    "headers": { "Content-Type": "application/soap+xml; charset=utf-8" },
+                    "body": "<soap:Envelope xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:tns=\"http://example.com/greet\"><soap:Body><tns:GreetResponse><tns:greeting>Hello</tns:greeting></tns:GreetResponse></soap:Body></soap:Envelope>"
+                  }
+                }
+            """.trimIndent()
+
+            val mock = createMock("url-matcher-pattern", mapping)
+            val result = validator.validate(mock, spec)
+
+            // URL matchers are skipped from validation (acceptable behavior)
+            // The validation should pass because all other rules are satisfied
+            // and URL validation is skipped when url is a matcher object
+            assertTrue(
+                result.isValid,
+                "Mocks with url matchers should pass validation (URL check is skipped for matcher objects). " +
+                "Errors: ${result.errors}"
+            )
         }
     }
 

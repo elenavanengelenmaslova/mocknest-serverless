@@ -12,6 +12,21 @@ dependencies {
     // Generic infra (non-AWS) generation utilities — includes WsdlContentFetcher
     implementation(project(":software:infra:generation-core"))
 
+    // Security: Force patched Netty version to fix HTTP Request Smuggling vulnerability
+    // CVE-2025-58056 / GHSA-fghv-69vj-qj49: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding
+    // Fixed in Netty 4.2.5.Final+
+    constraints {
+        implementation("io.netty:netty-codec-http:4.2.12.Final") {
+            because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
+        }
+        implementation("io.netty:netty-codec-http2:4.2.12.Final") {
+            because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
+        }
+        implementation("io.netty:netty-codec-http3:4.2.12.Final") {
+            because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
+        }
+    }
+
     // Spring Boot - exclude embedded servers (no web starter, just core)
     api("org.springframework.boot:spring-boot-starter") {
         exclude(group = "org.springframework.boot", module = "spring-boot-starter-tomcat")
@@ -80,7 +95,8 @@ configurations {
         
         // Exclude Redis client - not used
         exclude(group = "io.lettuce")
-        exclude(group = "io.projectreactor.netty")
+        
+        // Note: io.projectreactor.netty is NOT excluded - we use patched Netty 4.2.12.Final via constraints
         
         // Exclude Kotlin compiler and reflection (use minimal reflection)
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-compiler-embeddable")

@@ -29,8 +29,8 @@ class WsdlParserTest {
                 parser.parse(loadWsdl("simple-soap11.wsdl"))
             }
             assertTrue(
-                ex.message?.contains("Only SOAP 1.2 is supported") == true,
-                "Exception should say only SOAP 1.2 is supported, got: ${ex.message}"
+                ex.message?.contains("Only SOAP 1.2 bindings are supported") == true,
+                "Exception should say only SOAP 1.2 bindings are supported, got: ${ex.message}"
             )
         }
     }

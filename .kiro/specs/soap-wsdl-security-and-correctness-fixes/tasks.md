@@ -158,7 +158,7 @@
     - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
 
 
-- [ ] 7. Write bug condition exploration test for missing URL validation
+- [x] 7. Write bug condition exploration test for missing URL validation
   - **Property 1: Bug Condition** - Missing URL/Path Validation
   - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -173,7 +173,7 @@
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 3.1_
 
-- [ ] 8. Write preservation property tests for SOAP mock validation (BEFORE implementing fix)
+- [x] 8. Write preservation property tests for SOAP mock validation (BEFORE implementing fix)
   - **Property 2: Preservation** - Valid Mock Validation
   - **IMPORTANT**: Follow observation-first methodology
   - Observe behavior on UNFIXED code for correctly formed SOAP mocks (should pass validation)
@@ -185,9 +185,9 @@
   - Mark task complete when tests are written, run, and passing on unfixed code
   - _Requirements: 3.1, 3.2_
 
-- [ ] 9. Fix missing URL validation
+- [x] 9. Fix missing URL validation
 
-  - [ ] 9.1 Add validateUrlPath() helper method to SoapMockValidator
+  - [x] 9.1 Add validateUrlPath() helper method to SoapMockValidator
     - Extract urlPath or url from request node
     - Compare against specification.endpoints[*].path
     - Also check namespaced paths: /${mockNamespace.displayName()}${endpoint.path}
@@ -197,13 +197,13 @@
     - _Preservation: Mocks with correct SOAPAction and correct urlPath continue to pass_
     - _Requirements: 3.1, 3.2_
 
-  - [ ] 9.2 Call validateUrlPath() in validate() method
+  - [x] 9.2 Call validateUrlPath() in validate() method
     - Add call after Rule 1 (POST method check)
     - Accumulate errors in existing errors list
     - This becomes Rule 1b in the validation sequence
     - _Requirements: 3.1_
 
-  - [ ] 9.3 Write unit tests for URL path validation
+  - [x] 9.3 Write unit tests for URL path validation
     - Test URL path validation with correct paths
     - Test URL path validation with incorrect paths
     - Test URL path validation with namespaced paths
@@ -211,21 +211,21 @@
     - Follow Given-When-Then naming convention
     - _Requirements: 3.1_
 
-  - [ ] 9.4 Verify bug condition exploration test now passes
+  - [x] 9.4 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - URL Path Validation Enforced
     - **IMPORTANT**: Re-run the SAME test from task 7 - do NOT write a new test
     - Run bug condition exploration test from step 7
     - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
     - _Requirements: 3.1_
 
-  - [ ] 9.5 Verify preservation tests still pass
+  - [x] 9.5 Verify preservation tests still pass
     - **Property 2: Preservation** - Valid Mock Validation Maintained
     - **IMPORTANT**: Re-run the SAME tests from task 8 - do NOT write new tests
     - Run preservation property tests from step 8
     - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
 
 
-- [ ] 10. Write bug condition exploration test for non-SOAP WSDL silent fallback
+- [x] 10. Write bug condition exploration test for non-SOAP WSDL silent fallback
   - **Property 1: Bug Condition** - Non-SOAP WSDL Silent Fallback
   - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -241,7 +241,7 @@
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 4.1_
 
-- [ ] 11. Write preservation property tests for SOAP WSDL parsing (BEFORE implementing fix)
+- [x] 11. Write preservation property tests for SOAP WSDL parsing (BEFORE implementing fix)
   - **Property 2: Preservation** - Valid SOAP 1.2 WSDL Parsing
   - **IMPORTANT**: Follow observation-first methodology
   - **SCOPE**: We ONLY support SOAP 1.2
@@ -253,9 +253,9 @@
   - Mark task complete when tests are written, run, and passing on unfixed code
   - _Requirements: 4.1, 4.2_
 
-- [ ] 12. Fix non-SOAP WSDL silent fallback
+- [x] 12. Fix non-SOAP WSDL silent fallback
 
-  - [ ] 12.1 Update detectSoapVersion() to throw exception for non-SOAP WSDLs
+  - [x] 12.1 Update detectSoapVersion() to throw exception for non-SOAP WSDLs
     - Remove SOAP 1.1 fallback when no SOAP bindings found
     - Throw WsdlParsingException with clear message: "No SOAP binding namespace found; non-SOAP WSDL bindings are not supported"
     - Reject SOAP 1.1 bindings with clear message: "Only SOAP 1.2 is supported"
@@ -265,7 +265,7 @@
     - _Preservation: Valid SOAP 1.2 WSDLs continue to parse successfully_
     - _Requirements: 4.1, 4.2_
 
-  - [ ] 12.2 Document SOAP 1.2-only support in project documentation
+  - [x] 12.2 Document SOAP 1.2-only support in project documentation
     - Add section to README.md under "Supported Protocols" or "SOAP/WSDL Support"
     - Clearly state: "MockNest Serverless supports SOAP 1.2 only. SOAP 1.1 is not supported."
     - Add to docs/USAGE.md or create docs/LIMITATIONS.md if it doesn't exist
@@ -273,7 +273,7 @@
     - Include rationale: simplified implementation, modern standard, reduced complexity
     - _Requirements: 4.1_
 
-  - [ ] 12.3 Write unit tests for non-SOAP WSDL rejection
+  - [x] 12.3 Write unit tests for non-SOAP WSDL rejection
     - Test WSDL with only HTTP bindings throws exception
     - Test WSDL with SOAP 1.1 bindings throws exception with "Only SOAP 1.2 is supported"
     - Test WSDL with no bindings throws exception
@@ -282,14 +282,14 @@
     - Follow Given-When-Then naming convention
     - _Requirements: 4.1_
 
-  - [ ] 12.4 Verify bug condition exploration test now passes
+  - [x] 12.4 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - Non-SOAP WSDL Rejection
     - **IMPORTANT**: Re-run the SAME test from task 10 - do NOT write a new test
     - Run bug condition exploration test from step 10
     - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
     - _Requirements: 4.1_
 
-  - [ ] 12.5 Verify preservation tests still pass
+  - [x] 12.5 Verify preservation tests still pass
     - **Property 2: Preservation** - Valid SOAP Parsing Maintained
     - **IMPORTANT**: Re-run the SAME tests from task 11 - do NOT write new tests
     - Run preservation property tests from step 11
