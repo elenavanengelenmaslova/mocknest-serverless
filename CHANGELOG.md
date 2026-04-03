@@ -5,6 +5,10 @@ All notable changes to MockNest Serverless will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-04-03
+- **SOAP 1.2 AI Mock Generation**: AI-powered mock generation now supports SOAP APIs, in addition to existing OpenAPI/Swagger and GraphQL support
+- **Postman collection and Usage**: Added new examples to Postman collection and usage documentation.
+
 ## [0.3.0] - 2026-03-29
 
 ### Added
