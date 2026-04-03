@@ -180,38 +180,7 @@ open class GenerationPrimingHook(
      * Parses a minimal test OpenAPI specification.
      */
     private suspend fun exerciseSpecificationParser() {
-        val minimalSpec = """
-        {
-          "openapi": "3.0.0",
-          "info": {
-            "title": "SnapStart Priming Test API",
-            "version": "1.0.0"
-          },
-          "paths": {
-            "/test": {
-              "get": {
-                "responses": {
-                  "200": {
-                    "description": "Success",
-                    "content": {
-                      "application/json": {
-                        "schema": {
-                          "type": "object",
-                          "properties": {
-                            "message": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        """.trimIndent()
+        val minimalSpec = loadResourceAsString("/priming/openapi-minimal.json")
         
         // Parse the specification to warm up the parser
         specificationParser.parse(minimalSpec, SpecificationFormat.OPENAPI_3)
@@ -234,41 +203,8 @@ open class GenerationPrimingHook(
      */
     private suspend fun exerciseMockValidator() {
         // Create a minimal test specification
-        val testSpec = specificationParser.parse(
-            """
-            {
-              "openapi": "3.0.0",
-              "info": {
-                "title": "Test API",
-                "version": "1.0.0"
-              },
-              "paths": {
-                "/test": {
-                  "get": {
-                    "responses": {
-                      "200": {
-                        "description": "Success",
-                        "content": {
-                          "application/json": {
-                            "schema": {
-                              "type": "object",
-                              "properties": {
-                                "status": {
-                                  "type": "string"
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            """.trimIndent(),
-            SpecificationFormat.OPENAPI_3
-        )
+        val testSpecJson = loadResourceAsString("/priming/openapi-test-spec.json")
+        val testSpec = specificationParser.parse(testSpecJson, SpecificationFormat.OPENAPI_3)
         
         // Create a test mock
         val testMock = GeneratedMock(
@@ -311,8 +247,8 @@ open class GenerationPrimingHook(
      * Parses a minimal test WSDL specification and reduces the schema.
      */
     private suspend fun exerciseSoapWsdlComponents() {
-        // Create a minimal test WSDL
-        val testWsdl = createTestWsdl()
+        // Load minimal test WSDL from resources
+        val testWsdl = loadResourceAsString("/priming/wsdl-minimal.xml")
         
         // Parse the WSDL to warm up the parser
         val parsedWsdl = wsdlParser.parse(testWsdl)
@@ -327,114 +263,27 @@ open class GenerationPrimingHook(
     }
     
     /**
-     * Create a minimal test WSDL specification for priming.
-     * Returns a simple SOAP 1.2 WSDL with one operation.
-     */
-    private fun createTestWsdl(): String {
-        return """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
-                     xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
-                     xmlns:tns="http://example.com/calculator"
-                     xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-                     targetNamespace="http://example.com/calculator">
-          
-          <types>
-            <xsd:schema targetNamespace="http://example.com/calculator">
-              <xsd:element name="Add">
-                <xsd:complexType>
-                  <xsd:sequence>
-                    <xsd:element name="a" type="xsd:int"/>
-                    <xsd:element name="b" type="xsd:int"/>
-                  </xsd:sequence>
-                </xsd:complexType>
-              </xsd:element>
-              <xsd:element name="AddResponse">
-                <xsd:complexType>
-                  <xsd:sequence>
-                    <xsd:element name="Result" type="xsd:int"/>
-                  </xsd:sequence>
-                </xsd:complexType>
-              </xsd:element>
-            </xsd:schema>
-          </types>
-          
-          <message name="AddRequest">
-            <part name="parameters" element="tns:Add"/>
-          </message>
-          <message name="AddResponse">
-            <part name="parameters" element="tns:AddResponse"/>
-          </message>
-          
-          <portType name="CalculatorPortType">
-            <operation name="Add">
-              <input message="tns:AddRequest"/>
-              <output message="tns:AddResponse"/>
-            </operation>
-          </portType>
-          
-          <binding name="CalculatorSoap12Binding" type="tns:CalculatorPortType">
-            <soap12:binding transport="http://schemas.xmlsoap.org/soap/http"/>
-            <operation name="Add">
-              <soap12:operation soapAction="http://example.com/calculator/Add"/>
-              <input>
-                <soap12:body use="literal"/>
-              </input>
-              <output>
-                <soap12:body use="literal"/>
-              </output>
-            </operation>
-          </binding>
-          
-          <service name="CalculatorService">
-            <port name="CalculatorSoap12Port" binding="tns:CalculatorSoap12Binding">
-              <soap12:address location="http://example.com/CalculatorService"/>
-            </port>
-          </service>
-        </definitions>
-        """.trimIndent()
-    }
-    
-    /**
      * Exercise GraphQL components to warm up introspection client and schema reducer.
      * Note: We don't actually call the introspection client with a URL to avoid network calls
      * during snapshot creation. Instead, we warm up the schema reducer with test data.
      */
     private suspend fun exerciseGraphQLComponents() {
-        // Create a minimal test GraphQL introspection result
-        val testIntrospectionResult = """
-        {
-          "__schema": {
-            "queryType": {
-              "name": "Query"
-            },
-            "types": [
-              {
-                "kind": "OBJECT",
-                "name": "Query",
-                "fields": [
-                  {
-                    "name": "hello",
-                    "type": {
-                      "kind": "SCALAR",
-                      "name": "String"
-                    },
-                    "args": []
-                  }
-                ]
-              },
-              {
-                "kind": "SCALAR",
-                "name": "String"
-              }
-            ]
-          }
-        }
-        """.trimIndent()
+        // Load minimal test GraphQL introspection result from resources
+        val testIntrospectionResult = loadResourceAsString("/priming/graphql-introspection.json")
         
         // Warm up the GraphQL schema reducer with test data
         graphQLSchemaReducer.reduce(testIntrospectionResult)
         logger.debug { "Reduced test GraphQL schema" }
+    }
+    
+    /**
+     * Load a resource file as a string.
+     * @param resourcePath Path to the resource file (e.g., "/priming/openapi-minimal.json")
+     * @return Resource content as string
+     */
+    private fun loadResourceAsString(resourcePath: String): String {
+        return this::class.java.getResourceAsStream(resourcePath)?.bufferedReader()?.use { it.readText() }
+            ?: throw IllegalArgumentException("Resource not found: $resourcePath")
     }
     
     /**
