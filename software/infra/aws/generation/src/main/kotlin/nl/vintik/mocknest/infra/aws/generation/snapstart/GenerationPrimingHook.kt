@@ -6,10 +6,15 @@ import aws.sdk.kotlin.services.s3.model.HeadBucketRequest
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import nl.vintik.mocknest.application.generation.graphql.GraphQLIntrospectionClientInterface
+import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducerInterface
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.application.generation.usecases.GetAIHealth
 import nl.vintik.mocknest.application.generation.validators.OpenAPIMockValidator
+import nl.vintik.mocknest.application.generation.validators.SoapMockValidator
+import nl.vintik.mocknest.application.generation.wsdl.WsdlParserInterface
+import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducerInterface
 import nl.vintik.mocknest.domain.generation.EndpointInfo
 import nl.vintik.mocknest.domain.generation.GeneratedMock
 import nl.vintik.mocknest.domain.generation.MockMetadata
@@ -39,8 +44,10 @@ private val logger = KotlinLogging.logger {}
  * - Initializes Bedrock client reference (no model invocation to avoid costs)
  * - Validates AI model configuration
  * - Exercises OpenAPI specification parser
+ * - Exercises SOAP/WSDL parsers and validators
+ * - Exercises GraphQL introspection client and schema reducer
  * - Exercises prompt builder service (loads templates)
- * - Exercises mock validator
+ * - Exercises mock validators
  * - Uses graceful degradation for non-critical failures
  */
 @Component
@@ -52,7 +59,12 @@ open class GenerationPrimingHook(
     private val modelConfig: ModelConfiguration,
     private val specificationParser: OpenAPISpecificationParser,
     private val promptBuilderService: PromptBuilderService,
-    private val mockValidator: OpenAPIMockValidator
+    private val mockValidator: OpenAPIMockValidator,
+    private val wsdlParser: WsdlParserInterface,
+    private val wsdlSchemaReducer: WsdlSchemaReducerInterface,
+    private val soapMockValidator: SoapMockValidator,
+    private val graphQLIntrospectionClient: GraphQLIntrospectionClientInterface,
+    private val graphQLSchemaReducer: GraphQLSchemaReducerInterface
 ) {
     
     /**
@@ -144,6 +156,22 @@ open class GenerationPrimingHook(
             logger.warn(exception) { "Mock validator priming failed - continuing with snapshot creation" }
         }
         
+        // Exercise SOAP/WSDL parsers and validators
+        runCatching {
+            exerciseSoapWsdlComponents()
+            logger.info { "SOAP/WSDL components primed successfully" }
+        }.onFailure { exception ->
+            logger.warn(exception) { "SOAP/WSDL priming failed - continuing with snapshot creation" }
+        }
+        
+        // Exercise GraphQL introspection client and schema reducer
+        runCatching {
+            exerciseGraphQLComponents()
+            logger.info { "GraphQL components primed successfully" }
+        }.onFailure { exception ->
+            logger.warn(exception) { "GraphQL priming failed - continuing with snapshot creation" }
+        }
+        
         logger.info { "Generation function priming completed" }
     }
     
@@ -152,38 +180,7 @@ open class GenerationPrimingHook(
      * Parses a minimal test OpenAPI specification.
      */
     private suspend fun exerciseSpecificationParser() {
-        val minimalSpec = """
-        {
-          "openapi": "3.0.0",
-          "info": {
-            "title": "SnapStart Priming Test API",
-            "version": "1.0.0"
-          },
-          "paths": {
-            "/test": {
-              "get": {
-                "responses": {
-                  "200": {
-                    "description": "Success",
-                    "content": {
-                      "application/json": {
-                        "schema": {
-                          "type": "object",
-                          "properties": {
-                            "message": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        """.trimIndent()
+        val minimalSpec = loadResourceAsString("/priming/openapi-minimal.json")
         
         // Parse the specification to warm up the parser
         specificationParser.parse(minimalSpec, SpecificationFormat.OPENAPI_3)
@@ -206,41 +203,8 @@ open class GenerationPrimingHook(
      */
     private suspend fun exerciseMockValidator() {
         // Create a minimal test specification
-        val testSpec = specificationParser.parse(
-            """
-            {
-              "openapi": "3.0.0",
-              "info": {
-                "title": "Test API",
-                "version": "1.0.0"
-              },
-              "paths": {
-                "/test": {
-                  "get": {
-                    "responses": {
-                      "200": {
-                        "description": "Success",
-                        "content": {
-                          "application/json": {
-                            "schema": {
-                              "type": "object",
-                              "properties": {
-                                "status": {
-                                  "type": "string"
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            """.trimIndent(),
-            SpecificationFormat.OPENAPI_3
-        )
+        val testSpecJson = loadResourceAsString("/priming/openapi-test-spec.json")
+        val testSpec = specificationParser.parse(testSpecJson, SpecificationFormat.OPENAPI_3)
         
         // Create a test mock
         val testMock = GeneratedMock(
@@ -276,6 +240,50 @@ open class GenerationPrimingHook(
         // Validate the test mock to warm up the validator
         mockValidator.validate(testMock, testSpec)
         logger.debug { "Validated test mock against specification" }
+    }
+    
+    /**
+     * Exercise SOAP/WSDL components to warm up parsing and validation logic.
+     * Parses a minimal test WSDL specification and reduces the schema.
+     */
+    private suspend fun exerciseSoapWsdlComponents() {
+        // Load minimal test WSDL from resources
+        val testWsdl = loadResourceAsString("/priming/wsdl-minimal.xml")
+        
+        // Parse the WSDL to warm up the parser
+        val parsedWsdl = wsdlParser.parse(testWsdl)
+        logger.debug { "Parsed test WSDL specification" }
+        
+        // Reduce the parsed WSDL to warm up the schema reducer
+        wsdlSchemaReducer.reduce(parsedWsdl)
+        logger.debug { "Reduced test WSDL schema" }
+        
+        // Note: We don't validate SOAP mocks during priming to keep it simple
+        // The validator will be warmed up when the first real request comes in
+    }
+    
+    /**
+     * Exercise GraphQL components to warm up introspection client and schema reducer.
+     * Note: We don't actually call the introspection client with a URL to avoid network calls
+     * during snapshot creation. Instead, we warm up the schema reducer with test data.
+     */
+    private suspend fun exerciseGraphQLComponents() {
+        // Load minimal test GraphQL introspection result from resources
+        val testIntrospectionResult = loadResourceAsString("/priming/graphql-introspection.json")
+        
+        // Warm up the GraphQL schema reducer with test data
+        graphQLSchemaReducer.reduce(testIntrospectionResult)
+        logger.debug { "Reduced test GraphQL schema" }
+    }
+    
+    /**
+     * Load a resource file as a string.
+     * @param resourcePath Path to the resource file (e.g., "/priming/openapi-minimal.json")
+     * @return Resource content as string
+     */
+    private fun loadResourceAsString(resourcePath: String): String {
+        return this::class.java.getResourceAsStream(resourcePath)?.bufferedReader()?.use { it.readText() }
+            ?: throw IllegalArgumentException("Resource not found: $resourcePath")
     }
     
     /**

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+             xmlns:tns="http://example.com/calculator"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             targetNamespace="http://example.com/calculator">
+  
+  <types>
+    <xsd:schema targetNamespace="http://example.com/calculator">
+      <xsd:element name="Add">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="a" type="xsd:int"/>
+            <xsd:element name="b" type="xsd:int"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="AddResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="Result" type="xsd:int"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </types>
+  
+  <message name="AddRequest">
+    <part name="parameters" element="tns:Add"/>
+  </message>
+  <message name="AddResponse">
+    <part name="parameters" element="tns:AddResponse"/>
+  </message>
+  
+  <portType name="CalculatorPortType">
+    <operation name="Add">
+      <input message="tns:AddRequest"/>
+      <output message="tns:AddResponse"/>
+    </operation>
+  </portType>
+  
+  <binding name="CalculatorSoap12Binding" type="tns:CalculatorPortType">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="Add">
+      <soap12:operation soapAction="http://example.com/calculator/Add"/>
+      <input>
+        <soap12:body use="literal"/>
+      </input>
+      <output>
+        <soap12:body use="literal"/>
+      </output>
+    </operation>
+  </binding>
+  
+  <service name="CalculatorService">
+    <port name="CalculatorSoap12Port" binding="tns:CalculatorSoap12Binding">
+      <soap12:address location="http://example.com/CalculatorService"/>
+    </port>
+  </service>
+</definitions>

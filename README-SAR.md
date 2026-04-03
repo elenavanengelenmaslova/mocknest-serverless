@@ -137,7 +137,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
   },
   "specificationUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
   "format": "OPENAPI_3",
-  "description": "Generate mocks for 3 pets from the Petstore OpenAPI specification, pets endpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets across endpoints",
+  "description": "Generate mocks for 4 pets, only GET endpoints. 1 pet is a bird with image: https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg, available, new, tag id=1 name=new. API call to get all new pets returns that bird. The other 3 pets are available but not new.",
   "options": {
     "enableValidation": true
   }
