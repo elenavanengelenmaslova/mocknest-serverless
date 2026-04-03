@@ -115,13 +115,22 @@ class RoundTripIntegrityPropertyTest {
                 check(portTypes.isNotEmpty()) {
                     "Cannot build operation '$currentOpName': no portTypes parsed from prettyPrint output"
                 }
+                val portTypeName = portTypes.first().name
+                require(portTypeName.isNotBlank()) {
+                    "Cannot build operation '$currentOpName': portTypeName is blank. " +
+                    "Parsed portTypes: ${portTypes.map { it.name }}, " +
+                    "currentOpName='$currentOpName', " +
+                    "currentOpSoapAction='$currentOpSoapAction', " +
+                    "currentOpInput='$currentOpInput', " +
+                    "currentOpOutput='$currentOpOutput'"
+                }
                 operations.add(
                     WsdlOperation(
                         name = currentOpName,
                         soapAction = currentOpSoapAction,
                         inputMessage = currentOpInput.ifBlank { currentOpName },
                         outputMessage = currentOpOutput.ifBlank { "${currentOpName}Response" },
-                        portTypeName = portTypes.first().name
+                        portTypeName = portTypeName
                     )
                 )
                 currentOpName = ""

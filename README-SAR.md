@@ -137,7 +137,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
   },
   "specificationUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
   "format": "OPENAPI_3",
-  "description": "Generate mocks for 3 pets from the Petstore OpenAPI specification, pets endpoints, only generate mocks for all GET endpoints of pets, return consistent data for these pets across endpoints",
+  "description": "Generate mocks for 4 pets, only GET endpoints. 1 pet is a bird with image: https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg, available, new, tag id=1 name=new. API call to get all new pets returns that bird. The other 3 pets are available but not new.",
   "options": {
     "enableValidation": true
   }
@@ -172,9 +172,10 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 - OpenAPI 3.x (fully tested)
 - Swagger 2.0 (experimental)
 - GraphQL (via introspection)
+- SOAP 1.2
 
 **Current Limitations**:
-- AI generation supports REST and GraphQL APIs. SOAP API generation is not yet supported.
+- AI generation supports REST, SOAP 1.2 and GraphQL APIs. SOAP 1.1 API generation is not supported, but can be added manually through runtime admin API.
 - **AI Generation Timeout**: The default API Gateway REST API has a synchronous integration timeout of ~29 seconds. This limits AI generation with validation to a maximum of 2 correction retries (0-2 range). The recommended default is 1 retry. Users needing longer synchronous requests can switch to a Regional or private REST API endpoint type, and then request an AWS integration timeout increase (timeout increases are only available for Regional or private REST APIs).
 
 ## Architecture and Data Persistence

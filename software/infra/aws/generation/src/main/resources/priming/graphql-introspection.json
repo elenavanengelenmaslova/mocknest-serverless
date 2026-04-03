@@ -1,0 +1,29 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": {
+        "name": "Query"
+      },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "fields": [
+            {
+              "name": "hello",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String"
+              },
+              "args": []
+            }
+          ]
+        },
+        {
+          "kind": "SCALAR",
+          "name": "String"
+        }
+      ]
+    }
+  }
+}

@@ -5,10 +5,15 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.HeadBucketResponse
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
+import nl.vintik.mocknest.application.generation.graphql.GraphQLIntrospectionClientInterface
+import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducerInterface
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.application.generation.usecases.GetAIHealth
 import nl.vintik.mocknest.application.generation.validators.OpenAPIMockValidator
+import nl.vintik.mocknest.application.generation.validators.SoapMockValidator
+import nl.vintik.mocknest.application.generation.wsdl.WsdlParserInterface
+import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducerInterface
 import nl.vintik.mocknest.domain.core.HttpResponse
 import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
 import org.junit.jupiter.api.AfterEach
@@ -28,6 +33,11 @@ class GenerationPrimingHookTest {
     private val mockSpecificationParser: OpenAPISpecificationParser = mockk(relaxed = true)
     private val mockPromptBuilderService: PromptBuilderService = mockk(relaxed = true)
     private val mockMockValidator: OpenAPIMockValidator = mockk(relaxed = true)
+    private val mockWsdlParser: WsdlParserInterface = mockk(relaxed = true)
+    private val mockWsdlSchemaReducer: WsdlSchemaReducerInterface = mockk(relaxed = true)
+    private val mockSoapMockValidator: SoapMockValidator = mockk(relaxed = true)
+    private val mockGraphQLIntrospectionClient: GraphQLIntrospectionClientInterface = mockk(relaxed = true)
+    private val mockGraphQLSchemaReducer: GraphQLSchemaReducerInterface = mockk(relaxed = true)
     private val primingHook = GenerationPrimingHook(
         mockAIHealthUseCase,
         mockS3Client,
@@ -36,7 +46,12 @@ class GenerationPrimingHookTest {
         mockModelConfig,
         mockSpecificationParser,
         mockPromptBuilderService,
-        mockMockValidator
+        mockMockValidator,
+        mockWsdlParser,
+        mockWsdlSchemaReducer,
+        mockSoapMockValidator,
+        mockGraphQLIntrospectionClient,
+        mockGraphQLSchemaReducer
     )
 
     @AfterEach
@@ -297,6 +312,124 @@ class GenerationPrimingHookTest {
             verify(exactly = 0) { mockAIHealthUseCase.invoke() }
             coVerify(exactly = 0) { mockS3Client.headBucket(any()) }
             verify(exactly = 0) { mockModelConfig.getModelName() }
+        }
+    }
+
+    @Nested
+    inner class SoapWsdlPriming {
+
+        @Test
+        fun `Given SnapStart environment When priming executes Then should warm up SOAP WSDL components`() = runTest {
+            // Given
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
+            every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
+            every { mockModelConfig.getConfiguredPrefix() } returns "eu"
+            every { mockModelConfig.isOfficiallySupported() } returns true
+            every { mockWsdlParser.parse(any()) } returns mockk(relaxed = true)
+            every { mockWsdlSchemaReducer.reduce(any()) } returns mockk(relaxed = true)
+
+            // When
+            primingHook.prime()
+
+            // Then
+            coVerify { mockWsdlParser.parse(any()) }
+            coVerify { mockWsdlSchemaReducer.reduce(any()) }
+        }
+
+        @Test
+        fun `Given WSDL parser fails When priming executes Then should log warning and continue`() = runTest {
+            // Given
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
+            every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
+            every { mockModelConfig.getConfiguredPrefix() } returns "eu"
+            every { mockModelConfig.isOfficiallySupported() } returns true
+            coEvery { mockWsdlParser.parse(any()) } throws RuntimeException("WSDL parsing failed")
+            coEvery { mockGraphQLSchemaReducer.reduce(any()) } returns mockk(relaxed = true)
+
+            // When / Then - should not throw
+            primingHook.prime()
+
+            // Verify GraphQL priming still attempted
+            coVerify { mockGraphQLSchemaReducer.reduce(any()) }
+        }
+
+        @Test
+        fun `Given WSDL schema reducer fails When priming executes Then should handle gracefully`() = runTest {
+            // Given
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
+            every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
+            every { mockModelConfig.getConfiguredPrefix() } returns "eu"
+            every { mockModelConfig.isOfficiallySupported() } returns true
+            coEvery { mockWsdlParser.parse(any()) } returns mockk(relaxed = true)
+            coEvery { mockWsdlSchemaReducer.reduce(any()) } throws RuntimeException("Schema reduction failed")
+
+            // When / Then - should not throw
+            primingHook.prime()
+
+            // Verify parser was still called
+            coVerify { mockWsdlParser.parse(any()) }
+        }
+    }
+
+    @Nested
+    inner class GraphQLPriming {
+
+        @Test
+        fun `Given SnapStart environment When priming executes Then should warm up GraphQL components`() = runTest {
+            // Given
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
+            every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
+            every { mockModelConfig.getConfiguredPrefix() } returns "eu"
+            every { mockModelConfig.isOfficiallySupported() } returns true
+            every { mockWsdlParser.parse(any()) } returns mockk(relaxed = true)
+            every { mockWsdlSchemaReducer.reduce(any()) } returns mockk(relaxed = true)
+            coEvery { mockGraphQLSchemaReducer.reduce(any()) } returns mockk(relaxed = true)
+
+            // When
+            primingHook.prime()
+
+            // Then
+            coVerify { mockGraphQLSchemaReducer.reduce(any()) }
+        }
+
+        @Test
+        fun `Given GraphQL schema reducer fails When priming executes Then should log warning and continue`() = runTest {
+            // Given
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
+            every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
+            every { mockModelConfig.getConfiguredPrefix() } returns "eu"
+            every { mockModelConfig.isOfficiallySupported() } returns true
+            every { mockWsdlParser.parse(any()) } returns mockk(relaxed = true)
+            every { mockWsdlSchemaReducer.reduce(any()) } returns mockk(relaxed = true)
+            coEvery { mockGraphQLSchemaReducer.reduce(any()) } throws RuntimeException("GraphQL schema reduction failed")
+
+            // When / Then - should not throw
+            primingHook.prime()
+
+            // Verify SOAP priming was still attempted
+            coVerify { mockWsdlParser.parse(any()) }
+            coVerify { mockWsdlSchemaReducer.reduce(any()) }
+        }
+
+        @Test
+        fun `Given GraphQL priming fails When priming executes Then should not fail snapshot creation`() = runTest {
+            // Given
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
+            every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
+            every { mockModelConfig.getConfiguredPrefix() } returns "eu"
+            every { mockModelConfig.isOfficiallySupported() } returns true
+            every { mockWsdlParser.parse(any()) } returns mockk(relaxed = true)
+            every { mockWsdlSchemaReducer.reduce(any()) } returns mockk(relaxed = true)
+            coEvery { mockGraphQLSchemaReducer.reduce(any()) } throws IllegalStateException("GraphQL not ready")
+
+            // When / Then - should complete without throwing
+            primingHook.prime()
         }
     }
 }
