@@ -4,7 +4,7 @@
 [![AWS SAR](https://img.shields.io/badge/AWS-SAR-FF9900?logo=amazon-aws&logoColor=white)](https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless)
 [![Build Status](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/main-aws.yml/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions)
 [![codecov](https://codecov.io/gh/elenavanengelenmaslova/mocknest-serverless/graph/badge.svg)](https://codecov.io/gh/elenavanengelenmaslova/mocknest-serverless)
-[![CodeQL](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/elenavanengelenmaslova/mocknest-serverless/security/code-scanning)
+[![CodeQL](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/codeql.yml/badge.svg?branch=main&event=push)](https://github.com/elenavanengelenmaslova/mocknest-serverless/security/code-scanning)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/elenavanengelenmaslova/mocknest-serverless/badge)](https://securityscorecards.dev/viewer/?uri=github.com/elenavanengelenmaslova/mocknest-serverless)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12218/badge)](https://www.bestpractices.dev/projects/12218)
 [![Snyk Security](https://snyk.io/test/github/elenavanengelenmaslova/mocknest-serverless/badge.svg)](https://app.snyk.io/org/elenavanengelenmaslova/)
