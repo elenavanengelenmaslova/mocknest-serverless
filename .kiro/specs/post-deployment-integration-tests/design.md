@@ -63,13 +63,70 @@ flowchart TB
    - `post-deploy-integration-test.yml`: New integration test workflow (to be created)
 
 2. **Test Script**
-   - `scripts/post-deploy-test.sh`: Bash script containing all test logic
+   - `scripts/post-deploy-test.sh`: Bash script containing all test logic with parallel execution and retry capabilities
 
 3. **AWS Resources**
    - CloudFormation Stack: Contains all deployed resources
    - API Gateway: HTTP endpoint with API key authentication
    - Lambda Functions: Runtime and Generation functions
    - S3 Bucket: Mock storage
+
+### Test Execution Architecture
+
+The test execution uses GitHub Actions job-level parallelism for independent test suites with manual retry capability:
+
+**Job 1: Setup and Health Checks (Sequential)**
+- Runtime health check
+- AI generation health check
+- Delete all mappings (clean state)
+
+**Jobs 2-4: Parallel Test Suites (with manual retry)**
+- Job 2: REST generation + import
+- Job 3: GraphQL generation + import  
+- Job 4: SOAP generation + import
+
+```mermaid
+flowchart TB
+    START[Workflow Triggered]
+    
+    subgraph "Job 1: Setup (Sequential)"
+        HEALTH1[Runtime Health Check]
+        HEALTH2[AI Health Check]
+        CLEANUP[Delete All Mappings]
+        HEALTH1 --> HEALTH2
+        HEALTH2 --> CLEANUP
+    end
+    
+    subgraph "Parallel Jobs (Independent)"
+        JOB2[Job 2: REST<br/>Generation + Import]
+        JOB3[Job 3: GraphQL<br/>Generation + Import]
+        JOB4[Job 4: SOAP<br/>Generation + Import]
+    end
+    
+    WAIT[All Jobs Complete]
+    SUCCESS[✅ All Tests Passed]
+    PARTIAL[⚠️ Some Jobs Failed]
+    RETRY[Manual Retry Failed Jobs]
+    
+    START --> HEALTH1
+    CLEANUP --> JOB2
+    CLEANUP --> JOB3
+    CLEANUP --> JOB4
+    JOB2 --> WAIT
+    JOB3 --> WAIT
+    JOB4 --> WAIT
+    WAIT -->|All Pass| SUCCESS
+    WAIT -->|Any Fail| PARTIAL
+    PARTIAL -->|Investigate| RETRY
+```
+
+**Design Rationale**:
+- GitHub Actions jobs provide native parallelism and manual retry capability
+- Each job is independent and can be retried individually via "Re-run failed jobs"
+- Setup job ensures system is healthy before running expensive AI tests
+- Parallel execution reduces total test time from ~90 seconds to ~30 seconds
+- Manual retry allows investigation before re-running (no automatic retry noise)
+- Each test suite uses unique namespace to avoid conflicts
 
 ## Detailed Design
 
@@ -247,6 +304,167 @@ main
 - `set -o pipefail` ensures pipeline failures are caught
 - Modular test functions improve maintainability
 - Clear output messages aid debugging
+
+### 4.1. GitHub Actions Job Structure Design
+
+**Implementation Approach**:
+Use GitHub Actions jobs with dependencies (`needs:`) to create parallel execution with manual retry
+
+**Workflow Structure**:
+```yaml
+name: Post-Deployment Integration Tests
+
+on:
+  workflow_run:
+    workflows: ["CICD - Main Branch AWS", "CD - Deploy On Demand"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: false
+        type: choice
+        options:
+          - all
+          - rest
+          - graphql
+          - soap
+        default: 'all'
+
+jobs:
+  setup:
+    name: Setup and Health Checks
+    runs-on: ubuntu-latest
+    outputs:
+      api-url: ${{ steps.stack-outputs.outputs.api-url }}
+      api-key: ${{ steps.api-key.outputs.api-key }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      
+      - name: Retrieve stack outputs
+        id: stack-outputs
+        run: |
+          # Get API_URL from CloudFormation
+          
+      - name: Retrieve API key
+        id: api-key
+        run: |
+          # Get API_KEY from API Gateway
+          echo "::add-mask::$API_KEY"
+      
+      - name: Run health checks and cleanup
+        env:
+          API_URL: ${{ steps.stack-outputs.outputs.api-url }}
+          API_KEY: ${{ steps.api-key.outputs.api-key }}
+        run: |
+          chmod +x scripts/post-deploy-test.sh
+          # Run only health checks and cleanup
+          ./scripts/post-deploy-test.sh setup
+
+  test-rest:
+    name: REST Generation and Import
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'rest' || github.event.inputs.test_suite == '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      
+      - name: Run REST tests
+        env:
+          API_URL: ${{ needs.setup.outputs.api-url }}
+          API_KEY: ${{ needs.setup.outputs.api-key }}
+        run: |
+          chmod +x scripts/post-deploy-test.sh
+          ./scripts/post-deploy-test.sh rest
+
+  test-graphql:
+    name: GraphQL Generation and Import
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'graphql' || github.event.inputs.test_suite == '' }}
+    steps:
+      # Similar to test-rest but for GraphQL
+
+  test-soap:
+    name: SOAP Generation and Import
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'soap' || github.event.inputs.test_suite == '' }}
+    steps:
+      # Similar to test-rest but for SOAP
+```
+
+**Test Script Updates**:
+```bash
+#!/bin/bash
+set -e
+set -o pipefail
+
+# Accept test suite as first argument
+TEST_SUITE="${1:-all}"
+API_URL="${2:-$API_URL}"
+API_KEY="${3:-$API_KEY}"
+
+case "$TEST_SUITE" in
+  setup)
+    test_runtime_health
+    test_ai_health
+    test_delete_all_mappings
+    ;;
+  rest)
+    test_rest_generation
+    test_rest_import
+    ;;
+  graphql)
+    test_graphql_generation
+    test_graphql_import
+    ;;
+  soap)
+    test_soap_generation
+    test_soap_import
+    ;;
+  all)
+    # Run everything sequentially (for local testing)
+    test_runtime_health
+    test_ai_health
+    test_delete_all_mappings
+    test_rest_generation
+    test_rest_import
+    test_graphql_generation
+    test_graphql_import
+    test_soap_generation
+    test_soap_import
+    ;;
+  *)
+    echo "ERROR: Unknown test suite: $TEST_SUITE"
+    echo "Valid options: setup, rest, graphql, soap, all"
+    exit 2
+    ;;
+esac
+```
+
+**Design Rationale**:
+- GitHub Actions jobs provide native parallelism (no bash background jobs needed)
+- `needs: setup` ensures health checks complete before test jobs start
+- Each job can be manually retried via "Re-run failed jobs" button
+- `workflow_dispatch` inputs allow running individual test suites for debugging
+- Job outputs pass API_URL and API_KEY to parallel jobs (no need to retrieve again)
+- Conditional job execution (`if:`) respects workflow_dispatch input
+- Test script accepts suite name for flexible execution (setup, rest, graphql, soap, all)
 
 ### 5. HTTP Request Design
 

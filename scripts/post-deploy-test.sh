@@ -6,16 +6,52 @@ set -o pipefail
 # This script validates a deployed MockNest Serverless application in AWS
 # by executing comprehensive API tests including health checks, mock generation,
 # and mock import operations.
+#
+# Usage:
+#   $0 [TEST_SUITE] <API_URL> <API_KEY>
+#   $0 [TEST_SUITE]  # if API_URL and API_KEY are set as environment variables
+#
+# TEST_SUITE options:
+#   setup    - Run health checks and cleanup only
+#   rest     - Run REST/OpenAPI generation and import tests
+#   graphql  - Run GraphQL generation and import tests (future)
+#   soap     - Run SOAP/WSDL generation and import tests (future)
+#   all      - Run all tests sequentially (default)
+#
+# Examples:
+#   $0 setup https://api.example.com abc123key
+#   $0 rest https://api.example.com abc123key
+#   API_URL=https://api.example.com API_KEY=abc123key $0 all
 
 # Input validation
-# Script accepts API_URL and API_KEY as arguments or environment variables
-API_URL="${1:-$API_URL}"
-API_KEY="${2:-$API_KEY}"
+# Script accepts TEST_SUITE as first argument (optional, defaults to "all")
+# API_URL and API_KEY can be provided as arguments or environment variables
+TEST_SUITE="${1:-all}"
+
+# Check if first argument looks like a URL (starts with http)
+# If so, treat it as API_URL and default TEST_SUITE to "all"
+if [[ "$TEST_SUITE" =~ ^https?:// ]]; then
+  API_URL="$1"
+  API_KEY="${2:-$API_KEY}"
+  TEST_SUITE="all"
+else
+  # First argument is TEST_SUITE, get API_URL and API_KEY from remaining args or env
+  API_URL="${2:-$API_URL}"
+  API_KEY="${3:-$API_KEY}"
+fi
 
 if [ -z "$API_URL" ] || [ -z "$API_KEY" ]; then
   echo "ERROR: API_URL and API_KEY are required"
-  echo "Usage: $0 <API_URL> <API_KEY>"
-  echo "  or set API_URL and API_KEY environment variables"
+  echo ""
+  echo "Usage: $0 [TEST_SUITE] <API_URL> <API_KEY>"
+  echo "   or: $0 [TEST_SUITE]  # if API_URL and API_KEY are set as environment variables"
+  echo ""
+  echo "TEST_SUITE options: setup, rest, graphql, soap, all (default: all)"
+  echo ""
+  echo "Examples:"
+  echo "  $0 setup https://api.example.com abc123key"
+  echo "  $0 rest https://api.example.com abc123key"
+  echo "  API_URL=https://api.example.com API_KEY=abc123key $0 all"
   exit 2
 fi
 
@@ -223,17 +259,125 @@ test_rest_import() {
   echo "✓ REST mock import passed"
 }
 
+# Test REST mock invocation
+# Validates that imported REST mocks respond correctly to requests
+# Tests two endpoints from the Petstore API:
+# 1. GET /pet/findByStatus - Find pets by status
+# 2. GET /pet/{petId} - Get a specific pet by ID
+test_rest_mock_invocation() {
+  echo "Testing REST mock invocation..."
+  
+  # Test 1: GET /pet/findByStatus?status=available
+  echo "  Testing GET /pet/findByStatus?status=available..."
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/pet/findByStatus?status=available" 2>&1) || {
+    echo "ERROR: GET /pet/findByStatus request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  
+  parse_response "$response"
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERROR: GET /pet/findByStatus failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Validate response is a JSON array
+  if ! echo "$BODY" | grep -q '^\['; then
+    echo "ERROR: GET /pet/findByStatus response is not a JSON array"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  echo "  ✓ GET /pet/findByStatus passed"
+  
+  # Test 2: GET /pet/{petId}
+  # Use petId=1 as a reasonable test value
+  echo "  Testing GET /pet/1..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/pet/1" 2>&1) || {
+    echo "ERROR: GET /pet/1 request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  
+  parse_response "$response"
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERROR: GET /pet/1 failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Validate response contains expected pet fields
+  if ! echo "$BODY" | grep -q '"id"'; then
+    echo "ERROR: GET /pet/1 response missing 'id' field"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  if ! echo "$BODY" | grep -q '"name"'; then
+    echo "ERROR: GET /pet/1 response missing 'name' field"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  echo "  ✓ GET /pet/1 passed"
+  
+  echo "✓ REST mock invocation passed"
+}
+
 # Main test execution
 main() {
   echo "=== MockNest Serverless Post-Deployment Integration Tests ==="
-  echo "API URL: $API_URL"
+  echo "Test Suite: $TEST_SUITE"
   echo ""
   
-  test_runtime_health
-  test_ai_health
-  test_delete_all_mappings
-  test_rest_generation
-  test_rest_import
+  case "$TEST_SUITE" in
+    setup)
+      echo "Running setup tests (health checks and cleanup)..."
+      test_runtime_health
+      test_ai_health
+      test_delete_all_mappings
+      ;;
+    rest)
+      echo "Running REST/OpenAPI tests..."
+      test_rest_generation
+      test_rest_import
+      test_rest_mock_invocation
+      ;;
+    graphql)
+      echo "Running GraphQL tests..."
+      echo "ERROR: GraphQL tests not yet implemented"
+      exit 1
+      ;;
+    soap)
+      echo "Running SOAP/WSDL tests..."
+      echo "ERROR: SOAP tests not yet implemented"
+      exit 1
+      ;;
+    all)
+      echo "Running all tests..."
+      test_runtime_health
+      test_ai_health
+      test_delete_all_mappings
+      test_rest_generation
+      test_rest_import
+      test_rest_mock_invocation
+      ;;
+    *)
+      echo "ERROR: Unknown test suite: $TEST_SUITE"
+      echo "Valid options: setup, rest, graphql, soap, all"
+      exit 2
+      ;;
+  esac
   
   echo ""
   echo "=== All Tests Passed ==="

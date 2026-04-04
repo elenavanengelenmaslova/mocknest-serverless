@@ -227,3 +227,18 @@ The integration tests validate the complete deployment including API Gateway con
 6. THE shell script SHALL be executable and follow bash best practices (set -e, set -o pipefail)
 7. THE shell script SHALL return exit code 0 on success and non-zero on failure
 8. THE shell script SHALL provide clear output messages indicating which test is being executed
+
+### Requirement 17: Parallel Test Execution with Manual Retry
+
+**User Story:** As a DevOps engineer, I want AI-powered mock generation tests to run as separate parallel workflow jobs, so that I can investigate failures and manually retry individual test suites without re-running everything.
+
+#### Acceptance Criteria
+
+1. WHEN executing AI-powered tests, THE Integration_Test_Workflow SHALL run REST, GraphQL, and SOAP test suites as separate parallel workflow jobs
+2. THE Integration_Test_Workflow SHALL execute health checks and mapping cleanup as a prerequisite job that must complete before parallel test jobs start
+3. WHEN parallel jobs are running, EACH job SHALL execute independently without blocking other jobs
+4. IF any parallel job fails, THE Integration_Test_Workflow SHALL report the failure with clear error messages and logs
+5. THE Integration_Test_Workflow SHALL allow manual retry of individual failed jobs through the GitHub Actions UI "Re-run failed jobs" feature
+6. WHEN a job fails, THE Integration_Test_Workflow SHALL provide detailed logs showing which specific test (generation or import) failed and why
+7. THE Integration_Test_Workflow SHALL support manual triggering of individual test suites via workflow_dispatch inputs (e.g., run only REST tests)
+8. THE Integration_Test_Workflow SHALL reduce total execution time from ~90 seconds (sequential) to ~30 seconds (parallel)

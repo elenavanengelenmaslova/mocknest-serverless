@@ -9,6 +9,7 @@ This document outlines the implementation tasks for the post-deployment integrat
 Each iteration builds on the previous one and can be merged independently:
 - **Iteration 1**: Health checks + manual workflow (minimal viable test)
 - **Iteration 2**: Delete mappings + REST generation/import + mock invocation tests
+- **Iteration 2.5**: GitHub Actions job-level parallel execution (performance enhancement)
 - **Iteration 3**: GraphQL generation/import + mock invocation tests
 - **Iteration 4**: SOAP/WSDL generation/import + mock invocation tests
 - **Iteration 5**: Automatic workflow trigger + documentation
@@ -96,128 +97,159 @@ Each iteration builds on the previous one and can be merged independently:
   - [x] 13.3 Add HTTP status code validation (expect 200)
   - [x] 13.4 Add clear success/failure output messages
 
-- [ ] 14. Implement REST mock invocation tests
-  - [ ] 14.1 Identify 2 endpoints from Petstore API to test (e.g., GET /pet/{petId}, POST /pet)
-  - [ ] 14.2 Implement `test_rest_mock_invocation()` function
-  - [ ] 14.3 Call first generated mock endpoint and verify response
-  - [ ] 14.4 Call second generated mock endpoint and verify response
-  - [ ] 14.5 Add clear success/failure output messages
+- [x] 14. Implement REST mock invocation tests
+  - [x] 14.1 Identify 2 endpoints from Petstore API to test (e.g., GET /pet/{petId}, POST /pet)
+  - [x] 14.2 Implement `test_rest_mock_invocation()` function
+  - [x] 14.3 Call first generated mock endpoint and verify response
+  - [x] 14.4 Call second generated mock endpoint and verify response
+  - [x] 14.5 Add clear success/failure output messages
 
+### Iteration 2.5: GitHub Actions Job-Level Parallel Execution (Performance Enhancement PR)
+
+- [-] 15. Refactor test script to support test suite selection
+  - [x] 15.1 Add TEST_SUITE parameter as first argument (setup, rest, graphql, soap, all)
+  - [x] 15.2 Implement case statement to route to appropriate test functions
+  - [x] 15.3 Update script usage documentation to include test suite options
+
+- [x] 16. Create setup job in workflow
+  - [x] 16.1 Create new job named "setup" with health checks and cleanup
+  - [x] 16.2 Add job outputs for api-url and api-key
+  - [x] 16.3 Move stack output retrieval and API key retrieval to setup job
+  - [x] 16.4 Call test script with "setup" argument
+  - [x] 16.5 Ensure API key is masked in job outputs
+
+- [x] 17. Create REST test job
+  - [x] 17.1 Create new job named "test-rest" that depends on setup job (needs: setup)
+  - [x] 17.2 Use api-url and api-key from setup job outputs
+  - [x] 17.3 Call test script with "rest" argument
+  - [x] 17.4 Add conditional execution based on workflow_dispatch input
+
+- [x] 18. Add workflow_dispatch inputs for selective test execution
+  - [x] 18.1 Add workflow_dispatch trigger with test_suite input
+  - [x] 18.2 Add choice options: all, rest, graphql, soap
+  - [x] 18.3 Set default to "all"
+  - [x] 18.4 Update job conditionals to respect input
 
 ### Iteration 3: GraphQL Generation/Import + Mock Invocation (Third PR)
 
-- [ ] 18. Implement GraphQL mock generation test
-  - [ ] 18.1 Create GraphQL generation request payload matching Postman collection
-  - [ ] 18.2 Use Countries GraphQL API URL (https://countries.trevorblades.com/graphql)
-  - [ ] 18.3 Implement `test_graphql_generation()` function for POST /ai/generation/from-spec
-  - [ ] 18.4 Add HTTP status code validation (expect 200)
-  - [ ] 18.5 Add response body validation (expect "mappings" array)
-  - [ ] 18.6 Store generated mappings in variable for import test
-  - [ ] 18.7 Add clear success/failure output messages
-
-- [ ] 19. Implement GraphQL mock import test
-  - [ ] 19.1 Implement `test_graphql_import()` function for POST /__admin/mappings/import
-  - [ ] 19.2 Use mappings generated from GraphQL generation test
-  - [ ] 19.3 Add HTTP status code validation (expect 200)
-  - [ ] 19.4 Add clear success/failure output messages
-
-- [ ] 20. Implement GraphQL mock invocation tests
-  - [ ] 20.1 Identify 2 GraphQL queries to test from Countries API
-  - [ ] 20.2 Implement `test_graphql_mock_invocation()` function
-  - [ ] 20.3 Call first generated GraphQL mock and verify response
-  - [ ] 20.4 Call second generated GraphQL mock and verify response
-  - [ ] 20.5 Add clear success/failure output messages
-
-- [ ] 21. Update main() function to include GraphQL tests
-  - [ ] 21.1 Add GraphQL generation test to main()
-  - [ ] 21.2 Add GraphQL import test to main()
-  - [ ] 21.3 Add GraphQL mock invocation test to main()
-
-- [ ] 22. Test workflow from feature branch
-  - [ ] 22.1 Create feature branch and push changes
-  - [ ] 22.2 Manually trigger workflow from GitHub Actions UI
-  - [ ] 22.3 Verify all tests pass in workflow execution
-  - [ ] 22.4 Verify GraphQL mocks work correctly
-
-- [ ] 23. Create PR and merge Iteration 3
-  - [ ] 23.1 Create pull request with detailed description
-  - [ ] 23.2 Wait for CodeRabbit review
-  - [ ] 23.3 Address review comments if any
-  - [ ] 23.4 Merge to main branch after approval
-
-### Iteration 4: SOAP/WSDL Generation/Import + Mock Invocation (Fourth PR)
-
-- [ ] 24. Implement SOAP/WSDL mock generation test
-  - [ ] 24.1 Create SOAP generation request payload matching Postman collection
-  - [ ] 24.2 Use Calculator WSDL URL (http://www.dneonline.com/calculator.asmx?WSDL)
-  - [ ] 24.3 Implement `test_soap_generation()` function for POST /ai/generation/from-spec
+- [ ] 24. Implement GraphQL mock generation test
+  - [ ] 24.1 Create GraphQL generation request payload matching Postman collection
+  - [ ] 24.2 Use Countries GraphQL API URL (https://countries.trevorblades.com/graphql)
+  - [ ] 24.3 Implement `test_graphql_generation()` function for POST /ai/generation/from-spec
   - [ ] 24.4 Add HTTP status code validation (expect 200)
   - [ ] 24.5 Add response body validation (expect "mappings" array)
   - [ ] 24.6 Store generated mappings in variable for import test
   - [ ] 24.7 Add clear success/failure output messages
 
-- [ ] 25. Implement SOAP mock import test
-  - [ ] 25.1 Implement `test_soap_import()` function for POST /__admin/mappings/import
-  - [ ] 25.2 Use mappings generated from SOAP generation test
+- [ ] 25. Implement GraphQL mock import test
+  - [ ] 25.1 Implement `test_graphql_import()` function for POST /__admin/mappings/import
+  - [ ] 25.2 Use mappings generated from GraphQL generation test
   - [ ] 25.3 Add HTTP status code validation (expect 200)
   - [ ] 25.4 Add clear success/failure output messages
 
-- [ ] 26. Implement SOAP mock invocation tests
-  - [ ] 26.1 Identify 2 SOAP operations to test from Calculator WSDL (e.g., Add, Multiply)
-  - [ ] 26.2 Implement `test_soap_mock_invocation()` function
-  - [ ] 26.3 Call first generated SOAP mock and verify response
-  - [ ] 26.4 Call second generated SOAP mock and verify response
+- [ ] 26. Implement GraphQL mock invocation tests
+  - [ ] 26.1 Identify 2 GraphQL queries to test from Countries API
+  - [ ] 26.2 Implement `test_graphql_mock_invocation()` function
+  - [ ] 26.3 Call first generated GraphQL mock and verify response
+  - [ ] 26.4 Call second generated GraphQL mock and verify response
   - [ ] 26.5 Add clear success/failure output messages
 
-- [ ] 27. Update main() function to include SOAP tests
-  - [ ] 27.1 Add SOAP generation test to main()
-  - [ ] 27.2 Add SOAP import test to main()
-  - [ ] 27.3 Add SOAP mock invocation test to main()
+- [ ] 27. Create GraphQL test job in workflow
+  - [ ] 27.1 Create new job named "test-graphql" that depends on setup job (needs: setup)
+  - [ ] 27.2 Use api-url and api-key from setup job outputs
+  - [ ] 27.3 Call test script with "graphql" argument
+  - [ ] 27.4 Add conditional execution based on workflow_dispatch input
 
 - [ ] 28. Test workflow from feature branch
   - [ ] 28.1 Create feature branch and push changes
   - [ ] 28.2 Manually trigger workflow from GitHub Actions UI
   - [ ] 28.3 Verify all tests pass in workflow execution
-  - [ ] 28.4 Verify SOAP mocks work correctly
+  - [ ] 28.4 Verify GraphQL mocks work correctly
 
-- [ ] 29. Create PR and merge Iteration 4
+- [ ] 29. Create PR and merge Iteration 3
   - [ ] 29.1 Create pull request with detailed description
   - [ ] 29.2 Wait for CodeRabbit review
   - [ ] 29.3 Address review comments if any
   - [ ] 29.4 Merge to main branch after approval
 
+### Iteration 4: SOAP/WSDL Generation/Import + Mock Invocation (Fourth PR)
+
+- [ ] 30. Implement SOAP/WSDL mock generation test
+  - [ ] 30.1 Create SOAP generation request payload matching Postman collection
+  - [ ] 30.2 Use Calculator WSDL URL (http://www.dneonline.com/calculator.asmx?WSDL)
+  - [ ] 30.3 Implement `test_soap_generation()` function for POST /ai/generation/from-spec
+  - [ ] 30.4 Add HTTP status code validation (expect 200)
+  - [ ] 30.5 Add response body validation (expect "mappings" array)
+  - [ ] 30.6 Store generated mappings in variable for import test
+  - [ ] 30.7 Add clear success/failure output messages
+
+- [ ] 31. Implement SOAP mock import test
+  - [ ] 31.1 Implement `test_soap_import()` function for POST /__admin/mappings/import
+  - [ ] 31.2 Use mappings generated from SOAP generation test
+  - [ ] 31.3 Add HTTP status code validation (expect 200)
+  - [ ] 31.4 Add clear success/failure output messages
+
+- [ ] 32. Implement SOAP mock invocation tests
+  - [ ] 32.1 Identify 2 SOAP operations to test from Calculator WSDL (e.g., Add, Multiply)
+  - [ ] 32.2 Implement `test_soap_mock_invocation()` function
+  - [ ] 32.3 Call first generated SOAP mock and verify response
+  - [ ] 32.4 Call second generated SOAP mock and verify response
+  - [ ] 32.5 Add clear success/failure output messages
+
+- [ ] 33. Create SOAP test job in workflow
+  - [ ] 33.1 Create new job named "test-soap" that depends on setup job (needs: setup)
+  - [ ] 33.2 Use api-url and api-key from setup job outputs
+  - [ ] 33.3 Call test script with "soap" argument
+  - [ ] 33.4 Add conditional execution based on workflow_dispatch input
+
+- [ ] 34. Test workflow from feature branch
+  - [ ] 34.1 Create feature branch and push changes
+  - [ ] 34.2 Manually trigger workflow from GitHub Actions UI
+  - [ ] 34.3 Verify all tests pass in workflow execution
+  - [ ] 34.4 Verify SOAP mocks work correctly
+
+- [ ] 35. Create PR and merge Iteration 4
+  - [ ] 35.1 Create pull request with detailed description
+  - [ ] 35.2 Wait for CodeRabbit review
+  - [ ] 35.3 Address review comments if any
+  - [ ] 35.4 Merge to main branch after approval
+  - [ ] 29.4 Merge to main branch after approval
+
 ### Iteration 5: Automatic Workflow Trigger + Documentation (Fifth PR)
 
-- [ ] 30. Update workflow to automatic trigger
-  - [ ] 30.1 Add workflow_run trigger for "CICD - Main Branch AWS" and "CD - Deploy On Demand"
-  - [ ] 30.2 Add conditional execution (only run if triggering workflow succeeded)
-  - [ ] 30.3 Keep workflow_dispatch trigger for manual testing
-  - [ ] 30.4 Test automatic trigger by deploying to test environment
+- [ ] 36. Update workflow to automatic trigger
+  - [ ] 36.1 Add workflow_run trigger for "CICD - Main Branch AWS" and "CD - Deploy On Demand"
+  - [ ] 36.2 Add conditional execution (only run if triggering workflow succeeded)
+  - [ ] 36.3 Keep workflow_dispatch trigger for manual testing
+  - [ ] 36.4 Test automatic trigger by deploying to test environment
 
-- [ ] 31. Update documentation
-  - [ ] 31.1 Add section to README.md about post-deployment integration tests
-  - [ ] 31.2 Document how to run tests locally
-  - [ ] 31.3 Document workflow trigger conditions (automatic and manual)
-  - [ ] 31.4 Document troubleshooting steps for test failures
-  - [ ] 31.5 Add link to workflow file in documentation
+- [ ] 37. Update documentation
+  - [ ] 37.1 Add section to README.md about post-deployment integration tests
+  - [ ] 37.2 Document how to run tests locally
+  - [ ] 37.3 Document workflow trigger conditions (automatic and manual)
+  - [ ] 37.4 Document configuration options (MAX_RETRIES, PARALLEL_EXECUTION)
+  - [ ] 37.5 Document troubleshooting steps for test failures
+  - [ ] 37.6 Add link to workflow file in documentation
 
-- [ ] 32. Verify Postman collection alignment
-  - [ ] 32.1 Compare test script payloads with Postman collection requests
-  - [ ] 32.2 Verify REST generation payload matches Postman "Generate from OpenAPI" request
-  - [ ] 32.3 Verify GraphQL generation payload matches Postman "Generate from GraphQL" request
-  - [ ] 32.4 Verify SOAP generation payload matches Postman "Generate from WSDL" request
-  - [ ] 32.5 Update test script if any mismatches are found
+- [ ] 38. Verify Postman collection alignment
+  - [ ] 38.1 Compare test script payloads with Postman collection requests
+  - [ ] 38.2 Verify REST generation payload matches Postman "Generate from OpenAPI" request
+  - [ ] 38.3 Verify GraphQL generation payload matches Postman "Generate from GraphQL" request
+  - [ ] 38.4 Verify SOAP generation payload matches Postman "Generate from WSDL" request
+  - [ ] 38.5 Update test script if any mismatches are found
 
-- [ ] 33. Final validation
-  - [ ] 33.1 Test automatic workflow trigger with actual deployment
-  - [ ] 33.2 Verify workflow runs successfully after deployment to main
-  - [ ] 33.3 Review all code changes for quality and completeness
+- [ ] 39. Final validation
+  - [ ] 39.1 Test automatic workflow trigger with actual deployment
+  - [ ] 39.2 Verify workflow runs successfully after deployment to main
+  - [ ] 39.3 Verify parallel execution reduces test time (~30s vs ~90s)
+  - [ ] 39.4 Verify retry logic handles transient failures
+  - [ ] 39.5 Review all code changes for quality and completeness
 
-- [ ] 34. Create PR and merge Iteration 5
-  - [ ] 34.1 Create pull request with detailed description
-  - [ ] 34.2 Wait for CodeRabbit review
-  - [ ] 34.3 Address review comments if any
-  - [ ] 34.4 Merge to main branch after approval
+- [ ] 40. Create PR and merge Iteration 5
+  - [ ] 40.1 Create pull request with detailed description
+  - [ ] 40.2 Wait for CodeRabbit review
+  - [ ] 40.3 Address review comments if any
+  - [ ] 40.4 Merge to main branch after approval
 
 ## Notes
 
@@ -228,3 +260,14 @@ Each iteration builds on the previous one and can be merged independently:
 - Script must follow bash best practices (set -e, set -o pipefail)
 - Script must return exit code 0 on success, non-zero on failure
 - All tests must pass before proceeding to next task group
+
+## GitHub Actions Job-Level Parallelism
+
+- **Job-level parallelism** uses GitHub Actions native job dependencies (needs:) for parallel execution
+- **Setup job** runs first with health checks and cleanup, outputs API credentials
+- **Test jobs** (REST, GraphQL, SOAP) run in parallel after setup job completes
+- **Manual retry** is available via GitHub Actions "Re-run failed jobs" button
+- **Selective execution** via workflow_dispatch allows running individual test suites for debugging
+- **No automatic retry** - investigate failures before manually retrying
+- **Execution time** reduced from ~90s (sequential) to ~30s (parallel)
+- **Independent jobs** use unique namespaces to avoid conflicts
