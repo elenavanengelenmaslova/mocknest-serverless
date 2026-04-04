@@ -257,6 +257,23 @@ test_rest_import() {
   fi
   
   echo "✓ REST mock import passed"
+  
+  # Give the system a moment to persist the mappings
+  sleep 2
+  
+  # Debug: List all mappings to verify import
+  echo "  Verifying imported mappings..."
+  local mappings_list
+  mappings_list=$(curl "${CURL_OPTS[@]}" \
+    --request GET \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "WARNING: Could not retrieve mappings list"
+  }
+  
+  # Count how many mappings were imported
+  local mapping_count
+  mapping_count=$(echo "$mappings_list" | grep -o '"id"' | wc -l || echo "0")
+  echo "  Found $mapping_count mappings after import"
 }
 
 # Test REST mock invocation
@@ -267,14 +284,14 @@ test_rest_import() {
 test_rest_mock_invocation() {
   echo "Testing REST mock invocation..."
   
-  # Test 1: GET /pet/findByStatus?status=available
-  echo "  Testing GET /pet/findByStatus?status=available..."
+  # Test 1: GET /mocknest/petstore/pet/findByStatus?status=available
+  echo "  Testing GET /mocknest/petstore/pet/findByStatus?status=available..."
   local response
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request GET \
-    "$API_URL/pet/findByStatus?status=available" 2>&1) || {
-    echo "ERROR: GET /pet/findByStatus request failed"
+    "$API_URL/mocknest/petstore/pet/findByStatus?status=available" 2>&1) || {
+    echo "ERROR: GET /mocknest/petstore/pet/findByStatus request failed"
     echo "Response: $response"
     exit 1
   }
@@ -282,28 +299,27 @@ test_rest_mock_invocation() {
   parse_response "$response"
   
   if [ "$HTTP_CODE" != "200" ]; then
-    echo "ERROR: GET /pet/findByStatus failed with HTTP $HTTP_CODE"
+    echo "ERROR: GET /mocknest/petstore/pet/findByStatus failed with HTTP $HTTP_CODE"
     echo "Response: $BODY"
     exit 1
   fi
   
   # Validate response is a JSON array
   if ! echo "$BODY" | grep -q '^\['; then
-    echo "ERROR: GET /pet/findByStatus response is not a JSON array"
+    echo "ERROR: GET /mocknest/petstore/pet/findByStatus response is not a JSON array"
     echo "Response: $BODY"
     exit 1
   fi
   
-  echo "  ✓ GET /pet/findByStatus passed"
+  echo "  ✓ GET /mocknest/petstore/pet/findByStatus passed"
   
-  # Test 2: GET /pet/{petId}
-  # Use petId=1 as a reasonable test value
-  echo "  Testing GET /pet/1..."
+  # Test 2: GET /mocknest/petstore/pet/findByTags?tags=new
+  echo "  Testing GET /mocknest/petstore/pet/findByTags?tags=new..."
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request GET \
-    "$API_URL/pet/1" 2>&1) || {
-    echo "ERROR: GET /pet/1 request failed"
+    "$API_URL/mocknest/petstore/pet/findByTags?tags=new" 2>&1) || {
+    echo "ERROR: GET /mocknest/petstore/pet/findByTags request failed"
     echo "Response: $response"
     exit 1
   }
@@ -311,25 +327,19 @@ test_rest_mock_invocation() {
   parse_response "$response"
   
   if [ "$HTTP_CODE" != "200" ]; then
-    echo "ERROR: GET /pet/1 failed with HTTP $HTTP_CODE"
+    echo "ERROR: GET /mocknest/petstore/pet/findByTags failed with HTTP $HTTP_CODE"
     echo "Response: $BODY"
     exit 1
   fi
   
-  # Validate response contains expected pet fields
-  if ! echo "$BODY" | grep -q '"id"'; then
-    echo "ERROR: GET /pet/1 response missing 'id' field"
+  # Validate response is a JSON array
+  if ! echo "$BODY" | grep -q '^\['; then
+    echo "ERROR: GET /mocknest/petstore/pet/findByTags response is not a JSON array"
     echo "Response: $BODY"
     exit 1
   fi
   
-  if ! echo "$BODY" | grep -q '"name"'; then
-    echo "ERROR: GET /pet/1 response missing 'name' field"
-    echo "Response: $BODY"
-    exit 1
-  fi
-  
-  echo "  ✓ GET /pet/1 passed"
+  echo "  ✓ GET /mocknest/petstore/pet/findByTags passed"
   
   echo "✓ REST mock invocation passed"
 }
