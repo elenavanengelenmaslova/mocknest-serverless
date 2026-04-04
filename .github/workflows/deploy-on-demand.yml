@@ -31,3 +31,12 @@ jobs:
       github-actions-role-name: ${{ inputs.github-actions-role-name }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  integration-tests:
+    needs: deploy-on-demand
+    uses: ./.github/workflows/workflow-integration-test.yml
+    with:
+      aws-region: ${{ inputs.aws-region }}
+      github-actions-role-name: ${{ inputs.github-actions-role-name }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
