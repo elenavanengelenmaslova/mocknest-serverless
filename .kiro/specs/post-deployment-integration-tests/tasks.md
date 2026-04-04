@@ -75,26 +75,26 @@ Each iteration builds on the previous one and can be merged independently:
 
 ### Iteration 2: Delete Mappings + REST Generation/Import + Mock Invocation (Second PR)
 
+- [x] 11. Implement mapping cleanup test
 - [ ] 11. Implement mapping cleanup test
-- [ ] 11. Implement mapping cleanup test
-  - [ ] 11.1 Implement `test_delete_all_mappings()` function for DELETE /__admin/mappings
-  - [ ] 11.2 Add HTTP status code validation (expect 200)
-  - [ ] 11.3 Add clear success/failure output messages
+  - [x] 11.1 Implement `test_delete_all_mappings()` function for DELETE /__admin/mappings
+  - [x] 11.2 Add HTTP status code validation (expect 200)
+  - [x] 11.3 Add clear success/failure output messages
 
-- [ ] 12. Implement REST/OpenAPI mock generation test
-  - [ ] 12.1 Create REST generation request payload matching Postman collection
-  - [ ] 12.2 Use Petstore API specification URL (https://petstore3.swagger.io/api/v3/openapi.json)
-  - [ ] 12.3 Implement `test_rest_generation()` function for POST /ai/generation/from-spec
-  - [ ] 12.4 Add HTTP status code validation (expect 200)
-  - [ ] 12.5 Add response body validation (expect "mappings" array)
-  - [ ] 12.6 Store generated mappings in variable for import test
-  - [ ] 12.7 Add clear success/failure output messages
+- [x] 12. Implement REST/OpenAPI mock generation test
+  - [x] 12.1 Create REST generation request payload matching Postman collection
+  - [x] 12.2 Use Petstore API specification URL (https://petstore3.swagger.io/api/v3/openapi.json)
+  - [x] 12.3 Implement `test_rest_generation()` function for POST /ai/generation/from-spec
+  - [x] 12.4 Add HTTP status code validation (expect 200)
+  - [x] 12.5 Add response body validation (expect "mappings" array)
+  - [x] 12.6 Store generated mappings in variable for import test
+  - [x] 12.7 Add clear success/failure output messages
 
-- [ ] 13. Implement REST mock import test
-  - [ ] 13.1 Implement `test_rest_import()` function for POST /__admin/mappings/import
-  - [ ] 13.2 Use mappings generated from REST generation test
-  - [ ] 13.3 Add HTTP status code validation (expect 200)
-  - [ ] 13.4 Add clear success/failure output messages
+- [x] 13. Implement REST mock import test
+  - [x] 13.1 Implement `test_rest_import()` function for POST /__admin/mappings/import
+  - [x] 13.2 Use mappings generated from REST generation test
+  - [x] 13.3 Add HTTP status code validation (expect 200)
+  - [x] 13.4 Add clear success/failure output messages
 
 - [ ] 14. Implement REST mock invocation tests
   - [ ] 14.1 Identify 2 endpoints from Petstore API to test (e.g., GET /pet/{petId}, POST /pet)
@@ -103,23 +103,6 @@ Each iteration builds on the previous one and can be merged independently:
   - [ ] 14.4 Call second generated mock endpoint and verify response
   - [ ] 14.5 Add clear success/failure output messages
 
-- [ ] 15. Update main() function to include new tests
-  - [ ] 15.1 Add delete mappings test to main()
-  - [ ] 15.2 Add REST generation test to main()
-  - [ ] 15.3 Add REST import test to main()
-  - [ ] 15.4 Add REST mock invocation test to main()
-
-- [ ] 16. Test workflow from feature branch
-  - [ ] 16.1 Create feature branch and push changes
-  - [ ] 16.2 Manually trigger workflow from GitHub Actions UI
-  - [ ] 16.3 Verify all tests pass in workflow execution
-  - [ ] 16.4 Verify generated mocks work correctly
-
-- [ ] 17. Create PR and merge Iteration 2
-  - [ ] 17.1 Create pull request with detailed description
-  - [ ] 17.2 Wait for CodeRabbit review
-  - [ ] 17.3 Address review comments if any
-  - [ ] 17.4 Merge to main branch after approval
 
 ### Iteration 3: GraphQL Generation/Import + Mock Invocation (Third PR)
 

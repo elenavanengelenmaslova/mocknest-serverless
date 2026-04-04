@@ -97,6 +97,8 @@ jobs:
           echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
 
       - name: Run integration tests
+        id: run-tests
+        continue-on-error: true
         env:
           API_URL: ${{ steps.stack-outputs.outputs.api-url }}
           API_KEY: ${{ steps.api-key.outputs.api-key }}
@@ -107,8 +109,8 @@ jobs:
       - name: Create test summary
         if: always()
         run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            cat >> $GITHUB_STEP_SUMMARY <<EOF
+          if [ "${{ steps.run-tests.outcome }}" == "success" ]; then
+            cat >> $GITHUB_STEP_SUMMARY <<'EOF'
           ## 🧪 Post-Deployment Integration Tests
           
           **Status**: ✅ All tests passed
@@ -126,7 +128,7 @@ jobs:
           - All API endpoints are functional
           EOF
           else
-            cat >> $GITHUB_STEP_SUMMARY <<EOF
+            cat >> $GITHUB_STEP_SUMMARY <<'EOF'
           ## 🧪 Post-Deployment Integration Tests
           
           **Status**: ❌ Tests failed
@@ -140,4 +142,5 @@ jobs:
           - Check Lambda function logs in CloudWatch
           - Verify API Gateway configuration
           EOF
+            exit 1
           fi

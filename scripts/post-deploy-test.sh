@@ -111,6 +111,118 @@ test_ai_health() {
   echo "✓ AI generation health check passed"
 }
 
+# Test delete all mappings
+# Clears all existing mappings to ensure tests start with a clean state
+test_delete_all_mappings() {
+  echo "Testing delete all mappings..."
+  
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "ERROR: Delete all mappings request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  
+  parse_response "$response"
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERROR: Delete all mappings failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  echo "✓ Delete all mappings passed"
+}
+
+# Test REST/OpenAPI mock generation
+# Generates WireMock mappings from the Petstore OpenAPI specification
+test_rest_generation() {
+  echo "Testing REST/OpenAPI mock generation..."
+  
+  # Request payload matching Postman collection
+  local request_body
+  request_body='{
+    "namespace": {
+        "apiName": "petstore",
+        "client": null
+    },
+    "specification": null,
+    "specificationUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
+    "format": "OPENAPI_3",
+    "description": "Generate mocks for 4 pets, only GET endpoints. 1 pet is a bird with image: https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg, available, new, tag id=1 name=new. API call to get all new pets returns that bird. The other 3 pets are available but not new.",
+    "options": {
+        "enableValidation": true
+    }
+}'
+  
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$request_body" \
+    "$API_URL/ai/generation/from-spec" 2>&1) || {
+    echo "ERROR: REST generation request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  
+  parse_response "$response"
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERROR: REST generation failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Validate response contains "mappings" array
+  if ! echo "$BODY" | grep -q '"mappings"'; then
+    echo "ERROR: REST generation response missing 'mappings' array"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Store generated mappings for import test
+  REST_MAPPINGS="$BODY"
+  
+  echo "✓ REST mock generation passed"
+}
+
+# Test REST mock import
+# Imports the generated REST/OpenAPI mocks into the WireMock runtime
+test_rest_import() {
+  echo "Testing REST mock import..."
+  
+  # Validate that REST_MAPPINGS is set from generation test
+  if [ -z "$REST_MAPPINGS" ]; then
+    echo "ERROR: REST_MAPPINGS not set. REST generation test must run first."
+    exit 1
+  fi
+  
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$REST_MAPPINGS" \
+    "$API_URL/__admin/mappings/import" 2>&1) || {
+    echo "ERROR: REST import request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  
+  parse_response "$response"
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERROR: REST import failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  echo "✓ REST mock import passed"
+}
+
 # Main test execution
 main() {
   echo "=== MockNest Serverless Post-Deployment Integration Tests ==="
@@ -119,6 +231,9 @@ main() {
   
   test_runtime_health
   test_ai_health
+  test_delete_all_mappings
+  test_rest_generation
+  test_rest_import
   
   echo ""
   echo "=== All Tests Passed ==="
