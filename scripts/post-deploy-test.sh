@@ -70,7 +70,7 @@ test_runtime_health() {
     exit 1
   fi
   
-  if ! echo "$BODY" | grep -q '"status": "healthy"'; then
+  if ! echo "$BODY" | grep -q '"status"[[:space:]]*:[[:space:]]*"healthy"'; then
     echo "ERROR: Runtime health check response missing 'status: healthy'"
     echo "Response: $BODY"
     exit 1
@@ -102,7 +102,7 @@ test_ai_health() {
     exit 1
   fi
   
-  if ! echo "$BODY" | grep -q '"status": "healthy"'; then
+  if ! echo "$BODY" | grep -q '"status"[[:space:]]*:[[:space:]]*"healthy"'; then
     echo "ERROR: AI generation health check response missing 'status: healthy'"
     echo "Response: $BODY"
     exit 1
