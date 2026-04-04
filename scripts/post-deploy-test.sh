@@ -360,7 +360,7 @@ test_graphql_generation() {
     "specification": null,
     "specificationUrl": "https://countries.trevorblades.com/graphql",
     "format": "GRAPHQL",
-    "description": "Generate mocks for country queries including country details, continents, and languages with realistic test data.",
+    "description": "Generate mocks for country queries including country details, continents, and languages with realistic test data. Include country code: \"NL\".",
     "options": {
         "enableValidation": true
     }
