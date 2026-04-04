@@ -147,22 +147,35 @@ Each iteration builds on the previous one and can be merged independently:
   - [x] 25.3 Add HTTP status code validation (expect 200)
   - [x] 25.4 Add clear success/failure output messages
 
+- [x] 26. Implement GraphQL mock invocation tests
+  - [x] 26.1 Identify 2 GraphQL queries to test from Countries API
+  - [x] 26.2 Implement `test_graphql_mock_invocation()` function
+  - [x] 26.3 Call first generated GraphQL mock and verify response
+  - [x] 26.4 Call second generated GraphQL mock and verify response
+  - [x] 26.5 Add clear success/failure output messages
+
+- [x] 27. Create GraphQL test job in workflow
+  - [x] 27.1 Create new job named "test-graphql" that depends on setup job (needs: setup)
+  - [x] 27.2 Use api-url and api-key from setup job outputs
+  - [x] 27.3 Call test script with "graphql" argument
+  - [x] 27.4 Add conditional execution based on workflow_dispatch input
+
 ### Iteration 4: SOAP/WSDL Generation/Import + Mock Invocation (Fourth PR)
 
-- [ ] 30. Implement SOAP/WSDL mock generation test
-  - [ ] 30.1 Create SOAP generation request payload matching Postman collection
-  - [ ] 30.2 Use Calculator WSDL URL (http://www.dneonline.com/calculator.asmx?WSDL)
-  - [ ] 30.3 Implement `test_soap_generation()` function for POST /ai/generation/from-spec
-  - [ ] 30.4 Add HTTP status code validation (expect 200)
-  - [ ] 30.5 Add response body validation (expect "mappings" array)
-  - [ ] 30.6 Store generated mappings in variable for import test
-  - [ ] 30.7 Add clear success/failure output messages
+- [x] 30. Implement SOAP/WSDL mock generation test
+  - [x] 30.1 Create SOAP generation request payload matching Postman collection
+  - [x] 30.2 Use Calculator WSDL URL (http://www.dneonline.com/calculator.asmx?WSDL)
+  - [x] 30.3 Implement `test_soap_generation()` function for POST /ai/generation/from-spec
+  - [x] 30.4 Add HTTP status code validation (expect 200)
+  - [x] 30.5 Add response body validation (expect "mappings" array)
+  - [x] 30.6 Store generated mappings in variable for import test
+  - [x] 30.7 Add clear success/failure output messages
 
-- [ ] 31. Implement SOAP mock import test
-  - [ ] 31.1 Implement `test_soap_import()` function for POST /__admin/mappings/import
-  - [ ] 31.2 Use mappings generated from SOAP generation test
-  - [ ] 31.3 Add HTTP status code validation (expect 200)
-  - [ ] 31.4 Add clear success/failure output messages
+- [x] 31. Implement SOAP mock import test
+  - [x] 31.1 Implement `test_soap_import()` function for POST /__admin/mappings/import
+  - [x] 31.2 Use mappings generated from SOAP generation test
+  - [x] 31.3 Add HTTP status code validation (expect 200)
+  - [x] 31.4 Add clear success/failure output messages
 
 - [ ] 32. Implement SOAP mock invocation tests
   - [ ] 32.1 Identify 2 SOAP operations to test from Calculator WSDL (e.g., Add, Multiply)
@@ -171,11 +184,11 @@ Each iteration builds on the previous one and can be merged independently:
   - [ ] 32.4 Call second generated SOAP mock and verify response
   - [ ] 32.5 Add clear success/failure output messages
 
-- [ ] 33. Create SOAP test job in workflow
-  - [ ] 33.1 Create new job named "test-soap" that depends on setup job (needs: setup)
-  - [ ] 33.2 Use api-url and api-key from setup job outputs
-  - [ ] 33.3 Call test script with "soap" argument
-  - [ ] 33.4 Add conditional execution based on workflow_dispatch input
+- [x] 33. Create SOAP test job in workflow
+  - [x] 33.1 Create new job named "test-soap" that depends on setup job (needs: setup)
+  - [x] 33.2 Use api-url and api-key from setup job outputs
+  - [x] 33.3 Call test script with "soap" argument
+  - [x] 33.4 Add conditional execution based on workflow_dispatch input
 
 - [ ] 34. Test workflow from feature branch
   - [ ] 34.1 Create feature branch and push changes

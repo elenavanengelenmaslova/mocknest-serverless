@@ -429,6 +429,221 @@ test_graphql_import() {
   fi
   
   echo "✓ GraphQL mock import passed"
+  
+  # Give the system a moment to persist the mappings
+  sleep 2
+  
+  # Debug: List all mappings to verify import
+  echo "  Verifying imported mappings..."
+  local mappings_list
+  mappings_list=$(curl "${CURL_OPTS[@]}" \
+    --request GET \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "WARNING: Could not retrieve mappings list"
+  }
+  
+  # Count how many mappings were imported
+  local mapping_count
+  mapping_count=$(echo "$mappings_list" | grep -o '"id"' | wc -l || echo "0")
+  echo "  Found $mapping_count mappings after import"
+}
+
+# Test GraphQL mock invocation
+# Validates that imported GraphQL mocks respond correctly to requests
+# Tests two GraphQL queries from the Countries API:
+# 1. Query to get a specific country by code (Netherlands - NL)
+# 2. Query to get all continents
+test_graphql_mock_invocation() {
+  echo "Testing GraphQL mock invocation..."
+  
+  # Test 1: Query for a specific country (Netherlands)
+  echo "  Testing GraphQL query: country(code: \"NL\")..."
+  local query1
+  query1='{
+    "query": "query { country(code: \"NL\") { code name capital currency continent { name } languages { name } } }"
+  }'
+  
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$query1" \
+    "$API_URL/mocknest/countries/graphql" 2>&1) || {
+    echo "ERROR: GraphQL country query request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  
+  parse_response "$response"
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERROR: GraphQL country query failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Validate response contains "data" field (standard GraphQL response structure)
+  if ! echo "$BODY" | grep -q '"data"'; then
+    echo "ERROR: GraphQL country query response missing 'data' field"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Validate response contains country data
+  if ! echo "$BODY" | grep -q '"country"'; then
+    echo "ERROR: GraphQL country query response missing 'country' field"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  echo "  ✓ GraphQL country query passed"
+  
+  # Test 2: Query for all continents
+  echo "  Testing GraphQL query: continents..."
+  local query2
+  query2='{
+    "query": "query { continents { code name } }"
+  }'
+  
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$query2" \
+    "$API_URL/mocknest/countries/graphql" 2>&1) || {
+    echo "ERROR: GraphQL continents query request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  
+  parse_response "$response"
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERROR: GraphQL continents query failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Validate response contains "data" field
+  if ! echo "$BODY" | grep -q '"data"'; then
+    echo "ERROR: GraphQL continents query response missing 'data' field"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Validate response contains continents array
+  if ! echo "$BODY" | grep -q '"continents"'; then
+    echo "ERROR: GraphQL continents query response missing 'continents' field"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  echo "  ✓ GraphQL continents query passed"
+  
+  echo "✓ GraphQL mock invocation passed"
+}
+
+# Test SOAP/WSDL mock generation
+# Generates WireMock mappings from the Calculator WSDL specification
+test_soap_generation() {
+  echo "Testing SOAP/WSDL mock generation..."
+  
+  # Request payload matching Postman collection
+  # Using Calculator WSDL as specified in requirements
+  local request_body
+  request_body='{
+    "namespace": {
+        "apiName": "calculator",
+        "client": null
+    },
+    "specification": null,
+    "specificationUrl": "http://www.dneonline.com/calculator.asmx?WSDL",
+    "format": "WSDL",
+    "description": "Generate mocks for the Calculator SOAP service with sample calculations including Add, Subtract, Multiply, and Divide operations.",
+    "options": {
+        "enableValidation": true
+    }
+}'
+  
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$request_body" \
+    "$API_URL/ai/generation/from-spec" 2>&1) || {
+    echo "ERROR: SOAP generation request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  
+  parse_response "$response"
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERROR: SOAP generation failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Validate response contains "mappings" array
+  if ! echo "$BODY" | grep -q '"mappings"'; then
+    echo "ERROR: SOAP generation response missing 'mappings' array"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Store generated mappings for import test
+  SOAP_MAPPINGS="$BODY"
+  
+  echo "✓ SOAP mock generation passed"
+}
+
+# Test SOAP mock import
+# Imports the generated SOAP/WSDL mocks into the WireMock runtime
+test_soap_import() {
+  echo "Testing SOAP mock import..."
+  
+  # Validate that SOAP_MAPPINGS is set from generation test
+  if [ -z "$SOAP_MAPPINGS" ]; then
+    echo "ERROR: SOAP_MAPPINGS not set. SOAP generation test must run first."
+    exit 1
+  fi
+  
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$SOAP_MAPPINGS" \
+    "$API_URL/__admin/mappings/import" 2>&1) || {
+    echo "ERROR: SOAP import request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  
+  parse_response "$response"
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERROR: SOAP import failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  echo "✓ SOAP mock import passed"
+  
+  # Give the system a moment to persist the mappings
+  sleep 2
+  
+  # Debug: List all mappings to verify import
+  echo "  Verifying imported mappings..."
+  local mappings_list
+  mappings_list=$(curl "${CURL_OPTS[@]}" \
+    --request GET \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "WARNING: Could not retrieve mappings list"
+  }
+  
+  # Count how many mappings were imported
+  local mapping_count
+  mapping_count=$(echo "$mappings_list" | grep -o '"id"' | wc -l || echo "0")
+  echo "  Found $mapping_count mappings after import"
 }
 
 # Main test execution
@@ -453,11 +668,12 @@ main() {
       echo "Running GraphQL tests..."
       test_graphql_generation
       test_graphql_import
+      test_graphql_mock_invocation
       ;;
     soap)
       echo "Running SOAP/WSDL tests..."
-      echo "ERROR: SOAP tests not yet implemented"
-      exit 1
+      test_soap_generation
+      test_soap_import
       ;;
     all)
       echo "Running all tests..."
@@ -468,6 +684,9 @@ main() {
       test_rest_import
       test_graphql_generation
       test_graphql_import
+      test_graphql_mock_invocation
+      test_soap_generation
+      test_soap_import
       ;;
     *)
       echo "ERROR: Unknown test suite: $TEST_SUITE"

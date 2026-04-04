@@ -188,3 +188,103 @@ jobs:
           
           chmod +x scripts/post-deploy-test.sh
           ./scripts/post-deploy-test.sh rest
+
+  test-graphql:
+    name: GraphQL Generation and Import
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'graphql' || inputs.test-suite == '') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Retrieve API key value
+        id: api-key
+        run: |
+          API_KEY=$(aws apigateway get-api-key \
+            --api-key "${{ needs.setup.outputs.api-key-id }}" \
+            --include-value \
+            --query 'value' \
+            --output text)
+          
+          # Mask API key immediately
+          echo "::add-mask::$API_KEY"
+          
+          # Validate API key
+          if [ -z "$API_KEY" ]; then
+            echo "ERROR: Failed to retrieve API key value"
+            exit 1
+          fi
+          
+          echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
+
+      - name: Run GraphQL tests
+        env:
+          API_URL: ${{ needs.setup.outputs.api-url }}
+          API_KEY: ${{ steps.api-key.outputs.api-key }}
+        run: |
+          # Validate that setup job provided required outputs
+          if [ -z "$API_URL" ] || [ -z "$API_KEY" ]; then
+            echo "ERROR: API_URL or API_KEY not available"
+            echo "API_URL from setup: ${{ needs.setup.outputs.api-url }}"
+            exit 1
+          fi
+          
+          chmod +x scripts/post-deploy-test.sh
+          ./scripts/post-deploy-test.sh graphql
+
+  test-soap:
+    name: SOAP Generation and Import
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'soap' || inputs.test-suite == '') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Retrieve API key value
+        id: api-key
+        run: |
+          API_KEY=$(aws apigateway get-api-key \
+            --api-key "${{ needs.setup.outputs.api-key-id }}" \
+            --include-value \
+            --query 'value' \
+            --output text)
+          
+          # Mask API key immediately
+          echo "::add-mask::$API_KEY"
+          
+          # Validate API key
+          if [ -z "$API_KEY" ]; then
+            echo "ERROR: Failed to retrieve API key value"
+            exit 1
+          fi
+          
+          echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
+
+      - name: Run SOAP tests
+        env:
+          API_URL: ${{ needs.setup.outputs.api-url }}
+          API_KEY: ${{ steps.api-key.outputs.api-key }}
+        run: |
+          # Validate that setup job provided required outputs
+          if [ -z "$API_URL" ] || [ -z "$API_KEY" ]; then
+            echo "ERROR: API_URL or API_KEY not available"
+            echo "API_URL from setup: ${{ needs.setup.outputs.api-url }}"
+            exit 1
+          fi
+          
+          chmod +x scripts/post-deploy-test.sh
+          ./scripts/post-deploy-test.sh soap
