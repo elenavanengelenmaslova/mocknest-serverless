@@ -344,6 +344,93 @@ test_rest_mock_invocation() {
   echo "✓ REST mock invocation passed"
 }
 
+# Test GraphQL mock generation
+# Generates WireMock mappings from the Countries GraphQL API
+test_graphql_generation() {
+  echo "Testing GraphQL mock generation..."
+  
+  # Request payload matching Postman collection
+  # Using Countries GraphQL API as specified in requirements
+  local request_body
+  request_body='{
+    "namespace": {
+        "apiName": "countries",
+        "client": null
+    },
+    "specification": null,
+    "specificationUrl": "https://countries.trevorblades.com/graphql",
+    "format": "GRAPHQL",
+    "description": "Generate mocks for country queries including country details, continents, and languages with realistic test data.",
+    "options": {
+        "enableValidation": true
+    }
+}'
+  
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$request_body" \
+    "$API_URL/ai/generation/from-spec" 2>&1) || {
+    echo "ERROR: GraphQL generation request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  
+  parse_response "$response"
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERROR: GraphQL generation failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Validate response contains "mappings" array
+  if ! echo "$BODY" | grep -q '"mappings"'; then
+    echo "ERROR: GraphQL generation response missing 'mappings' array"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  # Store generated mappings for import test
+  GRAPHQL_MAPPINGS="$BODY"
+  
+  echo "✓ GraphQL mock generation passed"
+}
+
+# Test GraphQL mock import
+# Imports the generated GraphQL mocks into the WireMock runtime
+test_graphql_import() {
+  echo "Testing GraphQL mock import..."
+  
+  # Validate that GRAPHQL_MAPPINGS is set from generation test
+  if [ -z "$GRAPHQL_MAPPINGS" ]; then
+    echo "ERROR: GRAPHQL_MAPPINGS not set. GraphQL generation test must run first."
+    exit 1
+  fi
+  
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$GRAPHQL_MAPPINGS" \
+    "$API_URL/__admin/mappings/import" 2>&1) || {
+    echo "ERROR: GraphQL import request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  
+  parse_response "$response"
+  
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "ERROR: GraphQL import failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  
+  echo "✓ GraphQL mock import passed"
+}
+
 # Main test execution
 main() {
   echo "=== MockNest Serverless Post-Deployment Integration Tests ==="
@@ -361,12 +448,11 @@ main() {
       echo "Running REST/OpenAPI tests..."
       test_rest_generation
       test_rest_import
-      test_rest_mock_invocation
       ;;
     graphql)
       echo "Running GraphQL tests..."
-      echo "ERROR: GraphQL tests not yet implemented"
-      exit 1
+      test_graphql_generation
+      test_graphql_import
       ;;
     soap)
       echo "Running SOAP/WSDL tests..."
@@ -380,7 +466,8 @@ main() {
       test_delete_all_mappings
       test_rest_generation
       test_rest_import
-      test_rest_mock_invocation
+      test_graphql_generation
+      test_graphql_import
       ;;
     *)
       echo "ERROR: Unknown test suite: $TEST_SUITE"

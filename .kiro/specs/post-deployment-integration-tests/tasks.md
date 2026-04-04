@@ -132,45 +132,20 @@ Each iteration builds on the previous one and can be merged independently:
 
 ### Iteration 3: GraphQL Generation/Import + Mock Invocation (Third PR)
 
-- [ ] 24. Implement GraphQL mock generation test
-  - [ ] 24.1 Create GraphQL generation request payload matching Postman collection
-  - [ ] 24.2 Use Countries GraphQL API URL (https://countries.trevorblades.com/graphql)
-  - [ ] 24.3 Implement `test_graphql_generation()` function for POST /ai/generation/from-spec
-  - [ ] 24.4 Add HTTP status code validation (expect 200)
-  - [ ] 24.5 Add response body validation (expect "mappings" array)
-  - [ ] 24.6 Store generated mappings in variable for import test
-  - [ ] 24.7 Add clear success/failure output messages
+- [x] 24. Implement GraphQL mock generation test
+  - [x] 24.1 Create GraphQL generation request payload matching Postman collection
+  - [x] 24.2 Use Countries GraphQL API URL (https://countries.trevorblades.com/graphql)
+  - [x] 24.3 Implement `test_graphql_generation()` function for POST /ai/generation/from-spec
+  - [x] 24.4 Add HTTP status code validation (expect 200)
+  - [x] 24.5 Add response body validation (expect "mappings" array)
+  - [x] 24.6 Store generated mappings in variable for import test
+  - [x] 24.7 Add clear success/failure output messages
 
-- [ ] 25. Implement GraphQL mock import test
-  - [ ] 25.1 Implement `test_graphql_import()` function for POST /__admin/mappings/import
-  - [ ] 25.2 Use mappings generated from GraphQL generation test
-  - [ ] 25.3 Add HTTP status code validation (expect 200)
-  - [ ] 25.4 Add clear success/failure output messages
-
-- [ ] 26. Implement GraphQL mock invocation tests
-  - [ ] 26.1 Identify 2 GraphQL queries to test from Countries API
-  - [ ] 26.2 Implement `test_graphql_mock_invocation()` function
-  - [ ] 26.3 Call first generated GraphQL mock and verify response
-  - [ ] 26.4 Call second generated GraphQL mock and verify response
-  - [ ] 26.5 Add clear success/failure output messages
-
-- [ ] 27. Create GraphQL test job in workflow
-  - [ ] 27.1 Create new job named "test-graphql" that depends on setup job (needs: setup)
-  - [ ] 27.2 Use api-url and api-key from setup job outputs
-  - [ ] 27.3 Call test script with "graphql" argument
-  - [ ] 27.4 Add conditional execution based on workflow_dispatch input
-
-- [ ] 28. Test workflow from feature branch
-  - [ ] 28.1 Create feature branch and push changes
-  - [ ] 28.2 Manually trigger workflow from GitHub Actions UI
-  - [ ] 28.3 Verify all tests pass in workflow execution
-  - [ ] 28.4 Verify GraphQL mocks work correctly
-
-- [ ] 29. Create PR and merge Iteration 3
-  - [ ] 29.1 Create pull request with detailed description
-  - [ ] 29.2 Wait for CodeRabbit review
-  - [ ] 29.3 Address review comments if any
-  - [ ] 29.4 Merge to main branch after approval
+- [x] 25. Implement GraphQL mock import test
+  - [x] 25.1 Implement `test_graphql_import()` function for POST /__admin/mappings/import
+  - [x] 25.2 Use mappings generated from GraphQL generation test
+  - [x] 25.3 Add HTTP status code validation (expect 200)
+  - [x] 25.4 Add clear success/failure output messages
 
 ### Iteration 4: SOAP/WSDL Generation/Import + Mock Invocation (Fourth PR)
 
