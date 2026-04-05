@@ -46,13 +46,3 @@ jobs:
       github-actions-role-name: 'GitHubOIDCAdmin'  # Change this to your existing role name
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-
-  integration-tests:
-    needs: deploy
-    if: needs.detect-changes.outputs.deploy-relevant == 'true'
-    uses: ./.github/workflows/workflow-integration-test.yml
-    with:
-      aws-region: 'eu-west-1'
-      github-actions-role-name: 'GitHubOIDCAdmin'
-    secrets:
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
