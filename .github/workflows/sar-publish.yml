@@ -34,17 +34,28 @@ jobs:
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   
-  test:
+  test-api-key:
     needs: publish
     uses: ./.github/workflows/sar-test-pipeline.yml
     with:
       aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
       version: ${{ inputs.version || github.event.release.tag_name }}
+      auth-mode: 'API_KEY'
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-  
+
+  test-iam:
+    needs: publish
+    uses: ./.github/workflows/sar-test-pipeline.yml
+    with:
+      aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
+      version: ${{ inputs.version || github.event.release.tag_name }}
+      auth-mode: 'IAM'
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
   summary:
-    needs: [publish, test]
+    needs: [publish, test-api-key, test-iam]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -57,18 +68,43 @@ jobs:
           echo "**Application ID:** ${{ needs.publish.outputs.application_id }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Include test pipeline status
+          # Include test pipeline status for both runs
           echo "### 🧪 Test Pipeline Status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ needs.test.result }}" = "success" ]; then
-            echo "**Status:** ✅ All tests passed" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.test.result }}" = "failure" ]; then
-            echo "**Status:** ❌ Tests failed" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.test.result }}" = "cancelled" ]; then
-            echo "**Status:** ⏭️ Tests cancelled" >> $GITHUB_STEP_SUMMARY
+          echo "| Auth Mode | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.test-api-key.result }}" = "success" ]; then
+            echo "| API_KEY | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-api-key.result }}" = "failure" ]; then
+            echo "| API_KEY | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-api-key.result }}" = "cancelled" ]; then
+            echo "| API_KEY | ⏭️ Cancelled |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "**Status:** ⚠️ Tests skipped" >> $GITHUB_STEP_SUMMARY
+            echo "| API_KEY | ⚠️ Skipped |" >> $GITHUB_STEP_SUMMARY
           fi
+          
+          if [ "${{ needs.test-iam.result }}" = "success" ]; then
+            echo "| IAM | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-iam.result }}" = "failure" ]; then
+            echo "| IAM | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-iam.result }}" = "cancelled" ]; then
+            echo "| IAM | ⏭️ Cancelled |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| IAM | ⚠️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall release status
+          if [ "${{ needs.test-api-key.result }}" = "failure" ] || [ "${{ needs.test-iam.result }}" = "failure" ]; then
+            echo "**Overall Release Status:** ❌ Failed — one or more validation runs failed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-api-key.result }}" = "success" ] && [ "${{ needs.test-iam.result }}" = "success" ]; then
+            echo "**Overall Release Status:** ✅ All validation runs passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Overall Release Status:** ⚠️ Incomplete — one or more validation runs were cancelled or skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+          
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📊 [View detailed test results](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

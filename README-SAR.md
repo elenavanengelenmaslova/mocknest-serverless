@@ -22,6 +22,7 @@ When deploying from SAR, you can configure these parameters:
 | **BedrockInferenceMode** | Inference profile selection mode for Bedrock model access | `AUTO` | AUTO (recommended), GLOBAL_ONLY, or GEO_ONLY. See details below. |
 | **BedrockGenerationMaxRetries** | Maximum number of retry attempts for AI mock generation if validation fails | `1` | Range: 0-2 retries. Limited by API Gateway synchronous timeout (~29s). |
 | **LogRetentionDays** | Number of days to retain CloudWatch logs for Lambda functions | `7` | Allowed values: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, and more. |
+| **AuthMode** | Authentication mode for all API Gateway endpoints | `API_KEY` | `API_KEY` (default): callers supply an `x-api-key` header; an API key and usage plan are created automatically. `IAM`: callers sign requests with AWS Signature Version 4; no API key is created. |
 
 ### BedrockInferenceMode Details
 
@@ -50,6 +51,8 @@ After deployment, find your API Gateway endpoint and API key in the CloudFormati
 2. Find your MockNest stack (usually named `serverlessrepo-MockNest-Serverless-*`)
 3. Click the **Outputs** tab
 4. Note the `MockNestApiUrl` value. For `MockNestApiKey`, the output shows the API key ID — to retrieve the actual key value, go to API Gateway → API Keys → select the key → Show
+
+> **Note**: In IAM mode (`AuthMode=IAM`), the `MockNestApiKey` CloudFormation output is not present. Authentication is handled via SigV4 request signing instead of API keys.
 
 ## Quick Start
 
@@ -236,12 +239,14 @@ For a detailed cost breakdown, see the [Cost Guide](https://github.com/elenavane
 
 ## Security
 
-**API Key Authentication**: All endpoints require a valid API key in the `x-api-key` header.
+**Authentication**: MockNest Serverless supports two authentication modes, selectable at deployment time via the `AuthMode` parameter:
+
+- **API_KEY** (default): All endpoints require a valid API key in the `x-api-key` header. An API key and usage plan are created automatically.
+- **IAM**: All endpoints require requests signed with AWS Signature Version 4. No API key is created. Callers must have `execute-api:Invoke` permission on the deployed API.
 
 **Best Practices**:
-- Rotate API keys regularly
-- Only share keys with authorized team members
-- Monitor usage via CloudTrail
+- When using `AuthMode=API_KEY`: rotate API keys regularly, only share keys with authorized team members, and monitor usage via CloudTrail
+- When using `AuthMode=IAM`: ensure callers have only the `execute-api:Invoke` permission scoped to the specific API, and use IAM policies to restrict access by identity
 
 **AWS Security**: Least-privilege IAM permissions, encryption in transit (HTTPS) and at rest (S3), isolated S3 buckets per deployment.
 

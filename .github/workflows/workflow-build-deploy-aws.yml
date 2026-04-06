@@ -117,21 +117,38 @@ jobs:
           cd deployment/aws/sam
           STACK_NAME=$(sam list stack-outputs --config-env ${{ inputs.environment }} --output json | jq -r '.[0].StackName')
           API_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text)
-          API_KEY=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' --output text)
           BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' --output text)
-          
+          DEPLOYED_AUTH_MODE=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`AuthMode`].OutputValue' --output text 2>/dev/null || echo "API_KEY")
+
           echo "api-url=$API_URL" >> $GITHUB_OUTPUT
-          echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
           echo "bucket-name=$BUCKET_NAME" >> $GITHUB_OUTPUT
           echo "stack-name=$STACK_NAME" >> $GITHUB_OUTPUT
-          
+          echo "auth-mode=$DEPLOYED_AUTH_MODE" >> $GITHUB_OUTPUT
+
+          if [ "$DEPLOYED_AUTH_MODE" = "API_KEY" ]; then
+            API_KEY_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' --output text)
+            echo "api-key-id=$API_KEY_ID" >> $GITHUB_OUTPUT
+          fi
+
       - name: Test deployment
         if: steps.sam-deploy.outputs.deployed == 'true'
         run: |
           echo "Testing MockNest Serverless deployment..."
-          curl -H "x-api-key: ${{ steps.outputs.outputs.api-key }}" \
-               -X GET "${{ steps.outputs.outputs.api-url }}__admin/mappings" \
-               -w "HTTP Status: %{http_code}\n"
+          AUTH_MODE="${{ steps.outputs.outputs.auth-mode }}"
+          if [ "$AUTH_MODE" = "IAM" ]; then
+            curl --aws-sigv4 "aws:amz:${{ inputs.aws-region }}:execute-api" \
+                 --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY" \
+                 -H "x-amz-security-token: $AWS_SESSION_TOKEN" \
+                 -X GET "${{ steps.outputs.outputs.api-url }}__admin/mappings" \
+                 -w "HTTP Status: %{http_code}\n"
+          else
+            API_KEY_VALUE=$(aws apigateway get-api-key \
+              --api-key "${{ steps.outputs.outputs.api-key-id }}" \
+              --include-value --query 'value' --output text)
+            curl -H "x-api-key: $API_KEY_VALUE" \
+                 -X GET "${{ steps.outputs.outputs.api-url }}__admin/mappings" \
+                 -w "HTTP Status: %{http_code}\n"
+          fi
                
       - name: Create deployment summary
         if: steps.sam-deploy.outputs.deployed == 'true'

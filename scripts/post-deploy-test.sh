@@ -40,11 +40,11 @@ else
   API_KEY="${3:-$API_KEY}"
 fi
 
-if [ -z "$API_URL" ] || [ -z "$API_KEY" ]; then
-  echo "ERROR: API_URL and API_KEY are required"
+if [ -z "$API_URL" ]; then
+  echo "ERROR: API_URL is required"
   echo ""
-  echo "Usage: $0 [TEST_SUITE] <API_URL> <API_KEY>"
-  echo "   or: $0 [TEST_SUITE]  # if API_URL and API_KEY are set as environment variables"
+  echo "Usage: $0 [TEST_SUITE] <API_URL> [API_KEY]"
+  echo "   or: $0 [TEST_SUITE]  # if API_URL (and API_KEY for API_KEY mode) are set as environment variables"
   echo ""
   echo "TEST_SUITE options: setup, rest, graphql, soap, all (default: all)"
   echo ""
@@ -58,19 +58,38 @@ fi
 # Remove trailing slash from API_URL if present
 API_URL="${API_URL%/}"
 
-# Common curl options
-# --fail: Fail on HTTP errors (4xx, 5xx)
-# --silent: Suppress progress meter
-# --show-error: Show errors even in silent mode
-# --max-time 30: 30 second timeout (AI generation can take up to 20 seconds)
-CURL_OPTS=(
-  --fail
-  --silent
-  --show-error
-  --max-time 30
-  --header "x-api-key: $API_KEY"
-  --header "Content-Type: application/json"
-)
+# Detect auth mode: AUTH_MODE env var takes precedence, otherwise require API_KEY
+AUTH_MODE="${AUTH_MODE:-API_KEY}"
+
+if [ "$AUTH_MODE" = "IAM" ]; then
+  echo "Auth mode: IAM (SigV4 signing)"
+  # Build curl options for IAM mode — no API key header, use SigV4
+  CURL_OPTS=(
+    --fail
+    --silent
+    --show-error
+    --max-time 30
+    --aws-sigv4 "aws:amz:${AWS_DEFAULT_REGION:-${AWS_REGION:-us-east-1}}:execute-api"
+    --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}"
+    --header "x-amz-security-token: ${AWS_SESSION_TOKEN}"
+    --header "Content-Type: application/json"
+  )
+else
+  echo "Auth mode: API_KEY"
+  if [ -z "$API_KEY" ]; then
+    echo "ERROR: API_KEY is required in API_KEY auth mode"
+    exit 2
+  fi
+  # Build curl options for API_KEY mode
+  CURL_OPTS=(
+    --fail
+    --silent
+    --show-error
+    --max-time 30
+    --header "x-api-key: $API_KEY"
+    --header "Content-Type: application/json"
+  )
+fi
 
 # Helper function for HTTP response parsing
 # Separates HTTP status code from response body

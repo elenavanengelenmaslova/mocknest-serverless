@@ -91,6 +91,8 @@ Check AI generation health:
 curl "${MOCKNEST_URL}/ai/generation/health" -H "x-api-key: ${API_KEY}"
 ```
 
+> **Note**: The `x-api-key` header applies to API key mode (the default). In IAM mode, requests must be SigV4-signed instead of using an API key header.
+
 ### Step 4: Create and Test a Mock
 
 Create a simple mock:
@@ -112,6 +114,8 @@ Test the mock:
 ```bash
 curl "${MOCKNEST_URL}/mocknest/hello" -H "x-api-key: ${API_KEY}"
 ```
+
+> **Note**: The `x-api-key` header applies to API key mode (the default). In IAM mode, use SigV4 request signing instead.
 
 ### Step 5: Try AI-Assisted Generation
 
@@ -383,7 +387,7 @@ sam deploy --region us-east-1
 sam deploy --parameter-overrides \
   BedrockModelName=AmazonNovaPro \
   BedrockInferenceMode=AUTO \
-  BucketName=my-custom-bucket
+  AuthMode=IAM
 ```
 
 ### Local Development
@@ -431,6 +435,7 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 | **Log Retention** | `LogRetentionDays` | N/A | 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365+ | `7` | SAM parameter only - CloudWatch log retention for Lambda functions |
 | **Max Retries** | `BedrockGenerationMaxRetries` | `MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES` | 0-2 | `1` | SAM parameter for deployment; environment variable for runtime override. Limited by API Gateway timeout (~29s) |
 | **Deployment Name** | `DeploymentName` | N/A | Alphanumeric string | `mocks` | SAM parameter only - used for resource naming and identification |
+| **Auth Mode** | `AuthMode` | N/A | `API_KEY`, `IAM` | `API_KEY` | SAM parameter only — `API_KEY` (default) creates an API key and usage plan; `IAM` requires SigV4-signed requests and does not create an API key |
 
 **Configuration Precedence**: Environment variables override SAM parameters at runtime. Use SAM parameters for initial deployment configuration and environment variables for runtime adjustments without redeployment.
 

@@ -51,6 +51,7 @@ Both values can be obtained from the **API Gateway console**:
 
 Alternatively, the API Gateway URL is available in deployment outputs as `MockNestApiUrl`, but you'll still need to visit the API Gateway console to retrieve the actual API key value (the deployment output shows only the key ID).
 
+> **Note**: This guide uses API key mode (the default). In IAM mode (`AuthMode=IAM`), replace the `x-api-key` header with SigV4 request signing using your IAM credentials.
 
 ## Setup
 
@@ -94,6 +95,8 @@ curl -X GET "${MOCKNEST_URL}/__admin/health" \
   -H "x-api-key: ${API_KEY}"
 ```
 
+> **Note**: The `x-api-key` header is required in API key mode (the default). In IAM mode, call the same endpoint with SigV4-signed requests instead.
+
 **Expected Response** (200 OK):
 ```json
 {
@@ -124,6 +127,8 @@ Check the health of the AI-assisted mock generation service (if enabled).
 curl -X GET "${MOCKNEST_URL}/ai/generation/health" \
   -H "x-api-key: ${API_KEY}"
 ```
+
+> **Note**: The `x-api-key` header is required in API key mode (the default). In IAM mode, call the same endpoint with SigV4-signed requests instead.
 
 **Expected Response** (200 OK):
 ```json

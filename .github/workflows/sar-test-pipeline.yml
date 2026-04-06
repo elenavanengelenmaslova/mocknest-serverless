@@ -12,6 +12,11 @@ name: Integration Test - SAR Deployment
         required: true
         type: string
         description: 'SAR application version to test'
+      auth-mode:
+        required: false
+        type: string
+        default: 'API_KEY'
+        description: 'Authentication mode to validate: API_KEY or IAM'
     secrets:
       AWS_ACCOUNT_ID:
         required: true
@@ -34,6 +39,14 @@ name: Integration Test - SAR Deployment
         required: false
         type: string
         description: 'SAR application version (optional)'
+      auth-mode:
+        required: false
+        type: choice
+        default: 'API_KEY'
+        description: 'Authentication mode to validate: API_KEY or IAM'
+        options:
+          - API_KEY
+          - IAM
 
 permissions:
   id-token: write
@@ -63,7 +76,9 @@ jobs:
           set -o pipefail
 
           # Generate unique stack name
-          STACK_NAME="mocknest-sar-test-${{ github.run_id }}"
+          # Generate auth-mode suffix for stack name isolation
+          AUTH_MODE_SUFFIX=$(echo "${{ inputs.auth-mode || 'API_KEY' }}" | tr '[:upper:]' '[:lower:]' | tr '_' '-')
+          STACK_NAME="mocknest-sar-test-${{ github.run_id }}-${AUTH_MODE_SUFFIX}"
           echo "STACK_NAME=$STACK_NAME" >> $GITHUB_ENV
 
           # Set SAR application URL (always from eu-west-1 where it's published)
@@ -83,6 +98,12 @@ jobs:
           # Note: application-id uses source region (eu-west-1), but --region specifies target
           echo "Creating change set from SAR application..."
           
+          # Build optional semantic version flag
+          VERSION_FLAG=""
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION_FLAG="--semantic-version ${{ inputs.version }}"
+          fi
+
           # Create change set and capture full JSON response
           CHANGE_SET_RESPONSE=$(aws serverlessrepo \
             create-cloud-formation-change-set \
@@ -90,7 +111,10 @@ jobs:
           021259937026:applications/MockNest-Serverless \
             --stack-name "$STACK_NAME" \
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
-            --parameter-overrides Name=DeploymentName,Value=sartest${{ github.run_id }} \
+            $VERSION_FLAG \
+            --parameter-overrides \
+              Name=DeploymentName,Value=sartest${{ github.run_id }} \
+              Name=AuthMode,Value=${{ inputs.auth-mode || 'API_KEY' }} \
             --region ${{ inputs.aws-region }} \
             --output json 2>&1) || {
             echo "❌ Failed to create change set from SAR"
@@ -209,17 +233,35 @@ jobs:
             --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
             --output text | tr -d '[:space:]')
 
-          API_KEY_ID=$(aws cloudformation describe-stacks \
-            --stack-name "$STACK_NAME" \
-            --region ${{ inputs.aws-region }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
-            --output text | tr -d '[:space:]')
-
           BUCKET_NAME=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
             --region ${{ inputs.aws-region }} \
             --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' \
             --output text | tr -d '[:space:]')
+
+          # Retrieve API key ID only in API_KEY mode
+          if [ "${{ inputs.auth-mode || 'API_KEY' }}" = "API_KEY" ]; then
+            API_KEY_ID=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --region ${{ inputs.aws-region }} \
+              --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
+              --output text | tr -d '[:space:]')
+
+            # Validate MockNestApiKey
+            if [ -z "$API_KEY_ID" ]; then
+              echo "❌ Error: MockNestApiKey output is missing from CloudFormation stack"
+              exit 1
+            fi
+
+            if [[ ! "$API_KEY_ID" =~ ^[a-zA-Z0-9]+$ ]]; then
+              echo "❌ Error: MockNestApiKey must be alphanumeric, got invalid format"
+              exit 1
+            fi
+
+            echo "API_KEY_ID=$API_KEY_ID" >> $GITHUB_ENV
+          else
+            echo "ℹ️  IAM mode: skipping API key output retrieval"
+          fi
 
           # Validate MockNestApiUrl
           if [ -z "$API_URL" ]; then
@@ -237,19 +279,6 @@ jobs:
           # Remove trailing slash from API_URL if present
           API_URL="${API_URL%/}"
 
-          # Validate MockNestApiKey
-          if [ -z "$API_KEY_ID" ]; then
-            echo "❌ Error: MockNestApiKey output is missing from \
-          CloudFormation stack"
-            exit 1
-          fi
-
-          if [[ ! "$API_KEY_ID" =~ ^[a-zA-Z0-9]+$ ]]; then
-            echo "❌ Error: MockNestApiKey must be alphanumeric, \
-          got invalid format"
-            exit 1
-          fi
-
           # Validate MockStorageBucket (optional but should be present)
           if [ -z "$BUCKET_NAME" ]; then
             echo "⚠️  Warning: MockStorageBucket output is missing from \
@@ -258,12 +287,12 @@ jobs:
 
           # Store outputs as environment variables
           echo "API_URL=$API_URL" >> $GITHUB_ENV
-          echo "API_KEY_ID=$API_KEY_ID" >> $GITHUB_ENV
           echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
 
           echo "✅ Stack outputs retrieved and validated successfully"
 
       - name: Retrieve API key value
+        if: inputs.auth-mode == 'API_KEY' || inputs.auth-mode == ''
         run: |
           set -e
           set -o pipefail
@@ -325,10 +354,19 @@ jobs:
 
               # Execute curl with timeout and capture response
               # Note: -f flag removed to capture HTTP code even on errors
-              HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/response.json \
-                --max-time 30 \
-                -H "x-api-key: $API_KEY_VALUE" \
-                "${API_URL}${endpoint_path}" 2>/dev/null)
+              if [ "${{ inputs.auth-mode || 'API_KEY' }}" = "IAM" ]; then
+                HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/response.json \
+                  --max-time 30 \
+                  --aws-sigv4 "aws:amz:${AWS_REGION}:execute-api" \
+                  --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+                  -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
+                  "${API_URL}${endpoint_path}" 2>/dev/null)
+              else
+                HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/response.json \
+                  --max-time 30 \
+                  -H "x-api-key: $API_KEY_VALUE" \
+                  "${API_URL}${endpoint_path}" 2>/dev/null)
+              fi
               
               # If curl completely failed (no HTTP code), set to 000
               if [ -z "$HTTP_CODE" ]; then
@@ -350,7 +388,15 @@ jobs:
                   return 1
                 fi
               elif [ "$HTTP_CODE" = "403" ]; then
-                # 403 Forbidden - likely usage plan not yet propagated, retry with backoff
+                if [ "${{ inputs.auth-mode || 'API_KEY' }}" = "IAM" ]; then
+                  # 403 in IAM mode means a signing or permissions problem — don't retry
+                  echo "❌ $endpoint_name health check failed with HTTP 403 \
+          (IAM auth failure — check SigV4 signing and execute-api:Invoke permission)"
+                  echo "Response body:"
+                  cat /tmp/response.json 2>/dev/null || echo "(no response body)"
+                  return 1
+                fi
+                # 403 in API_KEY mode — usage plan may still be propagating, retry with backoff
                 echo "⚠️  $endpoint_name health check failed with HTTP 403 \
           (usage plan may still be propagating)"
 
@@ -555,6 +601,7 @@ jobs:
             echo ""
             echo "**Overall Status:** $OVERALL_STATUS"
             echo ""
+            echo "**Auth Mode:** ${{ inputs.auth-mode || 'API_KEY' }}"
             echo "**Region:** ${{ inputs.aws-region }}"
             echo "**Version:** ${{ inputs.version || 'latest' }}"
             echo "**Total Duration:** $(format_duration $TOTAL_DURATION)"
