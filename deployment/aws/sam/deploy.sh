@@ -73,7 +73,8 @@ if aws cloudformation describe-stacks --stack-name "$STACK_NAME" >/dev/null 2>&1
             API_KEY_VALUE=$(aws apigateway get-api-key --api-key "$API_KEY_ID" --include-value --query 'value' --output text 2>/dev/null || echo "")
             [[ "$API_KEY_VALUE" =~ ^([Nn]one|[Nn]ull)$ ]] && API_KEY_VALUE=""
             if [ -n "$API_KEY_VALUE" ]; then
-                echo "  curl -H \"x-api-key: $API_KEY_VALUE\" \\"
+                echo "  API_KEY_VALUE=\$(aws apigateway get-api-key --api-key \"$API_KEY_ID\" --include-value --query 'value' --output text)"
+                echo "  curl -H \"x-api-key: \$API_KEY_VALUE\" \\"
                 echo "       -X GET \"${API_URL}__admin/mappings\""
             else
                 echo "  # Could not resolve API key value automatically"
