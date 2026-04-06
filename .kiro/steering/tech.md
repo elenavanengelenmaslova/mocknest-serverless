@@ -86,6 +86,7 @@ Guidelines for AI-assisted code generation and review:
 - Generate Kotlin 2.3.0/Spring Boot 4.0 code targeting JVM 25, using Gradle 9.4.1, relying on the shared Gradle settings for dependency management and Kotlin logging; keep new tasks compatible with the existing toolchain
 - **Use Kotlin AWS SDK** (not Java SDK) for all AWS cloud infrastructure interactions - these must always be kept in the `software/infra/aws/` module to maintain clean architecture boundaries
 - **Use proper imports** instead of fully qualified class names in code:
+
  ```kotlin
   // Good: Use proper imports
   import org.springframework.beans.factory.annotation.Autowired
@@ -99,6 +100,7 @@ Guidelines for AI-assisted code generation and review:
   ```
 
   Instead of this:
+
   ```kotlin
     val ex = kotlin.test.assertFailsWith<nl.vintik.mocknest.domain.generation.WsdlFetchException> {
             fetcher.fetch("${baseUrl()}/empty-addresses.wsdl")
@@ -106,11 +108,60 @@ Guidelines for AI-assisted code generation and review:
   ```
 
   Do this:
+  
   ```kotlin
     val ex = assertFailsWith<WsdlFetchException> {
         fetcher.fetch("${baseUrl()}/empty-addresses.wsdl")
     }
   ```
+
+## Kotlin Constructor Visibility
+
+### Rule
+
+- Use the minimum visibility needed for constructor parameters and properties.
+- Do not expose constructor dependencies as public properties unless they are intentionally part of the class API.
+- If a constructor argument is only passed to a superclass constructor, keep it as a plain constructor parameter with no `val`, `var`, or visibility modifier.
+- If a constructor argument is only needed during initialization, keep it as a plain constructor parameter and do not store it as a property.
+- If a constructor dependency is stored and used only inside the class, declare it as `private val`.
+- Use `protected val` only when subclasses need access.
+- Never generate explicit `public` visibility for constructor properties unless there is a clear API reason.
+- In Spring Boot constructor injection, default to `private val` for dependencies unless they must be visible outside the class.
+
+### Examples
+
+```kotlin
+// Good: stored privately
+class GenerateMocksUseCase(
+    private val specParser: SpecParser,
+    private val mockGenerator: MockGenerator,
+    clock: Clock,
+) : BaseUseCase(clock)
+
+// Good: forwarded to superclass, not stored
+class AwsMockHandler(
+    private val service: MockService,
+    requestMapper: RequestMapper,
+) : BaseHandler(requestMapper)
+
+// Good: public only when it is real API/state
+data class GenerationResult(
+    val mappingId: String,
+    val fileCount: Int,
+)
+
+// Bad: unnecessary public exposure
+class AwsMockHandler(
+    val service: MockService,
+    val requestMapper: RequestMapper,
+) : BaseHandler(requestMapper)
+```
+
+### Review Guidance
+
+- Prefer a plain constructor parameter if the value is not stored.
+- Prefer `private val` if the dependency is stored for internal use.
+- Use public `val` only when the property is intentionally part of the class API.
 
 ## Kotlin Idioms
 
@@ -521,6 +572,7 @@ How Kiro integrates with code review and quality assurance:
 
 - Verify contributions respect the object-storage-first design (FILE and MAPPING stores, delete-all behavior) and keep WireMock extensions wired through the central configuration
 - Ensure reviewers check for unintended bypasses of the normalization filter (e.g., mappings that write inline bodies without being marked persistent) and for adherence to the mapping ID/file naming conventions
+- Verify constructor parameters use minimum visibility: arguments passed only to a superclass must remain plain parameters, and dependencies used only inside the class must be `private val`
 
 # Deployment Assistance
 
