@@ -10,30 +10,11 @@ MockNest Serverless will be published as a public SAR application, allowing user
 
 MockNest uses automated GitHub Actions workflows for SAR publishing with comprehensive multi-region testing.
 
-### SAR Beta Test Pipeline (Private)
+### SAR Publish Pipeline
 
-**Purpose**: Test SAR deployment across multiple regions before public release
+**Purpose**: Publish to public SAR and validate the deployment
 
-**Workflow**: `.github/workflows/sar-beta-test.yml`
-
-**Features**:
-- Multi-region testing (us-east-1, eu-west-1)
-- Comprehensive functionality validation
-- Private SAR sharing with test accounts
-- Automatic cleanup after testing
-
-**To Run**:
-1. Go to **Actions** → **SAR Beta Test (Private)**
-2. **Run workflow** with:
-   - Version: `0.2.0-beta.1` (beta version)
-   - Test Account IDs: comma-separated AWS account IDs
-   - Role Name: `GitHubOIDCAdmin` (your OIDC role)
-
-### SAR Release Pipeline (Public)
-
-**Purpose**: Publish to public SAR after beta testing passes
-
-**Workflow**: `.github/workflows/sar-release.yml`
+**Workflow**: `.github/workflows/sar-publish.yml`
 
 **Features**:
 - Direct public SAR publishing
@@ -43,7 +24,7 @@ MockNest uses automated GitHub Actions workflows for SAR publishing with compreh
 - Both validation runs must pass before release is considered successful
 
 **To Run**:
-1. Go to **Actions** → **SAR Release (Public)**
+1. Go to **Actions** → **CD - SAR Publish**
 2. **Run workflow** with:
    - Version: `0.2.1` (public version)
    - Region: `eu-west-1`
@@ -55,10 +36,8 @@ MockNest uses automated GitHub Actions workflows for SAR publishing with compreh
 - GitHub OIDC role (`GitHubOIDCAdmin`) must have `execute-api:Invoke` permission on deployed APIs (required for IAM auth mode validation)
 
 ### SAR Publishing Process
-1. **Beta Testing**: Run SAR Beta Test pipeline to validate across regions
-2. **Review Results**: Ensure all tests pass in all regions
-3. **Public Release**: Run SAR Release pipeline to make application available
-4. **Verification**: Confirm application appears in public SAR catalog
+1. **Public Release**: Run the SAR Publish pipeline to make the application available
+2. **Verification**: Confirm application appears in public SAR catalog
 
 > **Note**: Every SAR release is validated in both API key mode and IAM mode as independent runs. Both must pass before a release is considered successful. See `.github/workflows/sar-publish.yml` for the pipeline configuration.
 
@@ -123,35 +102,13 @@ MockNest uses **automated GitHub Actions workflows** for SAR publishing. Manual 
 
 ### Automated Publishing (Recommended)
 
-#### 1. Beta Testing (Private SAR)
+#### 1. Public Release
 
-Before public release, test the SAR deployment across multiple regions:
-
-```bash
-# Via GitHub Actions UI:
-# 1. Go to Actions → "SAR Beta Test (Private)"
-# 2. Click "Run workflow"
-# 3. Enter:
-#    - Version: 0.2.0-beta.1 (beta version format)
-#    - Test Account IDs: comma-separated AWS account IDs
-#    - Role Name: GitHubOIDCAdmin (your OIDC role)
-```
-
-**What it does**:
-- Builds and packages the application
-- Publishes to private SAR
-- Shares with specified test accounts
-- Deploys and validates in multiple regions (us-east-1, eu-west-1)
-- Runs comprehensive functionality tests
-- Cleans up test resources
-
-#### 2. Public Release
-
-After beta testing passes, publish to public SAR:
+Publish to public SAR:
 
 ```bash
 # Via GitHub Actions UI:
-# 1. Go to Actions → "SAR Release (Public)"
+# 1. Go to Actions → "CD - SAR Publish"
 # 2. Click "Run workflow"
 # 3. Enter:
 #    - Version: 0.2.1 (public version format)
@@ -162,7 +119,7 @@ After beta testing passes, publish to public SAR:
 - Builds and packages the application
 - Publishes to public SAR
 - Makes application available in AWS Serverless Application Repository
-- Creates GitHub release (optional)
+- Validates deployment in both API key and IAM auth modes
 
 
 ## Regional Considerations
