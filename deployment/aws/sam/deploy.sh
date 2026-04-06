@@ -35,11 +35,18 @@ if aws cloudformation describe-stacks --stack-name "$STACK_NAME" >/dev/null 2>&1
     echo ""
 
     # Detect deployed auth mode from stack outputs
-    DEPLOYED_AUTH_MODE=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+    # Normalize "None"/"null" (AWS CLI --output text returns "None" for missing values)
+    _raw=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
         --query 'Stacks[0].Outputs[?OutputKey==`AuthMode`].OutputValue' \
-        --output text 2>/dev/null || echo "API_KEY")
+        --output text 2>/dev/null || echo "")
+    [[ "$_raw" =~ ^([Nn]one|[Nn]ull)$ ]] && _raw=""
+    DEPLOYED_AUTH_MODE="${_raw:-API_KEY}"
 
-    API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text 2>/dev/null || echo "")
+    _raw=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+        --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
+        --output text 2>/dev/null || echo "")
+    [[ "$_raw" =~ ^([Nn]one|[Nn]ull)$ ]] && _raw=""
+    API_URL="$_raw"
 
     if [ "$DEPLOYED_AUTH_MODE" = "IAM" ]; then
         echo "🔐 Auth Mode: IAM (SigV4)"
@@ -57,12 +64,14 @@ if aws cloudformation describe-stacks --stack-name "$STACK_NAME" >/dev/null 2>&1
         API_KEY_ID=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
             --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
             --output text 2>/dev/null || echo "")
+        [[ "$API_KEY_ID" =~ ^([Nn]one|[Nn]ull)$ ]] && API_KEY_ID=""
         echo "🔑 API Key ID: $API_KEY_ID"
         echo "   (retrieve the actual key value with: aws apigateway get-api-key --api-key $API_KEY_ID --include-value --query 'value' --output text)"
         echo ""
         echo "🧪 Test your deployment:"
         if [ -n "$API_URL" ] && [ -n "$API_KEY_ID" ]; then
             API_KEY_VALUE=$(aws apigateway get-api-key --api-key "$API_KEY_ID" --include-value --query 'value' --output text 2>/dev/null || echo "")
+            [[ "$API_KEY_VALUE" =~ ^([Nn]one|[Nn]ull)$ ]] && API_KEY_VALUE=""
             if [ -n "$API_KEY_VALUE" ]; then
                 echo "  curl -H \"x-api-key: $API_KEY_VALUE\" \\"
                 echo "       -X GET \"${API_URL}__admin/mappings\""
