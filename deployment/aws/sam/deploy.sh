@@ -54,13 +54,23 @@ if aws cloudformation describe-stacks --stack-name "$STACK_NAME" >/dev/null 2>&1
     else
         echo "🔑 Auth Mode: API_KEY"
         echo ""
-        echo "🔑 To get your API key:"
-        echo "  aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==\`MockNestApiKey\`].OutputValue' --output text"
+        API_KEY_ID=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
+            --output text 2>/dev/null || echo "")
+        echo "🔑 API Key ID: $API_KEY_ID"
+        echo "   (retrieve the actual key value with: aws apigateway get-api-key --api-key $API_KEY_ID --include-value --query 'value' --output text)"
         echo ""
         echo "🧪 Test your deployment:"
-        if [ -n "$API_URL" ]; then
-            echo "  curl -H \"x-api-key: \$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==\\\`MockNestApiKey\\\`].OutputValue' --output text)\" \\"
-            echo "       -X GET \"${API_URL}__admin/mappings\""
+        if [ -n "$API_URL" ] && [ -n "$API_KEY_ID" ]; then
+            API_KEY_VALUE=$(aws apigateway get-api-key --api-key "$API_KEY_ID" --include-value --query 'value' --output text 2>/dev/null || echo "")
+            if [ -n "$API_KEY_VALUE" ]; then
+                echo "  curl -H \"x-api-key: $API_KEY_VALUE\" \\"
+                echo "       -X GET \"${API_URL}__admin/mappings\""
+            else
+                echo "  # Could not resolve API key value automatically"
+                echo "  curl -H \"x-api-key: <your-api-key-value>\" \\"
+                echo "       -X GET \"${API_URL}__admin/mappings\""
+            fi
         fi
     fi
 else

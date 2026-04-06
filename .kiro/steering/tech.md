@@ -60,6 +60,7 @@ Follow clean architecture principles by developing in this sequence:
 - Modify `deployment/aws/sam/samconfig.toml` for environment-specific configurations
 - Use the build and deploy scripts in `deployment/aws/sam/` for consistent deployments
 - Test SAM template changes locally before committing
+- **Always run `sam validate --template-file deployment/aws/sam/template.yaml --region eu-west-1` after every change to the SAM template and confirm exit code 0 before committing**
 
 ## GitHub Actions Integration
 
@@ -108,7 +109,7 @@ Guidelines for AI-assisted code generation and review:
   ```
 
   Do this:
-  
+
   ```kotlin
     val ex = assertFailsWith<WsdlFetchException> {
         fetcher.fetch("${baseUrl()}/empty-addresses.wsdl")
