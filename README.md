@@ -69,7 +69,7 @@ Try out MockNest Serverless quickly - deploy from SAR and test your first mocks.
 
 ### Step 2: Get Your API Details
 
-After deployment completes, retrieve your API Gateway URL and API key from the AWS Console.
+After deployment completes, retrieve your API Gateway URL from the AWS Console. If you deployed with `AuthMode=API_KEY` (the default), also retrieve your API key. In `AuthMode=IAM`, requests are authenticated with SigV4 signing instead of an API key.
 
 Set environment variables:
 ```bash
@@ -189,7 +189,7 @@ MockNest Serverless offers two deployment methods:
 
 ### After Deployment
 
-Once deployed, retrieve your API Gateway URL and API key from the AWS Console. See the [Quick Start (5 Minutes)](#quick-start-5-minutes) guide above for step-by-step instructions, or refer to the [SAR User Guide](README-SAR.md) for detailed guidance.
+Once deployed, retrieve your API Gateway URL from the AWS Console. If you deployed with `AuthMode=API_KEY` (the default), also retrieve your API key. See the [Quick Start (5 Minutes)](#quick-start-5-minutes) guide above for step-by-step instructions, or refer to the [SAR User Guide](README-SAR.md) for detailed guidance.
 
 ### Usage Options
 
