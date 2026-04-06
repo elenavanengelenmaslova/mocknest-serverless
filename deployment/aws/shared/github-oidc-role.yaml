@@ -110,6 +110,12 @@ Resources:
                   - apigateway:*
                 Resource: '*'
               
+              # API Gateway execute-api permissions (required for IAM auth mode validation)
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                Resource: 'arn:aws:execute-api:*:*:*'
+              
               # SQS permissions for DLQ
               - Effect: Allow
                 Action:

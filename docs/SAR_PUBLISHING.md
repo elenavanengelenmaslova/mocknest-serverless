@@ -39,6 +39,8 @@ MockNest uses automated GitHub Actions workflows for SAR publishing with compreh
 - Direct public SAR publishing
 - Automatic version handling
 - GitHub release integration
+- Dual auth mode validation: API key and IAM modes tested independently
+- Both validation runs must pass before release is considered successful
 
 **To Run**:
 1. Go to **Actions** → **SAR Release (Public)**
@@ -50,12 +52,15 @@ MockNest uses automated GitHub Actions workflows for SAR publishing with compreh
 - GitHub OIDC role with SAR permissions
 - GitHub secrets: `AWS_ACCOUNT_ID`, `TEST_AWS_ACCOUNT_ID`
 - AWS account with Serverless Application Repository access
+- GitHub OIDC role (`GitHubOIDCAdmin`) must have `execute-api:Invoke` permission on deployed APIs (required for IAM auth mode validation)
 
 ### SAR Publishing Process
 1. **Beta Testing**: Run SAR Beta Test pipeline to validate across regions
 2. **Review Results**: Ensure all tests pass in all regions
 3. **Public Release**: Run SAR Release pipeline to make application available
 4. **Verification**: Confirm application appears in public SAR catalog
+
+> **Note**: Every SAR release is validated in both API key mode and IAM mode as independent runs. Both must pass before a release is considered successful. See `.github/workflows/sar-publish.yml` for the pipeline configuration.
 
 ## SAR Application Metadata
 

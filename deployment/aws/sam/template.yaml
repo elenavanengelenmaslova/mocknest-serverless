@@ -26,6 +26,17 @@ Parameters:
     AllowedPattern: '^[a-zA-Z0-9\\-_]+$'
     ConstraintDescription: Stage name must contain only alphanumeric characters, hyphens, and underscores
 
+  AuthMode:
+    Type: String
+    Default: 'API_KEY'
+    AllowedValues:
+      - API_KEY
+      - IAM
+    Description: |
+      Authentication mode for all API Gateway endpoints.
+      API_KEY (default): callers supply an x-api-key header. An API key and usage plan are created automatically.
+      IAM: callers sign requests with AWS Signature Version 4. No API key is created.
+
   LambdaMemorySize:
     Type: Number
     Default: "512"
@@ -139,6 +150,10 @@ Parameters:
       - 3653
     Description: Number of days to retain CloudWatch logs for Lambda functions.
 
+Conditions:
+  IsIamMode: !Equals [!Ref AuthMode, 'IAM']
+  IsApiKeyMode: !Not [Condition: IsIamMode]
+
 Globals:
   Function:
     Runtime: java25
@@ -251,6 +266,7 @@ Resources:
   # API Key for authentication
   MockNestApiKey:
     Type: AWS::ApiGateway::ApiKey
+    Condition: IsApiKeyMode
     DependsOn: MockNestApiStage
     Properties:
       Name: !Sub "${AWS::StackName}-api-key"
@@ -263,6 +279,7 @@ Resources:
   # Usage Plan for API throttling and quotas
   MockNestUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
+    Condition: IsApiKeyMode
     DependsOn: MockNestApiStage
     Properties:
       UsagePlanName: !Sub "${AWS::StackName}-usage-plan"
@@ -280,6 +297,7 @@ Resources:
   # Associate API Key with Usage Plan
   MockNestUsagePlanKey:
     Type: AWS::ApiGateway::UsagePlanKey
+    Condition: IsApiKeyMode
     Properties:
       KeyId: !Ref MockNestApiKey
       KeyType: API_KEY
@@ -319,7 +337,8 @@ Resources:
             Path: /__admin/{proxy+}
             Method: ANY
             Auth:
-              ApiKeyRequired: true
+              ApiKeyRequired: !If [IsIamMode, false, true]
+              Authorizer: !If [IsIamMode, AWS_IAM, NONE]
         MockRoutes:
           Type: Api
           Properties:
@@ -327,7 +346,8 @@ Resources:
             Path: /mocknest/{proxy+}
             Method: ANY
             Auth:
-              ApiKeyRequired: true
+              ApiKeyRequired: !If [IsIamMode, false, true]
+              Authorizer: !If [IsIamMode, AWS_IAM, NONE]
 
   # Lambda function for MockNest Generation
   MockNestGenerationFunction:
@@ -367,7 +387,8 @@ Resources:
             Path: /ai/{proxy+}
             Method: ANY
             Auth:
-              ApiKeyRequired: true
+              ApiKeyRequired: !If [IsIamMode, false, true]
+              Authorizer: !If [IsIamMode, AWS_IAM, NONE]
 
   # CloudWatch Log Group for Runtime Lambda
   RuntimeLambdaLogGroup:
@@ -439,7 +460,8 @@ Outputs:
       Name: !Sub "${AWS::StackName}-stack-name"
 
   MockNestApiKey:
-    Description: "API key for accessing MockNest Serverless endpoints (use with x-api-key header)"
+    Condition: IsApiKeyMode
+    Description: "API key ID (only present when AuthMode=API_KEY)"
     Value: !GetAtt MockNestApiKey.APIKeyId
     Export:
       Name: !Sub "${AWS::StackName}-api-key"
