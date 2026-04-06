@@ -99,8 +99,10 @@ jobs:
           # Overall release status
           if [ "${{ needs.test-api-key.result }}" = "failure" ] || [ "${{ needs.test-iam.result }}" = "failure" ]; then
             echo "**Overall Release Status:** ❌ Failed — one or more validation runs failed" >> $GITHUB_STEP_SUMMARY
-          else
+          elif [ "${{ needs.test-api-key.result }}" = "success" ] && [ "${{ needs.test-iam.result }}" = "success" ]; then
             echo "**Overall Release Status:** ✅ All validation runs passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Overall Release Status:** ⚠️ Incomplete — one or more validation runs were cancelled or skipped" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY

@@ -98,6 +98,12 @@ jobs:
           # Note: application-id uses source region (eu-west-1), but --region specifies target
           echo "Creating change set from SAR application..."
           
+          # Build optional semantic version flag
+          VERSION_FLAG=""
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION_FLAG="--semantic-version ${{ inputs.version }}"
+          fi
+
           # Create change set and capture full JSON response
           CHANGE_SET_RESPONSE=$(aws serverlessrepo \
             create-cloud-formation-change-set \
@@ -105,6 +111,7 @@ jobs:
           021259937026:applications/MockNest-Serverless \
             --stack-name "$STACK_NAME" \
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+            $VERSION_FLAG \
             --parameter-overrides \
               Name=DeploymentName,Value=sartest${{ github.run_id }} \
               Name=AuthMode,Value=${{ inputs.auth-mode || 'API_KEY' }} \
@@ -381,7 +388,15 @@ jobs:
                   return 1
                 fi
               elif [ "$HTTP_CODE" = "403" ]; then
-                # 403 Forbidden - likely usage plan not yet propagated, retry with backoff
+                if [ "${{ inputs.auth-mode || 'API_KEY' }}" = "IAM" ]; then
+                  # 403 in IAM mode means a signing or permissions problem — don't retry
+                  echo "❌ $endpoint_name health check failed with HTTP 403 \
+          (IAM auth failure — check SigV4 signing and execute-api:Invoke permission)"
+                  echo "Response body:"
+                  cat /tmp/response.json 2>/dev/null || echo "(no response body)"
+                  return 1
+                fi
+                # 403 in API_KEY mode — usage plan may still be propagating, retry with backoff
                 echo "⚠️  $endpoint_name health check failed with HTTP 403 \
           (usage plan may still be propagating)"
 

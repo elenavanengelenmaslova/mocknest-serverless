@@ -245,9 +245,8 @@ For a detailed cost breakdown, see the [Cost Guide](https://github.com/elenavane
 - **IAM**: All endpoints require requests signed with AWS Signature Version 4. No API key is created. Callers must have `execute-api:Invoke` permission on the deployed API.
 
 **Best Practices**:
-- Rotate API keys regularly
-- Only share keys with authorized team members
-- Monitor usage via CloudTrail
+- When using `AuthMode=API_KEY`: rotate API keys regularly, only share keys with authorized team members, and monitor usage via CloudTrail
+- When using `AuthMode=IAM`: ensure callers have only the `execute-api:Invoke` permission scoped to the specific API, and use IAM policies to restrict access by identity
 
 **AWS Security**: Least-privilege IAM permissions, encryption in transit (HTTPS) and at rest (S3), isolated S3 buckets per deployment.
 

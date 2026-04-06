@@ -114,7 +114,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - execute-api:Invoke
-                Resource: 'arn:aws:execute-api:*:*:*'
+                Resource: !Sub 'arn:aws:execute-api:*:${AWS::AccountId}:*'
               
               # SQS permissions for DLQ
               - Effect: Allow

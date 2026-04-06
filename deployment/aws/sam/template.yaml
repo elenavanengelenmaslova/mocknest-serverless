@@ -253,13 +253,29 @@ Resources:
         - Key: Application
           Value: MockNest-Serverless
 
-  # API Gateway REST API
-  MockNestApi:
+  # API Gateway REST API — API key mode (default)
+  MockNestApiKeyModeApi:
     Type: AWS::Serverless::Api
+    Condition: IsApiKeyMode
     Properties:
       Name: !Sub "${AWS::StackName}-api"
       StageName: !Ref DeploymentName
       OpenApiVersion: '3.0.1'
+      Auth:
+        ApiKeyRequired: true
+      Tags:
+        Application: MockNest-Serverless
+
+  # API Gateway REST API — IAM mode
+  MockNestIamModeApi:
+    Type: AWS::Serverless::Api
+    Condition: IsIamMode
+    Properties:
+      Name: !Sub "${AWS::StackName}-api"
+      StageName: !Ref DeploymentName
+      OpenApiVersion: '3.0.1'
+      Auth:
+        DefaultAuthorizer: AWS_IAM
       Tags:
         Application: MockNest-Serverless
 
@@ -267,7 +283,7 @@ Resources:
   MockNestApiKey:
     Type: AWS::ApiGateway::ApiKey
     Condition: IsApiKeyMode
-    DependsOn: MockNestApiStage
+    DependsOn: MockNestApiKeyModeApiStage
     Properties:
       Name: !Sub "${AWS::StackName}-api-key"
       Description: API key for MockNest Serverless access
@@ -280,12 +296,12 @@ Resources:
   MockNestUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
     Condition: IsApiKeyMode
-    DependsOn: MockNestApiStage
+    DependsOn: MockNestApiKeyModeApiStage
     Properties:
       UsagePlanName: !Sub "${AWS::StackName}-usage-plan"
       Description: Usage plan for MockNest Serverless API
       ApiStages:
-        - ApiId: !Ref MockNestApi
+        - ApiId: !Ref MockNestApiKeyModeApi
           Stage: !Ref DeploymentName
       Throttle:
         BurstLimit: 1    # Limit concurrent requests to reduce Lambda scaling
@@ -303,9 +319,10 @@ Resources:
       KeyType: API_KEY
       UsagePlanId: !Ref MockNestUsagePlan
 
-  # Lambda function for MockNest Serverless runtime
+  # Lambda function for MockNest Serverless runtime — API key mode
   MockNestRuntimeFunction:
     Type: AWS::Serverless::Function
+    Condition: IsApiKeyMode
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
@@ -314,8 +331,6 @@ Resources:
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
-      # Memory configuration optimized via Lambda Power Tuner (see docs/PERFORMANCE.md)
-      # Default 512 MB provides optimal cost/performance balance for typical workloads
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
@@ -333,25 +348,59 @@ Resources:
         AdminRoutes:
           Type: Api
           Properties:
-            RestApiId: !Ref MockNestApi
+            RestApiId: !Ref MockNestApiKeyModeApi
             Path: /__admin/{proxy+}
             Method: ANY
-            Auth:
-              ApiKeyRequired: !If [IsIamMode, false, true]
-              Authorizer: !If [IsIamMode, AWS_IAM, NONE]
         MockRoutes:
           Type: Api
           Properties:
-            RestApiId: !Ref MockNestApi
+            RestApiId: !Ref MockNestApiKeyModeApi
             Path: /mocknest/{proxy+}
             Method: ANY
-            Auth:
-              ApiKeyRequired: !If [IsIamMode, false, true]
-              Authorizer: !If [IsIamMode, AWS_IAM, NONE]
 
-  # Lambda function for MockNest Generation
+  # Lambda function for MockNest Serverless runtime — IAM mode
+  MockNestRuntimeFunctionIam:
+    Type: AWS::Serverless::Function
+    Condition: IsIamMode
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-runtime"
+      CodeUri: ../../../build/dist/mocknest-serverless.jar
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Role: !GetAtt MockNestLambdaRole.Arn
+      AutoPublishAlias: live
+      SnapStart:
+        ApplyOn: PublishedVersions
+      Environment:
+        Variables:
+          MOCK_STORAGE_BUCKET: !Ref MockStorage
+          MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
+          SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
+          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
+          JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt MockNestDLQ.Arn
+      Tags:
+        Application: MockNest-Serverless
+        Component: Runtime
+      Events:
+        AdminRoutes:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MockNestIamModeApi
+            Path: /__admin/{proxy+}
+            Method: ANY
+        MockRoutes:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MockNestIamModeApi
+            Path: /mocknest/{proxy+}
+            Method: ANY
+
+  # Lambda function for MockNest Generation — API key mode
   MockNestGenerationFunction:
     Type: AWS::Serverless::Function
+    Condition: IsApiKeyMode
     Properties:
       FunctionName: !Sub "${AWS::StackName}-generation"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
@@ -360,9 +409,6 @@ Resources:
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
-      # Memory configuration optimized via Lambda Power Tuner (see docs/PERFORMANCE.md)
-      # Default 512 MB provides optimal cost/performance balance
-      # Generation function may benefit from higher memory due to AI model interactions
       Environment:
         Variables:
           MOCK_STORAGE_BUCKET: !Ref MockStorage
@@ -383,12 +429,45 @@ Resources:
         AIRoutes:
           Type: Api
           Properties:
-            RestApiId: !Ref MockNestApi
+            RestApiId: !Ref MockNestApiKeyModeApi
             Path: /ai/{proxy+}
             Method: ANY
-            Auth:
-              ApiKeyRequired: !If [IsIamMode, false, true]
-              Authorizer: !If [IsIamMode, AWS_IAM, NONE]
+
+  # Lambda function for MockNest Generation — IAM mode
+  MockNestGenerationFunctionIam:
+    Type: AWS::Serverless::Function
+    Condition: IsIamMode
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-generation"
+      CodeUri: ../../../build/dist/mocknest-serverless.jar
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Role: !GetAtt MockNestLambdaRole.Arn
+      AutoPublishAlias: live
+      SnapStart:
+        ApplyOn: PublishedVersions
+      Environment:
+        Variables:
+          MOCK_STORAGE_BUCKET: !Ref MockStorage
+          MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
+          SPRING_CLOUD_FUNCTION_DEFINITION: "generationRouter"
+          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
+          JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+          BEDROCK_MODEL_NAME: !Ref BedrockModelName
+          BEDROCK_INFERENCE_MODE: !Ref BedrockInferenceMode
+          MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt MockNestDLQ.Arn
+      Tags:
+        Application: MockNest-Serverless
+        Component: Generation
+      Events:
+        AIRoutes:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MockNestIamModeApi
+            Path: /ai/{proxy+}
+            Method: ANY
 
   # CloudWatch Log Group for Runtime Lambda
   RuntimeLambdaLogGroup:
@@ -409,17 +488,18 @@ Resources:
       Tags:
         - Key: Application
           Value: MockNest-Serverless
-
 Outputs:
   MockNestApiUrl:
     Description: "API Gateway endpoint URL for MockNest Serverless"
-    Value: !Sub "https://${MockNestApi}.execute-api.${AWS::Region}.amazonaws.com/${DeploymentName}/"
+    Value: !Sub
+      - "https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/${DeploymentName}/"
+      - ApiId: !If [IsIamMode, !Ref MockNestIamModeApi, !Ref MockNestApiKeyModeApi]
     Export:
       Name: !Sub "${AWS::StackName}-api-url"
 
   MockNestApiId:
     Description: "API Gateway API ID for MockNest Serverless"
-    Value: !Ref MockNestApi
+    Value: !If [IsIamMode, !Ref MockNestIamModeApi, !Ref MockNestApiKeyModeApi]
     Export:
       Name: !Sub "${AWS::StackName}-api-id"
 
@@ -431,13 +511,13 @@ Outputs:
 
   MockNestRuntimeFunctionName:
     Description: "Lambda function name for MockNest runtime"
-    Value: !Ref MockNestRuntimeFunction
+    Value: !If [IsIamMode, !Ref MockNestRuntimeFunctionIam, !Ref MockNestRuntimeFunction]
     Export:
       Name: !Sub "${AWS::StackName}-runtime-function-name"
 
   MockNestGenerationFunctionName:
     Description: "Lambda function name for MockNest generation"
-    Value: !Ref MockNestGenerationFunction
+    Value: !If [IsIamMode, !Ref MockNestGenerationFunctionIam, !Ref MockNestGenerationFunction]
     Export:
       Name: !Sub "${AWS::StackName}-generation-function-name"
 
@@ -466,27 +546,33 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-api-key"
 
+  AuthMode:
+    Description: "Authentication mode for API Gateway endpoints (API_KEY or IAM)"
+    Value: !Ref AuthMode
+    Export:
+      Name: !Sub "${AWS::StackName}-auth-mode"
+
   RuntimeFunctionVersion:
     Description: "Published version of Runtime function with SnapStart"
-    Value: !Ref MockNestRuntimeFunction.Version
+    Value: !If [IsIamMode, !Ref MockNestRuntimeFunctionIam.Version, !Ref MockNestRuntimeFunction.Version]
     Export:
       Name: !Sub "${AWS::StackName}-runtime-version"
 
   RuntimeFunctionAlias:
     Description: "Alias pointing to latest published Runtime function version"
-    Value: !Ref MockNestRuntimeFunctionAliaslive
+    Value: !If [IsIamMode, !Ref MockNestRuntimeFunctionIamAliaslive, !Ref MockNestRuntimeFunctionAliaslive]
     Export:
       Name: !Sub "${AWS::StackName}-runtime-alias"
 
   GenerationFunctionVersion:
     Description: "Published version of Generation function with SnapStart"
-    Value: !Ref MockNestGenerationFunction.Version
+    Value: !If [IsIamMode, !Ref MockNestGenerationFunctionIam.Version, !Ref MockNestGenerationFunction.Version]
     Export:
       Name: !Sub "${AWS::StackName}-generation-version"
 
   GenerationFunctionAlias:
     Description: "Alias pointing to latest published Generation function version"
-    Value: !Ref MockNestGenerationFunctionAliaslive
+    Value: !If [IsIamMode, !Ref MockNestGenerationFunctionIamAliaslive, !Ref MockNestGenerationFunctionAliaslive]
     Export:
       Name: !Sub "${AWS::StackName}-generation-alias"
 

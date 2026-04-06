@@ -33,14 +33,35 @@ if aws cloudformation describe-stacks --stack-name "$STACK_NAME" >/dev/null 2>&1
         --query 'Stacks[0].Outputs[*].[OutputKey,OutputValue,Description]' \
         --output table
     echo ""
-    echo "🔑 To get your API key:"
-    echo "  aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==\`MockNestApiKey\`].OutputValue' --output text"
-    echo ""
-    echo "🧪 Test your deployment:"
+
+    # Detect deployed auth mode from stack outputs
+    DEPLOYED_AUTH_MODE=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+        --query 'Stacks[0].Outputs[?OutputKey==`AuthMode`].OutputValue' \
+        --output text 2>/dev/null || echo "API_KEY")
+
     API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text 2>/dev/null || echo "")
-    if [ -n "$API_URL" ]; then
-        echo "  curl -H \"x-api-key: \$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==\\\`MockNestApiKey\\\`].OutputValue' --output text)\" \\"
-        echo "       -X GET \"${API_URL}__admin/mappings\""
+
+    if [ "$DEPLOYED_AUTH_MODE" = "IAM" ]; then
+        echo "🔐 Auth Mode: IAM (SigV4)"
+        echo ""
+        echo "🧪 Test your deployment (SigV4-signed request):"
+        if [ -n "$API_URL" ]; then
+            echo "  curl --aws-sigv4 \"aws:amz:\$(aws configure get region):execute-api\" \\"
+            echo "       --user \"\$AWS_ACCESS_KEY_ID:\$AWS_SECRET_ACCESS_KEY\" \\"
+            echo "       -H \"x-amz-security-token: \$AWS_SESSION_TOKEN\" \\"
+            echo "       -X GET \"${API_URL}__admin/mappings\""
+        fi
+    else
+        echo "🔑 Auth Mode: API_KEY"
+        echo ""
+        echo "🔑 To get your API key:"
+        echo "  aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==\`MockNestApiKey\`].OutputValue' --output text"
+        echo ""
+        echo "🧪 Test your deployment:"
+        if [ -n "$API_URL" ]; then
+            echo "  curl -H \"x-api-key: \$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==\\\`MockNestApiKey\\\`].OutputValue' --output text)\" \\"
+            echo "       -X GET \"${API_URL}__admin/mappings\""
+        fi
     fi
 else
     echo "❌ Deployment may have failed. Check CloudFormation console for details."
