@@ -62,6 +62,7 @@ subprojects {
             ext["okhttp.version"] = okhttpVersion
             dependency("com.squareup.okhttp3:okhttp:$okhttpVersion")
             dependency("com.squareup.okhttp3:okhttp-coroutines:$okhttpVersion")
+            dependency("com.squareup.okhttp3:mockwebserver:$okhttpVersion")
             
             // AWS Lambda Java
             dependency("com.amazonaws:aws-lambda-java-core:1.4.0")

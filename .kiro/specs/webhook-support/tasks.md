@@ -6,7 +6,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
 
 ## Tasks
 
-- [ ] 1. Prototype and validate `ServeEventListener` behavior
+- [x] 1. Prototype and validate `ServeEventListener` behavior
   - Write a minimal standalone test (outside the main test suite) that validates four critical assumptions:
     1. **Redaction timing:** Mutating `ServeEvent` request headers in `afterMatch()` results in the redacted values being stored in the journal (i.e., `requestJournal.requestReceived()` sees the mutated headers, not the originals)
     2. **Name collision:** Registering a `ServeEventListener` named `"webhook"` replaces the built-in `Webhooks` extension and prevents the async dispatch from firing
@@ -17,7 +17,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
   - **This task is a gate: if any assumption fails, the design must be revised before proceeding with tasks 2–8**
   - _Requirements: 1.1, 4.1, 7.1_
 
-- [ ] 2. Define application layer interfaces and data models
+- [x] 2. Define application layer interfaces and data models
   - Create `WebhookHttpClientInterface`, `WebhookRequest`, and `WebhookResult` in `software/application/src/main/kotlin/nl/vintik/mocknest/application/runtime/extensions/`
   - `WebhookResult` is a sealed class with `Success(statusCode: Int)` and `Failure(statusCode: Int?, message: String)` subtypes
   - `WebhookRequest` is a data class with `url`, `method`, `headers`, `body`, `timeoutMs`
@@ -43,33 +43,33 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
     ```
   - _Requirements: 1.1, 3.1, 3.3_
 
-  - [ ] 2.1 Write unit tests for `WebhookRequest`, `WebhookResult`, and `WebhookAuthConfig` data models
+  - [x] 2.1 Write unit tests for `WebhookRequest`, `WebhookResult`, and `WebhookAuthConfig` data models
     - Test Given valid fields When constructing WebhookRequest Then all properties are accessible
     - Test Given Success result When checking type Then is Success subtype
     - Test Given Failure result with null statusCode When checking message Then message is preserved
     - Test Given Header auth config with OriginalRequestHeader When accessing fields Then injectName and headerName are accessible
     - _Requirements: 1.1, 3.1_
 
-- [ ] 3. Implement `WebhookConfig`
+- [x] 3. Implement `WebhookConfig`
   - Create `WebhookConfig` data class in `software/application/src/main/kotlin/nl/vintik/mocknest/application/runtime/config/`
   - Read `MOCKNEST_SELF_URL`, `MOCKNEST_SENSITIVE_HEADERS` (default: `x-api-key,authorization`), `MOCKNEST_WEBHOOK_TIMEOUT_MS` (default: `10000`) from `System.getenv()`
   - Normalize sensitive header names to lowercase and store as `Set<String>`
   - _Requirements: 1.4, 4.3_
 
-  - [ ] 3.1 Write unit tests for `WebhookConfig`
+  - [x] 3.1 Write unit tests for `WebhookConfig`
     - Test Given all env vars set When constructing WebhookConfig Then all fields are populated correctly
     - Test Given no env vars set When constructing WebhookConfig Then defaults are applied (`sensitiveHeaders` = `{x-api-key, authorization}`, `webhookTimeoutMs` = 10000)
     - Test Given `MOCKNEST_SENSITIVE_HEADERS` with mixed-case names When constructing Then names are normalized to lowercase
     - Test Given `MOCKNEST_SENSITIVE_HEADERS` with whitespace around names When constructing Then names are trimmed
     - _Requirements: 1.4, 4.3_
 
-  - [ ]* 3.2 Write property-based tests for `WebhookConfig` sensitive header parsing
+  - [x] 3.2 Write property-based tests for `WebhookConfig` sensitive header parsing
     - Use `@ParameterizedTest` with 12+ diverse `MOCKNEST_SENSITIVE_HEADERS` values (single header, multiple comma-separated, mixed case, extra whitespace, empty string, duplicates)
     - Store test cases in `src/test/resources/test-data/webhook/sensitive-header-configs.csv`
     - Property: for any valid comma-separated header name list, all names appear in `sensitiveHeaders` as lowercase trimmed strings
     - **Validates: Requirements 4.3**
 
-- [ ] 4. Implement `WebhookServeEventListener`
+- [-] 4. Implement `WebhookServeEventListener`
   - Create `WebhookServeEventListener` in `software/application/src/main/kotlin/nl/vintik/mocknest/application/runtime/extensions/`
   - Implements `com.github.tomakehurst.wiremock.extension.ServeEventListener`
   - Constructor takes `WebhookHttpClientInterface` and `WebhookConfig` as `private val`
@@ -97,7 +97,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
 
   - _Requirements: 1.1, 1.3, 2.1, 2.2, 2.3, 2.4, 3.1, 3.8, 4.1, 4.4, 6.1, 7.1, 7.3_
 
-  - [ ] 4.1 Write unit tests for `WebhookServeEventListener` — redaction
+  - [x] 4.1 Write unit tests for `WebhookServeEventListener` — redaction
     - Test Given request with `x-api-key` header When afterMatch called Then `x-api-key` value is `[REDACTED]` in ServeEvent
     - Test Given request with `authorization` header When afterMatch called Then `authorization` value is `[REDACTED]`
     - Test Given request with non-sensitive header When afterMatch called Then header value is unchanged
@@ -105,7 +105,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
     - Test Given afterMatch throws internally When called Then no exception propagates
     - _Requirements: 4.1, 4.3, 4.4_
 
-  - [ ] 4.2 Write unit tests for `WebhookServeEventListener` — webhook dispatch with auth config
+  - [x] 4.2 Write unit tests for `WebhookServeEventListener` — webhook dispatch with auth config
     - Test Given stub with webhook listener and no auth block When beforeResponseSent called Then `webhookHttpClient.send()` is called with no injected auth header
     - Test Given stub with webhook listener and `auth.type=none` When beforeResponseSent called Then `webhookHttpClient.send()` is called with no injected auth header
     - Test Given stub with webhook listener and `auth.type=header, source=original_request_header` When beforeResponseSent called Then the named header from the original request is injected under the configured inject name
@@ -117,28 +117,28 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
     - Test Given `WebhookConfig.selfUrl` is null and URL contains `{{mocknest-self-url}}` When beforeResponseSent called Then placeholder is replaced with empty string and failure is logged
     - _Requirements: 1.1, 1.3, 3.1, 3.8, 7.1, 7.3_
 
-  - [ ]* 4.3 Write property-based tests — Property 2: Failure isolation
+  - [x] 4.3 Write property-based tests — Property 2: Failure isolation
     - Use `@ParameterizedTest` with 12+ diverse test data files in `src/test/resources/test-data/webhook/failure-isolation/`
     - Each file: a JSON object with `mockResponse` (status, body, headers) and `webhookFailureType` (non-2xx, network-error, timeout)
     - Mock `WebhookHttpClientInterface` to return the specified failure; verify `beforeResponseSent()` does not throw and returns normally
     - **Property 2: Failure isolation**
     - **Validates: Requirements 1.3, 7.3**
 
-  - [ ]* 4.4 Write property-based tests — Property 5: Redaction completeness
+  - [x] 4.4 Write property-based tests — Property 5: Redaction completeness
     - Use `@ParameterizedTest` with 15+ diverse test data files in `src/test/resources/test-data/webhook/redaction/`
     - Each file: a JSON object with `sensitiveHeaders` list, `requestHeaders` map, `expectedRedacted` list, `expectedPreserved` list
     - Cover: default headers, custom headers, mixed case, short values, long values, UUID values, special chars, empty value, multiple sensitive headers in same request
     - **Property 5: Redaction completeness**
     - **Validates: Requirements 4.1, 4.2, 4.3, 4.4**
 
-  - [ ]* 4.5 Write property-based tests — Property 3: Template rendering fidelity
+  - [x] 4.5 Write property-based tests — Property 3: Template rendering fidelity
     - Use `@ParameterizedTest` with 12+ diverse test data files in `src/test/resources/test-data/webhook/template-rendering/`
     - Each file: a JSON object with `triggerRequest` (body, headers, path) and `webhookParameters` (already-rendered values from WireMock's template engine) and `expectedSentValues`
     - Verify the values passed to `webhookHttpClient.send()` match the expected rendered values
     - **Property 3: Template rendering fidelity**
     - **Validates: Requirements 2.1, 2.2, 2.3, 2.4**
 
-  - [ ]* 4.6 Write property-based tests — Property 4: Auth header injection from original request
+  - [x] 4.6 Write property-based tests — Property 4: Auth header injection from original request
     - Use `@ParameterizedTest` with 10+ diverse incoming header values in `src/test/resources/test-data/webhook/auth-injection/`
     - Each file: a JSON object with `incomingHeaderName`, `incomingHeaderValue`, `injectName`, `expectedOutboundHeaderValue`
     - Verify the outbound webhook request contains `injectName: incomingHeaderValue`
@@ -146,11 +146,11 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
     - **Property 4: Auth header injection from original request**
     - **Validates: Requirements 3.4, 3.8, 6.1**
 
-- [ ] 5. Checkpoint — Ensure application layer tests pass
+- [x] 5. Checkpoint — Ensure application layer tests pass
   - Run `./gradlew :software:application:test` and confirm all tests pass
   - Ask the user if questions arise
 
-- [ ] 6. Implement `WebhookHttpClient` in infrastructure layer
+- [x] 6. Implement `WebhookHttpClient` in infrastructure layer
   - Create `WebhookHttpClient` in `software/infra/aws/runtime/src/main/kotlin/nl/vintik/mocknest/infra/aws/runtime/webhook/`
   - Implements `WebhookHttpClientInterface`
   - Constructor takes `WebhookConfig` as `private val`; build `OkHttpClient` with `callTimeout(webhookConfig.webhookTimeoutMs, MILLISECONDS)` — reuse client across calls (Spring singleton)
@@ -161,7 +161,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
   - Do not log header values — log only URL, method, and status code
   - _Requirements: 1.1, 1.4, 7.1_
 
-  - [ ] 6.1 Write unit tests for `WebhookHttpClient`
+  - [x] 6.1 Write unit tests for `WebhookHttpClient`
     - Test Given 200 response When send called Then returns `WebhookResult.Success(200)`
     - Test Given 503 response When send called Then returns `WebhookResult.Failure(503, ...)`
     - Test Given `SocketTimeoutException` When send called Then returns `WebhookResult.Failure(null, ...)`
@@ -169,13 +169,13 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
     - Test Given timeout configured When client built Then OkHttpClient has matching `callTimeout`
     - _Requirements: 1.1, 1.4_
 
-  - [ ]* 6.2 Write property-based tests for `WebhookHttpClient` — Property 1 (partial)
+  - [x] 6.2 Write property-based tests for `WebhookHttpClient` — Property 1 (partial)
     - Use `@ParameterizedTest` with 10+ diverse `WebhookRequest` inputs (different methods, header combinations, body present/absent)
     - Use OkHttp's `MockWebServer` to verify the outbound request is constructed correctly and the call is synchronous (blocking)
     - **Property 1 partial: Webhook delivery — HTTP client correctness**
     - **Validates: Requirements 1.1, 7.1**
 
-- [ ] 7. Wire new extension into `MockNestConfig`
+- [x] 7. Wire new extension into `MockNestConfig`
   - Update `MockNestConfig.kt` in `software/application/src/main/kotlin/nl/vintik/mocknest/application/runtime/config/`
   - Add `webhookConfig(): WebhookConfig` `@Bean`
   - Add `webhookHttpClient(webhookConfig): WebhookHttpClientInterface` `@Bean` — returns `WebhookHttpClient` from infra layer via interface (clean architecture boundary preserved)
@@ -189,11 +189,11 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
     ```
   - _Requirements: 1.1, 4.1_
 
-  - [ ] 7.1 Write unit tests for `MockNestConfig` webhook wiring
+  - [x] 7.1 Write unit tests for `MockNestConfig` webhook wiring
     - Test Given Spring context loads When wireMockServer bean created Then `WebhookServeEventListener` is registered as extension with name `"webhook"`
     - _Requirements: 1.1_
 
-- [ ] 8. Implement local integration test `WebhookIntegrationTest`
+- [x] 8. Implement local integration test `WebhookIntegrationTest`
   - Create `WebhookIntegrationTest.kt` in `software/infra/aws/runtime/src/test/kotlin/nl/vintik/mocknest/infra/aws/runtime/`
   - Use a `WireMockServer` started on a random port with `WebhookServeEventListener` registered — a real HTTP listener is required because `WebhookHttpClient` makes real outbound HTTP calls via OkHttp
   - Do NOT use `DirectCallHttpServer` — it bypasses the HTTP stack
@@ -217,19 +217,19 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
   - No AWS credentials required
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [ ]* 8.1 Write property-based integration test — Property 1 (end-to-end)
+  - [ ] 8.1 Write property-based integration test — Property 1 (end-to-end)
     - Use `@ParameterizedTest` with 10+ diverse trigger mock configurations stored in `src/test/resources/test-data/webhook/integration/trigger-configs/`
     - For each config: register trigger + callback mocks, call trigger via real HTTP, assert callback was received (no polling — synchronous)
     - **Property 1: Webhook delivery before handler returns**
     - **Validates: Requirements 1.1, 7.1, 8.3**
 
-  - [ ]* 8.2 Write property-based integration test — Property 6
+  - [ ] 8.2 Write property-based integration test — Property 6
     - Use `@ParameterizedTest` with 10+ diverse sensitive header values stored in `src/test/resources/test-data/webhook/integration/sensitive-values/`
     - Capture log output via test log appender; query `/__admin/requests`; assert sensitive values absent from both
     - **Property 6: Sensitive value non-exposure in logs**
     - **Validates: Requirements 3.8, 4.5, 6.1**
 
-- [ ] 9. Checkpoint — Ensure all tests pass
+- [x] 9. Checkpoint — Ensure all tests pass
   - Run `./gradlew :software:infra:aws:runtime:test` and confirm all tests pass
   - Ask the user if questions arise
 
@@ -282,7 +282,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
 - [ ] 14. Final checkpoint — Verify test coverage and quality
   - [ ] 14.1 Run `./gradlew koverHtmlReport` and verify 80%+ coverage for new code (aim for 90%+)
   - [ ] 14.2 Run `./gradlew koverVerify` to enforce coverage threshold
-  - [ ]* 14.3 Review test quality: Given-When-Then naming, proper assertions, edge case coverage for all 6 correctness properties
+  - [ ] 14.3 Review test quality: Given-When-Then naming, proper assertions, edge case coverage for all 6 correctness properties
 
 ## Notes
 

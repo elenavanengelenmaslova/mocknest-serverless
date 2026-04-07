@@ -1,0 +1,12 @@
+{
+  "description": "Three custom sensitive headers all present",
+  "sensitiveHeaders": ["x-api-key", "x-client-secret", "x-tenant-token"],
+  "requestHeaders": {
+    "x-api-key": "key-val",
+    "x-client-secret": "secret-val",
+    "x-tenant-token": "tenant-val",
+    "x-request-id": "req-456"
+  },
+  "expectedRedacted": ["x-api-key", "x-client-secret", "x-tenant-token"],
+  "expectedPreserved": ["x-request-id"]
+}

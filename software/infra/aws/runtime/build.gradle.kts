@@ -42,6 +42,8 @@ dependencies {
     testImplementation("org.testcontainers:localstack")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(project(":software:infra:aws:mocknest"))
+    // OkHttp MockWebServer for prototype test
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
 }
 
 configurations {

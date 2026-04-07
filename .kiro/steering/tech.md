@@ -1,5 +1,15 @@
 # Development Practices
 
+## Gradle Cache Policy
+
+**NEVER read from or rely on the Gradle cache.** Always resolve dependencies from their declared repositories (Maven Central, etc.) and never assume a dependency is available because it may have been cached previously. This applies to:
+- Dependency resolution in build scripts
+- Test classpath construction
+- Plugin resolution
+- Any build task that could pull from cache
+
+When exploring what libraries or versions are available to use in code, always check `build.gradle.kts` files directly — do not infer availability from the Gradle cache.
+
 This document contains development workflows, coding standards, testing practices, and guidelines for building and maintaining MockNest Serverless.
 
 # Development Workflow

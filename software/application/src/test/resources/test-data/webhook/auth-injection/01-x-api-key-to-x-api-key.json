@@ -1,0 +1,7 @@
+{
+  "description": "Copy x-api-key from incoming to x-api-key on outbound",
+  "incomingHeaderName": "x-api-key",
+  "incomingHeaderValue": "my-secret-api-key",
+  "injectName": "x-api-key",
+  "expectedOutboundHeaderValue": "my-secret-api-key"
+}

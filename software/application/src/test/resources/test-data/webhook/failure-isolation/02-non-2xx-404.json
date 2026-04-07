@@ -1,0 +1,6 @@
+{
+  "description": "Non-2xx 404 Not Found",
+  "webhookFailureType": "non-2xx",
+  "statusCode": 404,
+  "message": "Not Found"
+}

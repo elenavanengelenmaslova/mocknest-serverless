@@ -1,0 +1,7 @@
+{
+  "description": "Fully uppercase sensitive header name AUTHORIZATION",
+  "sensitiveHeaders": ["x-api-key", "authorization"],
+  "requestHeaders": {"AUTHORIZATION": "Bearer uppercase-token"},
+  "expectedRedacted": ["authorization"],
+  "expectedPreserved": []
+}

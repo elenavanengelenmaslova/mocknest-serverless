@@ -1,0 +1,13 @@
+{
+  "description": "URL with rendered query parameters",
+  "webhookParameters": {
+    "url": "https://api.example.com/webhooks?source=mocknest&orderId=ORD-321&env=test",
+    "method": "POST",
+    "body": "{}"
+  },
+  "expectedSentValues": {
+    "url": "https://api.example.com/webhooks?source=mocknest&orderId=ORD-321&env=test",
+    "method": "POST",
+    "body": "{}"
+  }
+}

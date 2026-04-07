@@ -1,0 +1,6 @@
+{
+  "description": "Non-2xx 400 Bad Request",
+  "webhookFailureType": "non-2xx",
+  "statusCode": 400,
+  "message": "Bad Request"
+}

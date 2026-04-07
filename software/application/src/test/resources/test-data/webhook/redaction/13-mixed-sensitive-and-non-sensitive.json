@@ -1,0 +1,12 @@
+{
+  "description": "Mix of sensitive and non-sensitive headers",
+  "sensitiveHeaders": ["x-api-key"],
+  "requestHeaders": {
+    "x-api-key": "secret",
+    "accept": "application/json",
+    "user-agent": "test-client/1.0",
+    "x-request-id": "req-123"
+  },
+  "expectedRedacted": ["x-api-key"],
+  "expectedPreserved": ["accept", "user-agent", "x-request-id"]
+}

@@ -1,0 +1,11 @@
+{
+  "description": "Multiple sensitive headers in same request",
+  "sensitiveHeaders": ["x-api-key", "authorization"],
+  "requestHeaders": {
+    "x-api-key": "api-key-value",
+    "authorization": "Bearer token-value",
+    "content-type": "application/json"
+  },
+  "expectedRedacted": ["x-api-key", "authorization"],
+  "expectedPreserved": ["content-type"]
+}

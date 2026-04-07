@@ -1,0 +1,13 @@
+{
+  "description": "Empty string body",
+  "webhookParameters": {
+    "url": "https://callback.example.com/notify",
+    "method": "POST",
+    "body": ""
+  },
+  "expectedSentValues": {
+    "url": "https://callback.example.com/notify",
+    "method": "POST",
+    "body": ""
+  }
+}

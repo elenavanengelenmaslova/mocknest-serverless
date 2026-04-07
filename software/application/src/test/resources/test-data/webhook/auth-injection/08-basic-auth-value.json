@@ -1,0 +1,7 @@
+{
+  "description": "Basic auth value",
+  "incomingHeaderName": "authorization",
+  "incomingHeaderValue": "Basic dXNlcm5hbWU6cGFzc3dvcmQ=",
+  "injectName": "authorization",
+  "expectedOutboundHeaderValue": "Basic dXNlcm5hbWU6cGFzc3dvcmQ="
+}

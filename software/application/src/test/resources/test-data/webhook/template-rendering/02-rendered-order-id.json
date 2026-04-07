@@ -1,0 +1,13 @@
+{
+  "description": "Body with already-rendered orderId from request",
+  "webhookParameters": {
+    "url": "https://callback.example.com/payments/callback",
+    "method": "POST",
+    "body": "{\"orderId\":\"ORD-12345\",\"status\":\"confirmed\"}"
+  },
+  "expectedSentValues": {
+    "url": "https://callback.example.com/payments/callback",
+    "method": "POST",
+    "body": "{\"orderId\":\"ORD-12345\",\"status\":\"confirmed\"}"
+  }
+}

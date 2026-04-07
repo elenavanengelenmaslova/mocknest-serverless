@@ -1,0 +1,6 @@
+{
+  "description": "Non-2xx 502 Bad Gateway",
+  "webhookFailureType": "non-2xx",
+  "statusCode": 502,
+  "message": "Bad Gateway"
+}

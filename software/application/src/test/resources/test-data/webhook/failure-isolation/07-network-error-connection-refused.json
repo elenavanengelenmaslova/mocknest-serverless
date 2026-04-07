@@ -1,0 +1,6 @@
+{
+  "description": "Network error - connection refused",
+  "webhookFailureType": "network-error",
+  "statusCode": null,
+  "message": "Connection refused"
+}

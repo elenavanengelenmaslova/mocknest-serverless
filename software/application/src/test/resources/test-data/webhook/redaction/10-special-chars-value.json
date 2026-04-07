@@ -1,0 +1,7 @@
+{
+  "description": "Sensitive header value with special characters",
+  "sensitiveHeaders": ["x-api-key"],
+  "requestHeaders": {"x-api-key": "key!@#$%^&*()_+-=[]{}|;':\",./<>?"},
+  "expectedRedacted": ["x-api-key"],
+  "expectedPreserved": []
+}

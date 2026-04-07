@@ -1,0 +1,13 @@
+{
+  "description": "GET method webhook",
+  "webhookParameters": {
+    "url": "https://notify.example.com/ping?id=42",
+    "method": "GET",
+    "body": null
+  },
+  "expectedSentValues": {
+    "url": "https://notify.example.com/ping?id=42",
+    "method": "GET",
+    "body": null
+  }
+}

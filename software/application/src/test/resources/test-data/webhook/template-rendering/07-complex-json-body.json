@@ -1,0 +1,13 @@
+{
+  "description": "Complex nested JSON body already rendered",
+  "webhookParameters": {
+    "url": "https://callback.example.com/events",
+    "method": "POST",
+    "body": "{\"event\":{\"type\":\"order.created\",\"data\":{\"orderId\":\"ORD-001\",\"amount\":99.99,\"currency\":\"EUR\",\"items\":[{\"sku\":\"ITEM-1\",\"qty\":2}]}}}"
+  },
+  "expectedSentValues": {
+    "url": "https://callback.example.com/events",
+    "method": "POST",
+    "body": "{\"event\":{\"type\":\"order.created\",\"data\":{\"orderId\":\"ORD-001\",\"amount\":99.99,\"currency\":\"EUR\",\"items\":[{\"sku\":\"ITEM-1\",\"qty\":2}]}}}"
+  }
+}

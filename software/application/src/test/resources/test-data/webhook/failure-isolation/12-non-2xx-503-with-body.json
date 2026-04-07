@@ -1,0 +1,6 @@
+{
+  "description": "Non-2xx 503 with response body",
+  "webhookFailureType": "non-2xx",
+  "statusCode": 503,
+  "message": "Service temporarily unavailable, retry after 30s"
+}

@@ -1,0 +1,6 @@
+{
+  "description": "Non-2xx 429 Too Many Requests",
+  "webhookFailureType": "non-2xx",
+  "statusCode": 429,
+  "message": "Too Many Requests"
+}

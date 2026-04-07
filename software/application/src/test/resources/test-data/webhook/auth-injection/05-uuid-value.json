@@ -1,0 +1,7 @@
+{
+  "description": "UUID-format API key",
+  "incomingHeaderName": "x-api-key",
+  "incomingHeaderValue": "550e8400-e29b-41d4-a716-446655440000",
+  "injectName": "x-api-key",
+  "expectedOutboundHeaderValue": "550e8400-e29b-41d4-a716-446655440000"
+}

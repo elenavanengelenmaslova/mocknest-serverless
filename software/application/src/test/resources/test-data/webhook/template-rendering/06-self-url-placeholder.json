@@ -1,0 +1,13 @@
+{
+  "description": "URL with mocknest-self-url placeholder resolved",
+  "webhookParameters": {
+    "url": "{{mocknest-self-url}}/mocknest/payments/callback",
+    "method": "POST",
+    "body": "{\"event\":\"triggered\"}"
+  },
+  "expectedSentValues": {
+    "url": "https://api.example.com/prod/mocknest/payments/callback",
+    "method": "POST",
+    "body": "{\"event\":\"triggered\"}"
+  }
+}

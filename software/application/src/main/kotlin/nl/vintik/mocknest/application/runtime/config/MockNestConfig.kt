@@ -1,9 +1,11 @@
 package nl.vintik.mocknest.application.runtime.config
 
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.application.runtime.mappings.ObjectStorageMappingsSource
 import nl.vintik.mocknest.application.runtime.extensions.DeleteAllMappingsAndFilesFilter
 import nl.vintik.mocknest.application.runtime.extensions.NormalizeMappingBodyFilter
+import nl.vintik.mocknest.application.runtime.extensions.WebhookHttpClientInterface
+import nl.vintik.mocknest.application.runtime.extensions.WebhookServeEventListener
+import nl.vintik.mocknest.application.runtime.mappings.ObjectStorageMappingsSource
 import nl.vintik.mocknest.application.runtime.store.adapters.ObjectStorageBlobStore
 import nl.vintik.mocknest.application.runtime.store.adapters.ObjectStorageWireMockStores
 import com.github.tomakehurst.wiremock.WireMockServer
@@ -25,6 +27,9 @@ private val logger = KotlinLogging.logger {}
 class MockNestConfig {
 
     @Bean
+    fun webhookConfig(): WebhookConfig = WebhookConfig.fromEnv()
+
+    @Bean
     fun directCallHttpServerFactory() = DirectCallHttpServerFactory()
 
     @Bean
@@ -34,15 +39,20 @@ class MockNestConfig {
     fun wireMockServer(
         directCallHttpServerFactory: DirectCallHttpServerFactory,
         storage: ObjectStorageInterface,
+        webhookConfig: WebhookConfig,
+        webhookHttpClient: WebhookHttpClientInterface,
     ): WireMockServer {
         val config = wireMockConfig()
             .notifier(ConsoleNotifier(true))
             .httpServerFactory(directCallHttpServerFactory)
             .withStores(ObjectStorageWireMockStores(storage))
-            .extensions(NormalizeMappingBodyFilter(storage), DeleteAllMappingsAndFilesFilter(storage))
+            .extensions(
+                NormalizeMappingBodyFilter(storage),
+                DeleteAllMappingsAndFilesFilter(storage),
+                WebhookServeEventListener(webhookHttpClient, webhookConfig),
+            )
             // Use S3-only storage - no classpath or filesystem fallback
             .mappingSource(ObjectStorageMappingsSource(storage))
-
 
         val server = WireMockServer(config)
         server.start()
