@@ -41,7 +41,6 @@ class MockNestConfigWebhookWiringTest {
     @Test
     fun `Given Spring context loads When wireMockServer bean created Then WebhookServeEventListener is registered with name mocknest-webhook`() {
         val webhookConfig = WebhookConfig(
-            selfUrl = "https://api.example.com",
             sensitiveHeaders = setOf("x-api-key", "authorization"),
             webhookTimeoutMs = 10_000L,
         )

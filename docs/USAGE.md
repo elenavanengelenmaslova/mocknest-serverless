@@ -1177,7 +1177,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 
 ## Webhook Support
 
-MockNest Serverless supports webhook/callback-style behavior: a mock can trigger an outbound HTTP call to another endpoint after serving its response. The primary use case is calling another mock endpoint within the same deployed MockNest instance, enabling simulation of chained or event-driven service interactions in tests.
+MockNest Serverless supports webhook/callback-style behavior: a mock can trigger an outbound HTTP call to another endpoint after serving its response. The typical use case is simulating event-driven flows where your system under test triggers an action (e.g. place an order) and expects a callback from an external service (e.g. a payment processor). MockNest fires that callback on behalf of the external service.
 
 ### How It Works
 
@@ -1187,7 +1187,55 @@ If the webhook call fails (non-2xx, network error, or timeout), the failure is l
 
 ### Complete Webhook Example
 
-This example shows a trigger mock (`POST /mocknest/orders`) that fires a webhook to a callback mock (`POST /mocknest/payments/callback`) on the same MockNest instance. The `x-api-key` from the incoming trigger request is forwarded to the outbound callback call.
+This example simulates an order service flow: your system under test calls `POST /mocknest/orders`, and MockNest fires a webhook to your system's payment callback endpoint (`https://your-app.example.com/payments/callback`) — just like a real payment processor would.
+
+**Register the trigger mock with a webhook**
+
+```bash
+curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request": {
+      "method": "POST",
+      "urlPath": "/mocknest/orders"
+    },
+    "response": {
+      "status": 202,
+      "headers": { "Content-Type": "application/json" },
+      "jsonBody": { "orderId": "{{jsonPath request.body '\''$.orderId'\''}}", "status": "accepted" }
+    },
+    "serveEventListeners": [
+      {
+        "name": "mocknest-webhook",
+        "parameters": {
+          "method": "POST",
+          "url": "https://your-app.example.com/payments/callback",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": "{\"orderId\": \"{{jsonPath request.body '\''$.orderId'\''}}\", \"event\": \"order.created\"}"
+        }
+      }
+    ],
+    "persistent": true
+  }'
+```
+
+**Call the trigger mock**
+
+```bash
+curl -X POST "${MOCKNEST_URL}/mocknest/orders" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"orderId": "order-123"}'
+```
+
+MockNest returns 202 Accepted and has already dispatched the webhook to `https://your-app.example.com/payments/callback` before returning.
+
+### Self-Callback Example (for testing webhook delivery)
+
+If you want to verify that MockNest actually fires the webhook — without needing a real external service — you can register a callback mock on the same MockNest instance and point the webhook at it. This is useful for integration tests and pipeline validation.
 
 **Step 1: Register the callback mock**
 
@@ -1209,7 +1257,7 @@ curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
   }'
 ```
 
-**Step 2: Register the trigger mock with a webhook**
+**Step 2: Register the trigger mock pointing back to MockNest**
 
 ```bash
 curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
@@ -1223,34 +1271,27 @@ curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
     "response": {
       "status": 202,
       "headers": { "Content-Type": "application/json" },
-      "jsonBody": { "orderId": "{{jsonPath request.body '\''$.orderId'\''}}", "status": "accepted" }
+      "jsonBody": { "orderId": "order-123", "status": "accepted" }
     },
     "serveEventListeners": [
       {
-        "name": "webhook",
+        "name": "mocknest-webhook",
         "parameters": {
           "method": "POST",
-          "url": "{{mocknest-self-url}}/mocknest/payments/callback",
+          "url": "${MOCKNEST_URL}/mocknest/payments/callback",
           "headers": {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "x-api-key": "${API_KEY}"
           },
-          "body": "{\"orderId\": \"{{jsonPath request.body '\''$.orderId'\''}}\", \"event\": \"order.created\"}",
-          "auth": {
-            "type": "header",
-            "inject": {
-              "name": "x-api-key"
-            },
-            "value": {
-              "source": "original_request_header",
-              "headerName": "x-api-key"
-            }
-          }
+          "body": "{\"orderId\": \"order-123\", \"event\": \"order.created\"}"
         }
       }
     ],
     "persistent": true
   }'
 ```
+
+Note: in this self-callback case the API key must be set explicitly in the webhook headers (since the callback endpoint also requires auth). The `original_request_header` auth config can be used instead to copy it from the incoming request — see [Auth Config Model](#auth-config-model).
 
 **Step 3: Call the trigger mock**
 
@@ -1260,8 +1301,6 @@ curl -X POST "${MOCKNEST_URL}/mocknest/orders" \
   -H "Content-Type: application/json" \
   -d '{"orderId": "order-123"}'
 ```
-
-The trigger returns 202 Accepted. Before returning, MockNest has already dispatched the webhook to `/mocknest/payments/callback` with the `x-api-key` header forwarded from the original request.
 
 **Step 4: Verify the callback was received**
 
@@ -1334,13 +1373,8 @@ Configure webhook behavior via these Lambda environment variables (set via SAM t
 
 | Environment Variable | Default | Description |
 |---|---|---|
-| `MOCKNEST_SELF_URL` | (none) | The deployed API Gateway base URL. Used to resolve the `{{mocknest-self-url}}` placeholder in webhook URLs. Required for same-instance callbacks. |
 | `MOCKNEST_SENSITIVE_HEADERS` | `x-api-key,authorization` | Comma-separated list of header names to redact from the request journal. Case-insensitive. |
 | `MOCKNEST_WEBHOOK_TIMEOUT_MS` | `10000` | Timeout in milliseconds for outbound webhook HTTP calls. |
-
-The `{{mocknest-self-url}}` placeholder in webhook URLs is resolved by MockNest from `MOCKNEST_SELF_URL` before the HTTP call. This allows webhook URLs to reference the deployed instance's own base URL without hardcoding it in the mapping.
-
-If `MOCKNEST_SELF_URL` is not set and a webhook URL contains `{{mocknest-self-url}}`, the placeholder is replaced with an empty string, resulting in an invalid URL. The dispatch will fail and be logged as a warning.
 
 ### Lambda Execution Context and Synchronous Dispatch
 

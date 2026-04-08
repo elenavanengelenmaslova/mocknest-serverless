@@ -30,7 +30,6 @@ class WebhookFailureIsolationPropertyTest {
     private val mapper = jacksonObjectMapper()
 
     private val config = WebhookConfig(
-        selfUrl = "https://api.example.com/prod",
         sensitiveHeaders = setOf("x-api-key", "authorization"),
         webhookTimeoutMs = 10_000L,
     )

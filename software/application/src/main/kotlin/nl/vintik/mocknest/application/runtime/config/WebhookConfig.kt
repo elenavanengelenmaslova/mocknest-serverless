@@ -1,7 +1,6 @@
 package nl.vintik.mocknest.application.runtime.config
 
 data class WebhookConfig(
-    val selfUrl: String?,
     val sensitiveHeaders: Set<String>,
     val webhookTimeoutMs: Long,
 ) {
@@ -10,7 +9,6 @@ data class WebhookConfig(
         private const val DEFAULT_WEBHOOK_TIMEOUT_MS = 10_000L
 
         fun fromEnv(): WebhookConfig {
-            val selfUrl = System.getenv("MOCKNEST_SELF_URL")
             val sensitiveHeaders = (System.getenv("MOCKNEST_SENSITIVE_HEADERS") ?: DEFAULT_SENSITIVE_HEADERS)
                 .split(",")
                 .map { it.trim().lowercase() }
@@ -19,7 +17,7 @@ data class WebhookConfig(
             val webhookTimeoutMs = System.getenv("MOCKNEST_WEBHOOK_TIMEOUT_MS")
                 ?.toLongOrNull()
                 ?: DEFAULT_WEBHOOK_TIMEOUT_MS
-            return WebhookConfig(selfUrl, sensitiveHeaders, webhookTimeoutMs)
+            return WebhookConfig(sensitiveHeaders, webhookTimeoutMs)
         }
     }
 }

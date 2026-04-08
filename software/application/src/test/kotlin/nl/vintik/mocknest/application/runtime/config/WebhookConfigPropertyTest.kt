@@ -32,7 +32,6 @@ class WebhookConfigPropertyTest {
         expectedHeadersCsv: String,
     ) {
         val config = WebhookConfig(
-            selfUrl = null,
             sensitiveHeaders = parseHeaders(sensitiveHeadersEnv),
             webhookTimeoutMs = 10_000L,
         )

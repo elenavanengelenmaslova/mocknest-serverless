@@ -53,7 +53,6 @@ private val logger = KotlinLogging.logger {}
 
 private const val LISTENER_NAME = "mocknest-webhook"
 private const val REDACTED = "[REDACTED]"
-private const val SELF_URL_PLACEHOLDER = "{{mocknest-self-url}}"
 
 class WebhookServeEventListener(
     private val webhookHttpClient: WebhookHttpClientInterface,
@@ -109,7 +108,7 @@ class WebhookServeEventListener(
             val method = params.getString("method") ?: "POST"
             val body = params.get("body") as? String
 
-            val url = resolveUrl(rawUrl, serveEvent.id)
+            val url = rawUrl
             val authConfig = parseAuthConfig(params)
             val outboundHeaders = buildOutboundHeaders(authConfig, serveEvent.id, serveEvent)
 
@@ -132,15 +131,6 @@ class WebhookServeEventListener(
         }.also {
             capturedHeaders.remove(serveEvent.id)
         }
-    }
-
-    private fun resolveUrl(rawUrl: String, serveEventId: UUID): String {
-        if (!rawUrl.contains(SELF_URL_PLACEHOLDER)) return rawUrl
-        val selfUrl = webhookConfig.selfUrl
-        if (selfUrl == null) {
-            logger.warn { "MOCKNEST_SELF_URL not set; replacing $SELF_URL_PLACEHOLDER with empty string for serveEvent=$serveEventId" }
-        }
-        return rawUrl.replace(SELF_URL_PLACEHOLDER, selfUrl ?: "")
     }
 
     private fun parseAuthConfig(params: Parameters): WebhookAuthConfig {

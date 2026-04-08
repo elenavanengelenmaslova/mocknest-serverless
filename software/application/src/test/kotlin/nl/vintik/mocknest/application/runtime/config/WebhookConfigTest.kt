@@ -4,7 +4,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class WebhookConfigTest {
@@ -29,7 +28,6 @@ class WebhookConfigTest {
 
     // Helper to build WebhookConfig directly (mirrors fromEnv logic) for isolated testing
     private fun buildConfig(
-        selfUrl: String? = null,
         sensitiveHeadersEnv: String? = null,
         timeoutMsEnv: String? = null,
     ): WebhookConfig {
@@ -40,18 +38,16 @@ class WebhookConfigTest {
             .filter { it.isNotEmpty() }
             .toSet()
         val webhookTimeoutMs = timeoutMsEnv?.toLongOrNull() ?: 10_000L
-        return WebhookConfig(selfUrl, sensitiveHeaders, webhookTimeoutMs)
+        return WebhookConfig(sensitiveHeaders, webhookTimeoutMs)
     }
 
     @Test
     fun `Given all env vars set When constructing WebhookConfig Then all fields are populated correctly`() {
         val config = buildConfig(
-            selfUrl = "https://abc123.execute-api.eu-west-1.amazonaws.com/prod",
             sensitiveHeadersEnv = "x-api-key,authorization,x-secret-token",
             timeoutMsEnv = "5000",
         )
 
-        assertEquals("https://abc123.execute-api.eu-west-1.amazonaws.com/prod", config.selfUrl)
         assertEquals(setOf("x-api-key", "authorization", "x-secret-token"), config.sensitiveHeaders)
         assertEquals(5000L, config.webhookTimeoutMs)
     }
@@ -60,7 +56,6 @@ class WebhookConfigTest {
     fun `Given no env vars set When constructing WebhookConfig Then defaults are applied`() {
         val config = buildConfig()
 
-        assertNull(config.selfUrl)
         assertEquals(setOf("x-api-key", "authorization"), config.sensitiveHeaders)
         assertEquals(10_000L, config.webhookTimeoutMs)
     }

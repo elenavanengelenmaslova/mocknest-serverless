@@ -118,7 +118,6 @@ class WebhookRedactionPropertyTest {
     fun `Given request headers When afterMatch called Then sensitive headers are captured and available for auth injection`(filename: String) {
         val scenario = loadScenario(filename)
         val config = WebhookConfig(
-            selfUrl = "https://api.example.com/prod",
             sensitiveHeaders = scenario.sensitiveHeaders.map { it.lowercase() }.toSet(),
             webhookTimeoutMs = 10_000L,
         )
@@ -166,7 +165,6 @@ class WebhookRedactionPropertyTest {
     fun `Given request with non-sensitive headers When afterMatch called Then non-sensitive headers are not in side-channel`(filename: String) {
         val scenario = loadScenario(filename)
         val config = WebhookConfig(
-            selfUrl = "https://api.example.com/prod",
             sensitiveHeaders = scenario.sensitiveHeaders.map { it.lowercase() }.toSet(),
             webhookTimeoutMs = 10_000L,
         )

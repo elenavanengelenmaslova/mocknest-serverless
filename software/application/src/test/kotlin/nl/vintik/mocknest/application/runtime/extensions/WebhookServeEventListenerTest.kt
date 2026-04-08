@@ -23,7 +23,6 @@ class WebhookServeEventListenerTest {
     private val mockHttpClient: WebhookHttpClientInterface = mockk(relaxed = true)
 
     private val defaultConfig = WebhookConfig(
-        selfUrl = "https://api.example.com/prod",
         sensitiveHeaders = setOf("x-api-key", "authorization"),
         webhookTimeoutMs = 10_000L,
     )
@@ -271,9 +270,9 @@ class WebhookServeEventListenerTest {
         }
 
         @Test
-        fun `Given webhook URL contains self-url placeholder When beforeResponseSent called Then placeholder is replaced with selfUrl`() {
+        fun `Given webhook URL When beforeResponseSent called Then URL is passed through unchanged`() {
             val l = listener()
-            val listenerDef = webhookListenerDef(url = "{{mocknest-self-url}}/callback")
+            val listenerDef = webhookListenerDef(url = "https://callback.example.com/hook")
             val serveEvent = buildServeEvent(listenerDefs = listOf(listenerDef))
             every { mockHttpClient.send(any()) } returns WebhookResult.Success(200)
 
@@ -281,22 +280,7 @@ class WebhookServeEventListenerTest {
 
             val slot = slot<WebhookRequest>()
             verify { mockHttpClient.send(capture(slot)) }
-            assertEquals("https://api.example.com/prod/callback", slot.captured.url)
-        }
-
-        @Test
-        fun `Given selfUrl is null and URL contains placeholder When beforeResponseSent called Then placeholder is replaced with empty string`() {
-            val config = defaultConfig.copy(selfUrl = null)
-            val l = listener(config)
-            val listenerDef = webhookListenerDef(url = "{{mocknest-self-url}}/callback")
-            val serveEvent = buildServeEvent(listenerDefs = listOf(listenerDef))
-            every { mockHttpClient.send(any()) } returns WebhookResult.Failure(null, "invalid url")
-
-            l.beforeResponseSent(serveEvent, Parameters.empty())
-
-            val slot = slot<WebhookRequest>()
-            verify { mockHttpClient.send(capture(slot)) }
-            assertEquals("/callback", slot.captured.url)
+            assertEquals("https://callback.example.com/hook", slot.captured.url)
         }
     }
 

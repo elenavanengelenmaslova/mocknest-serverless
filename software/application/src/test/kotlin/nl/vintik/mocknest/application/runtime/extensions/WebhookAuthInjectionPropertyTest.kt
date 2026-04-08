@@ -142,7 +142,6 @@ class WebhookAuthInjectionPropertyTest {
     fun `Given original_request_header auth config When beforeResponseSent called Then header is injected with correct value`(filename: String) {
         val scenario = loadScenario(filename)
         val config = WebhookConfig(
-            selfUrl = "https://api.example.com/prod",
             sensitiveHeaders = setOf(scenario.incomingHeaderName.lowercase()),
             webhookTimeoutMs = 10_000L,
         )
@@ -175,7 +174,6 @@ class WebhookAuthInjectionPropertyTest {
     fun `Given sensitive auth header value When beforeResponseSent called Then value does not appear in any log output`(filename: String) {
         val scenario = loadScenario(filename)
         val config = WebhookConfig(
-            selfUrl = "https://api.example.com/prod",
             sensitiveHeaders = setOf(scenario.incomingHeaderName.lowercase()),
             webhookTimeoutMs = 10_000L,
         )

@@ -20,7 +20,6 @@ class WebhookHttpClientTest {
     private lateinit var client: WebhookHttpClient
 
     private val defaultConfig = WebhookConfig(
-        selfUrl = null,
         sensitiveHeaders = setOf("x-api-key", "authorization"),
         webhookTimeoutMs = 5_000L,
     )
@@ -137,7 +136,6 @@ class WebhookHttpClientTest {
         @Test
         fun `Given SocketTimeoutException When send called Then returns Failure with null statusCode`() {
             val timeoutConfig = WebhookConfig(
-                selfUrl = null,
                 sensitiveHeaders = emptySet(),
                 webhookTimeoutMs = 200L,
             )
@@ -167,7 +165,7 @@ class WebhookHttpClientTest {
                 timeoutMs = 500L,
             )
             val quickClient = WebhookHttpClient(
-                WebhookConfig(selfUrl = null, sensitiveHeaders = emptySet(), webhookTimeoutMs = 500L)
+                WebhookConfig(sensitiveHeaders = emptySet(), webhookTimeoutMs = 500L)
             )
 
             val result = quickClient.send(request)
@@ -186,7 +184,6 @@ class WebhookHttpClientTest {
         fun `Given timeout configured When client built Then OkHttpClient uses configured timeout`() {
             val customTimeoutMs = 7_500L
             val config = WebhookConfig(
-                selfUrl = null,
                 sensitiveHeaders = emptySet(),
                 webhookTimeoutMs = customTimeoutMs,
             )
@@ -196,7 +193,6 @@ class WebhookHttpClientTest {
 
             // Verify it actually respects the timeout by using a very short one
             val shortConfig = WebhookConfig(
-                selfUrl = null,
                 sensitiveHeaders = emptySet(),
                 webhookTimeoutMs = 200L,
             )

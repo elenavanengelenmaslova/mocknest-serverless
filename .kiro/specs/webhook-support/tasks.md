@@ -52,7 +52,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
 
 - [x] 3. Implement `WebhookConfig`
   - Create `WebhookConfig` data class in `software/application/src/main/kotlin/nl/vintik/mocknest/application/runtime/config/`
-  - Read `MOCKNEST_SELF_URL`, `MOCKNEST_SENSITIVE_HEADERS` (default: `x-api-key,authorization`), `MOCKNEST_WEBHOOK_TIMEOUT_MS` (default: `10000`) from `System.getenv()`
+  - Read `MOCKNEST_SENSITIVE_HEADERS` (default: `x-api-key,authorization`), `MOCKNEST_WEBHOOK_TIMEOUT_MS` (default: `10000`) from `System.getenv()`
   - Normalize sensitive header names to lowercase and store as `Set<String>`
   - _Requirements: 1.4, 4.3_
 
@@ -86,7 +86,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
     - Check if the matched stub has `serveEventListeners` with name `"webhook"`; if not, return immediately
     - Extract webhook parameters (url, method, body, auth block)
     - Resolve `{{mocknest-self-url}}` placeholder in URL from `WebhookConfig.selfUrl`
-    - Parse `WebhookAuthConfig` from the `auth` block (default: `None` if absent)
+
     - Build outbound headers based on auth config:
       - `None`: no auth headers added
       - `Header(injectName, OriginalRequestHeader(headerName))`: read `headerName` from the original (pre-redaction) request, inject as `injectName` in the outbound request — never log the value
@@ -114,8 +114,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
     - Test Given webhook client throws exception When beforeResponseSent called Then warning is logged and no exception propagates
     - Test Given timeout configured When beforeResponseSent called Then `WebhookRequest.timeoutMs` matches `WebhookConfig.webhookTimeoutMs`
     - Test Given webhook URL contains `{{mocknest-self-url}}` When beforeResponseSent called Then placeholder is replaced with `WebhookConfig.selfUrl`
-    - Test Given `WebhookConfig.selfUrl` is null and URL contains `{{mocknest-self-url}}` When beforeResponseSent called Then placeholder is replaced with empty string and failure is logged
-    - _Requirements: 1.1, 1.3, 3.1, 3.8, 7.1, 7.3_
+    - Test Given `WebhookConfig.selfUrl` is null and URL contains `{{mocknest-self-url}}` When beforeResponseSent called Then placeholder is replaced with empty string and failure is logged    - _Requirements: 1.1, 1.3, 3.1, 3.8, 7.1, 7.3_
 
   - [x] 4.3 Write property-based tests — Property 2: Failure isolation
     - Use `@ParameterizedTest` with 12+ diverse test data files in `src/test/resources/test-data/webhook/failure-isolation/`
@@ -234,8 +233,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
   - Ask the user if questions arise
 
 - [x] 10. Update SAM template with webhook environment variables
-  - Add 3 new env vars to both `MockNestRuntimeFunction` and `MockNestRuntimeFunctionIam` `Environment.Variables` blocks:
-    - `MOCKNEST_SELF_URL`: `!Sub` with `!If [IsIamMode, ...]` selecting the correct API ID
+  - Add 2 new env vars to both `MockNestRuntimeFunction` and `MockNestRuntimeFunctionIam` `Environment.Variables` blocks:
     - `MOCKNEST_SENSITIVE_HEADERS`: `"x-api-key,authorization"`
     - `MOCKNEST_WEBHOOK_TIMEOUT_MS`: `"10000"`
   - No new IAM permissions required for v1 — `original_request_header` reads from the incoming request, no external backend calls
@@ -269,7 +267,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
     - Complete mapping example using `serveEventListeners` format with `auth.type=header, source=original_request_header`
     - Explanation of the two-level auth config structure (`type` + `value.source`) and why it is designed this way
     - Mention of future value sources (`static`, `secret_ref`, `env_var`) and `aws_iam` auth type as roadmap items
-    - Table of webhook env vars (`MOCKNEST_SELF_URL`, `MOCKNEST_SENSITIVE_HEADERS`, `MOCKNEST_WEBHOOK_TIMEOUT_MS`) with defaults and descriptions
+    - Table of webhook env vars (`MOCKNEST_SENSITIVE_HEADERS`, `MOCKNEST_WEBHOOK_TIMEOUT_MS`) with defaults and descriptions
     - Explanation of the Lambda execution context constraint and how synchronous dispatch addresses it
     - Note on recommended minimum Lambda timeout (30s) when webhooks are used
     - Note that sensitive headers are redacted before journal storage

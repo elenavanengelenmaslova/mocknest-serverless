@@ -1,7 +1,7 @@
 {
-  "description": "URL with mocknest-self-url placeholder resolved",
+  "description": "URL with explicit full URL (no placeholder needed)",
   "webhookParameters": {
-    "url": "{{mocknest-self-url}}/mocknest/payments/callback",
+    "url": "https://api.example.com/prod/mocknest/payments/callback",
     "method": "POST",
     "body": "{\"event\":\"triggered\"}"
   },

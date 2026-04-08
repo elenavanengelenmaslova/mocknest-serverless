@@ -45,7 +45,6 @@ From `StubRequestHandler.java`, the call order is:
 | Future value sources | `static`, `secret_ref`, `env_var` — documented, not implemented | Same `Header` type, different `HeaderValueSource` variant |
 | Future auth type | `aws_iam` — documented as roadmap, not implemented | Peer of `Header` in the sealed class; no breaking change to add |
 | Sensitive header redaction | Mutate `ServeEvent` headers in `afterMatch()` before journal storage | Only reliable approach given journal write timing |
-| Self-URL | `MOCKNEST_SELF_URL` environment variable | Simple, explicit; set via SAM `!Sub` |
 | Webhook timeout | `MOCKNEST_WEBHOOK_TIMEOUT_MS` env var, default 10000ms | Configurable; accounts for API Gateway round-trip |
 | Redaction marker | `[REDACTED]` | Clear, unambiguous, non-revealing |
 | Local integration test | Real `WireMockServer` with a real port | `DirectCallHttpServer` bypasses HTTP stack; OkHttp needs a real listener |
@@ -80,16 +79,33 @@ This means new value sources can be added without changing the injection mechani
 
 ### Mapping Configuration Shape
 
-The `auth` block is a top-level field within the webhook `parameters` object:
+The `auth` block is a top-level field within the webhook `parameters` object. The typical use case is MockNest calling back to a real external service — the webhook URL is that service's endpoint:
 
 ```json
 {
   "serveEventListeners": [
     {
-      "name": "webhook",
+      "name": "mocknest-webhook",
       "parameters": {
         "method": "POST",
-        "url": "{{mocknest-self-url}}/mocknest/payments/callback",
+        "url": "https://your-app.example.com/payments/callback",
+        "body": "{\"orderId\": \"{{jsonPath originalRequest.body '$.orderId'}}\"}"
+      }
+    }
+  ]
+}
+```
+
+When the callback endpoint requires auth that should be forwarded from the incoming trigger request (e.g. for self-callback testing where MockNest calls back into itself):
+
+```json
+{
+  "serveEventListeners": [
+    {
+      "name": "mocknest-webhook",
+      "parameters": {
+        "method": "POST",
+        "url": "https://your-app.example.com/payments/callback",
         "body": "{\"orderId\": \"{{jsonPath originalRequest.body '$.orderId'}}\"}",
         "auth": {
           "type": "header",
@@ -106,8 +122,6 @@ The `auth` block is a top-level field within the webhook `parameters` object:
   ]
 }
 ```
-
-This copies the `x-api-key` header from the incoming trigger request and injects it as `x-api-key` on the outbound webhook call. For same-instance callbacks, the caller's API key is valid for both the trigger and callback endpoints.
 
 **No auth example:**
 ```json
@@ -143,7 +157,7 @@ Or omit the `auth` block entirely — defaults to no auth.
 
 ### `{{mocknest-self-url}}` Placeholder
 
-`{{mocknest-self-url}}` is a MockNest-specific placeholder resolved by `WebhookServeEventListener` from `WebhookConfig.selfUrl` before the HTTP call. It is not processed by WireMock's template engine. This allows the webhook URL to reference the deployed instance's own base URL without hardcoding it in the mapping.
+Removed — users specify the full URL directly in the webhook definition. The deployed API Gateway URL is available from CloudFormation outputs and can be injected at stub registration time (e.g. in the post-deploy pipeline script).
 
 ---
 
@@ -178,7 +192,7 @@ flowchart TB
 
     subgraph AWS["AWS"]
         APIGW[API Gateway]
-        EnvVars[Lambda Environment Variables\nMOCKNEST_SELF_URL\nMOCKNEST_SENSITIVE_HEADERS\nMOCKNEST_WEBHOOK_TIMEOUT_MS]
+        EnvVars[Lambda Environment Variables\nMOCKNEST_SENSITIVE_HEADERS\nMOCKNEST_WEBHOOK_TIMEOUT_MS]
     end
 
     APIGW -->|HTTP request with x-api-key| Router
@@ -287,7 +301,6 @@ Single extension handling both redaction and synchronous dispatch.
 **`beforeResponseSent(serveEvent, parameters)`:**
 - Check if the matched stub has `serveEventListeners` with name `"webhook"`; if not, return immediately
 - Extract webhook parameters (url, method, body, auth block)
-- Resolve `{{mocknest-self-url}}` placeholder in URL from `WebhookConfig.selfUrl`
 - Parse `WebhookAuthConfig` from the `auth` block (default: `None` if absent)
 - Build outbound headers based on auth config:
   - `None`: no auth headers added
@@ -324,13 +337,11 @@ sealed class WebhookResult {
 
 | Environment Variable | Default | Description |
 |---|---|---|
-| `MOCKNEST_SELF_URL` | (none) | The deployed API Gateway base URL |
 | `MOCKNEST_SENSITIVE_HEADERS` | `x-api-key,authorization` | Comma-separated sensitive header names (case-insensitive) |
 | `MOCKNEST_WEBHOOK_TIMEOUT_MS` | `10000` | Outbound webhook HTTP call timeout in milliseconds |
 
 ```kotlin
 data class WebhookConfig(
-    val selfUrl: String?,
     val sensitiveHeaders: Set<String>,
     val webhookTimeoutMs: Long,
 )
@@ -409,9 +420,6 @@ OkHttp `callTimeout(webhookTimeoutMs, MILLISECONDS)`. Timeout throws `SocketTime
 ### Template Rendering Failures
 WireMock's template engine substitutes empty string for unresolvable expressions. `WebhookServeEventListener` proceeds with partially-rendered values.
 
-### Missing `MOCKNEST_SELF_URL`
-If `MOCKNEST_SELF_URL` is not set and a webhook URL contains `{{mocknest-self-url}}`, the placeholder is replaced with an empty string, resulting in an invalid URL. Dispatch fails and is logged at `WARN`. Configuration error documented in `USAGE.md`.
-
 ### Redaction Failures
 If header mutation in `afterMatch()` throws, the exception is caught, logged at `ERROR`, and the original (unredacted) headers remain. The implementation must be robust and well-tested to minimize this risk.
 
@@ -431,6 +439,8 @@ Before implementing the full solution, a small prototype must validate:
 ### Local Integration Test
 
 Uses a `WireMockServer` started on a real port (not `DirectCallHttpServer`). No AWS credentials required.
+
+The test uses a self-callback pattern (mock → mock on the same instance) purely to validate webhook delivery without needing a real external service. In production use, the webhook URL would point to a real external service.
 
 **Test scenario 1 — Webhook delivery with `original_request_header` auth:**
 1. Start `WireMockServer` on a random port with `WebhookServeEventListener` registered
@@ -473,9 +483,6 @@ Uses a `WireMockServer` started on a real port (not `DirectCallHttpServer`). No 
 Environment:
   Variables:
     # ... existing variables ...
-    MOCKNEST_SELF_URL: !Sub
-      - "https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/${DeploymentName}"
-      - ApiId: !If [IsIamMode, !Ref MockNestIamModeApi, !Ref MockNestApiKeyModeApi]
     MOCKNEST_SENSITIVE_HEADERS: "x-api-key,authorization"
     MOCKNEST_WEBHOOK_TIMEOUT_MS: "10000"
 ```
