@@ -338,6 +338,11 @@ Resources:
           SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+          MOCKNEST_SELF_URL: !Sub
+            - "https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/${DeploymentName}"
+            - ApiId: !If [IsIamMode, !Ref MockNestIamModeApi, !Ref MockNestApiKeyModeApi]
+          MOCKNEST_SENSITIVE_HEADERS: "x-api-key,authorization"
+          MOCKNEST_WEBHOOK_TIMEOUT_MS: "10000"
       DeadLetterQueue:
         Type: SQS
         TargetArn: !GetAtt MockNestDLQ.Arn
@@ -377,6 +382,11 @@ Resources:
           SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+          MOCKNEST_SELF_URL: !Sub
+            - "https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/${DeploymentName}"
+            - ApiId: !If [IsIamMode, !Ref MockNestIamModeApi, !Ref MockNestApiKeyModeApi]
+          MOCKNEST_SENSITIVE_HEADERS: "x-api-key,authorization"
+          MOCKNEST_WEBHOOK_TIMEOUT_MS: "10000"
       DeadLetterQueue:
         Type: SQS
         TargetArn: !GetAtt MockNestDLQ.Arn

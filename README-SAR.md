@@ -1,6 +1,6 @@
 # MockNest Serverless
 
-MockNest Serverless is a serverless WireMock runtime that enables realistic integration testing without relying on live external services. Deploy it directly into your AWS account for secure, cost-effective API mocking with AI-powered mock generation.
+MockNest Serverless is a serverless WireMock runtime that enables realistic integration testing without relying on live external services. Deploy it directly into your AWS account for secure, cost-effective API mocking with AI-powered mock generation and webhook/callback support.
 
 ## Deployment
 
@@ -188,6 +188,7 @@ MockNest Serverless runs on AWS Lambda with:
 - **Transient Data**: Request logs and near-miss analysis (current Lambda instance only)
 - **API Gateway**: HTTP routing with API key authentication
 - **Amazon Bedrock**: AI-powered mock generation (optional)
+- **Webhook Support**: Synchronous outbound HTTP dispatch before Lambda returns, with structured auth config and sensitive header redaction
 
 **API Gateway Throttling**: BurstLimit: 1 limits concurrent requests to reduce Lambda scaling, allowing 100 requests/second sequential throughput.
 

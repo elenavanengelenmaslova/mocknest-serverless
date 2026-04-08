@@ -30,6 +30,14 @@ You can manage mocks in two ways:
   - [Call Generated Pet API by Tags](#call-generated-pet-api-by-tags)
   - [Generate Mocks from GraphQL Schema (via Introspection)](#generate-mocks-from-graphql-schema-via-introspection)
   - [Generate Mocks from SOAP/WSDL](#generate-mocks-from-soapwsdl)
+- [Webhook Support](#webhook-support)
+  - [How It Works](#how-it-works)
+  - [Complete Webhook Example](#complete-webhook-example)
+  - [Auth Config Model](#auth-config-model)
+  - [Webhook Environment Variables](#webhook-environment-variables)
+  - [Lambda Execution Context and Synchronous Dispatch](#lambda-execution-context-and-synchronous-dispatch)
+  - [Sensitive Header Redaction](#sensitive-header-redaction)
+  - [Known Limitations](#known-limitations)
 - [Administrative Operations](#administrative-operations)
   - [Get All Mappings](#get-all-mappings)
   - [Get File Content](#get-file-content)
@@ -1166,6 +1174,198 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 - Response bodies are valid SOAP 1.2 envelopes with namespace `http://www.w3.org/2003/05/soap-envelope`
 - Response Content-Type is `application/soap+xml; charset=utf-8` (SOAP 1.2 standard)
 
+
+## Webhook Support
+
+MockNest Serverless supports webhook/callback-style behavior: a mock can trigger an outbound HTTP call to another endpoint after serving its response. The primary use case is calling another mock endpoint within the same deployed MockNest instance, enabling simulation of chained or event-driven service interactions in tests.
+
+### How It Works
+
+When a mock with a `serveEventListeners` webhook configuration is matched, MockNest dispatches the outbound HTTP call **synchronously before returning the response** to the original caller. This is a deliberate design choice — see [Lambda Execution Context and Synchronous Dispatch](#lambda-execution-context-and-synchronous-dispatch) for why this matters.
+
+If the webhook call fails (non-2xx, network error, or timeout), the failure is logged and the original mock response is still returned normally. Webhook failures never affect the response seen by the caller.
+
+### Complete Webhook Example
+
+This example shows a trigger mock (`POST /mocknest/orders`) that fires a webhook to a callback mock (`POST /mocknest/payments/callback`) on the same MockNest instance. The `x-api-key` from the incoming trigger request is forwarded to the outbound callback call.
+
+**Step 1: Register the callback mock**
+
+```bash
+curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request": {
+      "method": "POST",
+      "urlPath": "/mocknest/payments/callback"
+    },
+    "response": {
+      "status": 200,
+      "headers": { "Content-Type": "application/json" },
+      "jsonBody": { "status": "received" }
+    },
+    "persistent": true
+  }'
+```
+
+**Step 2: Register the trigger mock with a webhook**
+
+```bash
+curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request": {
+      "method": "POST",
+      "urlPath": "/mocknest/orders"
+    },
+    "response": {
+      "status": 202,
+      "headers": { "Content-Type": "application/json" },
+      "jsonBody": { "orderId": "{{jsonPath request.body '\''$.orderId'\''}}", "status": "accepted" }
+    },
+    "serveEventListeners": [
+      {
+        "name": "webhook",
+        "parameters": {
+          "method": "POST",
+          "url": "{{mocknest-self-url}}/mocknest/payments/callback",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": "{\"orderId\": \"{{jsonPath request.body '\''$.orderId'\''}}\", \"event\": \"order.created\"}",
+          "auth": {
+            "type": "header",
+            "inject": {
+              "name": "x-api-key"
+            },
+            "value": {
+              "source": "original_request_header",
+              "headerName": "x-api-key"
+            }
+          }
+        }
+      }
+    ],
+    "persistent": true
+  }'
+```
+
+**Step 3: Call the trigger mock**
+
+```bash
+curl -X POST "${MOCKNEST_URL}/mocknest/orders" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"orderId": "order-123"}'
+```
+
+The trigger returns 202 Accepted. Before returning, MockNest has already dispatched the webhook to `/mocknest/payments/callback` with the `x-api-key` header forwarded from the original request.
+
+**Step 4: Verify the callback was received**
+
+```bash
+curl -X GET "${MOCKNEST_URL}/__admin/requests" \
+  -H "x-api-key: ${API_KEY}"
+```
+
+Look for a request to `/mocknest/payments/callback` in the response. The `x-api-key` value in that journal entry will be `[REDACTED]` — sensitive headers are never stored in plain text.
+
+### Auth Config Model
+
+The webhook auth configuration uses a two-level structure that separates two independent concerns:
+
+- **`auth.type`** — where authentication is applied to the outbound request (e.g. inject a header)
+- **`auth.value.source`** — where the auth value comes from at dispatch time
+
+This separation means new value sources can be added without changing the injection mechanism, and new auth types can be added as peers without affecting existing configs.
+
+**v1 supported auth type:**
+
+| `auth.type` | Description |
+|---|---|
+| `header` | Injects a named header into the outbound webhook request |
+| `none` | No authentication (also the default when `auth` is omitted) |
+
+**v1 supported value source (for `auth.type = "header"`):**
+
+| `auth.value.source` | Description |
+|---|---|
+| `original_request_header` | Copies a named header value from the incoming trigger request |
+
+**Example — `original_request_header`:**
+
+```json
+"auth": {
+  "type": "header",
+  "inject": { "name": "x-api-key" },
+  "value": { "source": "original_request_header", "headerName": "x-api-key" }
+}
+```
+
+This copies the `x-api-key` header from the incoming trigger request and injects it as `x-api-key` on the outbound webhook call. For same-instance callbacks, the caller's API key is valid for both the trigger and callback endpoints — the trigger request must include the API key to satisfy MockNest / API Gateway auth, and the webhook auth config copies it to the outbound callback call.
+
+**No auth (explicit):**
+
+```json
+"auth": { "type": "none" }
+```
+
+Or simply omit the `auth` block entirely.
+
+**Future roadmap value sources** (not implemented in v1):
+
+| `auth.value.source` | Description |
+|---|---|
+| `static` | A fixed value specified directly in the mapping |
+| `secret_ref` | Resolved at dispatch time from AWS Secrets Manager |
+| `env_var` | Read from a Lambda environment variable at dispatch time |
+
+**Future roadmap auth type** (not implemented in v1):
+
+| `auth.type` | Description |
+|---|---|
+| `aws_iam` | SigV4 signing for Lambda URLs or IAM-protected API Gateway endpoints |
+
+### Webhook Environment Variables
+
+Configure webhook behavior via these Lambda environment variables (set via SAM template or directly on the Lambda function):
+
+| Environment Variable | Default | Description |
+|---|---|---|
+| `MOCKNEST_SELF_URL` | (none) | The deployed API Gateway base URL. Used to resolve the `{{mocknest-self-url}}` placeholder in webhook URLs. Required for same-instance callbacks. |
+| `MOCKNEST_SENSITIVE_HEADERS` | `x-api-key,authorization` | Comma-separated list of header names to redact from the request journal. Case-insensitive. |
+| `MOCKNEST_WEBHOOK_TIMEOUT_MS` | `10000` | Timeout in milliseconds for outbound webhook HTTP calls. |
+
+The `{{mocknest-self-url}}` placeholder in webhook URLs is resolved by MockNest from `MOCKNEST_SELF_URL` before the HTTP call. This allows webhook URLs to reference the deployed instance's own base URL without hardcoding it in the mapping.
+
+If `MOCKNEST_SELF_URL` is not set and a webhook URL contains `{{mocknest-self-url}}`, the placeholder is replaced with an empty string, resulting in an invalid URL. The dispatch will fail and be logged as a warning.
+
+### Lambda Execution Context and Synchronous Dispatch
+
+WireMock's built-in webhook extension dispatches asynchronously via a background thread. In AWS Lambda, the execution context may be **frozen** once the handler returns — meaning any in-flight async work is silently dropped.
+
+MockNest addresses this by dispatching webhooks **synchronously in `beforeResponseSent`**, before the Lambda handler returns its response to the caller. This guarantees webhook completion within the Lambda execution context.
+
+**Recommended minimum Lambda timeout when webhooks are used: 30 seconds.** This accounts for original request processing (~1s), the webhook round-trip through API Gateway (~5–15s), and a safety buffer (~10s).
+
+### Sensitive Header Redaction
+
+MockNest redacts sensitive header values before storing requests in WireMock's in-memory journal. Redaction happens in `afterMatch()`, before the journal write, so sensitive values are never stored in plain text.
+
+Headers configured in `MOCKNEST_SENSITIVE_HEADERS` (default: `x-api-key`, `authorization`) are replaced with `[REDACTED]` in:
+- All entries in the WireMock request journal
+- Responses from `/__admin/requests`
+- Both inbound trigger requests and inbound webhook callback requests
+
+Sensitive header values are also never written to logs at any log level.
+
+### Known Limitations
+
+**Same-instance journal entries**: When a webhook callback is handled by a different Lambda invocation (due to Lambda concurrency), the callback's journal entry will be in that invocation's in-memory journal, not the trigger invocation's journal. In practice, for same-instance calls with low concurrency (typical in test scenarios), the same Lambda instance handles both. This is a known limitation of Lambda's per-invocation in-memory state.
+
+---
 
 ## Administrative Operations
 

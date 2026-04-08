@@ -233,7 +233,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
   - Run `./gradlew :software:infra:aws:runtime:test` and confirm all tests pass
   - Ask the user if questions arise
 
-- [ ] 10. Update SAM template with webhook environment variables
+- [x] 10. Update SAM template with webhook environment variables
   - Add 3 new env vars to both `MockNestRuntimeFunction` and `MockNestRuntimeFunctionIam` `Environment.Variables` blocks:
     - `MOCKNEST_SELF_URL`: `!Sub` with `!If [IsIamMode, ...]` selecting the correct API ID
     - `MOCKNEST_SENSITIVE_HEADERS`: `"x-api-key,authorization"`
@@ -242,7 +242,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
   - Run `sam validate --template-file deployment/aws/sam/template.yaml --region eu-west-1` and confirm exit code 0
   - _Requirements: 5.1_
 
-- [ ] 11. Add `webhook` test suite to `scripts/post-deploy-test.sh`
+- [x] 11. Add `webhook` test suite to `scripts/post-deploy-test.sh`
   - Add `test_webhook_delivery()` function following the existing pattern:
     1. Register callback mock: `POST /mocknest/webhook-callback` → 200 OK
     2. Register trigger mock: `POST /mocknest/webhook-trigger` → 202 Accepted, with `serveEventListeners` webhook targeting `$API_URL/mocknest/webhook-callback`, with `auth: { type: header, inject: { name: x-api-key }, value: { source: original_request_header, headerName: x-api-key } }`
@@ -255,7 +255,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
   - Add `webhook` to the `all` suite execution sequence
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.7_
 
-- [ ] 12. Update GitHub Actions workflow for webhook test suite
+- [x] 12. Update GitHub Actions workflow for webhook test suite
   - Add `webhook` to the `test-suite` `choice` options in `.github/workflows/workflow-integration-test.yml` (both `workflow_call` and `workflow_dispatch` inputs)
   - Add `test-webhook` job following the same pattern as `test-rest`:
     - `needs: setup`
@@ -264,7 +264,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
     - Run `./scripts/post-deploy-test.sh webhook`
   - _Requirements: 9.6_
 
-- [ ] 13. Update documentation
+- [x] 13. Update documentation
   - Update `docs/USAGE.md`: add a "Webhook Support" section with:
     - Complete mapping example using `serveEventListeners` format with `auth.type=header, source=original_request_header`
     - Explanation of the two-level auth config structure (`type` + `value.source`) and why it is designed this way
@@ -279,7 +279,7 @@ Implement reliable webhook/callback-style behavior for MockNest Serverless. The 
   - Update `README-SAR.md`: mention webhook support as a supported feature
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-- [ ] 14. Final checkpoint — Verify test coverage and quality
+- [-] 14. Final checkpoint — Verify test coverage and quality
   - [ ] 14.1 Run `./gradlew koverHtmlReport` and verify 80%+ coverage for new code (aim for 90%+)
   - [ ] 14.2 Run `./gradlew koverVerify` to enforce coverage threshold
   - [ ] 14.3 Review test quality: Given-When-Then naming, proper assertions, edge case coverage for all 6 correctness properties
