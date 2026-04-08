@@ -45,7 +45,7 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 - **WireMock-Compatible Mock Format**: Mock definitions use the WireMock mapping format — reuse existing WireMock stubs or leverage the WireMock ecosystem directly
 - **Import & Export Mock Sets**: Bulk-import mappings from JSON to replicate environments or onboard quickly
 - **Persistent Across Deployments**: Mock definitions survive Lambda cold starts and redeployments via Amazon S3
-- **Webhook and Callback Support**: Trigger outbound HTTP calls from mocks to simulate chained or event-driven service interactions, with synchronous dispatch that completes before Lambda returns, structured auth config, and sensitive header redaction
+- **Webhook and Callback Support**: Trigger outbound HTTP calls from mocks to simulate chained or event-driven service interactions
 - **AI-Assisted Mock Generation**: Generate realistic, consistent mocks from OpenAPI, WSDL/SOAP, or GraphQL specs using Amazon Bedrock (configurable model, defaults to Amazon Nova Pro)
 - **One-Click Deployment**: Deploy via AWS Serverless Application Repository (SAR) or build from source with SAM
 - **Low Latency**: Lambda SnapStart minimises cold start times

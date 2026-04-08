@@ -1,10 +1,11 @@
 # MockNest Serverless
 
-MockNest Serverless is a serverless WireMock runtime that enables realistic integration testing without relying on live external services. Deploy it directly into your AWS account for secure, cost-effective API mocking with AI-powered mock generation and webhook/callback support.
+Deploy WireMock into your own AWS account and mock external APIs without depending on live services.  
+MockNest Serverless is a serverless WireMock runtime for REST/OpenAPI, GraphQL, and SOAP APIs, with persistent mocks, AI-assisted mock generation, and webhook/callback support.
 
 ## Deployment
 
-Click "Deploy" and configure the parameters below. Deployment typically takes 2-3 minutes. You can monitor progress in the CloudFormation console.
+Click **Deploy** and configure the parameters below. Deployment typically takes 2-3 minutes. You can monitor progress in the CloudFormation console.
 
 **Region Selection**: MockNest works in any AWS region with Lambda, API Gateway, and S3. For AI feature availability by region, see [supported regions](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/REGIONS.md).
 
@@ -176,6 +177,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 - Swagger 2.0 (experimental)
 - GraphQL (via introspection)
 - SOAP 1.2
+- Webhooks/callbacks (synchronous outbound HTTP dispatch with structured auth config and sensitive header redaction)
 
 **Current Limitations**:
 - AI generation supports REST, SOAP 1.2 and GraphQL APIs. SOAP 1.1 API generation is not supported, but can be added manually through runtime admin API.
@@ -188,7 +190,6 @@ MockNest Serverless runs on AWS Lambda with:
 - **Transient Data**: Request logs and near-miss analysis (current Lambda instance only)
 - **API Gateway**: HTTP routing with API key authentication
 - **Amazon Bedrock**: AI-powered mock generation (optional)
-- **Webhook Support**: Synchronous outbound HTTP dispatch before Lambda returns, with structured auth config and sensitive header redaction
 
 **API Gateway Throttling**: BurstLimit: 1 limits concurrent requests to reduce Lambda scaling, allowing 100 requests/second sequential throughput.
 
@@ -258,7 +259,7 @@ For detailed security information and vulnerability reporting, see [SECURITY.md]
 - **Full Documentation**: See the [main README](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/README.md) for comprehensive documentation
 - **API Reference**: Complete [OpenAPI specification](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/api/mocknest-openapi.yaml)
 - **Use Cases & Examples**: Detailed examples in the [main README](https://github.com/elenavanengelenmaslova/mocknest-serverless#common-use-cases)
-- **Issues**: Report bugs at [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
+- **Feedback & Support**: Report bugs or request features via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
 - **Video Demo**: [https://youtu.be/Rvip8rtULww](https://youtu.be/Rvip8rtULww)
 
 ## Learn More
@@ -268,4 +269,4 @@ For detailed security information and vulnerability reporting, see [SECURITY.md]
 
 ---
 
-**⚠️ EXPERIMENTAL RELEASE** - This is an early release of MockNest Serverless. We welcome feedback and bug reports via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
+Questions, bug reports, and feature requests are welcome via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues).
