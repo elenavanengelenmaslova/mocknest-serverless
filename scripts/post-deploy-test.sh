@@ -593,7 +593,8 @@ test_webhook_delivery() {
       "status": 200,
       "body": "{\"received\": true}",
       "headers": { "Content-Type": "application/json" }
-    }
+    },
+    "persistent": true
   }'
 
   local response
@@ -631,7 +632,7 @@ test_webhook_delivery() {
     },
     \"serveEventListeners\": [
       {
-        \"name\": \"webhook\",
+        \"name\": \"mocknest-webhook\",
         \"parameters\": {
           \"method\": \"POST\",
           \"url\": \"$API_URL/mocknest/webhook-callback\",
