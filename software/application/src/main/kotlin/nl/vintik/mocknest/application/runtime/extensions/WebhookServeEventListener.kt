@@ -98,7 +98,14 @@ class WebhookServeEventListener(
         runCatching {
             val listenerDef = serveEvent.serveEventListeners
                 .firstOrNull { it.name == LISTENER_NAME }
-                ?: return
+                ?: run {
+                    logger.info {
+                        "beforeResponseSent: no $LISTENER_NAME listener on serveEvent=${serveEvent.id} " +
+                            "stub=${serveEvent.stubMapping?.id} " +
+                            "availableListeners=${serveEvent.serveEventListeners.map { it.name }}"
+                    }
+                    return
+                }
 
             logger.info { "Webhook listener detected on serveEvent=${serveEvent.id} stub=${serveEvent.stubMapping?.id}" }
 
