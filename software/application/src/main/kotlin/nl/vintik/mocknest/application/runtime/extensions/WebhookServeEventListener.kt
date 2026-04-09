@@ -74,6 +74,7 @@ class WebhookServeEventListener(
      */
     override fun afterMatch(serveEvent: ServeEvent, parameters: Parameters) {
         runCatching {
+            logger.info{"After match webhook triggered!"}
             val request = serveEvent.request
             val sensitiveValues = mutableMapOf<String, String>()
             request.headers.all().forEach { header ->
@@ -115,7 +116,7 @@ class WebhookServeEventListener(
                 return
             }
             val method = params.getString("method") ?: "POST"
-            val body = params.get("body") as? String
+            val body = params["body"] as? String
 
             val url = rawUrl
             val authConfig = parseAuthConfig(params)
