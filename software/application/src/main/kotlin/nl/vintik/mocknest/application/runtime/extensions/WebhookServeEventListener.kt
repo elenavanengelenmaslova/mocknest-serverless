@@ -100,6 +100,8 @@ class WebhookServeEventListener(
                 .firstOrNull { it.name == LISTENER_NAME }
                 ?: return
 
+            logger.info { "Webhook listener detected on serveEvent=${serveEvent.id} stub=${serveEvent.stubMapping?.id}" }
+
             val params = listenerDef.parameters
             val rawUrl = params.getString("url") ?: run {
                 logger.warn { "Webhook missing 'url' parameter for serveEvent=${serveEvent.id}" }
@@ -112,6 +114,16 @@ class WebhookServeEventListener(
             val authConfig = parseAuthConfig(params)
             val outboundHeaders = buildOutboundHeaders(authConfig, serveEvent.id, serveEvent)
 
+            val injectedHeaderNames = outboundHeaders.keys.joinToString()
+            val authDescription = when (authConfig) {
+                is WebhookAuthConfig.None -> "none"
+                is WebhookAuthConfig.Header -> "header(inject=${authConfig.injectName}, source=${authConfig.valueSource::class.simpleName})"
+            }
+            logger.info {
+                "Dispatching webhook: serveEvent=${serveEvent.id} method=$method url=$url " +
+                    "auth=$authDescription injectedHeaders=[${injectedHeaderNames}]"
+            }
+
             val request = WebhookRequest(
                 url = url,
                 method = method,
@@ -120,10 +132,13 @@ class WebhookServeEventListener(
                 timeoutMs = webhookConfig.webhookTimeoutMs,
             )
 
+            val startMs = System.currentTimeMillis()
             when (val result = webhookHttpClient.send(request)) {
-                is WebhookResult.Success -> logger.info { "Webhook delivered: url=$url status=${result.statusCode}" }
+                is WebhookResult.Success -> logger.info {
+                    "Webhook delivered: serveEvent=${serveEvent.id} url=$url status=${result.statusCode} elapsedMs=${System.currentTimeMillis() - startMs}"
+                }
                 is WebhookResult.Failure -> logger.warn {
-                    "Webhook failed: url=$url status=${result.statusCode} message=${result.message}"
+                    "Webhook failed: serveEvent=${serveEvent.id} url=$url status=${result.statusCode} message=${result.message} elapsedMs=${System.currentTimeMillis() - startMs}"
                 }
             }
         }.onFailure { e ->
@@ -167,16 +182,23 @@ class WebhookServeEventListener(
         serveEvent: ServeEvent,
     ): Map<String, String> {
         return when (authConfig) {
-            is WebhookAuthConfig.None -> emptyMap()
+            is WebhookAuthConfig.None -> {
+                logger.info { "Auth config: none — no headers injected for serveEvent=$serveEventId" }
+                emptyMap()
+            }
             is WebhookAuthConfig.Header -> {
-                val valueSource = authConfig.valueSource
-                when (valueSource) {
+                when (val valueSource = authConfig.valueSource) {
                     is HeaderValueSource.OriginalRequestHeader -> {
                         val headerNameLower = valueSource.headerName.lowercase()
-                        // Prefer side-channel map (captures sensitive headers before any processing)
-                        // Fall back to reading directly from the request for non-sensitive headers
-                        val value = capturedHeaders[serveEventId]?.get(headerNameLower)
+                        val fromSideChannel = capturedHeaders[serveEventId]?.get(headerNameLower)
+                        val value = fromSideChannel
                             ?: serveEvent.request.getHeader(valueSource.headerName)
+                        logger.info {
+                            "Auth header injection: injectName=${authConfig.injectName} " +
+                                "sourceHeader=${valueSource.headerName} " +
+                                "foundInSideChannel=${fromSideChannel != null} " +
+                                "valuePresent=${value != null}"
+                        }
                         if (value != null) {
                             mapOf(authConfig.injectName to value)
                         } else {
