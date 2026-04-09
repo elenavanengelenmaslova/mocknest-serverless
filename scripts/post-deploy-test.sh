@@ -587,7 +587,7 @@ test_webhook_delivery() {
   callback_mapping='{
     "request": {
       "method": "POST",
-      "url": "/mocknest/webhook-callback"
+      "url": "/webhook-callback"
     },
     "response": {
       "status": 200,
@@ -623,7 +623,7 @@ test_webhook_delivery() {
   trigger_mapping="{
     \"request\": {
       \"method\": \"POST\",
-      \"url\": \"/mocknest/webhook-trigger\"
+      \"url\": \"/webhook-trigger\"
     },
     \"response\": {
       \"status\": 202,
@@ -708,7 +708,7 @@ test_webhook_delivery() {
     parse_response "$req_response"
     requests_body="$BODY"
 
-    if echo "$requests_body" | grep -q '"/mocknest/webhook-callback"'; then
+    if echo "$requests_body" | grep -q '"/webhook-callback"'; then
       callback_found=true
       break
     fi
@@ -746,12 +746,6 @@ test_webhook_delivery() {
     echo "Journal contents: $requests_body"
     exit 1
   fi
-
-  # Step 7: Cleanup
-  echo "  Cleaning up mappings..."
-  curl "${CURL_OPTS[@]}" \
-    --request DELETE \
-    "$API_URL/__admin/mappings" > /dev/null 2>&1 || true
 
   echo "✓ Webhook delivery test passed"
 }

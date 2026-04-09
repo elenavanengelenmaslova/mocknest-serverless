@@ -104,6 +104,9 @@ jobs:
           
           echo "api-url=$API_URL" >> $GITHUB_OUTPUT
           echo "auth-mode=$AUTH_MODE" >> $GITHUB_OUTPUT
+          
+          # Mask API_URL to avoid exposing the endpoint in logs
+          echo "::add-mask::$API_URL"
 
           if [ "$AUTH_MODE" = "API_KEY" ]; then
             API_KEY_ID=$(aws cloudformation describe-stacks \
@@ -364,6 +367,9 @@ jobs:
             echo "ERROR: API_KEY not available in API_KEY mode"
             exit 1
           fi
+          
+          # Mask API_URL to avoid exposing the endpoint in logs
+          echo "::add-mask::$API_URL"
           
           chmod +x scripts/post-deploy-test.sh
           ./scripts/post-deploy-test.sh webhook
