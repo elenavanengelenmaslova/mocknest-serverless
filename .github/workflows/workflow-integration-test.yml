@@ -49,14 +49,17 @@ permissions:
   id-token: write
   contents: read
 
+# Shared helper used by every job to resolve stack name, API_URL, API_KEY, AUTH_MODE
+# and export them as masked env vars before running the test script.
+# Usage: source this block inside a run step (it is inlined per job below).
+
 jobs:
   setup:
     name: Setup and Health Checks
     runs-on: ubuntu-latest
     outputs:
-      api-url: ${{ steps.stack-outputs.outputs.api-url }}
-      api-key-id: ${{ steps.stack-outputs.outputs.api-key-id }}
-      auth-mode: ${{ steps.stack-outputs.outputs.auth-mode }}
+      stack-name: ${{ steps.stack-name.outputs.stack-name }}
+      auth-mode: ${{ steps.stack-name.outputs.auth-mode }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -67,87 +70,57 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
-      - name: Retrieve stack outputs
-        id: stack-outputs
+      - name: Resolve stack name and auth mode
+        id: stack-name
         run: |
-          # Read stack name from samconfig.toml
           STACK_NAME=$(python3 - <<'PY'
           import tomllib
           cfg = tomllib.load(open("deployment/aws/sam/samconfig.toml", "rb"))
           print(cfg["default"]["global"]["parameters"]["stack_name"])
           PY
           )
-          
-          echo "Stack name: $STACK_NAME"
-          
-          # Retrieve stack outputs
-          API_URL=$(aws cloudformation describe-stacks \
-            --stack-name "$STACK_NAME" \
-            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
-            --output text)
-
           AUTH_MODE=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
             --query 'Stacks[0].Outputs[?OutputKey==`AuthMode`].OutputValue' \
             --output text 2>/dev/null || echo "API_KEY")
-          
-          # Validate API_URL
-          if [ -z "$API_URL" ]; then
-            echo "ERROR: Failed to retrieve MockNestApiUrl from stack outputs"
-            exit 1
-          fi
-          if [[ ! "$API_URL" =~ ^https:// ]]; then
-            echo "ERROR: API_URL must start with https://"
-            exit 1
-          fi
+          echo "stack-name=$STACK_NAME" >> "$GITHUB_OUTPUT"
+          echo "auth-mode=${AUTH_MODE:-API_KEY}" >> "$GITHUB_OUTPUT"
+
+      - name: Run health checks and cleanup
+        run: |
+          STACK_NAME="${{ steps.stack-name.outputs.stack-name }}"
+          AUTH_MODE="${{ steps.stack-name.outputs.auth-mode }}"
+
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
+            --output text)
           API_URL="${API_URL%/}"
-          
-          # Mask API_URL before writing to output — same pattern as API_KEY
           echo "::add-mask::$API_URL"
-          
-          echo "api-url=$API_URL" >> $GITHUB_OUTPUT
-          echo "auth-mode=$AUTH_MODE" >> $GITHUB_OUTPUT
+
+          if [ -z "$API_URL" ]; then
+            echo "ERROR: Failed to retrieve MockNestApiUrl"
+            exit 1
+          fi
 
           if [ "$AUTH_MODE" = "API_KEY" ]; then
             API_KEY_ID=$(aws cloudformation describe-stacks \
               --stack-name "$STACK_NAME" \
               --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
               --output text)
-            if [ -z "$API_KEY_ID" ]; then
-              echo "ERROR: MockNestApiKey output missing in API_KEY mode"
+            API_KEY=$(aws apigateway get-api-key \
+              --api-key "$API_KEY_ID" \
+              --include-value \
+              --query 'value' \
+              --output text)
+            echo "::add-mask::$API_KEY"
+            if [ -z "$API_KEY" ]; then
+              echo "ERROR: Failed to retrieve API key value"
               exit 1
             fi
-            echo "api-key-id=$API_KEY_ID" >> $GITHUB_OUTPUT
-          else
-            echo "ℹ️  IAM mode: skipping API key output retrieval"
           fi
 
-      - name: Retrieve API key value
-        id: api-key
-        if: steps.stack-outputs.outputs.auth-mode == 'API_KEY' || steps.stack-outputs.outputs.auth-mode == ''
-        run: |
-          API_KEY=$(aws apigateway get-api-key \
-            --api-key "${{ steps.stack-outputs.outputs.api-key-id }}" \
-            --include-value \
-            --query 'value' \
-            --output text)
-          
-          # Mask API key immediately (applies to logs)
-          echo "::add-mask::$API_KEY"
-          
-          if [ -z "$API_KEY" ]; then
-            echo "ERROR: Failed to retrieve API key value"
-            exit 1
-          fi
-          
-          echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
-
-      - name: Run health checks and cleanup
-        env:
-          API_URL: ${{ steps.stack-outputs.outputs.api-url }}
-          API_KEY: ${{ steps.api-key.outputs.api-key }}
-          AUTH_MODE: ${{ steps.stack-outputs.outputs.auth-mode }}
-        run: |
+          export API_URL API_KEY AUTH_MODE
           chmod +x scripts/post-deploy-test.sh
           ./scripts/post-deploy-test.sh setup
 
@@ -166,42 +139,41 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
-      - name: Retrieve API key value
-        id: api-key
-        if: needs.setup.outputs.auth-mode == 'API_KEY' || needs.setup.outputs.auth-mode == ''
-        run: |
-          API_KEY=$(aws apigateway get-api-key \
-            --api-key "${{ needs.setup.outputs.api-key-id }}" \
-            --include-value \
-            --query 'value' \
-            --output text)
-          
-          # Mask API key and API URL immediately
-          echo "::add-mask::$API_KEY"
-          echo "::add-mask::${{ needs.setup.outputs.api-url }}"
-          
-          # Validate API key
-          if [ -z "$API_KEY" ]; then
-            echo "ERROR: Failed to retrieve API key value"
-            exit 1
-          fi
-          
-          echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
-
       - name: Run REST tests
-        env:
-          API_URL: ${{ needs.setup.outputs.api-url }}
-          API_KEY: ${{ steps.api-key.outputs.api-key }}
-          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
         run: |
+          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
+          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
+
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
+            --output text)
+          API_URL="${API_URL%/}"
+          echo "::add-mask::$API_URL"
+
           if [ -z "$API_URL" ]; then
-            echo "ERROR: API_URL not available"
+            echo "ERROR: Failed to retrieve MockNestApiUrl"
             exit 1
           fi
-          if [ "${AUTH_MODE:-API_KEY}" = "API_KEY" ] && [ -z "$API_KEY" ]; then
-            echo "ERROR: API_KEY not available in API_KEY mode"
-            exit 1
+
+          if [ "$AUTH_MODE" = "API_KEY" ]; then
+            API_KEY_ID=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
+              --output text)
+            API_KEY=$(aws apigateway get-api-key \
+              --api-key "$API_KEY_ID" \
+              --include-value \
+              --query 'value' \
+              --output text)
+            echo "::add-mask::$API_KEY"
+            if [ -z "$API_KEY" ]; then
+              echo "ERROR: Failed to retrieve API key value"
+              exit 1
+            fi
           fi
+
+          export API_URL API_KEY AUTH_MODE
           chmod +x scripts/post-deploy-test.sh
           ./scripts/post-deploy-test.sh rest
 
@@ -220,42 +192,41 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
-      - name: Retrieve API key value
-        id: api-key
-        if: needs.setup.outputs.auth-mode == 'API_KEY' || needs.setup.outputs.auth-mode == ''
-        run: |
-          API_KEY=$(aws apigateway get-api-key \
-            --api-key "${{ needs.setup.outputs.api-key-id }}" \
-            --include-value \
-            --query 'value' \
-            --output text)
-          
-          # Mask API key and API URL immediately
-          echo "::add-mask::$API_KEY"
-          echo "::add-mask::${{ needs.setup.outputs.api-url }}"
-          
-          # Validate API key
-          if [ -z "$API_KEY" ]; then
-            echo "ERROR: Failed to retrieve API key value"
-            exit 1
-          fi
-          
-          echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
-
       - name: Run GraphQL tests
-        env:
-          API_URL: ${{ needs.setup.outputs.api-url }}
-          API_KEY: ${{ steps.api-key.outputs.api-key }}
-          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
         run: |
+          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
+          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
+
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
+            --output text)
+          API_URL="${API_URL%/}"
+          echo "::add-mask::$API_URL"
+
           if [ -z "$API_URL" ]; then
-            echo "ERROR: API_URL not available"
+            echo "ERROR: Failed to retrieve MockNestApiUrl"
             exit 1
           fi
-          if [ "${AUTH_MODE:-API_KEY}" = "API_KEY" ] && [ -z "$API_KEY" ]; then
-            echo "ERROR: API_KEY not available in API_KEY mode"
-            exit 1
+
+          if [ "$AUTH_MODE" = "API_KEY" ]; then
+            API_KEY_ID=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
+              --output text)
+            API_KEY=$(aws apigateway get-api-key \
+              --api-key "$API_KEY_ID" \
+              --include-value \
+              --query 'value' \
+              --output text)
+            echo "::add-mask::$API_KEY"
+            if [ -z "$API_KEY" ]; then
+              echo "ERROR: Failed to retrieve API key value"
+              exit 1
+            fi
           fi
+
+          export API_URL API_KEY AUTH_MODE
           chmod +x scripts/post-deploy-test.sh
           ./scripts/post-deploy-test.sh graphql
 
@@ -274,42 +245,41 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
-      - name: Retrieve API key value
-        id: api-key
-        if: needs.setup.outputs.auth-mode == 'API_KEY' || needs.setup.outputs.auth-mode == ''
-        run: |
-          API_KEY=$(aws apigateway get-api-key \
-            --api-key "${{ needs.setup.outputs.api-key-id }}" \
-            --include-value \
-            --query 'value' \
-            --output text)
-          
-          # Mask API key and API URL immediately
-          echo "::add-mask::$API_KEY"
-          echo "::add-mask::${{ needs.setup.outputs.api-url }}"
-          
-          # Validate API key
-          if [ -z "$API_KEY" ]; then
-            echo "ERROR: Failed to retrieve API key value"
-            exit 1
-          fi
-          
-          echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
-
       - name: Run SOAP tests
-        env:
-          API_URL: ${{ needs.setup.outputs.api-url }}
-          API_KEY: ${{ steps.api-key.outputs.api-key }}
-          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
         run: |
+          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
+          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
+
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
+            --output text)
+          API_URL="${API_URL%/}"
+          echo "::add-mask::$API_URL"
+
           if [ -z "$API_URL" ]; then
-            echo "ERROR: API_URL not available"
+            echo "ERROR: Failed to retrieve MockNestApiUrl"
             exit 1
           fi
-          if [ "${AUTH_MODE:-API_KEY}" = "API_KEY" ] && [ -z "$API_KEY" ]; then
-            echo "ERROR: API_KEY not available in API_KEY mode"
-            exit 1
+
+          if [ "$AUTH_MODE" = "API_KEY" ]; then
+            API_KEY_ID=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
+              --output text)
+            API_KEY=$(aws apigateway get-api-key \
+              --api-key "$API_KEY_ID" \
+              --include-value \
+              --query 'value' \
+              --output text)
+            echo "::add-mask::$API_KEY"
+            if [ -z "$API_KEY" ]; then
+              echo "ERROR: Failed to retrieve API key value"
+              exit 1
+            fi
           fi
+
+          export API_URL API_KEY AUTH_MODE
           chmod +x scripts/post-deploy-test.sh
           ./scripts/post-deploy-test.sh soap
 
@@ -328,41 +298,40 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
-      - name: Retrieve API key value
-        id: api-key
-        if: needs.setup.outputs.auth-mode == 'API_KEY' || needs.setup.outputs.auth-mode == ''
-        run: |
-          API_KEY=$(aws apigateway get-api-key \
-            --api-key "${{ needs.setup.outputs.api-key-id }}" \
-            --include-value \
-            --query 'value' \
-            --output text)
-          
-          # Mask API key and API URL immediately
-          echo "::add-mask::$API_KEY"
-          echo "::add-mask::${{ needs.setup.outputs.api-url }}"
-          
-          # Validate API key
-          if [ -z "$API_KEY" ]; then
-            echo "ERROR: Failed to retrieve API key value"
-            exit 1
-          fi
-          
-          echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
-
       - name: Run webhook tests
-        env:
-          API_URL: ${{ needs.setup.outputs.api-url }}
-          API_KEY: ${{ steps.api-key.outputs.api-key }}
-          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
         run: |
+          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
+          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
+
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
+            --output text)
+          API_URL="${API_URL%/}"
+          echo "::add-mask::$API_URL"
+
           if [ -z "$API_URL" ]; then
-            echo "ERROR: API_URL not available"
+            echo "ERROR: Failed to retrieve MockNestApiUrl"
             exit 1
           fi
-          if [ "${AUTH_MODE:-API_KEY}" = "API_KEY" ] && [ -z "$API_KEY" ]; then
-            echo "ERROR: API_KEY not available in API_KEY mode"
-            exit 1
+
+          if [ "$AUTH_MODE" = "API_KEY" ]; then
+            API_KEY_ID=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
+              --output text)
+            API_KEY=$(aws apigateway get-api-key \
+              --api-key "$API_KEY_ID" \
+              --include-value \
+              --query 'value' \
+              --output text)
+            echo "::add-mask::$API_KEY"
+            if [ -z "$API_KEY" ]; then
+              echo "ERROR: Failed to retrieve API key value"
+              exit 1
+            fi
           fi
+
+          export API_URL API_KEY AUTH_MODE
           chmod +x scripts/post-deploy-test.sh
           ./scripts/post-deploy-test.sh webhook
