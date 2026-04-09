@@ -104,9 +104,6 @@ jobs:
           
           echo "api-url=$API_URL" >> $GITHUB_OUTPUT
           echo "auth-mode=$AUTH_MODE" >> $GITHUB_OUTPUT
-          
-          # Mask API_URL to avoid exposing the endpoint in logs
-          echo "::add-mask::$API_URL"
 
           if [ "$AUTH_MODE" = "API_KEY" ]; then
             API_KEY_ID=$(aws cloudformation describe-stacks \
@@ -142,12 +139,16 @@ jobs:
           
           echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
 
+      - name: Mask sensitive values
+        run: |
+          echo "::add-mask::${{ steps.stack-outputs.outputs.api-url }}"
+
       - name: Run health checks and cleanup
         env:
-          API_URL: ${{ steps.stack-outputs.outputs.api-url }}
           API_KEY: ${{ steps.api-key.outputs.api-key }}
           AUTH_MODE: ${{ steps.stack-outputs.outputs.auth-mode }}
         run: |
+          API_URL="${{ steps.stack-outputs.outputs.api-url }}"
           chmod +x scripts/post-deploy-test.sh
           ./scripts/post-deploy-test.sh setup
 
@@ -187,12 +188,16 @@ jobs:
           
           echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
 
+      - name: Mask sensitive values
+        run: |
+          echo "::add-mask::${{ needs.setup.outputs.api-url }}"
+
       - name: Run REST tests
         env:
-          API_URL: ${{ needs.setup.outputs.api-url }}
           API_KEY: ${{ steps.api-key.outputs.api-key }}
           AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
         run: |
+          API_URL="${{ needs.setup.outputs.api-url }}"
           # Validate that setup job provided required outputs
           if [ -z "$API_URL" ]; then
             echo "ERROR: API_URL not available"
@@ -242,12 +247,16 @@ jobs:
           
           echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
 
+      - name: Mask sensitive values
+        run: |
+          echo "::add-mask::${{ needs.setup.outputs.api-url }}"
+
       - name: Run GraphQL tests
         env:
-          API_URL: ${{ needs.setup.outputs.api-url }}
           API_KEY: ${{ steps.api-key.outputs.api-key }}
           AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
         run: |
+          API_URL="${{ needs.setup.outputs.api-url }}"
           # Validate that setup job provided required outputs
           if [ -z "$API_URL" ]; then
             echo "ERROR: API_URL not available"
@@ -297,12 +306,16 @@ jobs:
           
           echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
 
+      - name: Mask sensitive values
+        run: |
+          echo "::add-mask::${{ needs.setup.outputs.api-url }}"
+
       - name: Run SOAP tests
         env:
-          API_URL: ${{ needs.setup.outputs.api-url }}
           API_KEY: ${{ steps.api-key.outputs.api-key }}
           AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
         run: |
+          API_URL="${{ needs.setup.outputs.api-url }}"
           # Validate that setup job provided required outputs
           if [ -z "$API_URL" ]; then
             echo "ERROR: API_URL not available"
@@ -352,12 +365,16 @@ jobs:
           
           echo "api-key=$API_KEY" >> $GITHUB_OUTPUT
 
+      - name: Mask sensitive values
+        run: |
+          echo "::add-mask::${{ needs.setup.outputs.api-url }}"
+
       - name: Run webhook tests
         env:
-          API_URL: ${{ needs.setup.outputs.api-url }}
           API_KEY: ${{ steps.api-key.outputs.api-key }}
           AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
         run: |
+          API_URL="${{ needs.setup.outputs.api-url }}"
           # Validate that setup job provided required outputs
           if [ -z "$API_URL" ]; then
             echo "ERROR: API_URL not available"
@@ -367,9 +384,6 @@ jobs:
             echo "ERROR: API_KEY not available in API_KEY mode"
             exit 1
           fi
-          
-          # Mask API_URL to avoid exposing the endpoint in logs
-          echo "::add-mask::$API_URL"
           
           chmod +x scripts/post-deploy-test.sh
           ./scripts/post-deploy-test.sh webhook
