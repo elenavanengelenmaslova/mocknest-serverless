@@ -102,6 +102,9 @@ jobs:
           fi
           API_URL="${API_URL%/}"
           
+          # Mask API_URL before writing to output — same pattern as API_KEY
+          echo "::add-mask::$API_URL"
+          
           echo "api-url=$API_URL" >> $GITHUB_OUTPUT
           echo "auth-mode=$AUTH_MODE" >> $GITHUB_OUTPUT
 
@@ -129,9 +132,8 @@ jobs:
             --query 'value' \
             --output text)
           
-          # Mask API key and API URL immediately (applies to all subsequent steps)
+          # Mask API key immediately (applies to logs)
           echo "::add-mask::$API_KEY"
-          echo "::add-mask::${{ steps.stack-outputs.outputs.api-url }}"
           
           if [ -z "$API_KEY" ]; then
             echo "ERROR: Failed to retrieve API key value"
