@@ -587,7 +587,7 @@ test_webhook_delivery() {
   callback_mapping='{
     "request": {
       "method": "POST",
-      "urlPath": "/mocknest/webhook-callback"
+      "urlPath": "/webhook-callback"
     },
     "response": {
       "status": 200,
@@ -623,7 +623,7 @@ test_webhook_delivery() {
   trigger_mapping="{
     \"request\": {
       \"method\": \"POST\",
-      \"urlPath\": \"/mocknest/webhook-trigger\"
+      \"urlPath\": \"/webhook-trigger\"
     },
     \"response\": {
       \"status\": 202,
@@ -708,7 +708,7 @@ test_webhook_delivery() {
     parse_response "$req_response"
     requests_body="$BODY"
 
-    if echo "$requests_body" | grep -q '"/mocknest/webhook-callback"'; then
+    if echo "$requests_body" | grep -q '"/webhook-callback"'; then
       callback_found=true
       break
     fi
