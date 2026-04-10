@@ -1,0 +1,6 @@
+{
+  "description": "Non-2xx 500 Internal Server Error",
+  "webhookFailureType": "non-2xx",
+  "statusCode": 500,
+  "message": "Internal Server Error"
+}

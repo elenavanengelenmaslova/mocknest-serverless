@@ -12,6 +12,7 @@ import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import java.util.function.Function
@@ -19,6 +20,7 @@ import java.util.function.Function
 private val logger = KotlinLogging.logger {}
 
 @Configuration
+@Profile("!async")
 class RuntimeLambdaHandler(
     private val handleClientRequest: HandleClientRequest,
     private val handleAdminRequest: HandleAdminRequest,

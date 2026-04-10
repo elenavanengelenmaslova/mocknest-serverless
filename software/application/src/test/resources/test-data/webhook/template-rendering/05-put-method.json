@@ -1,0 +1,13 @@
+{
+  "description": "PUT method webhook with rendered body",
+  "webhookParameters": {
+    "url": "https://api.example.com/resources/res-999",
+    "method": "PUT",
+    "body": "{\"id\":\"res-999\",\"status\":\"active\"}"
+  },
+  "expectedSentValues": {
+    "url": "https://api.example.com/resources/res-999",
+    "method": "PUT",
+    "body": "{\"id\":\"res-999\",\"status\":\"active\"}"
+  }
+}

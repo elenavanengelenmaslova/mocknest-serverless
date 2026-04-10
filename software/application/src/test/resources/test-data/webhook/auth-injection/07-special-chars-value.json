@@ -1,0 +1,7 @@
+{
+  "description": "API key with special characters",
+  "incomingHeaderName": "x-api-key",
+  "incomingHeaderValue": "key+with/special=chars==",
+  "injectName": "x-api-key",
+  "expectedOutboundHeaderValue": "key+with/special=chars=="
+}

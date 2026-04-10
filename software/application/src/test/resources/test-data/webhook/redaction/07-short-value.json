@@ -1,0 +1,7 @@
+{
+  "description": "Short sensitive header value (1 char)",
+  "sensitiveHeaders": ["x-api-key"],
+  "requestHeaders": {"x-api-key": "k"},
+  "expectedRedacted": ["x-api-key"],
+  "expectedPreserved": []
+}

@@ -1,0 +1,7 @@
+{
+  "description": "Mixed-case header name X-Api-Key should be captured",
+  "sensitiveHeaders": ["x-api-key", "authorization"],
+  "requestHeaders": {"X-Api-Key": "mixed-case-secret"},
+  "expectedRedacted": ["x-api-key"],
+  "expectedPreserved": []
+}

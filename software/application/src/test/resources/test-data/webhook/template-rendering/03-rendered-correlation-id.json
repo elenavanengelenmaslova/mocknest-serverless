@@ -1,0 +1,13 @@
+{
+  "description": "Body with rendered correlation ID from request header",
+  "webhookParameters": {
+    "url": "https://events.example.com/webhook",
+    "method": "POST",
+    "body": "{\"correlationId\":\"corr-abc-789\",\"event\":\"payment.processed\"}"
+  },
+  "expectedSentValues": {
+    "url": "https://events.example.com/webhook",
+    "method": "POST",
+    "body": "{\"correlationId\":\"corr-abc-789\",\"event\":\"payment.processed\"}"
+  }
+}

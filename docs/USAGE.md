@@ -30,6 +30,14 @@ You can manage mocks in two ways:
   - [Call Generated Pet API by Tags](#call-generated-pet-api-by-tags)
   - [Generate Mocks from GraphQL Schema (via Introspection)](#generate-mocks-from-graphql-schema-via-introspection)
   - [Generate Mocks from SOAP/WSDL](#generate-mocks-from-soapwsdl)
+- [Webhook Support](#webhook-support)
+  - [How It Works](#how-it-works)
+  - [Complete Webhook Example](#complete-webhook-example)
+  - [Auth Config Model](#auth-config-model)
+  - [Webhook Environment Variables](#webhook-environment-variables)
+  - [Lambda Execution Context and Synchronous Dispatch](#lambda-execution-context-and-synchronous-dispatch)
+  - [Sensitive Header Redaction](#sensitive-header-redaction)
+  - [Known Limitations](#known-limitations)
 - [Administrative Operations](#administrative-operations)
   - [Get All Mappings](#get-all-mappings)
   - [Get File Content](#get-file-content)
@@ -1166,6 +1174,233 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 - Response bodies are valid SOAP 1.2 envelopes with namespace `http://www.w3.org/2003/05/soap-envelope`
 - Response Content-Type is `application/soap+xml; charset=utf-8` (SOAP 1.2 standard)
 
+
+## Webhook Support
+
+MockNest Serverless supports webhook/callback-style behavior: a mock can trigger an outbound HTTP call to another endpoint after serving its response. The typical use case is simulating event-driven flows where your system under test triggers an action (e.g. place an order) and expects a callback from an external service (e.g. a payment processor). MockNest fires that callback on behalf of the external service.
+
+### How It Works
+
+When a mock with a `serveEventListeners` webhook configuration is matched, MockNest uses WireMock's standard `webhook` listener name. The runtime Lambda publishes a fully rendered `AsyncEvent` to a dedicated SQS queue (`MockNestWebhookQueue`). A separate `RuntimeAsync` Lambda reads the event and executes the outbound HTTP call directly from the event payload — no mapping lookup or template resolution needed at dispatch time.
+
+This async design ensures the runtime Lambda returns its response immediately without waiting for the outbound HTTP call to complete. If the webhook call fails, the SQS visibility timeout and dead-letter queue (`MockNestWebhookDLQ`) handle retries.
+
+### Complete Webhook Example
+
+This example simulates an order service flow: your system under test calls `POST /mocknest/orders`, and MockNest fires a webhook to your system's payment callback endpoint — just like a real payment processor would.
+
+**Register the trigger mock with a webhook**
+
+```bash
+curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request": {
+      "method": "POST",
+      "urlPath": "/mocknest/orders"
+    },
+    "response": {
+      "status": 202,
+      "headers": { "Content-Type": "application/json" },
+      "jsonBody": { "orderId": "{{jsonPath request.body '\''$.orderId'\''}}", "status": "accepted" }
+    },
+    "serveEventListeners": [
+      {
+        "name": "webhook",
+        "parameters": {
+          "method": "POST",
+          "url": "https://your-app.example.com/payments/callback",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": "{\"orderId\": \"{{jsonPath request.body '\''$.orderId'\''}}\", \"event\": \"order.created\"}"
+        }
+      }
+    ],
+    "persistent": true
+  }'
+```
+
+**Call the trigger mock**
+
+```bash
+curl -X POST "${MOCKNEST_URL}/mocknest/orders" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"orderId": "order-123"}'
+```
+
+MockNest returns 202 Accepted. The webhook is dispatched asynchronously via SQS — the `RuntimeAsync` Lambda will execute the outbound call to `https://your-app.example.com/payments/callback` shortly after.
+
+### Self-Callback Example (for testing webhook delivery)
+
+If you want to verify that MockNest actually fires the webhook — without needing a real external service — you can register a callback mock on the same MockNest instance and point the webhook at it. This is useful for integration tests and pipeline validation.
+
+**Step 1: Register the callback mock**
+
+```bash
+curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request": {
+      "method": "POST",
+      "urlPath": "/mocknest/payments/callback"
+    },
+    "response": {
+      "status": 200,
+      "headers": { "Content-Type": "application/json" },
+      "jsonBody": { "status": "received" }
+    },
+    "persistent": true
+  }'
+```
+
+**Step 2: Register the trigger mock pointing back to MockNest**
+
+```bash
+curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request": {
+      "method": "POST",
+      "urlPath": "/mocknest/orders"
+    },
+    "response": {
+      "status": 202,
+      "headers": { "Content-Type": "application/json" },
+      "jsonBody": { "orderId": "order-123", "status": "accepted" }
+    },
+    "serveEventListeners": [
+      {
+        "name": "webhook",
+        "parameters": {
+          "method": "POST",
+          "url": "${MOCKNEST_URL}/mocknest/payments/callback",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": "{\"orderId\": \"order-123\", \"event\": \"order.created\"}",
+          "auth": { "type": "aws_iam" }
+        }
+      }
+    ],
+    "persistent": true
+  }'
+```
+
+**Step 3: Call the trigger mock**
+
+```bash
+curl -X POST "${MOCKNEST_URL}/mocknest/orders" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"orderId": "order-123"}'
+```
+
+**Step 4: Verify the callback was received via S3 journal**
+
+The callback request is persisted in the S3 journal under the `requests/` prefix. Poll the S3 bucket to verify delivery:
+
+```bash
+aws s3api list-objects-v2 \
+  --bucket "${MOCK_STORAGE_BUCKET}" \
+  --prefix "requests/" \
+  --query 'Contents[].Key' \
+  --output text
+```
+
+Fetch a record and check for the callback path. Sensitive header values (e.g. `authorization`, `x-amz-security-token`) will appear as `[REDACTED]`.
+
+### Auth Config Model
+
+The webhook `auth` block controls how the `RuntimeAsync` Lambda authenticates the outbound HTTP call.
+
+**Supported auth modes:**
+
+| `auth.type` | Description |
+|---|---|
+| `none` | No authentication — static headers from the mapping are forwarded as-is (default when `auth` is omitted) |
+| `aws_iam` | SigV4 signing using the `RuntimeAsync` Lambda's execution role credentials |
+
+**Example — `aws_iam`:**
+
+```json
+"auth": {
+  "type": "aws_iam",
+  "region": "eu-west-1",
+  "service": "execute-api"
+}
+```
+
+The `region` and `service` fields are optional. If omitted, the region defaults to the Lambda's `AWS_DEFAULT_REGION` and the service is derived from the target URL.
+
+**Example — `none` (explicit):**
+
+```json
+"auth": { "type": "none" }
+```
+
+Or simply omit the `auth` block entirely.
+
+**Future roadmap auth modes** (not implemented in this release):
+
+| `auth.value.source` | Description |
+|---|---|
+| `secret_ref` | Resolved at dispatch time from AWS Secrets Manager |
+| `env_var` | Read from a Lambda environment variable at dispatch time |
+
+### Webhook Environment Variables
+
+Configure webhook behavior via these Lambda environment variables (set via SAM template or directly on the Lambda function):
+
+| Environment Variable | Default | Description |
+|---|---|---|
+| `MOCKNEST_SENSITIVE_HEADERS` | `x-api-key,authorization,proxy-authorization,x-amz-security-token` | Comma-separated list of header names to redact. Case-insensitive. |
+| `MOCKNEST_WEBHOOK_TIMEOUT_MS` | `10000` | Timeout in milliseconds for outbound webhook HTTP calls (runtime Lambda). |
+| `MOCKNEST_WEBHOOK_ASYNC_TIMEOUT_MS` | `30000` | Timeout in milliseconds for outbound webhook HTTP calls in the RuntimeAsync Lambda. |
+| `MOCKNEST_WEBHOOK_QUEUE_URL` | (required) | SQS queue URL for async webhook dispatch events. Set automatically by the SAM template. |
+| `MOCKNEST_REQUEST_JOURNAL_PREFIX` | `requests/` | S3 key prefix for request journal records. |
+
+### S3-Backed Request Journal
+
+MockNest persists all inbound request records to S3 under the `requests/` prefix (configurable via `MOCKNEST_REQUEST_JOURNAL_PREFIX`). This makes the journal persistent across Lambda invocations. Sensitive headers are redacted.
+
+**Key format:** `requests/{uuid}` where `{uuid}` is the WireMock serve event ID.
+
+**Record contents:** request ID, timestamp, HTTP method, URL path, query parameters, headers (sensitive values redacted), and request body.
+
+**Using the journal for pipeline verification:**
+
+```bash
+# List all journal records
+aws s3api list-objects-v2 \
+  --bucket "${MOCK_STORAGE_BUCKET}" \
+  --prefix "requests/" \
+  --query 'Contents[].Key' \
+  --output text
+
+# Fetch a specific record
+aws s3api get-object \
+  --bucket "${MOCK_STORAGE_BUCKET}" \
+  --key "requests/{uuid}" \
+  /dev/stdout
+```
+
+### Sensitive Header Redaction
+
+MockNest redacts sensitive header values before writing request records to S3 and before returning them via `/__admin/requests`. Redaction is applied centrally at the journal write point.
+
+Headers configured in `MOCKNEST_SENSITIVE_HEADERS` (default: `x-api-key`, `authorization`, `proxy-authorization`, `x-amz-security-token`) are replaced with `[REDACTED]` in:
+- S3-persisted request journal records
+- Responses from `/__admin/requests`
+- Both inbound trigger requests and inbound webhook callback requests
+
+Sensitive header values are never written to logs at any log level.
+
+---
 
 ## Administrative Operations
 

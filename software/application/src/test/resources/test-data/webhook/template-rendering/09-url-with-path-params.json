@@ -1,0 +1,13 @@
+{
+  "description": "URL with rendered path parameters",
+  "webhookParameters": {
+    "url": "https://api.example.com/orders/ORD-555/status",
+    "method": "PATCH",
+    "body": "{\"status\":\"shipped\"}"
+  },
+  "expectedSentValues": {
+    "url": "https://api.example.com/orders/ORD-555/status",
+    "method": "PATCH",
+    "body": "{\"status\":\"shipped\"}"
+  }
+}

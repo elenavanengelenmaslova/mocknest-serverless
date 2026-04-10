@@ -1,0 +1,7 @@
+{
+  "description": "Mixed-case Authorization header",
+  "sensitiveHeaders": ["x-api-key", "authorization"],
+  "requestHeaders": {"Authorization": "Basic dXNlcjpwYXNz"},
+  "expectedRedacted": ["authorization"],
+  "expectedPreserved": []
+}

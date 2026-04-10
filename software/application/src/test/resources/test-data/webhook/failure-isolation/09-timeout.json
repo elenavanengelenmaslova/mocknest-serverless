@@ -1,0 +1,6 @@
+{
+  "description": "Timeout - socket timeout exception",
+  "webhookFailureType": "timeout",
+  "statusCode": null,
+  "message": "timeout"
+}

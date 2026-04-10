@@ -24,6 +24,7 @@ import nl.vintik.mocknest.domain.generation.SpecificationFormat
 import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.context.annotation.Profile
 import org.springframework.context.event.EventListener
 import org.springframework.http.HttpMethod
 import org.springframework.stereotype.Component
@@ -33,24 +34,10 @@ private val logger = KotlinLogging.logger {}
 
 /**
  * Priming hook for Generation function SnapStart optimization.
- * 
- * Executes initialization code during SnapStart snapshot creation to warm up
- * resources before the first invocation, reducing cold start times.
- * 
- * This component:
- * - Detects SnapStart environment using AWS_LAMBDA_INITIALIZATION_TYPE
- * - Warms up AI health check endpoint
- * - Initializes S3 client connections
- * - Initializes Bedrock client reference (no model invocation to avoid costs)
- * - Validates AI model configuration
- * - Exercises OpenAPI specification parser
- * - Exercises SOAP/WSDL parsers and validators
- * - Exercises GraphQL introspection client and schema reducer
- * - Exercises prompt builder service (loads templates)
- * - Exercises mock validators
- * - Uses graceful degradation for non-critical failures
+ * Excluded from the `async` profile — the async Lambda has its own lightweight priming.
  */
 @Component
+@Profile("!async")
 open class GenerationPrimingHook(
     private val aiHealthUseCase: GetAIHealth,
     private val s3Client: S3Client,

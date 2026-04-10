@@ -1,0 +1,13 @@
+{
+  "description": "Simple static body passed through unchanged",
+  "webhookParameters": {
+    "url": "https://callback.example.com/hook",
+    "method": "POST",
+    "body": "{\"event\":\"order.created\"}"
+  },
+  "expectedSentValues": {
+    "url": "https://callback.example.com/hook",
+    "method": "POST",
+    "body": "{\"event\":\"order.created\"}"
+  }
+}

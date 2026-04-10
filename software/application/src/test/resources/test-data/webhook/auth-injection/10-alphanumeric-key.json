@@ -1,0 +1,7 @@
+{
+  "description": "Alphanumeric API key value",
+  "incomingHeaderName": "x-api-key",
+  "incomingHeaderValue": "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789",
+  "injectName": "x-api-key",
+  "expectedOutboundHeaderValue": "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789"
+}

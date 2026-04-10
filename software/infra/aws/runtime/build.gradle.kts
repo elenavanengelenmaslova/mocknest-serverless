@@ -19,10 +19,14 @@ dependencies {
 
     // Kotlin AWS SDK - S3 for storage
     api("aws.sdk.kotlin:s3")
+
+    // Kotlin AWS SDK - SQS for async webhook dispatch
+    api("aws.sdk.kotlin:sqs")
     
     // HTTP client for AWS SDK
     val smithyKotlinVersion = "1.6.9"
     api("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
+    api("aws.smithy.kotlin:aws-signing-default:${smithyKotlinVersion}")
     api("com.squareup.okhttp3:okhttp:5.3.2")
 
     // Coroutines
@@ -42,6 +46,8 @@ dependencies {
     testImplementation("org.testcontainers:localstack")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(project(":software:infra:aws:mocknest"))
+    // OkHttp MockWebServer for prototype test
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
 }
 
 configurations {

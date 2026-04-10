@@ -1,0 +1,13 @@
+sensitiveHeadersEnv,expectedHeaders
+x-api-key,x-api-key
+authorization,authorization
+"x-api-key,authorization",authorization;x-api-key
+X-Api-Key,x-api-key
+AUTHORIZATION,authorization
+"X-Api-Key,Authorization",authorization;x-api-key
+"  x-api-key  ,  authorization  ",authorization;x-api-key
+"x-api-key,x-api-key,authorization",authorization;x-api-key
+"x-secret-token,x-custom-header",x-custom-header;x-secret-token
+"X-SECRET-TOKEN,X-CUSTOM-HEADER",x-custom-header;x-secret-token
+"x-api-key,authorization,x-secret-token,x-correlation-id",authorization;x-api-key;x-correlation-id;x-secret-token
+"  X-Api-Key  ,  AUTHORIZATION  ,  X-Secret-Token  ",authorization;x-api-key;x-secret-token

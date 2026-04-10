@@ -1,0 +1,6 @@
+{
+  "description": "Network error - generic IOException",
+  "webhookFailureType": "network-error",
+  "statusCode": null,
+  "message": "Broken pipe"
+}

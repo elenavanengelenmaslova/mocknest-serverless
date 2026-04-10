@@ -1,0 +1,6 @@
+{
+  "description": "Non-2xx 401 Unauthorized",
+  "webhookFailureType": "non-2xx",
+  "statusCode": 401,
+  "message": "Unauthorized"
+}

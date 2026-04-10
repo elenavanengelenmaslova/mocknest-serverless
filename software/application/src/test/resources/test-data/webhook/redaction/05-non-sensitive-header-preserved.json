@@ -1,0 +1,7 @@
+{
+  "description": "Non-sensitive header is not captured",
+  "sensitiveHeaders": ["x-api-key", "authorization"],
+  "requestHeaders": {"content-type": "application/json", "x-correlation-id": "abc-123"},
+  "expectedRedacted": [],
+  "expectedPreserved": ["content-type", "x-correlation-id"]
+}

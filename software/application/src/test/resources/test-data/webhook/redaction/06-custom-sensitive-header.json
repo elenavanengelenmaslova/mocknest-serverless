@@ -1,0 +1,7 @@
+{
+  "description": "Custom sensitive header x-secret-token",
+  "sensitiveHeaders": ["x-secret-token"],
+  "requestHeaders": {"x-secret-token": "super-secret-value"},
+  "expectedRedacted": ["x-secret-token"],
+  "expectedPreserved": []
+}

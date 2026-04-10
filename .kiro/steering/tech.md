@@ -1,5 +1,15 @@
 # Development Practices
 
+## Gradle Cache Policy
+
+**NEVER read from or rely on the Gradle cache.** Always resolve dependencies from their declared repositories (Maven Central, etc.) and never assume a dependency is available because it may have been cached previously. This applies to:
+- Dependency resolution in build scripts
+- Test classpath construction
+- Plugin resolution
+- Any build task that could pull from cache
+
+When exploring what libraries or versions are available to use in code, always check `build.gradle.kts` files directly — do not infer availability from the Gradle cache.
+
 This document contains development workflows, coding standards, testing practices, and guidelines for building and maintaining MockNest Serverless.
 
 # Development Workflow
@@ -61,6 +71,18 @@ Follow clean architecture principles by developing in this sequence:
 - Use the build and deploy scripts in `deployment/aws/sam/` for consistent deployments
 - Test SAM template changes locally before committing
 - **Always run `sam validate --template-file deployment/aws/sam/template.yaml --region eu-west-1` after every change to the SAM template and confirm exit code 0 before committing**
+
+## Lambda Configuration Standards
+
+Every Lambda function defined in the SAM template MUST have:
+
+- **SnapStart enabled** — `AutoPublishAlias: live` and `SnapStart: ApplyOn: PublishedVersions`
+- **Priming** — a priming hook or equivalent warm-up mechanism that exercises the critical code paths during the SnapStart snapshot phase, so the snapshot captures a fully initialised context
+- **arm64 architecture** — inherited from `Globals`, do not override per-function
+- **java25 runtime** — inherited from `Globals`, do not override per-function
+- **JVM TieredCompilation optimisation** — `JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"` in `Environment.Variables`
+
+When adding a new Lambda function, verify all five of the above are present before committing.
 
 ## GitHub Actions Integration
 
@@ -434,6 +456,8 @@ Comprehensive guidelines for unit test creation and maintenance.
 - **Share expensive resources** like containers and clients across tests using `@BeforeAll`/`@AfterAll`
 - **Clean test data** (not containers) between tests using `@BeforeEach`/`@AfterEach`
 
+- **Use the shared LocalStack container** when writing integration tests in the `software/infra/aws/` modules — do NOT create a new `LocalStackContainer` per test class. Reuse `SharedLocalStackContainer` from `software/infra/aws/mocknest/src/test/kotlin/nl/vintik/mocknest/infra/aws/config/SharedLocalStackContainer.kt`. Creating multiple LocalStack containers in the same JVM causes port conflicts and flaky tests. If a test needs a service not yet in the shared container, add it there rather than spinning up a new one. Use `Wait.forHttp("/_localstack/health").forStatusCode(200)` as the readiness strategy — it is more reliable than `Wait.forLogMessage(".*Ready.*", 1)`.
+
 - **Use LocalStack TestContainers** for infrastructure layer integration tests to validate AWS service interactions:
   - LocalStack container for S3, Lambda, API Gateway, and Bedrock testing
   - Test actual Kotlin AWS SDK calls against containerized AWS services
@@ -504,7 +528,8 @@ AI assistance for test creation, execution, and maintenance:
   - Test AI-assisted mock generation using LocalStack's Bedrock emulation
   - Keep integration tests in the `software/infra/aws/` module alongside the infrastructure code
   - Use proper TestContainers lifecycle management with `@BeforeAll`/`@AfterAll` for container setup
-  - Use TestContainers built-in waiting strategies like `Wait.forLogMessage(".*Ready.*", 1)`
+  - Use `Wait.forHttp("/_localstack/health").forStatusCode(200)` as the readiness strategy — more reliable than `Wait.forLogMessage`
+  - Reuse the shared `SharedLocalStackContainer` singleton rather than creating per-test-class containers
   - Share expensive resources like containers and clients across tests, only clean test data between tests
 
 - Prefer focused integration tests that validate mapping normalization, content-type defaults, and file externalization behaviors instead of broad unit test suites
@@ -627,6 +652,7 @@ When generating implementation tasks (tasks.md), the following testing requireme
 - Test tasks are NOT optional - they are required for task completion
 - Test tasks should be explicit and specific about what needs to be tested
 - Test tasks should reference the testing standards in this document
+- **After every top-level task number (e.g. task 1, task 2, task 3), include a checkpoint sub-task that runs `./gradlew clean test` to verify the full build still passes before moving on.** This catches integration issues early. Example: `- [ ] 1.N Run \`./gradlew clean test\` and confirm all tests pass`
 
 ### Example Task Structure
 

@@ -16,11 +16,13 @@ set -o pipefail
 #   rest     - Run REST/OpenAPI generation and import tests
 #   graphql  - Run GraphQL generation and import tests (future)
 #   soap     - Run SOAP/WSDL generation and import tests (future)
+#   webhook  - Run webhook delivery and redaction tests
 #   all      - Run all tests sequentially (default)
 #
 # Examples:
 #   $0 setup https://api.example.com abc123key
 #   $0 rest https://api.example.com abc123key
+#   $0 webhook https://api.example.com abc123key
 #   API_URL=https://api.example.com API_KEY=abc123key $0 all
 
 # Input validation
@@ -46,7 +48,7 @@ if [ -z "$API_URL" ]; then
   echo "Usage: $0 [TEST_SUITE] <API_URL> [API_KEY]"
   echo "   or: $0 [TEST_SUITE]  # if API_URL (and API_KEY for API_KEY mode) are set as environment variables"
   echo ""
-  echo "TEST_SUITE options: setup, rest, graphql, soap, all (default: all)"
+  echo "TEST_SUITE options: setup, rest, graphql, soap, webhook, all (default: all)"
   echo ""
   echo "Examples:"
   echo "  $0 setup https://api.example.com abc123key"
@@ -571,6 +573,235 @@ test_soap_import() {
   echo "  Found $mapping_count mappings after import"
 }
 
+# Test webhook delivery and sensitive header redaction
+# Validates that:
+# 1. A webhook configured with aws_iam auth is dispatched asynchronously via SQS
+# 2. The RuntimeAsync Lambda executes the outbound callback using SigV4 signing
+# 3. The callback request record is persisted in the S3 journal under requests/ prefix
+# 4. IAM-sensitive header values in the S3 record are [REDACTED]
+test_webhook_delivery() {
+  echo "Testing webhook delivery (IAM mode, async dispatch, S3 journal polling)..."
+
+  # Require S3 bucket name for journal polling
+  if [ -z "$MOCK_STORAGE_BUCKET" ]; then
+    MOCK_STORAGE_BUCKET=$(aws cloudformation describe-stacks \
+      --stack-name "$STACK_NAME" \
+      --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' \
+      --output text 2>/dev/null || echo "")
+  fi
+  if [ -z "$MOCK_STORAGE_BUCKET" ]; then
+    echo "ERROR: MOCK_STORAGE_BUCKET is required for webhook S3 journal polling"
+    exit 1
+  fi
+
+  # Step 1: Register callback mock — POST /mocknest/webhook-callback → 200 OK
+  echo "  Registering callback mock..."
+  local callback_mapping
+  callback_mapping='{
+    "request": {
+      "method": "POST",
+      "urlPath": "/webhook-callback"
+    },
+    "response": {
+      "status": 200,
+      "body": "{\"received\": true}",
+      "headers": { "Content-Type": "application/json" }
+    },
+    "persistent": true
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$callback_mapping" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "ERROR: Failed to register callback mock"
+    echo "Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "ERROR: Callback mock registration failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  echo "  ✓ Callback mock registered"
+
+  # Step 2: Register trigger mock with standard "webhook" serveEventListener and aws_iam auth
+  echo "  Registering trigger mock..."
+  local trigger_mapping
+  trigger_mapping="{
+    \"request\": {
+      \"method\": \"POST\",
+      \"urlPath\": \"/webhook-trigger\"
+    },
+    \"response\": {
+      \"status\": 202,
+      \"body\": \"{\\\"triggered\\\": true}\",
+      \"headers\": { \"Content-Type\": \"application/json\" }
+    },
+    \"serveEventListeners\": [
+      {
+        \"name\": \"webhook\",
+        \"parameters\": {
+          \"method\": \"POST\",
+          \"url\": \"$API_URL/mocknest/webhook-callback\",
+          \"body\": \"{\\\"event\\\": \\\"triggered\\\"}\",
+          \"headers\": { \"Content-Type\": \"application/json\" },
+          \"auth\": {
+            \"type\": \"aws_iam\"
+          }
+        }
+      }
+    ]
+  }"
+
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$trigger_mapping" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "ERROR: Failed to register trigger mock"
+    echo "Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "ERROR: Trigger mock registration failed with HTTP $HTTP_CODE"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  echo "  ✓ Trigger mock registered"
+
+  # Step 3: Call the trigger endpoint using SigV4 (CURL_OPTS already includes --aws-sigv4 for IAM mode)
+  echo "  Calling trigger endpoint..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data '{"order": "test-order-1"}' \
+    "$API_URL/mocknest/webhook-trigger" 2>&1) || {
+    echo "ERROR: Trigger request failed"
+    echo "Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "202" ]; then
+    echo "ERROR: Trigger endpoint returned HTTP $HTTP_CODE (expected 202)"
+    echo "Response: $BODY"
+    exit 1
+  fi
+  echo "  ✓ Trigger returned 202 Accepted"
+
+  # Step 4: Poll S3 journal (requests/ prefix) for callback request record
+  # End-to-end latency: SQS publish → SQS delivery → RuntimeAsync cold start → HTTP call → S3 write
+  local POLL_TIMEOUT="${WEBHOOK_POLL_TIMEOUT_SECS:-60}"
+  local POLL_INTERVAL="${WEBHOOK_POLL_INTERVAL_SECS:-3}"
+  echo "  Polling S3 journal for callback request record (timeout=${POLL_TIMEOUT}s, interval=${POLL_INTERVAL}s)..."
+
+  local elapsed=0
+  local callback_found=false
+  local callback_record=""
+
+  while [ "$elapsed" -lt "$POLL_TIMEOUT" ]; do
+    # List objects under requests/ prefix, sorted newest first
+    local keys
+    keys=$(aws s3api list-objects-v2 \
+      --bucket "$MOCK_STORAGE_BUCKET" \
+      --prefix "requests/" \
+      --query 'sort_by(Contents, &LastModified)[-10:].Key' \
+      --output text 2>/dev/null || echo "")
+
+    for key in $keys; do
+      [ -z "$key" ] && continue
+      # Fetch the record and check if it contains the callback path
+      local record
+      record=$(aws s3api get-object \
+        --bucket "$MOCK_STORAGE_BUCKET" \
+        --key "$key" \
+        /dev/stdout 2>/dev/null || echo "")
+
+      # Match on the URL path — the record contains the request URL
+      if echo "$record" | grep -q 'webhook-callback'; then
+        callback_found=true
+        callback_record="$record"
+        echo "  Found callback record in key: $key"
+        break 2
+      fi
+    done
+
+    echo "  Not found yet (${elapsed}s elapsed) — retrying in ${POLL_INTERVAL}s..."
+    sleep "$POLL_INTERVAL"
+    elapsed=$((elapsed + POLL_INTERVAL))
+  done
+
+  # Step 5: Assert callback was found
+  if [ "$callback_found" != "true" ]; then
+    echo "ERROR: Webhook callback request not found in S3 journal after ${POLL_TIMEOUT}s"
+    echo "Expected a POST to /webhook-callback in S3 bucket=$MOCK_STORAGE_BUCKET prefix=requests/"
+    exit 1
+  fi
+  echo "  ✓ Callback request found in S3 journal"
+
+  # Step 6: Assert IAM-sensitive headers are [REDACTED] in the S3 record if present
+  echo "  Verifying sensitive headers are redacted in S3 journal record (if present)..."
+  local redaction_issues=0
+  for sensitive_header in "authorization" "x-amz-security-token"; do
+    # Only check if the header key appears in the record at all
+    if echo "$callback_record" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+def find_header(obj, name):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k == 'headers' and isinstance(v, dict):
+                for hk in v:
+                    if hk.lower() == name:
+                        print(v[hk])
+                        return
+            else:
+                find_header(v, name)
+    elif isinstance(obj, list):
+        for item in obj:
+            find_header(item, name)
+find_header(data, '$sensitive_header')
+" 2>/dev/null | grep -q .; then
+      header_value=$(echo "$callback_record" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+def find_header(obj, name):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k == 'headers' and isinstance(v, dict):
+                for hk in v:
+                    if hk.lower() == name:
+                        print(v[hk])
+                        return
+            else:
+                find_header(v, name)
+    elif isinstance(obj, list):
+        for item in obj:
+            find_header(item, name)
+find_header(data, '$sensitive_header')
+" 2>/dev/null || echo "")
+      if [ "$header_value" = "[REDACTED]" ]; then
+        echo "  ✓ $sensitive_header is [REDACTED] in S3 journal record"
+      else
+        echo "  ERROR: $sensitive_header header value is NOT redacted (found: $header_value)"
+        redaction_issues=$((redaction_issues + 1))
+      fi
+    else
+      echo "  ℹ $sensitive_header not present in callback record headers — skipping redaction check"
+    fi
+  done
+  if [ "$redaction_issues" -gt 0 ]; then
+    echo "ERROR: $redaction_issues sensitive header(s) were not redacted in S3 journal record"
+    exit 1
+  fi
+
+  echo "✓ Webhook delivery test passed"
+}
+
 # Main test execution
 main() {
   echo "=== MockNest Serverless Post-Deployment Integration Tests ==="
@@ -599,6 +830,10 @@ main() {
       test_soap_generation
       test_soap_import
       ;;
+    webhook)
+      echo "Running webhook tests..."
+      test_webhook_delivery
+      ;;
     all)
       echo "Running all tests..."
       test_runtime_health
@@ -610,10 +845,11 @@ main() {
       test_graphql_import
       test_soap_generation
       test_soap_import
+      test_webhook_delivery
       ;;
     *)
       echo "ERROR: Unknown test suite: $TEST_SUITE"
-      echo "Valid options: setup, rest, graphql, soap, all"
+      echo "Valid options: setup, rest, graphql, soap, webhook, all"
       exit 2
       ;;
   esac

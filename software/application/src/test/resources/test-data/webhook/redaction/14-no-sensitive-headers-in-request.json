@@ -1,0 +1,7 @@
+{
+  "description": "Request has no sensitive headers — nothing captured",
+  "sensitiveHeaders": ["x-api-key", "authorization"],
+  "requestHeaders": {"content-type": "application/json"},
+  "expectedRedacted": [],
+  "expectedPreserved": ["content-type"]
+}

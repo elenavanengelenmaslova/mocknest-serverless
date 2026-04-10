@@ -1,0 +1,7 @@
+{
+  "description": "Custom header name x-tenant-secret injected as x-tenant-key",
+  "incomingHeaderName": "x-tenant-secret",
+  "incomingHeaderValue": "tenant-secret-value-xyz",
+  "injectName": "x-tenant-key",
+  "expectedOutboundHeaderValue": "tenant-secret-value-xyz"
+}

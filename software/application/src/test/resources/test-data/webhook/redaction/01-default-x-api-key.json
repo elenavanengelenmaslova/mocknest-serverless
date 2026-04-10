@@ -1,0 +1,7 @@
+{
+  "description": "Default sensitive header x-api-key",
+  "sensitiveHeaders": ["x-api-key", "authorization"],
+  "requestHeaders": {"x-api-key": "my-secret-key"},
+  "expectedRedacted": ["x-api-key"],
+  "expectedPreserved": []
+}

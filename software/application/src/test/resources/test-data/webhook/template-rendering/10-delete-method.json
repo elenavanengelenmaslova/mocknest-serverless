@@ -1,0 +1,13 @@
+{
+  "description": "DELETE method webhook with no body",
+  "webhookParameters": {
+    "url": "https://api.example.com/sessions/sess-abc",
+    "method": "DELETE",
+    "body": null
+  },
+  "expectedSentValues": {
+    "url": "https://api.example.com/sessions/sess-abc",
+    "method": "DELETE",
+    "body": null
+  }
+}

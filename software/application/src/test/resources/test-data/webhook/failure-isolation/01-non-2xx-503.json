@@ -1,0 +1,6 @@
+{
+  "description": "Non-2xx 503 Service Unavailable",
+  "webhookFailureType": "non-2xx",
+  "statusCode": 503,
+  "message": "Service Unavailable"
+}

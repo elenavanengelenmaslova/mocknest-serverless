@@ -1,0 +1,7 @@
+{
+  "description": "Copy authorization from incoming to authorization on outbound",
+  "incomingHeaderName": "authorization",
+  "incomingHeaderValue": "Bearer eyJhbGciOiJIUzI1NiJ9.test",
+  "injectName": "authorization",
+  "expectedOutboundHeaderValue": "Bearer eyJhbGciOiJIUzI1NiJ9.test"
+}

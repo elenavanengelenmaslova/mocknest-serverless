@@ -1,0 +1,13 @@
+{
+  "description": "XML body passed through unchanged",
+  "webhookParameters": {
+    "url": "https://soap.example.com/service",
+    "method": "POST",
+    "body": "<notification><orderId>ORD-777</orderId><status>confirmed</status></notification>"
+  },
+  "expectedSentValues": {
+    "url": "https://soap.example.com/service",
+    "method": "POST",
+    "body": "<notification><orderId>ORD-777</orderId><status>confirmed</status></notification>"
+  }
+}

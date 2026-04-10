@@ -1,0 +1,7 @@
+{
+  "description": "Long JWT-format authorization value",
+  "incomingHeaderName": "authorization",
+  "incomingHeaderValue": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsImlhdCI6MTcwMDAwMDAwMH0.signature",
+  "injectName": "authorization",
+  "expectedOutboundHeaderValue": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsImlhdCI6MTcwMDAwMDAwMH0.signature"
+}

@@ -1,0 +1,6 @@
+{
+  "description": "Network error - unknown host",
+  "webhookFailureType": "network-error",
+  "statusCode": null,
+  "message": "Unknown host: callback.invalid"
+}

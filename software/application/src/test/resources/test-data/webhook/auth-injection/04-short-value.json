@@ -1,0 +1,7 @@
+{
+  "description": "Short API key value (distinct enough to not appear in log messages)",
+  "incomingHeaderName": "x-api-key",
+  "incomingHeaderValue": "zq7",
+  "injectName": "x-api-key",
+  "expectedOutboundHeaderValue": "zq7"
+}
