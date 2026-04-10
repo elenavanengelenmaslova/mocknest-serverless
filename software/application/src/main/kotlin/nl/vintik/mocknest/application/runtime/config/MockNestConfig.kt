@@ -32,9 +32,6 @@ private val logger = KotlinLogging.logger {}
 class MockNestConfig {
 
     @Bean
-    fun webhookConfig(): WebhookConfig = WebhookConfig.fromEnv()
-
-    @Bean
     fun directCallHttpServerFactory() = DirectCallHttpServerFactory()
 
     @Bean

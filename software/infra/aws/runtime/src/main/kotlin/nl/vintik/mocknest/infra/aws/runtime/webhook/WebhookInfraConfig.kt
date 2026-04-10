@@ -15,6 +15,9 @@ import java.util.function.Function
 class WebhookInfraConfig {
 
     @Bean
+    fun webhookConfig(): WebhookConfig = WebhookConfig.fromEnv()
+
+    @Bean
     fun webhookHttpClient(webhookConfig: WebhookConfig): WebhookHttpClientInterface =
         WebhookHttpClient(webhookConfig)
 
