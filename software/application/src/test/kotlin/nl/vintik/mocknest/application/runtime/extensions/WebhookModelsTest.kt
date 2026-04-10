@@ -1,5 +1,6 @@
 package nl.vintik.mocknest.application.runtime.extensions
 
+import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -78,31 +79,82 @@ class WebhookModelsTest {
     }
 
     @Test
-    fun `Given Header auth config with OriginalRequestHeader When accessing fields Then injectName and headerName are accessible`() {
-        val valueSource = HeaderValueSource.OriginalRequestHeader(headerName = "x-api-key")
-        val config: WebhookAuthConfig = WebhookAuthConfig.Header(
-            injectName = "x-api-key",
-            valueSource = valueSource,
+    fun `Given AwsIam auth config with region and service When accessing fields Then both are accessible`() {
+        val config: WebhookAuthConfig = WebhookAuthConfig.AwsIam(
+            region = "eu-west-1",
+            service = "execute-api",
         )
 
-        assertIs<WebhookAuthConfig.Header>(config)
-        assertEquals("x-api-key", config.injectName)
-        val source = config.valueSource
-        assertIs<HeaderValueSource.OriginalRequestHeader>(source)
-        assertEquals("x-api-key", source.headerName)
+        assertIs<WebhookAuthConfig.AwsIam>(config)
+        assertEquals("eu-west-1", config.region)
+        assertEquals("execute-api", config.service)
     }
 
     @Test
-    fun `Given Header auth config with different inject and source names When accessing fields Then both names are preserved`() {
-        val valueSource = HeaderValueSource.OriginalRequestHeader(headerName = "authorization")
-        val config = WebhookAuthConfig.Header(
-            injectName = "x-forwarded-auth",
-            valueSource = valueSource,
+    fun `Given AwsIam auth config with no region or service When accessing fields Then both are null`() {
+        val config: WebhookAuthConfig = WebhookAuthConfig.AwsIam()
+
+        assertIs<WebhookAuthConfig.AwsIam>(config)
+        assertNull(config.region)
+        assertNull(config.service)
+    }
+
+    @Test
+    fun `Given AsyncEvent When serialized and deserialized Then round-trips correctly`() {
+        val event = AsyncEvent(
+            actionType = "webhook",
+            url = "https://example.com/callback",
+            method = "POST",
+            headers = mapOf("Content-Type" to "application/json"),
+            body = """{"event":"order.created"}""",
+            auth = AsyncEventAuth(type = "aws_iam", region = "eu-west-1", service = "execute-api"),
         )
 
-        assertEquals("x-forwarded-auth", config.injectName)
-        val source = config.valueSource
-        assertIs<HeaderValueSource.OriginalRequestHeader>(source)
-        assertEquals("authorization", source.headerName)
+        val json = Json.encodeToString(AsyncEvent.serializer(), event)
+        val decoded = Json.decodeFromString(AsyncEvent.serializer(), json)
+
+        assertEquals(event, decoded)
+    }
+
+    @Test
+    fun `Given AsyncEvent with null body When serialized and deserialized Then body remains null`() {
+        val event = AsyncEvent(
+            actionType = "webhook",
+            url = "https://example.com/callback",
+            method = "GET",
+            headers = emptyMap(),
+            body = null,
+            auth = AsyncEventAuth(type = "none"),
+        )
+
+        val json = Json.encodeToString(AsyncEvent.serializer(), event)
+        val decoded = Json.decodeFromString(AsyncEvent.serializer(), json)
+
+        assertNull(decoded.body)
+        assertEquals(event, decoded)
+    }
+
+    @Test
+    fun `Given AsyncEventAuth with type none When serialized and deserialized Then round-trips correctly`() {
+        val auth = AsyncEventAuth(type = "none")
+
+        val json = Json.encodeToString(AsyncEventAuth.serializer(), auth)
+        val decoded = Json.decodeFromString(AsyncEventAuth.serializer(), json)
+
+        assertEquals("none", decoded.type)
+        assertNull(decoded.region)
+        assertNull(decoded.service)
+    }
+
+    @Test
+    fun `Given AsyncEventAuth with aws_iam type When serialized and deserialized Then region and service are preserved`() {
+        val auth = AsyncEventAuth(type = "aws_iam", region = "us-east-1", service = "execute-api")
+
+        val json = Json.encodeToString(AsyncEventAuth.serializer(), auth)
+        val decoded = Json.decodeFromString(AsyncEventAuth.serializer(), json)
+
+        assertEquals("aws_iam", decoded.type)
+        assertEquals("us-east-1", decoded.region)
+        assertEquals("execute-api", decoded.service)
     }
 }

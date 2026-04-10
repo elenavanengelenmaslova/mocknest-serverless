@@ -1,5 +1,7 @@
 package nl.vintik.mocknest.application.runtime.extensions
 
+import kotlinx.serialization.Serializable
+
 data class WebhookRequest(
     val url: String,
     val method: String,
@@ -16,20 +18,25 @@ sealed class WebhookResult {
 sealed class WebhookAuthConfig {
     object None : WebhookAuthConfig()
 
-    data class Header(
-        val injectName: String,
-        val valueSource: HeaderValueSource,
+    data class AwsIam(
+        val region: String? = null,
+        val service: String? = null,
     ) : WebhookAuthConfig()
-
-    // Future: data class AwsIam(val region: String? = null) : WebhookAuthConfig()
 }
 
-sealed class HeaderValueSource {
-    // v1 — implemented
-    data class OriginalRequestHeader(val headerName: String) : HeaderValueSource()
+@Serializable
+data class AsyncEvent(
+    val actionType: String,
+    val url: String,
+    val method: String,
+    val headers: Map<String, String>,
+    val body: String?,
+    val auth: AsyncEventAuth,
+)
 
-    // Future — not implemented in v1:
-    // data class Static(val value: String) : HeaderValueSource()
-    // data class SecretRef(val secretRef: String) : HeaderValueSource()
-    // data class EnvVar(val envVar: String) : HeaderValueSource()
-}
+@Serializable
+data class AsyncEventAuth(
+    val type: String,
+    val region: String? = null,
+    val service: String? = null,
+)

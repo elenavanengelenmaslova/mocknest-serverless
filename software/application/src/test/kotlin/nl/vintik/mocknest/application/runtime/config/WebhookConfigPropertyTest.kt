@@ -34,6 +34,8 @@ class WebhookConfigPropertyTest {
         val config = WebhookConfig(
             sensitiveHeaders = parseHeaders(sensitiveHeadersEnv),
             webhookTimeoutMs = 10_000L,
+            asyncTimeoutMs = 30_000L,
+            requestJournalPrefix = "requests/",
         )
 
         val expected = expectedHeadersCsv.split(";").toSet()

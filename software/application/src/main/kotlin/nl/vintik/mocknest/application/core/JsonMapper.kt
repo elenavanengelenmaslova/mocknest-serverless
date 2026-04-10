@@ -4,12 +4,14 @@ import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.module.SimpleModule
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.http.HttpMethod
 
 val mapper = jacksonObjectMapper()
     .registerModule(JavaTimeModule())
+    .registerModule(Jdk8Module())
     .registerModule(SimpleModule().apply {
         addSerializer(HttpMethod::class.java, object : JsonSerializer<HttpMethod>() {
             override fun serialize(value: HttpMethod, gen: JsonGenerator, serializers: SerializerProvider) {

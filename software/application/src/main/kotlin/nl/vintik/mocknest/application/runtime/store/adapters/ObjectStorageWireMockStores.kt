@@ -15,13 +15,14 @@ import java.util.concurrent.ConcurrentHashMap
 private val logger = KotlinLogging.logger {}
 class ObjectStorageWireMockStores(
     storage: ObjectStorageInterface,
+    private val customRequestJournalStore: RequestJournalStore? = null,
 ) : Stores {
 
     private val filesBlobStore: BlobStore = ObjectStorageBlobStore(storage)
     private val stubStore: StubMappingStore = InMemoryStubMappingStore()
     private val settingsStore: SettingsStore = InMemorySettingsStore()
 
-    private val requestJournalStore: RequestJournalStore = InMemoryRequestJournalStore()
+    private val requestJournalStore: RequestJournalStore = customRequestJournalStore ?: InMemoryRequestJournalStore()
     private val scenariosStore: ScenariosStore = InMemoryScenariosStore()
     private val recorderStateStore: RecorderStateStore = InMemoryRecorderStateStore()
 

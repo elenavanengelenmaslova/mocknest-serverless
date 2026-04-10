@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     kotlin("plugin.spring")
+    kotlin("plugin.serialization")
 }
 
 // Generate version.properties from Gradle version
@@ -30,6 +31,7 @@ dependencies {
     // JSON processing
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
 
     // Koog Framework for AI Agent orchestration

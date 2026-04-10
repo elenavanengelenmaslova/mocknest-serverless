@@ -444,6 +444,8 @@ Comprehensive guidelines for unit test creation and maintenance.
 - **Share expensive resources** like containers and clients across tests using `@BeforeAll`/`@AfterAll`
 - **Clean test data** (not containers) between tests using `@BeforeEach`/`@AfterEach`
 
+- **Use the shared LocalStack container** when writing integration tests in the `software/infra/aws/` modules — do NOT create a new `LocalStackContainer` per test class. Reuse `SharedLocalStackContainer` from `software/infra/aws/mocknest/src/test/kotlin/nl/vintik/mocknest/infra/aws/config/SharedLocalStackContainer.kt`. Creating multiple LocalStack containers in the same JVM causes port conflicts and flaky tests. If a test needs a service not yet in the shared container, add it there rather than spinning up a new one. Use `Wait.forHttp("/_localstack/health").forStatusCode(200)` as the readiness strategy — it is more reliable than `Wait.forLogMessage(".*Ready.*", 1)`.
+
 - **Use LocalStack TestContainers** for infrastructure layer integration tests to validate AWS service interactions:
   - LocalStack container for S3, Lambda, API Gateway, and Bedrock testing
   - Test actual Kotlin AWS SDK calls against containerized AWS services
@@ -514,7 +516,8 @@ AI assistance for test creation, execution, and maintenance:
   - Test AI-assisted mock generation using LocalStack's Bedrock emulation
   - Keep integration tests in the `software/infra/aws/` module alongside the infrastructure code
   - Use proper TestContainers lifecycle management with `@BeforeAll`/`@AfterAll` for container setup
-  - Use TestContainers built-in waiting strategies like `Wait.forLogMessage(".*Ready.*", 1)`
+  - Use `Wait.forHttp("/_localstack/health").forStatusCode(200)` as the readiness strategy — more reliable than `Wait.forLogMessage`
+  - Reuse the shared `SharedLocalStackContainer` singleton rather than creating per-test-class containers
   - Share expensive resources like containers and clients across tests, only clean test data between tests
 
 - Prefer focused integration tests that validate mapping normalization, content-type defaults, and file externalization behaviors instead of broad unit test suites
@@ -637,6 +640,7 @@ When generating implementation tasks (tasks.md), the following testing requireme
 - Test tasks are NOT optional - they are required for task completion
 - Test tasks should be explicit and specific about what needs to be tested
 - Test tasks should reference the testing standards in this document
+- **After every top-level task number (e.g. task 1, task 2, task 3), include a checkpoint sub-task that runs `./gradlew clean test` to verify the full build still passes before moving on.** This catches integration issues early. Example: `- [ ] 1.N Run \`./gradlew clean test\` and confirm all tests pass`
 
 ### Example Task Structure
 

@@ -8,65 +8,59 @@ import com.github.tomakehurst.wiremock.http.HttpHeader
 import com.github.tomakehurst.wiremock.http.HttpHeaders
 import com.github.tomakehurst.wiremock.http.ImmutableRequest
 import com.github.tomakehurst.wiremock.http.RequestMethod
-import io.mockk.clearAllMocks
-import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.application.runtime.extensions.WebhookHttpClientInterface
-import nl.vintik.mocknest.application.runtime.extensions.WebhookResult
-import org.junit.jupiter.api.AfterEach
+import nl.vintik.mocknest.application.runtime.extensions.SqsPublisherInterface
 import org.junit.jupiter.api.Test
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.test.assertTrue
 
 /**
  * Unit tests for MockNestConfig webhook wiring.
  *
- * Validates that WebhookServeEventListener is registered and active in the WireMock server
- * by verifying behavioral evidence: a stub with serveEventListeners triggers webhookHttpClient.send().
+ * Validates that WebhookAsyncEventPublisher is registered and active in the WireMock server
+ * by verifying behavioral evidence: a stub with serveEventListeners triggers sqsPublisher.publish().
  *
- * Validates: Requirements 1.1
+ * Validates: Requirements 1.1, 2.1
  */
 class MockNestConfigWebhookWiringTest {
 
     private val mockStorage: ObjectStorageInterface = mockk(relaxed = true)
-    private val mockWebhookHttpClient: WebhookHttpClientInterface = mockk(relaxed = true)
-
     private val config = MockNestConfig()
 
-    @AfterEach
-    fun tearDown() {
-        clearAllMocks()
-    }
-
     @Test
-    fun `Given Spring context loads When wireMockServer bean created Then WebhookServeEventListener is registered with name mocknest-webhook`() {
+    fun `Given Spring context loads When wireMockServer bean created Then WebhookAsyncEventPublisher is registered with name webhook`() {
         val webhookConfig = WebhookConfig(
-            sensitiveHeaders = setOf("x-api-key", "authorization"),
+            sensitiveHeaders = setOf("x-api-key", "authorization", "proxy-authorization", "x-amz-security-token"),
             webhookTimeoutMs = 10_000L,
+            asyncTimeoutMs = 30_000L,
+            requestJournalPrefix = "requests/",
         )
+        val publishCalled = AtomicBoolean(false)
+        val capturingSqsPublisher = object : SqsPublisherInterface {
+            override suspend fun publish(queueUrl: String, messageBody: String) {
+                publishCalled.set(true)
+            }
+        }
+
         val factory = config.directCallHttpServerFactory()
-        val server = config.wireMockServer(factory, mockStorage, webhookConfig, mockWebhookHttpClient)
+        val server = config.wireMockServer(factory, mockStorage, webhookConfig, capturingSqsPublisher, "test-queue-url")
 
         try {
-            // Register a stub with serveEventListeners using the "mocknest-webhook" name
             server.addStubMapping(
                 post(urlPathEqualTo("/test-webhook"))
                     .willReturn(aResponse().withStatus(200))
                     .withServeEventListener(
-                        "mocknest-webhook",
-                        Parameters.from(
-                            mapOf(
-                                "url" to "https://api.example.com/callback",
-                                "method" to "POST",
-                            )
-                        )
+                        "webhook",
+                        Parameters.from(mapOf(
+                            "url" to "https://api.example.com/callback",
+                            "method" to "POST",
+                            "body" to """{"event":"test"}""",
+                        ))
                     )
                     .build()
             )
 
-            every { mockWebhookHttpClient.send(any()) } returns WebhookResult.Success(200)
-
-            // Fire a request via DirectCallHttpServer
             val directServer = config.directCallHttpServer(factory)
             val wireMockRequest = ImmutableRequest.create()
                 .withAbsoluteUrl("http://mocknest.internal/test-webhook")
@@ -76,8 +70,10 @@ class MockNestConfigWebhookWiringTest {
                 .build()
             directServer.stubRequest(wireMockRequest)
 
-            // Behavioral verification: WebhookServeEventListener fired and called webhookHttpClient.send()
-            verify { mockWebhookHttpClient.send(any()) }
+            // Wait for async webhook processing
+            Thread.sleep(1000)
+
+            assertTrue(publishCalled.get(), "Expected sqsPublisher.publish() to be called")
         } finally {
             server.stop()
         }

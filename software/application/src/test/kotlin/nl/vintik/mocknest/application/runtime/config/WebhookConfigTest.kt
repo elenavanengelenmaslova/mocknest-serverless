@@ -30,15 +30,19 @@ class WebhookConfigTest {
     private fun buildConfig(
         sensitiveHeadersEnv: String? = null,
         timeoutMsEnv: String? = null,
+        asyncTimeoutMsEnv: String? = null,
+        requestJournalPrefixEnv: String? = null,
     ): WebhookConfig {
-        val defaultSensitiveHeaders = "x-api-key,authorization"
+        val defaultSensitiveHeaders = "x-api-key,authorization,proxy-authorization,x-amz-security-token"
         val sensitiveHeaders = (sensitiveHeadersEnv ?: defaultSensitiveHeaders)
             .split(",")
             .map { it.trim().lowercase() }
             .filter { it.isNotEmpty() }
             .toSet()
         val webhookTimeoutMs = timeoutMsEnv?.toLongOrNull() ?: 10_000L
-        return WebhookConfig(sensitiveHeaders, webhookTimeoutMs)
+        val asyncTimeoutMs = asyncTimeoutMsEnv?.toLongOrNull() ?: 30_000L
+        val requestJournalPrefix = requestJournalPrefixEnv ?: "requests/"
+        return WebhookConfig(sensitiveHeaders, webhookTimeoutMs, asyncTimeoutMs, requestJournalPrefix)
     }
 
     @Test
@@ -46,18 +50,24 @@ class WebhookConfigTest {
         val config = buildConfig(
             sensitiveHeadersEnv = "x-api-key,authorization,x-secret-token",
             timeoutMsEnv = "5000",
+            asyncTimeoutMsEnv = "15000",
+            requestJournalPrefixEnv = "journal/",
         )
 
         assertEquals(setOf("x-api-key", "authorization", "x-secret-token"), config.sensitiveHeaders)
         assertEquals(5000L, config.webhookTimeoutMs)
+        assertEquals(15000L, config.asyncTimeoutMs)
+        assertEquals("journal/", config.requestJournalPrefix)
     }
 
     @Test
-    fun `Given no env vars set When constructing WebhookConfig Then defaults are applied`() {
+    fun `Given no env vars set When constructing WebhookConfig Then defaults are applied including new sensitive headers`() {
         val config = buildConfig()
 
-        assertEquals(setOf("x-api-key", "authorization"), config.sensitiveHeaders)
+        assertEquals(setOf("x-api-key", "authorization", "proxy-authorization", "x-amz-security-token"), config.sensitiveHeaders)
         assertEquals(10_000L, config.webhookTimeoutMs)
+        assertEquals(30_000L, config.asyncTimeoutMs)
+        assertEquals("requests/", config.requestJournalPrefix)
     }
 
     @Test

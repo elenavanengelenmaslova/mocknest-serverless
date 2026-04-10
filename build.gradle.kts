@@ -55,8 +55,10 @@ subprojects {
             dependency("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:bedrock:$awsSdkKotlinVersion")
             dependency("aws.sdk.kotlin:bedrockruntime:$awsSdkKotlinVersion")
+            dependency("aws.sdk.kotlin:sqs:$awsSdkKotlinVersion")
             dependency("aws.smithy.kotlin:http-client-engine-okhttp:$smithyKotlinVersion")
             dependency("aws.smithy.kotlin:http-client-engine-crt:$smithyKotlinVersion")
+            dependency("aws.smithy.kotlin:aws-signing-default:$smithyKotlinVersion")
             
             val okhttpVersion = "5.3.2"
             ext["okhttp.version"] = okhttpVersion

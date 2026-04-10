@@ -575,11 +575,24 @@ test_soap_import() {
 
 # Test webhook delivery and sensitive header redaction
 # Validates that:
-# 1. A webhook configured with original_request_header auth is dispatched synchronously
-# 2. The callback mock receives the outbound request with the forwarded API key
-# 3. The x-api-key header is stored as [REDACTED] in the request journal
+# 1. A webhook configured with aws_iam auth is dispatched asynchronously via SQS
+# 2. The RuntimeAsync Lambda executes the outbound callback using SigV4 signing
+# 3. The callback request record is persisted in the S3 journal under requests/ prefix
+# 4. IAM-sensitive header values in the S3 record are [REDACTED]
 test_webhook_delivery() {
-  echo "Testing webhook delivery..."
+  echo "Testing webhook delivery (IAM mode, async dispatch, S3 journal polling)..."
+
+  # Require S3 bucket name for journal polling
+  if [ -z "$MOCK_STORAGE_BUCKET" ]; then
+    MOCK_STORAGE_BUCKET=$(aws cloudformation describe-stacks \
+      --stack-name "$STACK_NAME" \
+      --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' \
+      --output text 2>/dev/null || echo "")
+  fi
+  if [ -z "$MOCK_STORAGE_BUCKET" ]; then
+    echo "ERROR: MOCK_STORAGE_BUCKET is required for webhook S3 journal polling"
+    exit 1
+  fi
 
   # Step 1: Register callback mock — POST /mocknest/webhook-callback → 200 OK
   echo "  Registering callback mock..."
@@ -615,9 +628,7 @@ test_webhook_delivery() {
   fi
   echo "  ✓ Callback mock registered"
 
-  # Step 2: Register trigger mock — POST /mocknest/webhook-trigger → 202 Accepted
-  # with serveEventListeners webhook targeting the callback mock,
-  # forwarding x-api-key from the incoming request via original_request_header auth
+  # Step 2: Register trigger mock with standard "webhook" serveEventListener and aws_iam auth
   echo "  Registering trigger mock..."
   local trigger_mapping
   trigger_mapping="{
@@ -632,16 +643,14 @@ test_webhook_delivery() {
     },
     \"serveEventListeners\": [
       {
-        \"name\": \"mocknest-webhook\",
+        \"name\": \"webhook\",
         \"parameters\": {
           \"method\": \"POST\",
           \"url\": \"$API_URL/mocknest/webhook-callback\",
           \"body\": \"{\\\"event\\\": \\\"triggered\\\"}\",
           \"headers\": { \"Content-Type\": \"application/json\" },
           \"auth\": {
-            \"type\": \"header\",
-            \"inject\": { \"name\": \"x-api-key\" },
-            \"value\": { \"source\": \"original_request_header\", \"headerName\": \"x-api-key\" }
+            \"type\": \"aws_iam\"
           }
         }
       }
@@ -665,8 +674,7 @@ test_webhook_delivery() {
   fi
   echo "  ✓ Trigger mock registered"
 
-  # Step 3: Call the trigger endpoint with x-api-key header
-  # The webhook auth config copies this key to the outbound callback call
+  # Step 3: Call the trigger endpoint using SigV4 (CURL_OPTS already includes --aws-sigv4 for IAM mode)
   echo "  Calling trigger endpoint..."
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
@@ -685,67 +693,89 @@ test_webhook_delivery() {
   fi
   echo "  ✓ Trigger returned 202 Accepted"
 
-  # Step 4: Poll /__admin/requests for the callback request (max 10s, 1s interval)
-  # Webhook dispatch is synchronous so the callback should already be recorded,
-  # but we poll to tolerate any Lambda concurrency edge cases.
-  echo "  Polling for callback request in journal..."
-  local max_attempts=10
-  local attempt=0
+  # Step 4: Poll S3 journal (requests/ prefix) for callback request record
+  # End-to-end latency: SQS publish → SQS delivery → RuntimeAsync cold start → HTTP call → S3 write
+  local POLL_TIMEOUT="${WEBHOOK_POLL_TIMEOUT_SECS:-30}"
+  local POLL_INTERVAL="${WEBHOOK_POLL_INTERVAL_SECS:-2}"
+  echo "  Polling S3 journal for callback request record (timeout=${POLL_TIMEOUT}s, interval=${POLL_INTERVAL}s)..."
+
+  local elapsed=0
   local callback_found=false
-  local requests_body=""
+  local callback_record=""
 
-  while [ $attempt -lt $max_attempts ]; do
-    local req_response
-    req_response=$(curl "${CURL_OPTS[@]}" \
-      --write-out "\n%{http_code}" \
-      --request GET \
-      "$API_URL/__admin/requests" 2>&1) || {
-      echo "WARNING: Failed to query request journal (attempt $((attempt + 1)))"
-      sleep 1
-      attempt=$((attempt + 1))
-      continue
-    }
-    parse_response "$req_response"
-    requests_body="$BODY"
+  while [ "$elapsed" -lt "$POLL_TIMEOUT" ]; do
+    # List objects under requests/ prefix
+    local keys
+    keys=$(aws s3api list-objects-v2 \
+      --bucket "$MOCK_STORAGE_BUCKET" \
+      --prefix "requests/" \
+      --query 'Contents[].Key' \
+      --output text 2>/dev/null || echo "")
 
-    if echo "$requests_body" | grep -q '"/webhook-callback"'; then
-      callback_found=true
-      break
-    fi
+    for key in $keys; do
+      # Fetch the record and check if it matches /webhook-callback
+      local record
+      record=$(aws s3api get-object \
+        --bucket "$MOCK_STORAGE_BUCKET" \
+        --key "$key" \
+        /dev/stdout 2>/dev/null || echo "")
 
-    attempt=$((attempt + 1))
-    if [ $attempt -lt $max_attempts ]; then
-      sleep 1
-    fi
+      if echo "$record" | grep -q '"/webhook-callback"'; then
+        callback_found=true
+        callback_record="$record"
+        break 2
+      fi
+    done
+
+    sleep "$POLL_INTERVAL"
+    elapsed=$((elapsed + POLL_INTERVAL))
   done
 
   # Step 5: Assert callback was found
   if [ "$callback_found" != "true" ]; then
-    echo "ERROR: Webhook callback request not found in journal after ${max_attempts}s"
-    echo "Expected a POST to /mocknest/webhook-callback in the request journal"
-    echo "Journal contents: $requests_body"
+    echo "ERROR: Webhook callback request not found in S3 journal after ${POLL_TIMEOUT}s"
+    echo "Expected a POST to /webhook-callback in S3 bucket=$MOCK_STORAGE_BUCKET prefix=requests/"
     exit 1
   fi
-  echo "  ✓ Callback request found in journal"
+  echo "  ✓ Callback request found in S3 journal"
 
-  # Step 6: Assert x-api-key header in the callback journal entry is [REDACTED]
-  # Extract the callback request entry and check the x-api-key header value
-  echo "  Verifying x-api-key is redacted in callback journal entry..."
-  if ! echo "$requests_body" | grep -q '"x-api-key"'; then
-    echo "ERROR: x-api-key header not found in callback journal entry"
-    echo "Journal contents: $requests_body"
-    exit 1
-  fi
-
-  # The x-api-key value in the journal must be [REDACTED], not the actual key
-  if echo "$requests_body" | grep -A5 '"x-api-key"' | grep -q '\[REDACTED\]'; then
-    echo "  ✓ x-api-key is [REDACTED] in callback journal entry"
-  else
-    echo "ERROR: x-api-key header value is NOT redacted in callback journal entry"
-    echo "Expected [REDACTED] but found unredacted value"
-    echo "Journal contents: $requests_body"
-    exit 1
-  fi
+  # Step 6: Assert IAM-sensitive headers are [REDACTED] in the S3 record
+  echo "  Verifying sensitive headers are redacted in S3 journal record..."
+  for sensitive_header in "authorization" "x-amz-security-token"; do
+    if echo "$callback_record" | grep -qi "\"$sensitive_header\""; then
+      if echo "$callback_record" | grep -qi "\"$sensitive_header\"" | grep -q '\[REDACTED\]'; then
+        echo "  ✓ $sensitive_header is [REDACTED] in S3 journal record"
+      else
+        # Check if the value is [REDACTED] (the header may appear with its value on the same line)
+        local header_value
+        header_value=$(echo "$callback_record" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+def find_headers(obj):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k == 'headers' and isinstance(v, dict):
+                for hk, hv in v.items():
+                    if hk.lower() == '$sensitive_header':
+                        print(hv)
+                        return
+            else:
+                find_headers(v)
+    elif isinstance(obj, list):
+        for item in obj:
+            find_headers(item)
+find_headers(data)
+" 2>/dev/null || echo "")
+        if [ "$header_value" = "[REDACTED]" ]; then
+          echo "  ✓ $sensitive_header is [REDACTED] in S3 journal record"
+        else
+          echo "ERROR: $sensitive_header header value is NOT redacted in S3 journal record"
+          echo "Expected [REDACTED] but found: $header_value"
+          exit 1
+        fi
+      fi
+    fi
+  done
 
   echo "✓ Webhook delivery test passed"
 }
