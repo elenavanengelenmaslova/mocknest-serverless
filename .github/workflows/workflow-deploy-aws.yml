@@ -17,6 +17,16 @@ on:
         type: string
         default: 'GitHubActionsRole'
         description: 'Name of the GitHub Actions OIDC role'
+      stack-name:
+        required: false
+        type: string
+        default: ''
+        description: 'CloudFormation stack name override (defaults to value in samconfig.toml)'
+      auth-mode:
+        required: false
+        type: string
+        default: 'API_KEY'
+        description: 'Authentication mode for API Gateway: API_KEY or IAM'
     secrets:
       AWS_ACCOUNT_ID:
         required: true
@@ -70,7 +80,19 @@ jobs:
           cd deployment/aws/sam
           echo "Starting SAM deployment..."
 
-          DEPLOY_OUTPUT=$(sam deploy --config-env default --no-confirm-changeset --force-upload 2>&1) && {
+          # Build optional overrides
+          STACK_NAME_OVERRIDE="${{ inputs.stack-name }}"
+          AUTH_MODE="${{ inputs.auth-mode }}"
+
+          EXTRA_ARGS=""
+          if [ -n "$STACK_NAME_OVERRIDE" ]; then
+            EXTRA_ARGS="$EXTRA_ARGS --stack-name $STACK_NAME_OVERRIDE"
+          fi
+          if [ "$AUTH_MODE" = "IAM" ]; then
+            EXTRA_ARGS="$EXTRA_ARGS --parameter-overrides AuthMode=IAM"
+          fi
+
+          DEPLOY_OUTPUT=$(sam deploy --config-env default --no-confirm-changeset --force-upload $EXTRA_ARGS 2>&1) && {
             echo "$DEPLOY_OUTPUT"
             echo "Deployment completed successfully"
             echo "deployed=true" >> $GITHUB_OUTPUT
@@ -91,16 +113,20 @@ jobs:
         id: outputs
         run: |
           cd deployment/aws/sam
-          ENV="default"
 
-          # Read stack_name from samconfig.toml for the default environment
-          STACK_NAME=$(python - "$ENV" <<'PY'
+          # Use passed-in stack name if provided, otherwise read from samconfig
+          STACK_NAME_OVERRIDE="${{ inputs.stack-name }}"
+          if [ -n "$STACK_NAME_OVERRIDE" ]; then
+            STACK_NAME="$STACK_NAME_OVERRIDE"
+          else
+            STACK_NAME=$(python - "default" <<'PY'
           import sys, tomllib
           env = sys.argv[1]
           cfg = tomllib.load(open("samconfig.toml", "rb"))
           print(cfg[env]["global"]["parameters"]["stack_name"])
           PY
-          )
+            )
+          fi
 
           echo "Resolved stack name: $STACK_NAME"
 

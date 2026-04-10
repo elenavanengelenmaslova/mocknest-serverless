@@ -3,6 +3,19 @@ name: CD - Deploy On Demand
 on:
   workflow_dispatch:
     inputs:
+      auth-mode:
+        description: 'Authentication mode for API Gateway'
+        required: false
+        default: 'API_KEY'
+        type: choice
+        options:
+          - API_KEY
+          - IAM
+      stack-name:
+        description: 'CloudFormation stack name (leave empty to use default from samconfig.toml)'
+        required: false
+        default: ''
+        type: string
       aws-region:
         description: 'AWS region for deployment'
         required: false
@@ -29,6 +42,8 @@ jobs:
       environment: default
       aws-region: ${{ inputs.aws-region }}
       github-actions-role-name: ${{ inputs.github-actions-role-name }}
+      stack-name: ${{ inputs.stack-name }}
+      auth-mode: ${{ inputs.auth-mode }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
@@ -38,5 +53,8 @@ jobs:
     with:
       aws-region: ${{ inputs.aws-region }}
       github-actions-role-name: ${{ inputs.github-actions-role-name }}
+      # API_KEY mode: run all existing tests (rest, graphql, soap)
+      # IAM mode: run only the webhook test
+      test-suite: ${{ inputs.auth-mode == 'IAM' && 'webhook' || 'all' }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
