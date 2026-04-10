@@ -743,43 +743,61 @@ test_webhook_delivery() {
   fi
   echo "  ✓ Callback request found in S3 journal"
 
-  # Step 6: Assert IAM-sensitive headers are [REDACTED] in the S3 record
-  echo "  Verifying sensitive headers are redacted in S3 journal record..."
+  # Step 6: Assert IAM-sensitive headers are [REDACTED] in the S3 record if present
+  echo "  Verifying sensitive headers are redacted in S3 journal record (if present)..."
+  local redaction_issues=0
   for sensitive_header in "authorization" "x-amz-security-token"; do
-    if echo "$callback_record" | grep -qi "\"$sensitive_header\""; then
-      if echo "$callback_record" | grep -qi "\"$sensitive_header\"" | grep -q '\[REDACTED\]'; then
-        echo "  ✓ $sensitive_header is [REDACTED] in S3 journal record"
-      else
-        # Check if the value is [REDACTED] (the header may appear with its value on the same line)
-        local header_value
-        header_value=$(echo "$callback_record" | python3 -c "
+    # Only check if the header key appears in the record at all
+    if echo "$callback_record" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
-def find_headers(obj):
+def find_header(obj, name):
     if isinstance(obj, dict):
         for k, v in obj.items():
             if k == 'headers' and isinstance(v, dict):
-                for hk, hv in v.items():
-                    if hk.lower() == '$sensitive_header':
-                        print(hv)
+                for hk in v:
+                    if hk.lower() == name:
+                        print(v[hk])
                         return
             else:
-                find_headers(v)
+                find_header(v, name)
     elif isinstance(obj, list):
         for item in obj:
-            find_headers(item)
-find_headers(data)
+            find_header(item, name)
+find_header(data, '$sensitive_header')
+" 2>/dev/null | grep -q .; then
+      header_value=$(echo "$callback_record" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+def find_header(obj, name):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k == 'headers' and isinstance(v, dict):
+                for hk in v:
+                    if hk.lower() == name:
+                        print(v[hk])
+                        return
+            else:
+                find_header(v, name)
+    elif isinstance(obj, list):
+        for item in obj:
+            find_header(item, name)
+find_header(data, '$sensitive_header')
 " 2>/dev/null || echo "")
-        if [ "$header_value" = "[REDACTED]" ]; then
-          echo "  ✓ $sensitive_header is [REDACTED] in S3 journal record"
-        else
-          echo "ERROR: $sensitive_header header value is NOT redacted in S3 journal record"
-          echo "Expected [REDACTED] but found: $header_value"
-          exit 1
-        fi
+      if [ "$header_value" = "[REDACTED]" ]; then
+        echo "  ✓ $sensitive_header is [REDACTED] in S3 journal record"
+      else
+        echo "  ERROR: $sensitive_header header value is NOT redacted (found: $header_value)"
+        redaction_issues=$((redaction_issues + 1))
       fi
+    else
+      echo "  ℹ $sensitive_header not present in callback record headers — skipping redaction check"
     fi
   done
+  if [ "$redaction_issues" -gt 0 ]; then
+    echo "ERROR: $redaction_issues sensitive header(s) were not redacted in S3 journal record"
+    exit 1
+  fi
 
   echo "✓ Webhook delivery test passed"
 }

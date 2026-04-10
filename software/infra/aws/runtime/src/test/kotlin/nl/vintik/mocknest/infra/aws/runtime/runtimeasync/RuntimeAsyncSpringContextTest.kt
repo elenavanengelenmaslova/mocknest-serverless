@@ -91,6 +91,12 @@ class RuntimeAsyncSpringContextTest {
     }
 
     @Test
+    fun `Given async profile When context loads Then RuntimeAsyncPrimingHook is present`() {
+        assertNotNull(applicationContext.getBean("runtimeAsyncPrimingHook"),
+            "runtimeAsyncPrimingHook must be present in the async profile")
+    }
+
+    @Test
     fun `Given async profile When context loads Then WebhookConfig is provided by WebhookInfraConfig without manual override`() {
         // If WebhookInfraConfig does not provide WebhookConfig, the context would have failed
         // to start (RuntimeAsyncHandler depends on it via WebhookHttpClient). Reaching here
