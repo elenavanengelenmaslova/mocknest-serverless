@@ -53,6 +53,7 @@ jobs:
     with:
       aws-region: ${{ inputs.aws-region }}
       github-actions-role-name: ${{ inputs.github-actions-role-name }}
+      stack-name: ${{ inputs.stack-name }}
       # API_KEY mode: run all existing tests (rest, graphql, soap)
       # IAM mode: run only the webhook test
       test-suite: ${{ inputs.auth-mode == 'IAM' && 'webhook' || 'all' }}

@@ -13,6 +13,11 @@ on:
         type: string
         default: 'GitHubActionsRole'
         description: 'Name of the GitHub Actions OIDC role'
+      stack-name:
+        required: false
+        type: string
+        default: ''
+        description: 'CloudFormation stack name override (defaults to value in samconfig.toml)'
       test-suite:
         required: false
         type: string
@@ -73,12 +78,17 @@ jobs:
       - name: Resolve stack name and auth mode
         id: stack-name
         run: |
-          STACK_NAME=$(python3 - <<'PY'
+          STACK_NAME_OVERRIDE="${{ inputs.stack-name }}"
+          if [ -n "$STACK_NAME_OVERRIDE" ]; then
+            STACK_NAME="$STACK_NAME_OVERRIDE"
+          else
+            STACK_NAME=$(python3 - <<'PY'
           import tomllib
           cfg = tomllib.load(open("deployment/aws/sam/samconfig.toml", "rb"))
           print(cfg["default"]["global"]["parameters"]["stack_name"])
           PY
-          )
+            )
+          fi
           AUTH_MODE=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
             --query 'Stacks[0].Outputs[?OutputKey==`AuthMode`].OutputValue' \
