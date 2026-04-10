@@ -72,6 +72,18 @@ Follow clean architecture principles by developing in this sequence:
 - Test SAM template changes locally before committing
 - **Always run `sam validate --template-file deployment/aws/sam/template.yaml --region eu-west-1` after every change to the SAM template and confirm exit code 0 before committing**
 
+## Lambda Configuration Standards
+
+Every Lambda function defined in the SAM template MUST have:
+
+- **SnapStart enabled** — `AutoPublishAlias: live` and `SnapStart: ApplyOn: PublishedVersions`
+- **Priming** — a priming hook or equivalent warm-up mechanism that exercises the critical code paths during the SnapStart snapshot phase, so the snapshot captures a fully initialised context
+- **arm64 architecture** — inherited from `Globals`, do not override per-function
+- **java25 runtime** — inherited from `Globals`, do not override per-function
+- **JVM TieredCompilation optimisation** — `JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"` in `Environment.Variables`
+
+When adding a new Lambda function, verify all five of the above are present before committing.
+
 ## GitHub Actions Integration
 
 - Feature branches trigger `feature-aws.yml` workflow for build and test validation (no deployment)

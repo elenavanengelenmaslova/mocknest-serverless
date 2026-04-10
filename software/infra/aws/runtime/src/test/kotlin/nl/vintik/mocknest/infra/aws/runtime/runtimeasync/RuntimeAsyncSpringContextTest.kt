@@ -1,8 +1,5 @@
 package nl.vintik.mocknest.infra.aws.runtime.runtimeasync
 
-import aws.sdk.kotlin.services.s3.S3Client
-import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.direct.DirectCallHttpServer
 import io.mockk.mockk
 import nl.vintik.mocknest.application.runtime.config.WebhookConfig
 import nl.vintik.mocknest.application.runtime.extensions.SqsPublisherInterface
@@ -15,21 +12,22 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.bean.override.mockito.MockitoBean
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 
 /**
- * Verifies that the `async` Spring profile loads a lightweight context:
- * - [RuntimeAsyncHandler] bean is present
- * - `wireMockServer` bean is NOT present (MockNestConfig excluded via @Profile("!async"))
- * - `directCallHttpServerFactory` bean is NOT present (MockNestConfig excluded via @Profile("!async"))
+ * Verifies that the `async` Spring profile loads a lightweight context with NO WireMock/S3
+ * dependencies — no @MockitoBean stubs needed because all WireMock-dependent components
+ * are now guarded with @Profile("!async").
  *
- * WireMock-dependent components (AdminRequestUseCase, ClientRequestUseCase, RuntimePrimingHook)
- * still need DirectCallHttpServer, WireMockServer, and S3Client to be satisfied — we provide
- * @MockitoBean stubs so the context loads without real AWS or WireMock connections.
- *
- * Requirements: async profile isolation
+ * Asserts:
+ * - [RuntimeAsyncHandler] bean IS present
+ * - `directCallHttpServerFactory` is NOT present (MockNestConfig excluded)
+ * - `wiremockFilesBlobStore` is NOT present (MockNestConfig excluded)
+ * - `adminRequestUseCase` is NOT present (AdminRequestUseCase excluded)
+ * - `clientRequestUseCase` is NOT present (ClientRequestUseCase excluded)
+ * - `runtimeLambdaHandler` is NOT present (RuntimeLambdaHandler excluded)
+ * - `runtimePrimingHook` is NOT present (RuntimePrimingHook excluded)
  */
 @SpringBootTest(
     classes = [MockNestApplication::class, RuntimeAsyncSpringContextTest.TestConfig::class],
@@ -52,17 +50,6 @@ class RuntimeAsyncSpringContextTest {
         fun sqsPublisher(): SqsPublisherInterface = mockk(relaxed = true)
     }
 
-    // Satisfy WireMock-dependent components without starting a real WireMock server
-    @MockitoBean
-    private lateinit var directCallHttpServer: DirectCallHttpServer
-
-    @MockitoBean
-    private lateinit var wireMockServer: WireMockServer
-
-    // Satisfy RuntimePrimingHook S3 dependency without real AWS calls
-    @MockitoBean
-    private lateinit var s3Client: S3Client
-
     @Autowired
     private lateinit var applicationContext: ApplicationContext
 
@@ -75,29 +62,26 @@ class RuntimeAsyncSpringContextTest {
     }
 
     @Test
-    fun `Given async profile active When Spring context loads Then wireMockServer bean is NOT registered by MockNestConfig`() {
-        // MockNestConfig is excluded by @Profile("!async"), so it never registers the real wireMockServer bean.
-        // The only wireMockServer in context is the @MockitoBean stub above — verify MockNestConfig's
-        // factory bean (directCallHttpServerFactory) is absent, which proves MockNestConfig was skipped.
-        assertFalse(
-            applicationContext.containsBean("directCallHttpServerFactory"),
-            "directCallHttpServerFactory must not be present — MockNestConfig should be excluded by @Profile(\"!async\")"
-        )
+    fun `Given async profile active When Spring context loads Then MockNestConfig beans are absent`() {
+        assertFalse(applicationContext.containsBean("directCallHttpServerFactory"),
+            "directCallHttpServerFactory must not be present — MockNestConfig excluded by @Profile(!async)")
+        assertFalse(applicationContext.containsBean("wiremockFilesBlobStore"),
+            "wiremockFilesBlobStore must not be present — MockNestConfig excluded by @Profile(!async)")
     }
 
     @Test
-    fun `Given async profile active When Spring context loads Then directCallHttpServerFactory bean is NOT present`() {
-        assertFalse(
-            applicationContext.containsBean("directCallHttpServerFactory"),
-            "directCallHttpServerFactory must not be loaded in the async profile"
-        )
+    fun `Given async profile active When Spring context loads Then WireMock-dependent use cases are absent`() {
+        assertFalse(applicationContext.containsBean("adminRequestUseCase"),
+            "adminRequestUseCase must not be present — excluded by @Profile(!async)")
+        assertFalse(applicationContext.containsBean("clientRequestUseCase"),
+            "clientRequestUseCase must not be present — excluded by @Profile(!async)")
     }
 
     @Test
-    fun `Given async profile active When Spring context loads Then wiremockFilesBlobStore bean is NOT present`() {
-        assertFalse(
-            applicationContext.containsBean("wiremockFilesBlobStore"),
-            "wiremockFilesBlobStore must not be loaded in the async profile — it is defined in MockNestConfig"
-        )
+    fun `Given async profile active When Spring context loads Then runtime-only infra beans are absent`() {
+        assertFalse(applicationContext.containsBean("runtimeLambdaHandler"),
+            "runtimeLambdaHandler must not be present — excluded by @Profile(!async)")
+        assertFalse(applicationContext.containsBean("runtimePrimingHook"),
+            "runtimePrimingHook must not be present — excluded by @Profile(!async)")
     }
 }
