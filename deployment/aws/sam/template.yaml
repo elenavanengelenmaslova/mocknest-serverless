@@ -294,6 +294,18 @@ Resources:
                   - sqs:DeleteMessage
                   - sqs:GetQueueAttributes
                 Resource: !GetAtt MockNestWebhookQueue.Arn
+        - PolicyName: MockNestRuntimeAsyncApiGatewayInvoke
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                # Scoped to all routes on the IAM-mode API in this stack.
+                # The async Lambda only calls back into the same deployed instance.
+                Resource: !Sub
+                  - "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*"
+                  - ApiId: !If [IsIamMode, !Ref MockNestIamModeApi, !Ref MockNestApiKeyModeApi]
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -566,6 +578,9 @@ Resources:
       Role: !GetAtt MockNestRuntimeAsyncRole.Arn
       Timeout: !Ref RuntimeAsyncTimeout
       MemorySize: !Ref RuntimeAsyncMemorySize
+      AutoPublishAlias: live
+      SnapStart:
+        ApplyOn: PublishedVersions
       Environment:
         Variables:
           SPRING_PROFILES_ACTIVE: "core,async"
@@ -595,6 +610,9 @@ Resources:
       Role: !GetAtt MockNestRuntimeAsyncRole.Arn
       Timeout: !Ref RuntimeAsyncTimeout
       MemorySize: !Ref RuntimeAsyncMemorySize
+      AutoPublishAlias: live
+      SnapStart:
+        ApplyOn: PublishedVersions
       Environment:
         Variables:
           SPRING_PROFILES_ACTIVE: "core,async"

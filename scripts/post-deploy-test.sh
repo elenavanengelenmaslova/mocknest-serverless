@@ -695,8 +695,8 @@ test_webhook_delivery() {
 
   # Step 4: Poll S3 journal (requests/ prefix) for callback request record
   # End-to-end latency: SQS publish → SQS delivery → RuntimeAsync cold start → HTTP call → S3 write
-  local POLL_TIMEOUT="${WEBHOOK_POLL_TIMEOUT_SECS:-30}"
-  local POLL_INTERVAL="${WEBHOOK_POLL_INTERVAL_SECS:-2}"
+  local POLL_TIMEOUT="${WEBHOOK_POLL_TIMEOUT_SECS:-60}"
+  local POLL_INTERVAL="${WEBHOOK_POLL_INTERVAL_SECS:-3}"
   echo "  Polling S3 journal for callback request record (timeout=${POLL_TIMEOUT}s, interval=${POLL_INTERVAL}s)..."
 
   local elapsed=0
@@ -704,29 +704,33 @@ test_webhook_delivery() {
   local callback_record=""
 
   while [ "$elapsed" -lt "$POLL_TIMEOUT" ]; do
-    # List objects under requests/ prefix
+    # List objects under requests/ prefix, sorted newest first
     local keys
     keys=$(aws s3api list-objects-v2 \
       --bucket "$MOCK_STORAGE_BUCKET" \
       --prefix "requests/" \
-      --query 'Contents[].Key' \
+      --query 'sort_by(Contents, &LastModified)[-10:].Key' \
       --output text 2>/dev/null || echo "")
 
     for key in $keys; do
-      # Fetch the record and check if it matches /webhook-callback
+      [ -z "$key" ] && continue
+      # Fetch the record and check if it contains the callback path
       local record
       record=$(aws s3api get-object \
         --bucket "$MOCK_STORAGE_BUCKET" \
         --key "$key" \
         /dev/stdout 2>/dev/null || echo "")
 
-      if echo "$record" | grep -q '"/webhook-callback"'; then
+      # Match on the URL path — the record contains the request URL
+      if echo "$record" | grep -q 'webhook-callback'; then
         callback_found=true
         callback_record="$record"
+        echo "  Found callback record in key: $key"
         break 2
       fi
     done
 
+    echo "  Not found yet (${elapsed}s elapsed) — retrying in ${POLL_INTERVAL}s..."
     sleep "$POLL_INTERVAL"
     elapsed=$((elapsed + POLL_INTERVAL))
   done
