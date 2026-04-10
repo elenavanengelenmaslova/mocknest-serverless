@@ -7,7 +7,6 @@ data class WebhookRequest(
     val method: String,
     val headers: Map<String, String>,
     val body: String?,
-    val timeoutMs: Long,
 )
 
 sealed class WebhookResult {

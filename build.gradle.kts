@@ -79,6 +79,9 @@ subprojects {
             dependency("org.testcontainers:junit-jupiter:$testContainersExtensions")
             dependency("org.testcontainers:localstack:$testContainersExtensions")
 
+            // Awaitility for async test assertions
+            dependency("org.awaitility:awaitility-kotlin:4.3.0")
+
         }
     }
 

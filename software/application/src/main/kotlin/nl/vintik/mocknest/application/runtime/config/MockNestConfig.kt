@@ -1,5 +1,6 @@
 package nl.vintik.mocknest.application.runtime.config
 
+import com.github.tomakehurst.wiremock.extension.Extension
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.application.runtime.extensions.DeleteAllMappingsAndFilesFilter
 import nl.vintik.mocknest.application.runtime.extensions.NormalizeMappingBodyFilter
@@ -47,18 +48,24 @@ class MockNestConfig {
     ): WireMockServer {
         val redactFilter = RedactSensitiveHeadersFilter(webhookConfig)
         val journalStore = S3RequestJournalStore(storage, webhookConfig, redactFilter)
-        val asyncPublisher = WebhookAsyncEventPublisher(sqsPublisher, webhookQueueUrl)
+
+        val extensions = mutableListOf<Extension>(
+            NormalizeMappingBodyFilter(storage),
+            DeleteAllMappingsAndFilesFilter(storage),
+            redactFilter,
+        )
+
+        if (webhookQueueUrl.isBlank()) {
+            logger.warn { "MOCKNEST_WEBHOOK_QUEUE_URL is blank — WebhookAsyncEventPublisher will NOT be registered; webhook events will be skipped" }
+        } else {
+            extensions.add(2, WebhookAsyncEventPublisher(sqsPublisher, webhookQueueUrl))
+        }
 
         val config = wireMockConfig()
             .notifier(ConsoleNotifier(true))
             .httpServerFactory(directCallHttpServerFactory)
             .withStores(ObjectStorageWireMockStores(storage, journalStore))
-            .extensions(
-                NormalizeMappingBodyFilter(storage),
-                DeleteAllMappingsAndFilesFilter(storage),
-                asyncPublisher,
-                redactFilter,
-            )
+            .extensions(*extensions.toTypedArray())
             // Use S3-only storage - no classpath or filesystem fallback
             .mappingSource(ObjectStorageMappingsSource(storage))
 

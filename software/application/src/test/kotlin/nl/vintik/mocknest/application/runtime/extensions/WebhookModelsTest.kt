@@ -22,14 +22,12 @@ class WebhookModelsTest {
             method = "POST",
             headers = headers,
             body = """{"event":"order.created"}""",
-            timeoutMs = 5000L,
         )
 
         assertEquals("https://example.com/callback", request.url)
         assertEquals("POST", request.method)
         assertEquals(headers, request.headers)
         assertEquals("""{"event":"order.created"}""", request.body)
-        assertEquals(5000L, request.timeoutMs)
     }
 
     @Test
@@ -39,7 +37,6 @@ class WebhookModelsTest {
             method = "GET",
             headers = emptyMap(),
             body = null,
-            timeoutMs = 10000L,
         )
 
         assertNull(request.body)

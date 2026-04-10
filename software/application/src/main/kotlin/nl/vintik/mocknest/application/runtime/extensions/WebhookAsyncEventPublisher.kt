@@ -49,35 +49,31 @@ class WebhookAsyncEventPublisher(
     override fun transform(serveEvent: ServeEvent, webhookDefinition: WebhookDefinition): WebhookDefinition {
         logger.info { "WebhookTransformer intercepting webhook for serveEvent=${serveEvent.id}" }
 
-        runCatching {
-            val url = webhookDefinition.url
-                ?: run {
-                    logger.info { "No url in webhook definition for serveEvent=${serveEvent.id} — skipping SQS publish" }
-                    return webhookDefinition.withUrl(NO_OP_URL)
-                }
+        val url = webhookDefinition.url
+            ?: run {
+                logger.info { "No url in webhook definition for serveEvent=${serveEvent.id} — skipping SQS publish" }
+                return webhookDefinition.withUrl(NO_OP_URL)
+            }
 
-            val method = webhookDefinition.method ?: "POST"
-            val headers = webhookDefinition.headers
-                ?.all()
-                ?.associate { header -> header.key() to header.firstValue() }
-                ?: emptyMap()
-            val body = webhookDefinition.body
-            val auth = extractAuthFromDefinition(webhookDefinition)
-            val event = AsyncEvent(
-                actionType = "webhook",
-                url = url,
-                method = method,
-                headers = headers,
-                body = body,
-                auth = auth,
-            )
+        val method = webhookDefinition.method ?: "POST"
+        val headers = webhookDefinition.headers
+            ?.all()
+            ?.associate { header -> header.key() to header.firstValue() }
+            ?: emptyMap()
+        val body = webhookDefinition.body
+        val auth = extractAuthFromDefinition(webhookDefinition)
+        val event = AsyncEvent(
+            actionType = "webhook",
+            url = url,
+            method = method,
+            headers = headers,
+            body = body,
+            auth = auth,
+        )
 
-            val json = Json.encodeToString(event)
-            runBlocking { sqsPublisher.publish(queueUrl, json) }
-            logger.info { "AsyncEvent published to SQS for serveEvent=${serveEvent.id} url=$url method=$method" }
-        }.onFailure { e ->
-            logger.warn(e) { "Failed to publish AsyncEvent for serveEvent=${serveEvent.id}" }
-        }
+        val json = Json.encodeToString(event)
+        runBlocking { sqsPublisher.publish(queueUrl, json) }
+        logger.info { "AsyncEvent published to SQS for serveEvent=${serveEvent.id} url=$url method=$method" }
 
         return webhookDefinition.withUrl(NO_OP_URL)
     }

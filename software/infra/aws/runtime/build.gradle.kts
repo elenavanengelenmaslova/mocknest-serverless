@@ -48,6 +48,8 @@ dependencies {
     testImplementation(project(":software:infra:aws:mocknest"))
     // OkHttp MockWebServer for prototype test
     testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
+    // Awaitility for async test assertions
+    testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
 }
 
 configurations {

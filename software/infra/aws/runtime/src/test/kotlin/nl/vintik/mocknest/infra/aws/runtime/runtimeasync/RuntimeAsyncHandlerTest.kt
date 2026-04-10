@@ -15,7 +15,9 @@ import nl.vintik.mocknest.application.runtime.extensions.WebhookRequest
 import nl.vintik.mocknest.application.runtime.extensions.WebhookResult
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
+import java.io.IOException
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 
 class RuntimeAsyncHandlerTest {
@@ -81,7 +83,6 @@ class RuntimeAsyncHandlerTest {
         assertEquals("POST", slot.captured.method)
         assertEquals(body, slot.captured.body)
         assertEquals(headers, slot.captured.headers)
-        assertEquals(30_000L, slot.captured.timeoutMs)
     }
 
     @Test
@@ -150,5 +151,28 @@ class RuntimeAsyncHandlerTest {
         verify { mockHttpClient.send(capture(slot)) }
         assertNotNull(slot.captured)
         assertEquals(null, slot.captured.body)
+    }
+
+    @Test
+    fun `Given valid JSON but HTTP client throws IOException When handler processes event Then exception propagates (transient failure)`() {
+        val json = asyncEventJson()
+        val sqsEvent = buildSqsEvent(json)
+        every { mockHttpClient.send(any()) } throws IOException("Connection timed out")
+
+        // Transient failure must propagate so SQS can retry
+        assertFailsWith<IOException> {
+            handler.handle(sqsEvent)
+        }
+    }
+
+    @Test
+    fun `Given valid JSON but HTTP client throws RuntimeException When handler processes event Then exception propagates`() {
+        val json = asyncEventJson()
+        val sqsEvent = buildSqsEvent(json)
+        every { mockHttpClient.send(any()) } throws RuntimeException("Unexpected error")
+
+        assertFailsWith<RuntimeException> {
+            handler.handle(sqsEvent)
+        }
     }
 }

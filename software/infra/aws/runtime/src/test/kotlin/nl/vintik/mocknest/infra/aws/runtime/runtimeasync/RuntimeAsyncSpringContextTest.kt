@@ -21,6 +21,7 @@ import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * Spring integration test for the `async` profile.
@@ -105,13 +106,13 @@ class RuntimeAsyncSpringContextTest {
     }
 
     @Test
-    fun `Given async profile When context loads Then WireMock and S3 beans are absent`() {
+    fun `Given async profile active When Spring context loads Then wireMockServer bean is NOT registered by MockNestConfig`() {
+        assertFalse(applicationContext.containsBean("wireMockServer"),
+            "wireMockServer must be absent — MockNestConfig excluded by @Profile(!async)")
         assertFalse(applicationContext.containsBean("directCallHttpServerFactory"),
             "directCallHttpServerFactory must be absent — MockNestConfig excluded by @Profile(!async)")
         assertFalse(applicationContext.containsBean("wiremockFilesBlobStore"),
             "wiremockFilesBlobStore must be absent — MockNestConfig excluded by @Profile(!async)")
-        assertFalse(applicationContext.containsBean("wireMockServer"),
-            "wireMockServer must be absent — MockNestConfig excluded by @Profile(!async)")
     }
 
     @Test
@@ -156,7 +157,7 @@ class RuntimeAsyncSpringContextTest {
         assertEquals("POST", received.method)
         assertEquals("/webhook-callback", received.path)
         assertEquals("""{"orderId":"42"}""", received.body.readUtf8())
-        assert(received.getHeader("Content-Type")?.startsWith("application/json") == true,
-            { "Content-Type header must start with application/json" })
+        assertTrue(received.getHeader("Content-Type")?.startsWith("application/json") == true,
+            "Content-Type header must start with application/json")
     }
 }

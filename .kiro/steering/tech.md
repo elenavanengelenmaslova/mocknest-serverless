@@ -10,6 +10,13 @@
 
 When exploring what libraries or versions are available to use in code, always check `build.gradle.kts` files directly — do not infer availability from the Gradle cache.
 
+**When you need to understand a library's API, types, or interfaces** (e.g. to know what a method signature accepts, what interfaces a class implements, or what extension points exist), **do NOT dig into the Gradle cache**. Instead:
+- Look up the library's official documentation online
+- Browse the library's GitHub repository at the correct tag/version (e.g. `https://github.com/wiremock/wiremock/tree/3.13.2` for WireMock 3.13.2)
+- Use the version declared in `build.gradle.kts` to find the exact tag
+
+This ensures you are reading the authoritative source for that version rather than cached or compiled artifacts that may be incomplete or misleading.
+
 This document contains development workflows, coding standards, testing practices, and guidelines for building and maintaining MockNest Serverless.
 
 # Development Workflow
