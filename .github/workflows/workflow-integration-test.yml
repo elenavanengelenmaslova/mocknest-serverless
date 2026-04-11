@@ -190,7 +190,7 @@ jobs:
   test-graphql:
     name: GraphQL Generation and Import
     runs-on: ubuntu-latest
-    needs: [setup, test-rest]
+    needs: setup
     if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'graphql' || inputs.test-suite == '') }}
     steps:
       - name: Checkout code
@@ -243,7 +243,7 @@ jobs:
   test-soap:
     name: SOAP Generation and Import
     runs-on: ubuntu-latest
-    needs: [setup, test-rest, test-graphql]
+    needs: setup
     if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'soap' || inputs.test-suite == '') }}
     steps:
       - name: Checkout code
@@ -296,7 +296,7 @@ jobs:
   test-webhook:
     name: Webhook Delivery
     runs-on: ubuntu-latest
-    needs: [setup, test-rest, test-graphql, test-soap]
+    needs: setup
     if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'webhook') && needs.setup.outputs.auth-mode == 'IAM' }}
     steps:
       - name: Checkout code
