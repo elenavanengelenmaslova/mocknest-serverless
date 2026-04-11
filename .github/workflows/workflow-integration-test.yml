@@ -294,7 +294,7 @@ jobs:
           ./scripts/post-deploy-test.sh soap
 
   test-webhook:
-    name: Webhook Delivery and Redaction
+    name: Webhook Delivery
     runs-on: ubuntu-latest
     needs: setup
     if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'webhook') && needs.setup.outputs.auth-mode == 'IAM' }}

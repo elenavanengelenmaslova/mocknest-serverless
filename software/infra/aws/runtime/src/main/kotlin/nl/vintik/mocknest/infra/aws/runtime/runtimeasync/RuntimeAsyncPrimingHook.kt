@@ -3,6 +3,7 @@ package nl.vintik.mocknest.infra.aws.runtime.runtimeasync
 import aws.sdk.kotlin.runtime.auth.credentials.DefaultChainCredentialsProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import nl.vintik.mocknest.application.runtime.extensions.AsyncEvent
 import nl.vintik.mocknest.application.runtime.extensions.AsyncEventAuth
@@ -81,7 +82,6 @@ open class RuntimeAsyncPrimingHook(
                     method = "POST",
                     headers = emptyMap(),
                     body = null,
-                    timeoutMs = 1_000L,
                 )
             )
             logger.debug { "HTTP client primed (connection attempt completed)" }
@@ -94,7 +94,9 @@ open class RuntimeAsyncPrimingHook(
     private fun primeCredentialsProvider() {
         runCatching {
             runBlocking {
-                DefaultChainCredentialsProvider().resolve()
+                withTimeout(1_000) {
+                    DefaultChainCredentialsProvider().resolve()
+                }
             }
             logger.debug { "AWS credentials provider chain primed" }
         }.onFailure { e ->

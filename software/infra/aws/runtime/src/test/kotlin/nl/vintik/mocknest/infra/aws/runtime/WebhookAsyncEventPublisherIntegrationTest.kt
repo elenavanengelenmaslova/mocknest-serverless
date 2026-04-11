@@ -18,6 +18,8 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.awaitility.kotlin.await
+import org.awaitility.kotlin.untilAsserted
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
@@ -103,11 +105,12 @@ class WebhookAsyncEventPublisherIntegrationTest {
         assertEquals(202, response.code)
         response.close()
 
-        // Wait briefly for async webhook processing
-        Thread.sleep(500)
-
-        // Assert exactly one AsyncEvent was published
-        assertEquals(1, capturedMessages.size, "Expected exactly one AsyncEvent published to SQS")
+        // Wait for async webhook processing using Awaitility
+        await.atMost(5, TimeUnit.SECONDS)
+            .during(500, TimeUnit.MILLISECONDS)
+            .untilAsserted {
+            assertEquals(1, capturedMessages.size, "Expected exactly one AsyncEvent published to SQS")
+        }
 
         val event = Json.decodeFromString(AsyncEvent.serializer(), capturedMessages[0])
         assertEquals("webhook", event.actionType)
@@ -144,12 +147,10 @@ class WebhookAsyncEventPublisherIntegrationTest {
         assertEquals(202, response.code)
         response.close()
 
-        Thread.sleep(500)
-
-        // The callback server should have received at most 0 requests
-        // (the no-op redirect goes to localhost:0 which fails silently)
-        val callbackRequests = callbackServer.requestCount
-        assertEquals(0, callbackRequests, "Real callback URL should NOT have been called — no duplicate delivery")
+        // Wait for async webhook processing using Awaitility
+        await.atMost(5, TimeUnit.SECONDS).untilAsserted {
+            assertEquals(0, callbackServer.requestCount, "Real callback URL should NOT have been called — no duplicate delivery")
+        }
     }
 
     @Test
@@ -180,9 +181,11 @@ class WebhookAsyncEventPublisherIntegrationTest {
         assertEquals(202, response.code)
         response.close()
 
-        Thread.sleep(500)
+        // Wait for async webhook processing using Awaitility
+        await.atMost(5, TimeUnit.SECONDS).untilAsserted {
+            assertEquals(1, capturedMessages.size)
+        }
 
-        assertEquals(1, capturedMessages.size)
         val event = Json.decodeFromString(AsyncEvent.serializer(), capturedMessages[0])
         assertEquals("aws_iam", event.auth.type)
         assertEquals("eu-west-1", event.auth.region)

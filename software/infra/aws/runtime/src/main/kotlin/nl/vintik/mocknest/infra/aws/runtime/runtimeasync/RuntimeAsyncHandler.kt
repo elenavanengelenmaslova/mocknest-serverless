@@ -12,6 +12,7 @@ import aws.smithy.kotlin.runtime.net.url.Url
 import com.amazonaws.services.lambda.runtime.events.SQSEvent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import nl.vintik.mocknest.application.runtime.config.WebhookConfig
 import nl.vintik.mocknest.application.runtime.extensions.AsyncEvent
@@ -49,14 +50,21 @@ class RuntimeAsyncHandler(
     }
 
     private fun handleRecord(record: SQSEvent.SQSMessage) {
-        runCatching {
-            val event = Json.decodeFromString(AsyncEvent.serializer(), record.body)
-            when (event.actionType) {
-                "webhook" -> dispatchWebhook(event)
-                else -> logger.warn { "Unknown actionType '${event.actionType}' in AsyncEvent — skipping" }
+        // Block 1: JSON parsing — catch SerializationException only (poison-pill skip, no rethrow)
+        val event = runCatching {
+            Json.decodeFromString(AsyncEvent.serializer(), record.body)
+        }.getOrElse { e ->
+            if (e is SerializationException) {
+                logger.error(e) { "Malformed JSON in SQS record messageId=${record.messageId} — skipping (poison-pill)" }
+                return
             }
-        }.onFailure { e ->
-            logger.error(e) { "Failed to process SQS record messageId=${record.messageId} — skipping (poison-pill protection)" }
+            throw e
+        }
+
+        // Block 2: HTTP dispatch — do NOT catch; let network/5xx exceptions propagate so SQS retries
+        when (event.actionType) {
+            "webhook" -> dispatchWebhook(event)
+            else -> logger.warn { "Unknown actionType '${event.actionType}' in AsyncEvent — skipping" }
         }
     }
 
@@ -71,7 +79,6 @@ class RuntimeAsyncHandler(
             method = event.method,
             headers = outboundHeaders,
             body = event.body,
-            timeoutMs = webhookConfig.asyncTimeoutMs,
         )
 
         when (val result = webhookHttpClient.send(request)) {

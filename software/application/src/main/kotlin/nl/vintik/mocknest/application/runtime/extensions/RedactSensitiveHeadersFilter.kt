@@ -48,20 +48,28 @@ class RedactSensitiveHeadersFilter(
      * writing to S3.
      *
      * Does NOT modify the [ServeEvent] object itself.
+     *
+     * Fail-closed contract (Fix 1.3): if serialization or redaction fails, this method
+     * returns a minimal safe placeholder JSON rather than the unredacted event. The failure
+     * is logged at ERROR level. Sensitive headers are never written to S3 on error.
      */
     fun redactServeEvent(event: ServeEvent): String {
         return runCatching {
             val json = mapper.writeValueAsString(event)
             redactHeadersInJson(json)
         }.getOrElse { e ->
-            logger.warn(e) { "Failed to serialize/redact ServeEvent id=${event.id}" }
-            mapper.writeValueAsString(event)
+            // Fix 1.3: fail closed — return a safe placeholder instead of retrying the same
+            // failing mapper.writeValueAsString(event) call (which could return unredacted JSON).
+            // Elevated to ERROR because sensitive data may have been lost.
+            logger.error(e) { "Failed to serialize/redact ServeEvent id=${event.id} — returning safe placeholder" }
+            """{"id":"${event.id}","redactionError":true}"""
         }
     }
 
     /**
      * Applies [REDACTED] substitution to sensitive header values in a JSON string.
-     * Operates on the serialized JSON representation — does not parse into objects.
+     * Parses the JSON into a [MutableMap] tree, walks it recursively to find `headers`
+     * objects, and replaces sensitive header values in-place before re-serializing.
      * Case-insensitive header name matching.
      */
     fun redactHeadersInJson(json: String): String {

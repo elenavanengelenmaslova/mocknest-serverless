@@ -6,13 +6,15 @@ import nl.vintik.mocknest.application.runtime.extensions.WebhookResult
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import java.net.SocketTimeoutException
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertEquals
 
 class WebhookHttpClientTest {
 
@@ -47,7 +49,6 @@ class WebhookHttpClientTest {
         method = "POST",
         headers = headers,
         body = body,
-        timeoutMs = defaultConfig.webhookTimeoutMs,
     )
 
     @Nested
@@ -59,8 +60,8 @@ class WebhookHttpClientTest {
 
             val result = client.send(postRequest())
 
-            assertInstanceOf(WebhookResult.Success::class.java, result)
-            assertEquals(200, (result as WebhookResult.Success).statusCode)
+            assertIs<WebhookResult.Success>(result)
+            assertEquals(200, result.statusCode)
         }
 
         @Test
@@ -69,8 +70,8 @@ class WebhookHttpClientTest {
 
             val result = client.send(postRequest())
 
-            assertInstanceOf(WebhookResult.Success::class.java, result)
-            assertEquals(201, (result as WebhookResult.Success).statusCode)
+            assertIs<WebhookResult.Success>(result)
+            assertEquals(201, result.statusCode)
         }
 
         @Test
@@ -79,8 +80,8 @@ class WebhookHttpClientTest {
 
             val result = client.send(postRequest())
 
-            assertInstanceOf(WebhookResult.Success::class.java, result)
-            assertEquals(204, (result as WebhookResult.Success).statusCode)
+            assertIs<WebhookResult.Success>(result)
+            assertEquals(204, result.statusCode)
         }
     }
 
@@ -93,8 +94,8 @@ class WebhookHttpClientTest {
 
             val result = client.send(postRequest())
 
-            assertInstanceOf(WebhookResult.Failure::class.java, result)
-            val failure = result as WebhookResult.Failure
+            assertIs<WebhookResult.Failure>(result)
+            val failure = result
             assertEquals(503, failure.statusCode)
             assertNotNull(failure.message)
         }
@@ -105,8 +106,8 @@ class WebhookHttpClientTest {
 
             val result = client.send(postRequest())
 
-            assertInstanceOf(WebhookResult.Failure::class.java, result)
-            assertEquals(400, (result as WebhookResult.Failure).statusCode)
+            assertIs<WebhookResult.Failure>(result)
+            assertEquals(400, result.statusCode)
         }
 
         @Test
@@ -115,8 +116,8 @@ class WebhookHttpClientTest {
 
             val result = client.send(postRequest())
 
-            assertInstanceOf(WebhookResult.Failure::class.java, result)
-            assertEquals(404, (result as WebhookResult.Failure).statusCode)
+            assertIs<WebhookResult.Failure>(result)
+            assertEquals(404, result.statusCode)
         }
 
         @Test
@@ -125,8 +126,8 @@ class WebhookHttpClientTest {
 
             val result = client.send(postRequest())
 
-            assertInstanceOf(WebhookResult.Failure::class.java, result)
-            assertEquals(500, (result as WebhookResult.Failure).statusCode)
+            assertIs<WebhookResult.Failure>(result)
+            assertEquals(500, result.statusCode)
         }
     }
 
@@ -149,8 +150,8 @@ class WebhookHttpClientTest {
 
             val result = timeoutClient.send(postRequest())
 
-            assertInstanceOf(WebhookResult.Failure::class.java, result)
-            val failure = result as WebhookResult.Failure
+            assertIs<WebhookResult.Failure>(result)
+            val failure = result
             assertNull(failure.statusCode)
             assertNotNull(failure.message)
         }
@@ -162,7 +163,6 @@ class WebhookHttpClientTest {
                 method = "POST",
                 headers = emptyMap(),
                 body = null,
-                timeoutMs = 500L,
             )
             val quickClient = WebhookHttpClient(
                 WebhookConfig(sensitiveHeaders = emptySet(), webhookTimeoutMs = 500L)
@@ -170,8 +170,8 @@ class WebhookHttpClientTest {
 
             val result = quickClient.send(request)
 
-            assertInstanceOf(WebhookResult.Failure::class.java, result)
-            val failure = result as WebhookResult.Failure
+            assertIs<WebhookResult.Failure>(result)
+            val failure = result
             assertNull(failure.statusCode)
             assertNotNull(failure.message)
         }
@@ -207,8 +207,8 @@ class WebhookHttpClientTest {
             val result = shortClient.send(postRequest())
 
             // Should fail due to timeout
-            assertInstanceOf(WebhookResult.Failure::class.java, result)
-            assertNull((result as WebhookResult.Failure).statusCode)
+            assertIs<WebhookResult.Failure>(result)
+            assertNull(result.statusCode)
         }
     }
 
@@ -264,18 +264,17 @@ class WebhookHttpClientTest {
             method = testCase.method,
             headers = testCase.headers,
             body = testCase.body,
-            timeoutMs = defaultConfig.webhookTimeoutMs,
         )
 
         val result = client.send(request)
 
         // Verify result type matches expected
         if (testCase.responseCode in 200..299) {
-            assertInstanceOf(WebhookResult.Success::class.java, result)
-            assertEquals(testCase.responseCode, (result as WebhookResult.Success).statusCode)
+            assertIs<WebhookResult.Success>(result)
+            assertEquals(testCase.responseCode, result.statusCode)
         } else {
-            assertInstanceOf(WebhookResult.Failure::class.java, result)
-            assertEquals(testCase.responseCode, (result as WebhookResult.Failure).statusCode)
+            assertIs<WebhookResult.Failure>(result)
+            assertEquals(testCase.responseCode, result.statusCode)
         }
 
         // Verify the outbound request was constructed correctly

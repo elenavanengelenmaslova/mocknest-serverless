@@ -674,21 +674,32 @@ test_webhook_delivery() {
   fi
   echo "  ✓ Trigger mock registered"
 
-  # Step 3: Call the trigger endpoint using SigV4 (CURL_OPTS already includes --aws-sigv4 for IAM mode)
-  echo "  Calling trigger endpoint..."
-  response=$(curl "${CURL_OPTS[@]}" \
-    --write-out "\n%{http_code}" \
-    --request POST \
-    --data '{"order": "test-order-1"}' \
-    "$API_URL/mocknest/webhook-trigger" 2>&1) || {
-    echo "ERROR: Trigger request failed"
-    echo "Response: $response"
-    exit 1
-  }
-  parse_response "$response"
-  if [ "$HTTP_CODE" != "202" ]; then
-    echo "ERROR: Trigger endpoint returned HTTP $HTTP_CODE (expected 202)"
-    echo "Response: $BODY"
+  # Step 3: Call the trigger endpoint using SigV4 (CURL_OPTS already includes --aws-sigv4 for IAM mode).
+  # A bounded retry loop tolerates mapping propagation delay — the trigger stub may not be
+  # immediately visible after registration, so we retry up to 3 times with 1 s between attempts.
+  echo "  Calling trigger endpoint (with retry for mapping propagation)..."
+  local trigger_http_code=""
+  local trigger_body=""
+  local trigger_attempt=0
+  while [ "$trigger_attempt" -lt 3 ]; do
+    trigger_attempt=$((trigger_attempt + 1))
+    local trigger_response
+    trigger_response=$(curl "${CURL_OPTS[@]}" \
+      --write-out "\n%{http_code}" \
+      --request POST \
+      --data '{"order": "test-order-1"}' \
+      "$API_URL/mocknest/webhook-trigger" 2>&1) || true
+    trigger_http_code=$(echo "$trigger_response" | tail -n1)
+    trigger_body=$(echo "$trigger_response" | sed '$d')
+    if [ "$trigger_http_code" != "404" ]; then
+      break
+    fi
+    echo "  Trigger returned 404 (attempt $trigger_attempt/3) — waiting 1s for mapping propagation..."
+    sleep 1
+  done
+  if [ "$trigger_http_code" != "202" ]; then
+    echo "ERROR: Trigger endpoint returned HTTP $trigger_http_code (expected 202)"
+    echo "Response: $trigger_body"
     exit 1
   fi
   echo "  ✓ Trigger returned 202 Accepted"
@@ -743,7 +754,10 @@ test_webhook_delivery() {
   fi
   echo "  ✓ Callback request found in S3 journal"
 
-  # Step 6: Assert IAM-sensitive headers are [REDACTED] in the S3 record if present
+  # Step 6: Assert IAM-sensitive headers are [REDACTED] in the S3 record if present.
+  # IMPORTANT: All redaction assertions operate on `callback_record` — the isolated S3 journal
+  # entry that matched /webhook-callback — NOT on the full journal body. This prevents false
+  # positives from stale entries written by prior test runs or unrelated requests.
   echo "  Verifying sensitive headers are redacted in S3 journal record (if present)..."
   local redaction_issues=0
   for sensitive_header in "authorization" "x-amz-security-token"; do

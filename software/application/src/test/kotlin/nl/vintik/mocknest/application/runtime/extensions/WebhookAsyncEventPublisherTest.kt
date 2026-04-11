@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 import org.wiremock.webhooks.WebhookDefinition
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -102,7 +103,7 @@ class WebhookAsyncEventPublisherTest {
         }
 
         @Test
-        fun `Given SQS publish fails When transform called Then no exception propagates`() {
+        fun `Given SQS publish fails When transform called Then exception propagates`() {
             val failingPublisher = object : SqsPublisherInterface {
                 override suspend fun publish(queueUrl: String, messageBody: String) {
                     throw RuntimeException("SQS unavailable")
@@ -114,8 +115,10 @@ class WebhookAsyncEventPublisherTest {
                 .withUrl("https://callback.example.com/hook")
                 .withMethod("POST")
 
-            // Must not throw
-            failingInstance.transform(serveEvent, definition)
+            // Fixed behavior: exception propagates so WireMock can observe the failure
+            assertFailsWith<RuntimeException> {
+                failingInstance.transform(serveEvent, definition)
+            }
         }
 
         @Test

@@ -70,9 +70,6 @@ class MockNestConfigWebhookWiringTest {
                 .build()
             directServer.stubRequest(wireMockRequest)
 
-            // Wait for async webhook processing
-            Thread.sleep(1000)
-
             assertTrue(publishCalled.get(), "Expected sqsPublisher.publish() to be called")
         } finally {
             server.stop()
