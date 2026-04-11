@@ -4,13 +4,12 @@ info:
   description: |
     MockNest Serverless provides a comprehensive WireMock runtime with AI-assisted mock generation capabilities.
     
-    **Current Serverless Architecture (v0.2.1):**
+    **Current Serverless Architecture:**
     - **Mock mappings are persistent**: Stored in S3 and survive Lambda cold starts
     - **Response files are persistent**: Stored in S3 and survive cold starts
-    - **Request data is transient**: Only available during current Lambda instance lifecycle (lost after ~15 minutes of inactivity)
-    
+    - **Request journal is persistent**: Request data is stored in S3 and survives Lambda cold starts
+
     **Future Enhancements (v2.0+):**
-    - **Persistent request logging**: Traffic data will be stored in S3 for AI-powered analysis
     - **Enhanced AI insights**: Traffic analysis for mock coverage gaps and optimization recommendations
     - **Callback support**: Stateful behavior through callback mechanisms rather than scenarios
     
@@ -20,11 +19,9 @@ info:
     
     **Endpoint Status Legend:**
     - **Persistent**: Data stored in S3, survives Lambda cold starts
-    - **Transient**: Data only available during current Lambda instance lifecycle
     - **Experimental**: Available but not fully tested in serverless environment
     
     All endpoints require API key authentication via the `x-api-key` header.
-  version: 0.2.1
   contact:
     name: MockNest Serverless
     url: https://github.com/elenavanengelenmaslova/mocknest-serverless
@@ -558,9 +555,7 @@ paths:
     get:
       summary: Find Unmatched Mappings
       description: |
-        Find stub mappings that haven't matched any requests in the journal (transient).
-        **Current Limitation**: Depends on request journal data which is only available during the current Lambda instance lifecycle and is lost on cold starts.
-        **Future Enhancement**: Will be enhanced with persistent request tracking for comprehensive coverage analysis.
+        Find stub mappings that haven't matched any requests in the journal.
       tags:
         - Mock Management
       responses:
@@ -573,8 +568,7 @@ paths:
     delete:
       summary: Remove Unmatched Mappings
       description: |
-        Remove stub mappings that haven't matched any requests (transient).
-        **Current Limitation**: Depends on request journal data which is only available during the current Lambda instance lifecycle.
+        Remove stub mappings that haven't matched any requests.
       tags:
         - Mock Management
       responses:
@@ -591,14 +585,12 @@ paths:
         '200':
           description: All mappings reset successfully
 
-  # Request Verification (Transient - Current Lambda Instance Only)
+  # Request Verification
   /__admin/requests:
     get:
       summary: List Received Requests
       description: |
-        Retrieve all requests received by the mock server (transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts (typically after 15+ minutes of inactivity).
-        **Future Enhancement**: Request data will be stored in S3 for AI-powered traffic analysis and persistent mock optimization.
+        Retrieve all requests received by the mock server.
       tags:
         - Request Verification
       parameters:
@@ -626,8 +618,7 @@ paths:
     delete:
       summary: Clear All Requests
       description: |
-        Clear all recorded requests from the journal (transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        Clear all recorded requests from the journal.
       tags:
         - Request Verification
       responses:
@@ -638,9 +629,7 @@ paths:
     post:
       summary: Find Specific Requests
       description: |
-        Find requests matching specific criteria (transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
-        **Future Enhancement**: Will enable persistent traffic analysis for AI-powered mock insights.
+        Find requests matching specific criteria.
       tags:
         - Request Verification
       requestBody:
@@ -667,8 +656,7 @@ paths:
     post:
       summary: Clear Request Log
       description: |
-        Clear all recorded requests (transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle.
+        Clear all recorded requests.
       tags:
         - Request Verification
       responses:
@@ -679,9 +667,7 @@ paths:
     post:
       summary: Count Requests by Criteria
       description: |
-        Count requests logged in the journal matching the specified criteria (transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
-        **Future Enhancement**: Will enable persistent request analytics for coverage analysis.
+        Count requests logged in the journal matching the specified criteria.
       tags:
         - Request Verification
       requestBody:
@@ -706,8 +692,7 @@ paths:
     post:
       summary: Remove Requests by Criteria
       description: |
-        Remove requests logged in the journal matching the specified criteria (transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        Remove requests logged in the journal matching the specified criteria.
       tags:
         - Request Verification
       requestBody:
@@ -728,8 +713,7 @@ paths:
     post:
       summary: Remove Requests by Metadata
       description: |
-        Delete requests matching metadata criteria (transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        Delete requests matching metadata criteria.
       tags:
         - Request Verification
       requestBody:
@@ -750,8 +734,7 @@ paths:
     get:
       summary: Find Unmatched Requests
       description: |
-        Get details of logged requests that weren't matched by any stub mapping (transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        Get details of logged requests that weren't matched by any stub mapping.
       tags:
         - Request Verification
       responses:
@@ -762,14 +745,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/RequestsResponse'
 
-  # Near Miss Analysis (Transient - Current Lambda Instance Only)
+  # Near Miss Analysis
   /__admin/requests/unmatched/near-misses:
     get:
       summary: Near Misses for Unmatched Requests
       description: |
-        Retrieve near-misses for all unmatched requests (experimental, transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
-        **Future Enhancement**: Will be enhanced with AI-powered analysis for better mock suggestions.
+        Retrieve near-misses for all unmatched requests (experimental).
       tags:
         - Near Miss Analysis
       responses:
@@ -784,8 +765,7 @@ paths:
     post:
       summary: Find Near Misses for Request
       description: |
-        Find at most 3 near misses for closest stub mappings to the specified request (experimental, transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        Find at most 3 near misses for closest stub mappings to the specified request (experimental).
       tags:
         - Near Miss Analysis
       requestBody:
@@ -806,8 +786,7 @@ paths:
     post:
       summary: Find Near Misses for Request Pattern
       description: |
-        Find at most 3 near misses for closest logged requests to the specified request pattern (experimental, transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        Find at most 3 near misses for closest logged requests to the specified request pattern (experimental).
       tags:
         - Near Miss Analysis
       requestBody:
@@ -910,7 +889,7 @@ paths:
         '200':
           description: Mappings imported successfully
 
-  # Individual Request Operations (Transient)
+  # Individual Request Operations
   /__admin/requests/{requestId}:
     parameters:
       - name: requestId
@@ -924,8 +903,7 @@ paths:
     get:
       summary: Get Request by ID
       description: |
-        Retrieve a specific logged request by its ID (transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        Retrieve a specific logged request by its ID.
       tags:
         - Request Verification
       responses:
@@ -940,8 +918,7 @@ paths:
     delete:
       summary: Delete Request by ID
       description: |
-        Delete a specific logged request by its ID (transient).
-        **Current Limitation**: Request data is only available during the current Lambda instance lifecycle and is lost on cold starts.
+        Delete a specific logged request by its ID.
       tags:
         - Request Verification
       responses:
@@ -1629,10 +1606,10 @@ tags:
   - name: AI Generation
     description: AI-powered mock generation capabilities
   - name: Mock Management
-    description: WireMock admin API for managing mock mappings (persistent = stored in S3, transient = depends on current instance data)
+    description: WireMock admin API for managing mock mappings (persistent = stored in S3)
   - name: Request Verification
-    description: Endpoints for verifying and inspecting received requests (transient = current Lambda instance only)
+    description: Endpoints for verifying and inspecting received requests (persistent = stored in S3)
   - name: Near Miss Analysis
-    description: Near miss analysis for debugging unmatched requests (experimental & transient)
+    description: Near miss analysis for debugging unmatched requests (experimental)
   - name: Files
     description: File management for response bodies (persistent = stored in S3)

@@ -111,7 +111,7 @@ curl -X GET "${MOCKNEST_URL}/__admin/health" \
   "status": "healthy",
   "timestamp": "2026-03-13T05:39:33.882708215Z",
   "region": "eu-west-1",
-  "version": "0.2.1",
+  "version": "0.x.x",
   "storage": {
     "bucket": "mocknest-serverless-mockstorage-uqxz33qujmfh",
     "connectivity": "ok"
@@ -144,7 +144,7 @@ curl -X GET "${MOCKNEST_URL}/ai/generation/health" \
   "status": "healthy",
   "timestamp": "2026-03-13T05:39:29.324140231Z",
   "region": "eu-west-1",
-  "version": "0.2.1",
+  "version": "0.x.x",
   "ai": {
     "modelName": "AmazonNovaPro",
     "inferencePrefix": "eu",
@@ -1523,6 +1523,4 @@ This cURL usage guide is maintained alongside the Postman collection. When the A
 
 ---
 
-**Version**: 0.2.1  
-**Last Updated**: March 2026  
 **Postman Collection**: AWS MockNest Serverless (ff6154b8-35cd-4919-9a03-38eb6401d6cd)
