@@ -125,4 +125,6 @@ class WebhookServeEventListener(
 fun redactUrl(url: String): String = runCatching {
     val uri = URI(url)
     URI(uri.scheme, uri.authority, uri.path, null, null).toString()
-}.getOrElse { url }
+}.getOrElse {
+    url.substringBefore('?').substringBefore('#')
+}
