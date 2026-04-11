@@ -42,6 +42,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: codecov/codecov-action@v6
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./build/reports/kover/report.xml
           fail_ci_if_error: false
 
