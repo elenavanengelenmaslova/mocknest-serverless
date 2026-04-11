@@ -251,7 +251,7 @@
     - Run `./gradlew clean test`
     - Confirm exit code 0
 
-- [ ] 10. Checkpoint — Ensure all tests pass
+- [x] 10. Checkpoint — Ensure all tests pass
   - Re-run the bug condition exploration tests from task 1 — all six MUST pass
   - Re-run the preservation property tests from task 2 — all MUST pass
   - Run `./gradlew clean test` — confirm exit code 0
