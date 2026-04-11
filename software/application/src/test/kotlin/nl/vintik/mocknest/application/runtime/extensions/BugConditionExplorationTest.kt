@@ -3,9 +3,7 @@ package nl.vintik.mocknest.application.runtime.extensions
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.AppenderBase
-import com.github.tomakehurst.wiremock.client.WireMock.aResponse
-import com.github.tomakehurst.wiremock.client.WireMock.post
-import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.extension.Parameters
 import com.github.tomakehurst.wiremock.http.HttpHeader
 import com.github.tomakehurst.wiremock.http.HttpHeaders
@@ -22,7 +20,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.wiremock.webhooks.WebhookDefinition
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.test.assertFalse
@@ -110,7 +108,7 @@ class BugConditionExplorationTest {
         assertFalse(
             listener.capturedHeaders.containsKey(serveEventId),
             "Bug 1.1 counterexample: capturedHeaders[$serveEventId] was NOT removed — " +
-                "non-local return inside runCatching bypassed capturedHeaders.remove(serveEvent.id)"
+                    "non-local return inside runCatching bypassed capturedHeaders.remove(serveEvent.id)"
         )
     }
 
@@ -160,7 +158,7 @@ class BugConditionExplorationTest {
         assertFalse(
             allLogs.contains(queryString),
             "Bug 1.2 counterexample: log output contains '$queryString' — raw URL logged with PII.\n" +
-                "Captured log messages:\n$allLogs"
+                    "Captured log messages:\n$allLogs"
         )
     }
 
@@ -266,6 +264,7 @@ class BugConditionExplorationTest {
             threwException,
             "Bug 1.4 fix: exception must propagate on SQS failure (silent drop is gone)"
         )
+    }
 
     // ── Test 1.5 — Blank queue URL ────────────────────────────────────────────
 
@@ -312,10 +311,12 @@ class BugConditionExplorationTest {
                     .willReturn(aResponse().withStatus(200))
                     .withServeEventListener(
                         "webhook",
-                        Parameters.from(mapOf(
-                            "url" to "https://api.example.com/callback",
-                            "method" to "POST",
-                        ))
+                        Parameters.from(
+                            mapOf(
+                                "url" to "https://api.example.com/callback",
+                                "method" to "POST",
+                            )
+                        )
                     )
                     .build()
             )
@@ -338,7 +339,7 @@ class BugConditionExplorationTest {
             assertFalse(
                 publishCalled.get(),
                 "Bug 1.5 counterexample: SqsPublisher.publish() was called despite blank webhookQueueUrl — " +
-                    "WebhookAsyncEventPublisher registered unconditionally, all webhook events silently dropped"
+                        "WebhookAsyncEventPublisher registered unconditionally, all webhook events silently dropped"
             )
         } finally {
             server.stop()
