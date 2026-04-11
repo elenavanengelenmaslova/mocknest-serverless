@@ -3,8 +3,9 @@ package nl.vintik.mocknest.domain.generation
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @Tag("ai-generation")
 @Tag("unit")
@@ -28,9 +29,11 @@ class ModelResponseParsingExceptionTest {
     }
 
     @Test
-    fun `Given ModelResponseParsingException When checking type Then should be RuntimeException`() {
-        val exception = ModelResponseParsingException("error")
+    fun `Given ModelResponseParsingException When thrown Then should be catchable as RuntimeException`() {
+        val thrown = assertFailsWith<RuntimeException> {
+            throw ModelResponseParsingException("error")
+        }
 
-        assertNotNull(exception as? RuntimeException)
+        assertTrue(thrown is ModelResponseParsingException)
     }
 }

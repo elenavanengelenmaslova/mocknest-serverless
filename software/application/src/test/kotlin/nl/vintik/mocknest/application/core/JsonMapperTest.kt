@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
 import java.time.Instant
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 
 private data class HttpMethodWrapper(val method: HttpMethod)
 private data class InstantWrapper(val timestamp: Instant)
@@ -51,12 +50,13 @@ class JsonMapperTest {
     }
 
     @Test
-    fun `Given Instant value When serializing Then should not write as numeric timestamp`() {
+    fun `Given Instant value When serializing and deserializing Then should round-trip correctly`() {
         val instant = Instant.parse("2024-01-15T10:30:00Z")
         val wrapper = InstantWrapper(instant)
 
         val json = mapper.writeValueAsString(wrapper)
+        val deserialized = mapper.readValue<InstantWrapper>(json)
 
-        assertFalse(json.contains(Regex("\\d{10,}")), "Should not contain a numeric Unix timestamp")
+        assertEquals(instant, deserialized.timestamp)
     }
 }

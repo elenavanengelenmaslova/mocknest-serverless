@@ -3,8 +3,9 @@ package nl.vintik.mocknest.application.generation.util
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @Tag("unit")
 class UrlResolutionExceptionTest {
@@ -27,9 +28,11 @@ class UrlResolutionExceptionTest {
     }
 
     @Test
-    fun `Given UrlResolutionException When checking type Then should be RuntimeException`() {
-        val exception = UrlResolutionException("error")
+    fun `Given UrlResolutionException When thrown Then should be catchable as RuntimeException`() {
+        val thrown = assertFailsWith<RuntimeException> {
+            throw UrlResolutionException("error")
+        }
 
-        assertNotNull(exception as? RuntimeException)
+        assertTrue(thrown is UrlResolutionException)
     }
 }

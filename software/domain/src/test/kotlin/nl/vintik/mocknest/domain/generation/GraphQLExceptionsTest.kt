@@ -3,8 +3,9 @@ package nl.vintik.mocknest.domain.generation
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @Tag("graphql-ai-generation")
 @Tag("unit")
@@ -28,10 +29,12 @@ class GraphQLExceptionsTest {
     }
 
     @Test
-    fun `Given GraphQLIntrospectionException When checking type Then should be RuntimeException`() {
-        val exception = GraphQLIntrospectionException("error")
+    fun `Given GraphQLIntrospectionException When thrown Then should be catchable as RuntimeException`() {
+        val thrown = assertFailsWith<RuntimeException> {
+            throw GraphQLIntrospectionException("error")
+        }
 
-        assertNotNull(exception as? RuntimeException)
+        assertTrue(thrown is GraphQLIntrospectionException)
     }
 
     @Test
@@ -52,9 +55,11 @@ class GraphQLExceptionsTest {
     }
 
     @Test
-    fun `Given GraphQLSchemaParsingException When checking type Then should be RuntimeException`() {
-        val exception = GraphQLSchemaParsingException("error")
+    fun `Given GraphQLSchemaParsingException When thrown Then should be catchable as RuntimeException`() {
+        val thrown = assertFailsWith<RuntimeException> {
+            throw GraphQLSchemaParsingException("error")
+        }
 
-        assertNotNull(exception as? RuntimeException)
+        assertTrue(thrown is GraphQLSchemaParsingException)
     }
 }

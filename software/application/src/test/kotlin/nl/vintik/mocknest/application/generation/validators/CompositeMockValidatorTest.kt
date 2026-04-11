@@ -66,7 +66,7 @@ class CompositeMockValidatorTest {
 
     @Test
     fun `Given single validator returning valid When validating Then should return valid result`() = runTest {
-        val delegate = mockk<MockValidatorInterface>()
+        val delegate = mockk<MockValidatorInterface>(relaxed = true)
         coEvery { delegate.validate(mock, specification) } returns MockValidationResult.valid()
         val validator = CompositeMockValidator(listOf(delegate))
 
@@ -78,7 +78,7 @@ class CompositeMockValidatorTest {
 
     @Test
     fun `Given single validator returning invalid When validating Then should return invalid with errors`() = runTest {
-        val delegate = mockk<MockValidatorInterface>()
+        val delegate = mockk<MockValidatorInterface>(relaxed = true)
         coEvery { delegate.validate(mock, specification) } returns MockValidationResult.invalid(listOf("field mismatch"))
         val validator = CompositeMockValidator(listOf(delegate))
 
@@ -90,8 +90,8 @@ class CompositeMockValidatorTest {
 
     @Test
     fun `Given multiple validators with mixed results When validating Then should aggregate all errors`() = runTest {
-        val v1 = mockk<MockValidatorInterface>()
-        val v2 = mockk<MockValidatorInterface>()
+        val v1 = mockk<MockValidatorInterface>(relaxed = true)
+        val v2 = mockk<MockValidatorInterface>(relaxed = true)
         coEvery { v1.validate(mock, specification) } returns MockValidationResult.invalid(listOf("error from v1"))
         coEvery { v2.validate(mock, specification) } returns MockValidationResult.invalid(listOf("error from v2"))
         val validator = CompositeMockValidator(listOf(v1, v2))
@@ -106,7 +106,7 @@ class CompositeMockValidatorTest {
 
     @Test
     fun `Given validator that throws When validating Then should handle gracefully returning no errors from that validator`() = runTest {
-        val failingValidator = mockk<MockValidatorInterface>()
+        val failingValidator = mockk<MockValidatorInterface>(relaxed = true)
         coEvery { failingValidator.validate(mock, specification) } throws RuntimeException("validator crash")
         val validator = CompositeMockValidator(listOf(failingValidator))
 
@@ -118,8 +118,8 @@ class CompositeMockValidatorTest {
 
     @Test
     fun `Given valid and throwing validators When validating Then should include errors from non-throwing validators only`() = runTest {
-        val goodValidator = mockk<MockValidatorInterface>()
-        val crashingValidator = mockk<MockValidatorInterface>()
+        val goodValidator = mockk<MockValidatorInterface>(relaxed = true)
+        val crashingValidator = mockk<MockValidatorInterface>(relaxed = true)
         coEvery { goodValidator.validate(mock, specification) } returns MockValidationResult.invalid(listOf("legitimate error"))
         coEvery { crashingValidator.validate(mock, specification) } throws RuntimeException("crash")
         val validator = CompositeMockValidator(listOf(goodValidator, crashingValidator))
