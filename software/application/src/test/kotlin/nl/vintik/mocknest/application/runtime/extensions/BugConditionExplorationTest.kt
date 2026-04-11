@@ -260,8 +260,12 @@ class BugConditionExplorationTest {
                 onFailure = { true } // exception propagated — fix is working
             )
         // At least one of the two conditions must hold: exception thrown OR URL not NO_OP_URL
-        assertTrue(threwException || true, "Bug 1.4 fix verified")
-    }
+        // If we reach here without exception and the onSuccess block didn't fail the assertion,
+        // the fix is verified (the assertion in onSuccess already validated the URL)
+        assertTrue(
+            threwException,
+            "Bug 1.4 fix: exception must propagate on SQS failure (silent drop is gone)"
+        )
 
     // ── Test 1.5 — Blank queue URL ────────────────────────────────────────────
 
