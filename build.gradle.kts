@@ -10,9 +10,13 @@ plugins {
     id("org.jetbrains.kotlinx.kover") version "0.9.8"
 }
 
+val gitVersion: String = providers.exec {
+    commandLine("git", "describe", "--tags", "--abbrev=0")
+}.standardOutput.asText.get().trim()
+
 allprojects {
     group = "nl.vintik.mocknest"
-    version = "0.2.1"
+    version = findProperty("releaseVersion")?.toString() ?: gitVersion
 
     repositories {
         mavenCentral()

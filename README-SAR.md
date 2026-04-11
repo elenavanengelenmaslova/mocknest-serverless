@@ -187,7 +187,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 
 MockNest Serverless runs on AWS Lambda with:
 - **Persistent Storage**: Mock definitions in Amazon S3 (survive Lambda scaling)
-- **Transient Data**: Request logs and near-miss analysis (current Lambda instance only)
+- **Persistent Data**: Request journal and near-miss analysis backed by S3 (survive Lambda cold starts)
 - **API Gateway**: HTTP routing with API key authentication
 - **Amazon Bedrock**: AI-powered mock generation (optional)
 

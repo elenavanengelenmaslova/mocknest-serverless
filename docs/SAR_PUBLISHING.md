@@ -26,7 +26,7 @@ MockNest uses automated GitHub Actions workflows for SAR publishing with compreh
 **To Run**:
 1. Go to **Actions** → **CD - SAR Publish**
 2. **Run workflow** with:
-   - Version: `0.2.1` (public version)
+   - Version: `<current-version>` (from latest git tag)
    - Region: `eu-west-1`
 
 ### Prerequisites for SAR Publishing
@@ -111,7 +111,7 @@ Publish to public SAR:
 # 1. Go to Actions → "CD - SAR Publish"
 # 2. Click "Run workflow"
 # 3. Enter:
-#    - Version: 0.2.1 (public version format)
+#    - Version: <current-version> (from latest git tag)
 #    - Region: eu-west-1 (or your preferred region)
 ```
 
