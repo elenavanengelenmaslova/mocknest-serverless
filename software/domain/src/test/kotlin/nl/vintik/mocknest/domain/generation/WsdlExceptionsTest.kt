@@ -3,8 +3,9 @@ package nl.vintik.mocknest.domain.generation
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @Tag("soap-wsdl-ai-generation")
 @Tag("unit")
@@ -28,10 +29,12 @@ class WsdlExceptionsTest {
     }
 
     @Test
-    fun `Given WsdlParsingException When checking type Then should be RuntimeException`() {
-        val exception = WsdlParsingException("error")
+    fun `Given WsdlParsingException When thrown Then should be catchable as RuntimeException`() {
+        val thrown = assertFailsWith<RuntimeException> {
+            throw WsdlParsingException("error")
+        }
 
-        assertNotNull(exception as? RuntimeException)
+        assertTrue(thrown is WsdlParsingException)
     }
 
     @Test
@@ -52,9 +55,11 @@ class WsdlExceptionsTest {
     }
 
     @Test
-    fun `Given WsdlFetchException When checking type Then should be RuntimeException`() {
-        val exception = WsdlFetchException("error")
+    fun `Given WsdlFetchException When thrown Then should be catchable as RuntimeException`() {
+        val thrown = assertFailsWith<RuntimeException> {
+            throw WsdlFetchException("error")
+        }
 
-        assertNotNull(exception as? RuntimeException)
+        assertTrue(thrown is WsdlFetchException)
     }
 }
