@@ -106,7 +106,9 @@ class WebhookAsyncEventPublisherIntegrationTest {
         response.close()
 
         // Wait for async webhook processing using Awaitility
-        await.atMost(5, TimeUnit.SECONDS).untilAsserted {
+        await.atMost(5, TimeUnit.SECONDS)
+            .during(500, TimeUnit.MILLISECONDS)
+            .untilAsserted {
             assertEquals(1, capturedMessages.size, "Expected exactly one AsyncEvent published to SQS")
         }
 
