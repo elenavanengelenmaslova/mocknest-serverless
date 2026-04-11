@@ -22,7 +22,6 @@ info:
     - **Experimental**: Available but not fully tested in serverless environment
     
     All endpoints require API key authentication via the `x-api-key` header.
-  version: 0.4.2
   contact:
     name: MockNest Serverless
     url: https://github.com/elenavanengelenmaslova/mocknest-serverless

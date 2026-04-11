@@ -10,13 +10,14 @@ plugins {
     id("org.jetbrains.kotlinx.kover") version "0.9.8"
 }
 
-val gitVersion: String = providers.exec {
+val releaseVersion: Provider<String> = providers.gradleProperty("releaseVersion")
+val gitVersion: Provider<String> = providers.exec {
     commandLine("git", "describe", "--tags", "--abbrev=0")
-}.standardOutput.asText.get().trim()
+}.standardOutput.asText.map { it.trim() }
 
 allprojects {
     group = "nl.vintik.mocknest"
-    version = findProperty("releaseVersion")?.toString() ?: gitVersion
+    version = releaseVersion.orElse(gitVersion).get()
 
     repositories {
         mavenCentral()
