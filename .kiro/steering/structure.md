@@ -260,9 +260,8 @@ mocknest-serverless/
 │
 ├── docs/               // Documentation files
 │   └── postman/                 // Postman collections and environments
-│       ├── AWS MockNest Serverless.postman_collection.json    // Collection for AWS app
-│       ├── Health Checks.postman_collection.json             // Collection for health checks
-│       └── Demo Example.postman_environment.json             // Environment variables
+│       ├── AWS MockNest Serverless.postman_collection.json    // Collection for all endpoints (generation + runtime)
+│       └── Mock Nest AWS.postman_environment.json            // Environment variables
 │
 ├── software/            // Holds all the business logic and application code
 │   ├── domain/

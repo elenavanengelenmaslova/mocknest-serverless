@@ -101,9 +101,8 @@ When adding a new Lambda function, verify all five of the above are present befo
 ## API Documentation Maintenance
 
 - Update Postman collections in `docs/postman/` when API endpoints change:
-  - `AWS MockNest Serverless.postman_collection.json` for main API operations
-  - `Health Checks.postman_collection.json` for monitoring endpoints
-  - `Demo Example.postman_environment.json` for environment variables
+  - `AWS MockNest Serverless.postman_collection.json` for all API operations (generation + runtime endpoints)
+  - `Mock Nest AWS.postman_environment.json` for environment variables
 - Keep cURL examples in README synchronized with actual API changes
 
 
