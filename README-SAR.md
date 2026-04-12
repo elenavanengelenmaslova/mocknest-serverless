@@ -33,7 +33,7 @@ When deploying from SAR, you can configure these parameters:
 | Parameter | Description | Default | Notes |
 |-----------|-------------|---------|-------|
 | **GenerationLambdaMemorySize** | Memory size in MB | `512` | Range: 512-10240 MB. Increase for heavier AI models or large API specifications. |
-| **GenerationLambdaTimeout** | Timeout in seconds | `29` | Range: 10-900 seconds. Default matches the API Gateway synchronous limit. Increase if using a slow model — each retry (configured via `MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES` env var, default 1) requires a full Bedrock round-trip and counts against this timeout. |
+| **GenerationLambdaTimeout** | Timeout in seconds | `29` | Range: 10-900 seconds. Default matches the API Gateway synchronous limit. Increase if using a slow model — each retry (configured via `BEDROCK_GENERATION_MAX_RETRIES` env var, default 1) requires a full Bedrock round-trip and counts against this timeout. |
 | **BedrockModelName** | Bedrock model name | `AmazonNovaPro` | Amazon Nova Pro is officially supported and tested. Other models are experimental. See [Bedrock models](https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html). |
 
 **Webhook / RuntimeAsync Lambda** — asynchronous webhook dispatch
