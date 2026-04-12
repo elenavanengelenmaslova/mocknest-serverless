@@ -27,7 +27,7 @@ When deploying from SAR, you can configure these parameters:
 | **RuntimeAsyncTimeout** | Timeout in seconds for the RuntimeAsync Lambda function (webhook async processing) | `30` | Range: 3–900 seconds. |
 | **RuntimeAsyncMemorySize** | Memory size in MB for the RuntimeAsync Lambda function | `256` | Range: 128–10240 MB. |
 | **WebhookTimeoutMs** | Timeout in milliseconds for outbound webhook HTTP calls | `25000` | Range: 1000–899000 ms. Must be less than `LambdaTimeout × 1000` to avoid Lambda being killed before the HTTP client times out. |
-| **WebhookQueueVisibilityTimeout** | SQS VisibilityTimeout in seconds for the webhook queue | `60` | Range: 0–43200 seconds. Should be set to `RuntimeAsyncTimeout` plus a buffer to prevent duplicate processing. |
+| **WebhookQueueVisibilityTimeout** | SQS VisibilityTimeout in seconds for the webhook queue | `60` | Range: 0–43200 seconds. It should be set to `RuntimeAsyncTimeout` plus a buffer to prevent duplicate processing. |
 | **RequestJournalRetentionDays** | Days to retain request journal records in S3 (under the `requests/` prefix) | `1` | Range: 1–365 days. |
 
 ### BedrockInferenceMode Details
