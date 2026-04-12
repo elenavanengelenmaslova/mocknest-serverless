@@ -1388,7 +1388,6 @@ Configure webhook behavior via these Lambda environment variables (set via SAM t
 
 | Environment Variable | Default | Description |
 |---|---|---|
-| `MOCKNEST_SENSITIVE_HEADERS` | `x-api-key,authorization,proxy-authorization,x-amz-security-token` | Comma-separated list of header names to redact. Case-insensitive. |
 | `MOCKNEST_WEBHOOK_TIMEOUT_MS` | `10000` | Timeout in milliseconds for outbound webhook HTTP calls (runtime Lambda). |
 | `MOCKNEST_WEBHOOK_ASYNC_TIMEOUT_MS` | `30000` | Timeout in milliseconds for outbound webhook HTTP calls in the RuntimeAsync Lambda. |
 | `MOCKNEST_WEBHOOK_QUEUE_URL` | (required) | SQS queue URL for async webhook dispatch events. Set automatically by the SAM template. |

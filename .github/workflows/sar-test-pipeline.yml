@@ -511,6 +511,46 @@ jobs:
             echo "⚠️  Warning: Could not retrieve bucket name from stack outputs"
           fi
 
+          # Clear S3 request journal and mappings before stack deletion
+          # (S3 bucket must be empty for CloudFormation to delete it)
+          AUTH_MODE="${{ inputs.auth-mode || 'API_KEY' }}"
+          if [ -n "$API_URL" ]; then
+            echo "🧹 Clearing request journal and mappings before stack deletion..."
+            if [ "$AUTH_MODE" = "IAM" ]; then
+              curl -s -o /dev/null -w "DELETE /__admin/requests: HTTP %{http_code}\n" \
+                --max-time 30 \
+                --request DELETE \
+                --aws-sigv4 "aws:amz:${{ inputs.aws-region }}:execute-api" \
+                --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+                -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
+                "${API_URL}/__admin/requests" \
+                || echo "⚠️  Warning: Failed to clear request journal"
+              curl -s -o /dev/null -w "DELETE /__admin/mappings: HTTP %{http_code}\n" \
+                --max-time 30 \
+                --request DELETE \
+                --aws-sigv4 "aws:amz:${{ inputs.aws-region }}:execute-api" \
+                --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+                -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
+                "${API_URL}/__admin/mappings" \
+                || echo "⚠️  Warning: Failed to clear mappings"
+            else
+              curl -s -o /dev/null -w "DELETE /__admin/requests: HTTP %{http_code}\n" \
+                --max-time 30 \
+                --request DELETE \
+                -H "x-api-key: $API_KEY_VALUE" \
+                "${API_URL}/__admin/requests" \
+                || echo "⚠️  Warning: Failed to clear request journal"
+              curl -s -o /dev/null -w "DELETE /__admin/mappings: HTTP %{http_code}\n" \
+                --max-time 30 \
+                --request DELETE \
+                -H "x-api-key: $API_KEY_VALUE" \
+                "${API_URL}/__admin/mappings" \
+                || echo "⚠️  Warning: Failed to clear mappings"
+            fi
+          else
+            echo "⚠️  Warning: API_URL not set, skipping pre-delete cleanup"
+          fi
+
           # Delete CloudFormation stack
           echo "🗑️  Deleting CloudFormation stack: $STACK_NAME"
           aws cloudformation delete-stack \

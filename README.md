@@ -438,6 +438,12 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 | **Max Retries** | `BedrockGenerationMaxRetries` | `MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES` | 0-2 | `1` | SAM parameter for deployment; environment variable for runtime override. Limited by API Gateway timeout (~29s) |
 | **Deployment Name** | `DeploymentName` | N/A | Alphanumeric string | `mocks` | SAM parameter only - used for resource naming and identification |
 | **Auth Mode** | `AuthMode` | N/A | `API_KEY`, `IAM` | `API_KEY` | SAM parameter only — `API_KEY` (default) creates an API key and usage plan; `IAM` requires SigV4-signed requests and does not create an API key |
+| **Async Lambda Timeout** | `RuntimeAsyncTimeout` | N/A | 3-900 seconds | `30` | SAM parameter only - timeout for the RuntimeAsync Lambda function (webhook async processing) |
+| **Async Lambda Memory** | `RuntimeAsyncMemorySize` | N/A | 128-10240 MB | `256` | SAM parameter only - memory for the RuntimeAsync Lambda function |
+| **Webhook HTTP Timeout** | `WebhookTimeoutMs` | N/A | 1000-899000 ms | `25000` | SAM parameter only - timeout for outbound webhook HTTP calls. Must be less than `LambdaTimeout × 1000` |
+| **Webhook Queue Visibility** | `WebhookQueueVisibilityTimeout` | N/A | 0-43200 seconds | `60` | SAM parameter only - SQS VisibilityTimeout for the webhook queue. It should be set to `RuntimeAsyncTimeout` plus a buffer to prevent duplicate processing |
+| **Request Journal Retention** | `RequestJournalRetentionDays` | N/A | 1-365 days | `1` | SAM parameter only - days to retain request journal records in S3 (under the `requests/` prefix) |
+| **Sensitive Headers** | `SensitiveHeaders` | `MOCKNEST_SENSITIVE_HEADERS` | Comma-separated header names | `x-api-key,authorization,proxy-authorization,x-amz-security-token` | Header names to redact in the S3 request journal. Case-insensitive. Extend to include org-specific auth headers |
 
 **Configuration Precedence**: Environment variables override SAM parameters at runtime. Use SAM parameters for initial deployment configuration and environment variables for runtime adjustments without redeployment.
 
