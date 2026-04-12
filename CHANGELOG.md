@@ -6,7 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.5.0] - 2026-04-12
 - **Webhook and Callback Support**: Trigger outbound HTTP calls from mocks to simulate chained or event-driven service interactions via SQS, support for AWS IAM SigV4 on webhooks
-- **Support for secure API calls**: AWS IAM SigV4 (new) or API Key supported (existing)
+- **IAM authentication for inbound API**: API Gateway endpoints now support `AuthMode=IAM` (AWS SigV4 request signing) in addition to the existing `AuthMode=API_KEY`
+- **IAM SigV4 signing for outbound webhook dispatch**: the `RuntimeAsync` Lambda can sign outbound webhook/callback HTTP calls using AWS SigV4 (`auth.type: aws_iam`), in addition to the existing `none` (no auth) option
 
 ## [0.4.1] - 2026-04-03
 - **Improved Documentation**: small documentation fix for SOAP support

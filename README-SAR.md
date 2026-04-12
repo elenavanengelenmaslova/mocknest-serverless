@@ -76,7 +76,7 @@ export API_KEY="your-actual-api-key-value"
 
 **`AuthMode=IAM`** — sign every request with AWS Signature Version 4 (curl ≥ 7.75). Add these flags to every curl call:
 
-```
+```bash
 --aws-sigv4 "aws:amz:${AWS_REGION}:execute-api"
 --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}"
 -H "x-amz-security-token: ${AWS_SESSION_TOKEN}"   # omit if no session token
@@ -119,7 +119,7 @@ export AWS_REGION="eu-west-1"  # your deployment region
 ### Option 2: cURL Commands
 
 The examples below use `AuthMode=API_KEY`. For `AuthMode=IAM`, replace `-H "x-api-key: ${API_KEY}"` with:
-```
+```bash
 --aws-sigv4 "aws:amz:${AWS_REGION}:execute-api" --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" -H "x-amz-security-token: ${AWS_SESSION_TOKEN}"
 ```
 (omit the `-H "x-amz-security-token: ..."` flag if you have no session token)
@@ -214,11 +214,11 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 > **Note**: The target GraphQL endpoint must have introspection enabled for URL-based schema fetching. For endpoints with introspection disabled or requiring authentication, provide the introspection JSON result directly in the `specification` field instead of `specificationUrl`. Raw SDL (`.graphql` schema text) is not supported; the value must be a JSON introspection response.
 
 **Supported Formats**:
-- OpenAPI 3.x (fully tested)
-- Swagger 2.0 (experimental)
+- OpenAPI 3.x
+- Swagger 2.0
 - GraphQL (via introspection)
 - SOAP 1.2
-- Webhooks/callbacks (synchronous outbound HTTP dispatch with structured auth config and sensitive header redaction)
+- Webhooks/callbacks (asynchronous outbound HTTP dispatch via SQS, with structured auth config and sensitive header redaction)
 
 **Current Limitations**:
 - AI generation supports REST, SOAP 1.2 and GraphQL APIs. SOAP 1.1 API generation is not supported, but can be added manually through runtime admin API.

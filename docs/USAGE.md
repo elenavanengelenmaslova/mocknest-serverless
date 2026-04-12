@@ -40,7 +40,7 @@ There are two parts to using MockNest:
   - [Complete Webhook Example](#complete-webhook-example)
   - [Auth Config Model](#auth-config-model)
   - [Webhook Environment Variables](#webhook-environment-variables)
-  - [Lambda Execution Context and Synchronous Dispatch](#lambda-execution-context-and-synchronous-dispatch)
+  - [S3-Backed Request Journal](#s3-backed-request-journal)
   - [Sensitive Header Redaction](#sensitive-header-redaction)
   - [Known Limitations](#known-limitations)
 - [Administrative Operations](#administrative-operations)
@@ -76,7 +76,7 @@ export API_KEY="your-api-key-value-here"
 
 Add these flags to every curl call (curl ≥ 7.75 required — check with `curl --version`):
 
-```
+```bash
 --aws-sigv4 "aws:amz:${AWS_REGION}:execute-api"
 --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}"
 -H "x-amz-security-token: ${AWS_SESSION_TOKEN}"   # omit if no session token
