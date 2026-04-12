@@ -28,7 +28,7 @@ To optimize memory for your workload, use [AWS Lambda Power Tuner](https://serve
 
 1. Deploy Power Tuner from AWS Serverless Application Repository
 2. Go to Step Functions console and find `powerTuningStateMachine`
-3. Start execution with this input (replace placeholders):
+3. Start execution with this input (replace placeholders). These payloads invoke Lambda directly, bypassing API Gateway — no authentication headers are needed:
 
 **Runtime Function:**
 ```json
@@ -41,9 +41,7 @@ To optimize memory for your workload, use [AWS Lambda Power Tuner](https://serve
     "resource": "/__admin/health",
     "path": "/__admin/health",
     "httpMethod": "GET",
-    "headers": {
-      "x-api-key": "YOUR_API_KEY"
-    },
+    "headers": {},
     "requestContext": {
       "requestId": "power-tuner-test",
       "stage": "mocks"
@@ -65,9 +63,7 @@ To optimize memory for your workload, use [AWS Lambda Power Tuner](https://serve
     "resource": "/ai/generation/health",
     "path": "/ai/generation/health",
     "httpMethod": "GET",
-    "headers": {
-      "x-api-key": "YOUR_API_KEY"
-    },
+    "headers": {},
     "requestContext": {
       "requestId": "power-tuner-test",
       "stage": "mocks"

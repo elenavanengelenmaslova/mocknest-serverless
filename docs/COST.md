@@ -27,9 +27,10 @@ MockNest Serverless uses a serverless, pay-as-you-go architecture — you only p
 - **Encryption**: S3 applies server-side encryption by default (AWS S3-managed keys) — not explicitly configured in the SAM template, but enabled by AWS S3's default bucket encryption behavior
 
 **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**
-- **Dead Letter Queue**: For failed Lambda invocations only
+- **Webhook Queue** (`MockNestWebhookQueue`): Receives one message per webhook-enabled mock match; consumed by the `RuntimeAsync` Lambda to dispatch the outbound HTTP call
+- **Dead Letter Queue** (`MockNestWebhookDLQ`): Captures failed webhook dispatch messages for retry/inspection
 - **Retention**: [14 days message retention default](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html)
-- **Usage**: Only receives messages on Lambda failures (minimal cost, not a core service)
+- **Usage**: Cost is proportional to webhook usage; zero cost if no webhook mocks are triggered
 
 **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)**
 - **Log Groups**: 2 log groups (Runtime and Generation functions)
@@ -54,9 +55,9 @@ MockNest Serverless uses a serverless, pay-as-you-go architecture — you only p
 The following AWS services are used by MockNest. See each service's pricing page for current free tier eligibility and limits:
 
 - **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)**: Compute runtime for serving mocks
-- **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)**: HTTP routing and API key authentication
+- **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)**: HTTP routing with API key or IAM authentication (configurable via `AuthMode`)
 - **[Amazon S3](https://aws.amazon.com/s3/pricing/)**: Persistent storage for mock definitions and response payloads
-- **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**: Dead Letter Queue for failed Lambda invocations
+- **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**: Webhook dispatch queue and dead letter queue for failed Lambda invocations
 - **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)**: Logging and monitoring
 
 ## AI Services (Pay-Per-Use)
