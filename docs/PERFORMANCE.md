@@ -2,7 +2,7 @@
 
 ## Memory Configuration
 
-Both Runtime and Generation functions default to **512 MB** based on AWS Lambda Power Tuner analysis using the `balanced` strategy.
+Runtime and Generation functions default to **512 MB**, RuntimeAsync defaults to **256 MB**, all based on AWS Lambda Power Tuner analysis using the `balanced` strategy.
 
 ### Runtime Function Results
 
@@ -18,9 +18,17 @@ Both Runtime and Generation functions default to **512 MB** based on AWS Lambda 
 |---|---|
 | Optimal power | 512 MB |
 | Duration at 512 MB | 3.21 ms |
-| Visualization | [View chart](https://lambda-power-tuning.show/#AAIABAAGAAgADA==;309NQMI8UUAZvVVAjlBWQD98TkA=;b6XpMm+laTMTPK8zb6XpMxM8LzQ=) |
+| Visualization | [View chart](https://lambda-power-tuning.show/#AAEAAgAEAAYACAAM;Om0aQYAjVEDYFVBAEoNQQMUgUEA1pUpA;vKEgM2+l6TJvpWkzEzyvM2+l6TMTPC80) |
 
-> At 512 MB and ~3.3 ms average duration, both functions fit comfortably within the [AWS Lambda free tier](https://aws.amazon.com/lambda/pricing/) (1M requests and 400,000 GB-seconds per month).
+### RuntimeAsync Function Results
+
+| Metric | Value |
+|---|---|
+| Optimal power | 256 MB |
+| Duration at 256 MB | 107.05 ms (includes outbound HTTP call latency) |
+| Visualization | [View chart](https://lambda-power-tuning.show/#AAEAAgAEAAYACAAM;phvWQqHMC0NXgA1D+/DYQtj8BkM3UKdC;lSPFNB6wgDXDmQE2KDkVNsY/eDbJu2g2) |
+
+> At 512 MB and ~3.3 ms average duration, Runtime and Generation functions fit comfortably within the [AWS Lambda free tier](https://aws.amazon.com/lambda/pricing/) (1M requests and 400,000 GB-seconds per month). RuntimeAsync at 256 MB is cost-efficient given its lightweight dispatch workload.
 
 ## Tuning Your Deployment
 
@@ -28,22 +36,22 @@ To optimize memory for your workload, use [AWS Lambda Power Tuner](https://serve
 
 1. Deploy Power Tuner from AWS Serverless Application Repository
 2. Go to Step Functions console and find `powerTuningStateMachine`
-3. Start execution with this input (replace placeholders):
+3. Start execution with this input (replace placeholders). These payloads invoke Lambda directly, bypassing API Gateway — no authentication headers are needed.
 
-**Runtime Function:**
+> **Tip**: Use the ranges below to explore lower memory values than the current defaults — you may find a better balance for your workload.
+
+**Runtime Function** (start lower to find your optimum):
 ```json
 {
   "lambdaARN": "arn:aws:lambda:REGION:ACCOUNT_ID:function:STACK_NAME-runtime",
-  "powerValues": [512, 1024, 1536, 2048, 3072],
+  "powerValues": [256, 512, 1024, 1536, 2048],
   "num": 50,
   "strategy": "balanced",
   "payload": {
     "resource": "/__admin/health",
     "path": "/__admin/health",
     "httpMethod": "GET",
-    "headers": {
-      "x-api-key": "YOUR_API_KEY"
-    },
+    "headers": {},
     "requestContext": {
       "requestId": "power-tuner-test",
       "stage": "mocks"
@@ -54,24 +62,57 @@ To optimize memory for your workload, use [AWS Lambda Power Tuner](https://serve
 }
 ```
 
-**Generation Function:**
+**Generation Function** (start lower to find your optimum):
 ```json
 {
   "lambdaARN": "arn:aws:lambda:REGION:ACCOUNT_ID:function:STACK_NAME-generation",
-  "powerValues": [512, 1024, 1536, 2048, 3072],
+  "powerValues": [256, 512, 1024, 1536, 2048],
   "num": 50,
   "strategy": "balanced",
   "payload": {
     "resource": "/ai/generation/health",
     "path": "/ai/generation/health",
     "httpMethod": "GET",
-    "headers": {
-      "x-api-key": "YOUR_API_KEY"
-    },
+    "headers": {},
     "requestContext": {
       "requestId": "power-tuner-test",
       "stage": "mocks"
     }
+  },
+  "parallelInvocation": false,
+  "onlyColdStarts": false
+}
+```
+
+**RuntimeAsync Function** (SQS webhook dispatcher — start low, it does minimal work):
+
+The RuntimeAsync Lambda receives SQS events containing a fully rendered `AsyncEvent`. The payload below calls the MockNest admin health endpoint as the webhook target — replace the URL with your own callback endpoint for a more representative test:
+
+```json
+{
+  "lambdaARN": "arn:aws:lambda:REGION:ACCOUNT_ID:function:STACK_NAME-runtime-async",
+  "powerValues": [256, 512, 1024, 1536, 2048],
+  "num": 50,
+  "strategy": "balanced",
+  "payload": {
+    "Records": [
+      {
+        "messageId": "power-tuner-test-msg",
+        "receiptHandle": "power-tuner-receipt",
+        "body": "{\"actionType\":\"webhook\",\"url\":\"https://YOUR_API_ID.execute-api.REGION.amazonaws.com/mocks/__admin/health\",\"method\":\"GET\",\"headers\":{},\"body\":null,\"auth\":{\"type\":\"none\"}}",
+        "attributes": {
+          "ApproximateReceiveCount": "1",
+          "SentTimestamp": "1234567890000",
+          "SenderId": "AROAEXAMPLE",
+          "ApproximateFirstReceiveTimestamp": "1234567890000"
+        },
+        "messageAttributes": {},
+        "md5OfBody": "d41d8cd98f00b204e9800998ecf8427e",
+        "eventSource": "aws:sqs",
+        "eventSourceARN": "arn:aws:sqs:REGION:ACCOUNT_ID:STACK_NAME-webhook-queue",
+        "awsRegion": "REGION"
+      }
+    ]
   },
   "parallelInvocation": false,
   "onlyColdStarts": false
@@ -79,7 +120,12 @@ To optimize memory for your workload, use [AWS Lambda Power Tuner](https://serve
 ```
 
 4. Review the visualization URL in the output to see cost vs. performance tradeoffs
-5. Update your deployment: `sam deploy --parameter-overrides LambdaMemorySize=512`
+5. Update your deployment with the optimal values:
+```bash
+sam deploy --parameter-overrides \
+  LambdaMemorySize=512 \
+  RuntimeAsyncMemorySize=256
+```
 
 ## Measuring Cold Start Times
 

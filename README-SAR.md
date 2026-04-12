@@ -57,33 +57,74 @@ After deployment, find your API Gateway endpoint and API key in the CloudFormati
 
 ## Quick Start
 
+### Authentication setup
+
+Before running any requests, set your endpoint and auth credentials based on the `AuthMode` you chose at deployment:
+
+```bash
+# Your API endpoint — get MockNestApiUrl from CloudFormation outputs
+export MOCKNEST_URL="https://your-api-id.execute-api.region.amazonaws.com/mocks"
+```
+
+**`AuthMode=API_KEY`** — include the key in every request as `-H "x-api-key: ${API_KEY}"`:
+
+```bash
+# Get the actual key value: API Gateway → API Keys → select the key → Show
+# (MockNestApiKey in CloudFormation outputs shows only the key ID, not the value)
+export API_KEY="your-actual-api-key-value"
+```
+
+**`AuthMode=IAM`** — sign every request with AWS Signature Version 4 (curl ≥ 7.75). Add these flags to every curl call:
+
+```bash
+--aws-sigv4 "aws:amz:${AWS_REGION}:execute-api"
+--user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}"
+-H "x-amz-security-token: ${AWS_SESSION_TOKEN}"   # omit if no session token
+```
+
+Set `AWS_REGION` and ensure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN` are in your environment. How depends on your context:
+
+```bash
+export AWS_REGION="eu-west-1"  # your deployment region
+
+# CI/CD with OIDC (e.g. GitHub Actions + aws-actions/configure-aws-credentials):
+# Variables are set automatically after role assumption — nothing to export.
+
+# AWS SSO / Identity Center (most common for local use):
+# aws sso login --profile your-profile
+# eval $(aws configure export-credentials --profile your-profile --format env)
+
+# AWS CLI with long-term credentials (not recommended for production):
+# export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)
+# export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)
+```
+
+> **Tip**: If your curl is older than 7.75 (check with `curl --version`), use a SigV4-aware client instead.
+
 ### Option 1: Postman Collections (Recommended)
 
-The fastest way to explore MockNest Serverless:
-
-1. **Download Collections**: Get collections from [GitHub](https://github.com/elenavanengelenmaslova/mocknest-serverless/tree/main/docs/postman):
-   - `AWS MockNest Serverless.postman_collection.json` - Complete API with examples
-   - `AI Mock Generation.postman_collection.json` - AI-powered mock generation
+1. **Download** from [GitHub](https://github.com/elenavanengelenmaslova/mocknest-serverless/tree/main/docs/postman):
+   - `AWS MockNest Serverless.postman_collection.json` - Complete API with examples (AI mock generation and runtime endpoints)
    - `Mock Nest AWS.postman_environment.json` - Environment template
 
-2. **Import to Postman**: Import both collections and the environment file
+2. **Import** both files into Postman.
 
-3. **Configure Environment**: Set these variables:
-   - `MOCKNEST_URL`: Your `MockNestApiUrl` from CloudFormation outputs
-   - `API_KEY`: The actual API key value — go to **API Gateway → API Keys** → select the key → click **Show** to reveal it (the `MockNestApiKey` output in CloudFormation shows only the key ID, not the value)
+3. **Configure the environment**:
+   - `MOCKNEST_URL`: your `MockNestApiUrl` from CloudFormation outputs
+   - `AuthMode=API_KEY`: set `API_KEY` (see [Authentication setup](#authentication-setup) above for how to retrieve it)
+   - `AuthMode=IAM`: leave `API_KEY` empty; open the collection **Authorization** tab, select **AWS Signature**, set `AWS Region` and `Service Name=execute-api`. Postman uses your entered credentials directly — retrieve them as described in [Authentication setup](#authentication-setup) above.
 
-4. **Start Testing**: Explore all endpoints with working examples
+4. **Start Testing**: explore all endpoints with working examples.
 
 ### Option 2: cURL Commands
 
+The examples below use `AuthMode=API_KEY`. For `AuthMode=IAM`, replace `-H "x-api-key: ${API_KEY}"` with:
 ```bash
-# Set your API details
-# MOCKNEST_URL: Get MockNestApiUrl from CloudFormation outputs
-# API_KEY: Get the actual key value from API Gateway → API Keys → select the key → Show
-#          (MockNestApiKey in CloudFormation outputs shows the key ID only, not the value)
-export MOCKNEST_URL="https://your-api-id.execute-api.region.amazonaws.com/mocks"
-export API_KEY="your-actual-api-key-value"
+--aws-sigv4 "aws:amz:${AWS_REGION}:execute-api" --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" -H "x-amz-security-token: ${AWS_SESSION_TOKEN}"
+```
+(omit the `-H "x-amz-security-token: ..."` flag if you have no session token)
 
+```bash
 # Verify deployment
 curl -X GET "${MOCKNEST_URL}/__admin/health" \
   -H "x-api-key: ${API_KEY}"
@@ -128,7 +169,7 @@ curl -X GET "${MOCKNEST_URL}/mocknest/bored/api/activity?type=social" \
 
 ## AI-Assisted Mock Generation
 
-Generate mocks from OpenAPI specifications:
+Generate mocks from OpenAPI specifications (examples use `AuthMode=API_KEY`; for `AuthMode=IAM` substitute auth headers as described in [Option 2: cURL Commands](#option-2-curl-commands)):
 
 ```bash
 curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
@@ -173,11 +214,11 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 > **Note**: The target GraphQL endpoint must have introspection enabled for URL-based schema fetching. For endpoints with introspection disabled or requiring authentication, provide the introspection JSON result directly in the `specification` field instead of `specificationUrl`. Raw SDL (`.graphql` schema text) is not supported; the value must be a JSON introspection response.
 
 **Supported Formats**:
-- OpenAPI 3.x (fully tested)
-- Swagger 2.0 (experimental)
+- OpenAPI 3.x
+- Swagger 2.0
 - GraphQL (via introspection)
 - SOAP 1.2
-- Webhooks/callbacks (synchronous outbound HTTP dispatch with structured auth config and sensitive header redaction)
+- Webhooks/callbacks (asynchronous outbound HTTP dispatch via SQS, with structured auth config and sensitive header redaction)
 
 **Current Limitations**:
 - AI generation supports REST, SOAP 1.2 and GraphQL APIs. SOAP 1.1 API generation is not supported, but can be added manually through runtime admin API.
@@ -188,7 +229,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 MockNest Serverless runs on AWS Lambda with:
 - **Persistent Storage**: Mock definitions in Amazon S3 (survive Lambda scaling)
 - **Persistent Data**: Request journal and near-miss analysis backed by S3 (survive Lambda cold starts)
-- **API Gateway**: HTTP routing with API key authentication
+- **API Gateway**: HTTP routing with API key or IAM authentication (configurable via `AuthMode`)
 - **Amazon Bedrock**: AI-powered mock generation (optional)
 
 **API Gateway Throttling**: BurstLimit: 1 limits concurrent requests to reduce Lambda scaling, allowing 100 requests/second sequential throughput.
@@ -197,11 +238,12 @@ For detailed architecture information, see the [main README](https://github.com/
 
 ## Common Issues
 
-**Authentication Error (401)**
+**Authentication Error (401/403)**
 ```json
 {"message": "Unauthorized"}
 ```
-**Solution**: Include the correct API key in the `x-api-key` header.
+- **`AuthMode=API_KEY`**: Include the correct API key in the `x-api-key` header.
+- **`AuthMode=IAM`**: Requests must be signed with AWS Signature Version 4. Ensure your IAM identity has `execute-api:Invoke` permission on the API, and that credentials are not expired.
 
 **Bedrock Access Error**
 ```json

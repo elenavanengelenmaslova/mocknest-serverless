@@ -56,7 +56,7 @@ When deploying MockNest Serverless:
 ## Security Features
 
 MockNest Serverless includes:
-- API key authentication for all endpoints
+- Configurable endpoint authentication: API key (`AuthMode=API_KEY`) or AWS Signature Version 4 (`AuthMode=IAM`)
 - S3 server-side encryption for stored mocks
 - IAM role-based access control for AWS resources
 

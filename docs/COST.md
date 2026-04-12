@@ -7,8 +7,8 @@ MockNest Serverless uses a serverless, pay-as-you-go architecture — you only p
 ### Core Services (Always Deployed)
 
 **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)**
-- **2 Lambda functions**: Runtime (mock serving) and Generation (AI features)
-- **Memory**: [512 MB default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html) (configurable 512-10240 MB)
+- **3 Lambda functions**: Runtime (mock serving), Generation (AI features), RuntimeAsync (async webhook dispatch)
+- **Memory**: Runtime and Generation default to [512 MB](https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html) (configurable 512–10240 MB); RuntimeAsync defaults to 256 MB (configurable 128–10240 MB)
 - **Timeout**: [30 seconds default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-timeout.html) (configurable 3-900 seconds via `LambdaTimeout` parameter). The synchronous API Gateway timeout (~29 seconds) is the practical constraint for request duration.
 - **Concurrency**: Auto-scales within AWS account limits - designed for cost efficiency
 - **Architecture**: [ARM64](https://docs.aws.amazon.com/lambda/latest/dg/foundation-arch.html) for 20% cost reduction (SnapStart enabled for reduced cold start latency)
@@ -27,12 +27,13 @@ MockNest Serverless uses a serverless, pay-as-you-go architecture — you only p
 - **Encryption**: S3 applies server-side encryption by default (AWS S3-managed keys) — not explicitly configured in the SAM template, but enabled by AWS S3's default bucket encryption behavior
 
 **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**
-- **Dead Letter Queue**: For failed Lambda invocations only
+- **Webhook dispatch**: One message per webhook-enabled mock match, consumed by the async Lambda to dispatch the outbound HTTP call
+- **Dead letter queues**: For failed webhook dispatch messages and failed Lambda invocations
 - **Retention**: [14 days message retention default](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html)
-- **Usage**: Only receives messages on Lambda failures (minimal cost, not a core service)
+- **Usage**: Webhook queue cost is proportional to webhook usage; DLQ cost is minimal (only on failures)
 
 **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)**
-- **Log Groups**: 2 log groups (Runtime and Generation functions)
+- **Log Groups**: 3 log groups (Runtime, Generation, and RuntimeAsync functions)
 - **Retention**: [7 days log retention default](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html) (configurable via `LogRetentionDays` parameter)
 - **Metrics**: [Basic Lambda and API Gateway metrics default](https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics.html) (included)
 - **Alarms**: [None configured default](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html) (to minimize costs)
@@ -54,9 +55,9 @@ MockNest Serverless uses a serverless, pay-as-you-go architecture — you only p
 The following AWS services are used by MockNest. See each service's pricing page for current free tier eligibility and limits:
 
 - **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)**: Compute runtime for serving mocks
-- **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)**: HTTP routing and API key authentication
+- **[Amazon API Gateway](https://aws.amazon.com/api-gateway/pricing/)**: HTTP routing with API key or IAM authentication (configurable via `AuthMode`)
 - **[Amazon S3](https://aws.amazon.com/s3/pricing/)**: Persistent storage for mock definitions and response payloads
-- **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**: Dead Letter Queue for failed Lambda invocations
+- **[Amazon SQS](https://aws.amazon.com/sqs/pricing/)**: Webhook dispatch and dead letter queues
 - **[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/pricing/)**: Logging and monitoring
 
 ## AI Services (Pay-Per-Use)
@@ -75,6 +76,7 @@ MockNest includes several built-in cost optimization features:
 - **Response externalization** keeps payloads in S3, not Lambda memory
 - **ARM64 architecture** provides 20% Lambda cost reduction
 - **SnapStart enabled** for improved cold start performance and cost efficiency
+- **Power-tuned memory defaults** — default memory sizes (512 MB for Runtime/Generation, 256 MB for RuntimeAsync) were determined using [AWS Lambda Power Tuning](https://github.com/alexcasalboni/aws-lambda-power-tuning) to find the optimal cost/performance balance
 
 ## Cost Monitoring
 

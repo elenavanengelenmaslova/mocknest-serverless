@@ -8,14 +8,19 @@ This guide provides comprehensive cURL-based examples for using MockNest Serverl
 
 MockNest Serverless is a serverless mock runtime that allows you to create and manage HTTP mocks for REST, SOAP, and GraphQL APIs. It runs on AWS Lambda and stores mock definitions persistently in Amazon S3.
 
-You can manage mocks in two ways:
-- **Manual Management**: Use the admin API (`/__admin/*` endpoints) to create, update, and delete mocks manually with full control over request matching and response behavior
-- **AI-Assisted Generation**: Use the AI generation API (`/ai/*` endpoints) to automatically generate comprehensive mock suites from API specifications, leveraging Amazon Bedrock to create realistic, consistent mock data
+There are two parts to using MockNest:
+
+1. **Set up mocks** — define what the mock should return. Two ways:
+   - **Manual Management**: Use the admin API (`/__admin/*` endpoints) to create, update, and delete mocks manually
+   - **AI-Assisted Generation**: Use the AI generation API (`/ai/*` endpoints) to generate mocks from an OpenAPI, GraphQL, or WSDL specification
+
+2. **Point your client at MockNest** — configure your application or test to call MockNest instead of the real API. See [Calling Mock Endpoints](#calling-mock-endpoints).
 
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
+- [Calling Mock Endpoints](#calling-mock-endpoints)
 - [Health Checks](#health-checks)
   - [Admin Health Check](#admin-health-check)
   - [AI Generation Health Check](#ai-generation-health-check)
@@ -35,7 +40,7 @@ You can manage mocks in two ways:
   - [Complete Webhook Example](#complete-webhook-example)
   - [Auth Config Model](#auth-config-model)
   - [Webhook Environment Variables](#webhook-environment-variables)
-  - [Lambda Execution Context and Synchronous Dispatch](#lambda-execution-context-and-synchronous-dispatch)
+  - [S3-Backed Request Journal](#s3-backed-request-journal)
   - [Sensitive Header Redaction](#sensitive-header-redaction)
   - [Known Limitations](#known-limitations)
 - [Administrative Operations](#administrative-operations)
@@ -48,44 +53,75 @@ You can manage mocks in two ways:
 
 Before using MockNest Serverless, you need:
 
-1. **API Gateway URL**: The endpoint URL for your MockNest deployment
-2. **API Key**: The API key value for authentication
-
-Both values can be obtained from the **API Gateway console**:
-- Navigate to API Gateway console in AWS
-- Find your MockNest Serverless API
-- Get the Invoke URL from the Stages section
-- Get the API key value from the API Keys section (click "Show" to reveal)
-
-Alternatively, the API Gateway URL is available in deployment outputs as `MockNestApiUrl`, but you'll still need to visit the API Gateway console to retrieve the actual API key value (the deployment output shows only the key ID).
-
-> **Note**: This guide uses API key mode (the default). In IAM mode (`AuthMode=IAM`), replace the `x-api-key` header with SigV4 request signing using your IAM credentials.
+1. **API Gateway URL**: Available in CloudFormation outputs as `MockNestApiUrl`
+2. **Authentication credentials**: Depends on the `AuthMode` chosen at deployment (see Setup below)
 
 ## Setup
 
-To simplify the examples in this guide, set environment variables for your API URL and key:
-
-### Bash/Zsh Configuration
+Set your endpoint and authentication credentials before running examples.
 
 ```bash
-# Set the MockNest API URL (replace with your actual API Gateway URL)
 export MOCKNEST_URL="https://your-api-id.execute-api.your-region.amazonaws.com/mocks"
+```
 
-# Set the API key (replace with your actual API key value from API Gateway console)
+### API_KEY mode (default)
+
+```bash
+# Get the actual key value: API Gateway → API Keys → select the key → Show
+# (MockNestApiKey in CloudFormation outputs shows only the key ID, not the value)
 export API_KEY="your-api-key-value-here"
 ```
 
-You can add these to your `~/.bashrc` or `~/.zshrc` file to make them persistent across terminal sessions.
+### IAM mode — SigV4
 
-### Verify Setup
-
-Test that your environment variables are set correctly:
+Add these flags to every curl call (curl ≥ 7.75 required — check with `curl --version`):
 
 ```bash
-echo $MOCKNEST_URL
-echo $API_KEY
+--aws-sigv4 "aws:amz:${AWS_REGION}:execute-api"
+--user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}"
+-H "x-amz-security-token: ${AWS_SESSION_TOKEN}"   # omit if no session token
 ```
 
+Set `AWS_REGION` and ensure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN` are in your environment. How depends on your context:
+
+```bash
+export AWS_REGION="eu-west-1"  # your deployment region
+
+# CI/CD with OIDC (e.g. GitHub Actions + aws-actions/configure-aws-credentials):
+# Variables are set automatically after role assumption — nothing to export.
+
+# AWS SSO / Identity Center (most common for local use):
+# aws sso login --profile your-profile
+# eval $(aws configure export-credentials --profile your-profile --format env)
+
+# AWS CLI with long-term credentials (not recommended for production):
+# export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)
+# export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)
+```
+
+> **All examples in this guide use `AuthMode=API_KEY`.** If you deployed with `AuthMode=IAM`, replace `-H "x-api-key: ${API_KEY}"` with the three SigV4 flags above on every curl call.
+
+## Calling Mock Endpoints
+
+Once mocks are set up, your application or test must call MockNest instead of the real API.
+
+**URL pattern**: `{MOCKNEST_URL}/mocknest/{original-path}`
+
+Replace the real API's base URL with `{MOCKNEST_URL}/mocknest` in your client configuration. The rest of the path stays the same:
+
+| Real API | MockNest equivalent |
+|----------|---------------------|
+| `https://api.boredapi.com/api/activity?type=social` | `{MOCKNEST_URL}/mocknest/api/activity?type=social` |
+| `https://petstore3.swagger.io/pet/findByStatus` | `{MOCKNEST_URL}/mocknest/petstore/pet/findByStatus` |
+
+> **Note**: For AI-generated mocks the namespace (`apiName`) is prepended to the path automatically — you don't add it manually.
+
+**Authentication**: MockNest endpoints require the same auth as the admin/generation endpoints. Your client must include the auth credentials on every request to the mock:
+
+- `AuthMode=API_KEY`: add `-H "x-api-key: ${API_KEY}"` (or the equivalent header in your HTTP client/SDK)
+- `AuthMode=IAM`: sign requests with SigV4 (see [IAM mode — SigV4 in Setup](#setup))
+
+This means swapping the base URL alone is not enough if your original client didn't authenticate to that API, or used a different auth scheme. You need to inject MockNest credentials into the client config alongside the URL change.
 
 ## Health Checks
 
@@ -103,8 +139,6 @@ curl -X GET "${MOCKNEST_URL}/__admin/health" \
   -H "x-api-key: ${API_KEY}"
 ```
 
-> **Note**: The `x-api-key` header is required in API key mode (the default). In IAM mode, call the same endpoint with SigV4-signed requests instead.
-
 **Expected Response** (200 OK):
 ```json
 {
@@ -120,7 +154,6 @@ curl -X GET "${MOCKNEST_URL}/__admin/health" \
 ```
 
 **Key Parameters**:
-- `x-api-key` header: Your API key for authentication
 - Response `status`: Overall health status ("healthy" or "unhealthy")
 - Response `storage.connectivity`: S3 bucket connectivity status
 
@@ -135,8 +168,6 @@ Check the health of the AI-assisted mock generation service (if enabled).
 curl -X GET "${MOCKNEST_URL}/ai/generation/health" \
   -H "x-api-key: ${API_KEY}"
 ```
-
-> **Note**: The `x-api-key` header is required in API key mode (the default). In IAM mode, call the same endpoint with SigV4-signed requests instead.
 
 **Expected Response** (200 OK):
 ```json
@@ -154,7 +185,6 @@ curl -X GET "${MOCKNEST_URL}/ai/generation/health" \
 ```
 
 **Key Parameters**:
-- `x-api-key` header: Your API key for authentication
 - Response `ai.modelName`: The AI model being used for mock generation
 - Response `ai.inferenceMode`: The inference mode configuration
 
@@ -1453,7 +1483,6 @@ curl -X GET "${MOCKNEST_URL}/__admin/mappings" \
 ```
 
 **Key Parameters**:
-- `x-api-key` header: Your API key for authentication
 - Response `mappings`: Array of all configured mock mappings
 - Response `response.bodyFileName`: The filename to use when retrieving file content (see "Get File Content" section below)
 - Response `meta.total`: Total count of mappings
@@ -1475,7 +1504,6 @@ Returns the file content (format depends on the file type - JSON, XML, plain tex
 
 **Key Parameters**:
 - File path: The filename from `response.bodyFileName` in the "Get All Mappings" output
-- `x-api-key` header: Your API key for authentication
 - Response: Raw file content
 
 ### Delete All Mappings
@@ -1494,7 +1522,6 @@ curl -X DELETE "${MOCKNEST_URL}/__admin/mappings" \
 ```
 
 **Key Parameters**:
-- `x-api-key` header: Your API key for authentication
 - Response: Empty JSON object indicating successful deletion
 
 
@@ -1517,10 +1544,8 @@ This cURL usage guide is maintained alongside the Postman collection. When the A
 
 ### Getting Help
 
-- **GitHub Issues**: Report bugs or request features at the project repository
-- **Documentation**: Check the main README for troubleshooting tips
-- **Community**: Join discussions and share your use cases
+- **GitHub Issues**: [Report bugs or request features](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
+- **Documentation**: Check the [main README](../README.md) for troubleshooting tips
+- **Community**: [Join discussions and share your use cases](https://github.com/elenavanengelenmaslova/mocknest-serverless/discussions)
 
----
 
-**Postman Collection**: AWS MockNest Serverless (ff6154b8-35cd-4919-9a03-38eb6401d6cd)
