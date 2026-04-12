@@ -29,6 +29,7 @@ When deploying from SAR, you can configure these parameters:
 | **WebhookTimeoutMs** | Timeout in milliseconds for outbound webhook HTTP calls | `25000` | Range: 1000–899000 ms. Must be less than `LambdaTimeout × 1000` to avoid Lambda being killed before the HTTP client times out. |
 | **WebhookQueueVisibilityTimeout** | SQS VisibilityTimeout in seconds for the webhook queue | `60` | Range: 0–43200 seconds. It should be set to `RuntimeAsyncTimeout` plus a buffer to prevent duplicate processing. |
 | **RequestJournalRetentionDays** | Days to retain request journal records in S3 (under the `requests/` prefix) | `1` | Range: 1–365 days. |
+| **SensitiveHeaders** | Comma-separated list of HTTP header names whose values are redacted in the S3 request journal | `x-api-key,authorization,proxy-authorization,x-amz-security-token` | Header names are matched case-insensitively. Extend this list to redact additional org-specific auth headers. |
 
 ### BedrockInferenceMode Details
 

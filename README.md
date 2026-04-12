@@ -443,6 +443,7 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 | **Webhook HTTP Timeout** | `WebhookTimeoutMs` | N/A | 1000-899000 ms | `25000` | SAM parameter only - timeout for outbound webhook HTTP calls. Must be less than `LambdaTimeout × 1000` |
 | **Webhook Queue Visibility** | `WebhookQueueVisibilityTimeout` | N/A | 0-43200 seconds | `60` | SAM parameter only - SQS VisibilityTimeout for the webhook queue. It should be set to `RuntimeAsyncTimeout` plus a buffer to prevent duplicate processing |
 | **Request Journal Retention** | `RequestJournalRetentionDays` | N/A | 1-365 days | `1` | SAM parameter only - days to retain request journal records in S3 (under the `requests/` prefix) |
+| **Sensitive Headers** | `SensitiveHeaders` | `MOCKNEST_SENSITIVE_HEADERS` | Comma-separated header names | `x-api-key,authorization,proxy-authorization,x-amz-security-token` | Header names to redact in the S3 request journal. Case-insensitive. Extend to include org-specific auth headers |
 
 **Configuration Precedence**: Environment variables override SAM parameters at runtime. Use SAM parameters for initial deployment configuration and environment variables for runtime adjustments without redeployment.
 

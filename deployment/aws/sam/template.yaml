@@ -156,6 +156,13 @@ Parameters:
       Should be set to RuntimeAsyncTimeout plus a buffer to prevent duplicate processing.
       Default (60 s) = RuntimeAsyncTimeout default (30 s) + 30 s buffer.
 
+  SensitiveHeaders:
+    Type: String
+    Default: "x-api-key,authorization,proxy-authorization,x-amz-security-token"
+    Description: |
+      Comma-separated list of HTTP header names whose values are redacted in the S3 request journal.
+      Header names are matched case-insensitively.
+
   LogRetentionDays:
     Type: Number
     Default: "7"
@@ -491,7 +498,7 @@ Resources:
           SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
-          MOCKNEST_SENSITIVE_HEADERS: "x-api-key,authorization,proxy-authorization,x-amz-security-token"
+          MOCKNEST_SENSITIVE_HEADERS: !Ref SensitiveHeaders
           MOCKNEST_WEBHOOK_TIMEOUT_MS: !Ref WebhookTimeoutMs
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl
           MOCKNEST_REQUEST_JOURNAL_PREFIX: "requests/"
@@ -534,7 +541,7 @@ Resources:
           SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
-          MOCKNEST_SENSITIVE_HEADERS: "x-api-key,authorization,proxy-authorization,x-amz-security-token"
+          MOCKNEST_SENSITIVE_HEADERS: !Ref SensitiveHeaders
           MOCKNEST_WEBHOOK_TIMEOUT_MS: !Ref WebhookTimeoutMs
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl
           MOCKNEST_REQUEST_JOURNAL_PREFIX: "requests/"
@@ -651,7 +658,7 @@ Resources:
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl
-          MOCKNEST_SENSITIVE_HEADERS: "x-api-key,authorization,proxy-authorization,x-amz-security-token"
+          MOCKNEST_SENSITIVE_HEADERS: !Ref SensitiveHeaders
       Tags:
         Application: MockNest-Serverless
         Component: RuntimeAsync
@@ -683,7 +690,7 @@ Resources:
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl
-          MOCKNEST_SENSITIVE_HEADERS: "x-api-key,authorization,proxy-authorization,x-amz-security-token"
+          MOCKNEST_SENSITIVE_HEADERS: !Ref SensitiveHeaders
       Tags:
         Application: MockNest-Serverless
         Component: RuntimeAsync
