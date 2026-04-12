@@ -3,8 +3,6 @@ package nl.vintik.mocknest.infra.aws.runtime.snapstart
 import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.HeadBucketResponse
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.direct.DirectCallHttpServer
-import com.github.tomakehurst.wiremock.http.Response
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
@@ -35,13 +33,11 @@ class RuntimePrimingHookTest {
     private val mockS3Client: S3Client = mockk(relaxed = true)
     private val testBucketName = "test-bucket"
     private val mockWireMockServer: WireMockServer = mockk(relaxed = true)
-    private val mockDirectCallHttpServer: DirectCallHttpServer = mockk(relaxed = true)
     private val primingHook = RuntimePrimingHook(
         mockHealthCheckUseCase,
         mockS3Client,
         testBucketName,
-        mockWireMockServer,
-        mockDirectCallHttpServer
+        mockWireMockServer
     )
 
     @AfterEach
@@ -57,9 +53,6 @@ class RuntimePrimingHookTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
-            every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
-                every { status } returns 200
-            }
             every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
             // When
@@ -69,8 +62,6 @@ class RuntimePrimingHookTest {
             verify { mockHealthCheckUseCase.invoke() }
             coVerify { mockS3Client.headBucket(any()) }
             verify { mockWireMockServer.stubFor(any()) }
-            verify { mockWireMockServer.getStubMapping(any<UUID>()) }
-            verify { mockDirectCallHttpServer.stubRequest(any()) }
             verify { mockWireMockServer.removeStubMapping(any<UUID>()) }
         }
 
@@ -80,9 +71,6 @@ class RuntimePrimingHookTest {
                 // Given
                 every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
-                every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
-                    every { status } returns 200
-                }
                 every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
                 // When / Then - should not throw
@@ -142,9 +130,6 @@ class RuntimePrimingHookTest {
                 // Given
                 every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } throws RuntimeException("S3 connection failed")
-                every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
-                    every { status } returns 200
-                }
                 every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
                 // When / Then - should not throw
@@ -161,9 +146,6 @@ class RuntimePrimingHookTest {
                 // Given
                 every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } throws IllegalArgumentException("Invalid bucket configuration")
-                every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
-                    every { status } returns 200
-                }
                 every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
                 // When / Then - should complete without throwing
@@ -175,9 +157,6 @@ class RuntimePrimingHookTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } throws RuntimeException("S3 timeout")
-            every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
-                every { status } returns 200
-            }
             every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
             // When / Then - should not throw
@@ -204,63 +183,11 @@ class RuntimePrimingHookTest {
         }
 
         @Test
-        fun `Given WireMock getStubMapping fails When priming executes Then should log warning and continue`() =
-            runTest {
-                // Given
-                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-                coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
-                every { mockWireMockServer.getStubMapping(any<UUID>()) } throws RuntimeException("Failed to retrieve mapping")
-
-                // When / Then - should not throw
-                primingHook.prime()
-
-                // Verify other components were still attempted
-                verify { mockHealthCheckUseCase.invoke() }
-                coVerify { mockS3Client.headBucket(any()) }
-            }
-
-        @Test
-        fun `Given DirectCallHttpServer stubRequest fails When priming executes Then should log warning and continue`() =
-            runTest {
-                // Given
-                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-                coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
-                every { mockDirectCallHttpServer.stubRequest(any()) } throws RuntimeException("Request failed")
-
-                // When / Then - should not throw
-                primingHook.prime()
-
-                // Verify other components were still attempted
-                verify { mockHealthCheckUseCase.invoke() }
-                coVerify { mockS3Client.headBucket(any()) }
-            }
-
-        @Test
-        fun `Given DirectCallHttpServer stubRequest fails When priming executes Then should still attempt cleanup`() =
-            runTest {
-                // Given
-                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
-                coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
-                every { mockDirectCallHttpServer.stubRequest(any()) } throws RuntimeException("Request failed")
-                every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
-
-                // When / Then - should not throw
-                primingHook.prime()
-
-                // Verify cleanup was still attempted despite stubRequest failure
-                verify { mockWireMockServer.stubFor(any()) }
-                verify { mockWireMockServer.removeStubMapping(any<UUID>()) }
-            }
-
-        @Test
         fun `Given WireMock removeStubMapping fails When priming executes Then should log warning and continue`() =
             runTest {
                 // Given
                 every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
-                every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
-                    every { status } returns 200
-                }
                 every { mockWireMockServer.removeStubMapping(any<UUID>()) } throws RuntimeException("Failed to remove mapping")
 
                 // When / Then - should not throw
@@ -280,9 +207,6 @@ class RuntimePrimingHookTest {
             // Given
             every { mockHealthCheckUseCase.invoke() } throws RuntimeException("Health check failed")
             coEvery { mockS3Client.headBucket(any()) } throws RuntimeException("S3 failed")
-            every { mockDirectCallHttpServer.stubRequest(any()) } returns mockk<Response>(relaxed = true) {
-                every { status } returns 200
-            }
             every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
             // When / Then - should not throw

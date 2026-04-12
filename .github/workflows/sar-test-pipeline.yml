@@ -342,9 +342,11 @@ jobs:
           health_check_with_retry() {
             local endpoint_path="$1"
             local endpoint_name="$2"
-            local max_attempts=5
+            # API_KEY mode needs more retries: usage plan propagation can take
+            # 2-3 minutes after CloudFormation creates the UsagePlanKey resource
+            local max_attempts=8
             local attempt=1
-            local backoff_delays=(10 20 30 45 60)
+            local backoff_delays=(10 20 30 45 60 90 120 120)
 
             echo ""
             echo "Checking $endpoint_name endpoint..."
@@ -549,6 +551,32 @@ jobs:
             fi
           else
             echo "⚠️  Warning: API_URL not set, skipping pre-delete cleanup"
+          fi
+
+          # Force-empty versioned S3 bucket before stack deletion
+          # (DeleteObjects without versionId only creates delete markers;
+          #  versioned buckets require explicit version + delete-marker removal)
+          if [ -n "$BUCKET_NAME_FROM_STACK" ]; then
+            echo "🗑️  Force-emptying versioned S3 bucket: $BUCKET_NAME_FROM_STACK"
+            VERSIONS_JSON=$(aws s3api list-object-versions \
+              --bucket "$BUCKET_NAME_FROM_STACK" \
+              --region ${{ inputs.aws-region }} \
+              --output json 2>/dev/null || echo '{}')
+            DELETE_BATCH=$(echo "$VERSIONS_JSON" | jq -c '{
+              Objects: [(.Versions[]?, .DeleteMarkers[]?) | {Key: .Key, VersionId: .VersionId}],
+              Quiet: true
+            }')
+            OBJECT_COUNT=$(echo "$DELETE_BATCH" | jq '.Objects | length')
+            if [ "$OBJECT_COUNT" -gt 0 ]; then
+              echo "Deleting $OBJECT_COUNT object versions/delete-markers..."
+              aws s3api delete-objects \
+                --bucket "$BUCKET_NAME_FROM_STACK" \
+                --region ${{ inputs.aws-region }} \
+                --delete "$DELETE_BATCH" \
+                || echo "⚠️  Warning: Failed to force-empty versioned bucket"
+            else
+              echo "Bucket is already empty"
+            fi
           fi
 
           # Delete CloudFormation stack
