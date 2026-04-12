@@ -141,7 +141,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 }'
 ```
 
-When `enableValidation` is enabled, generated mocks are automatically validated. If invalid mocks are detected, the system retries generation with AI self-correction (up to `BedrockGenerationMaxRetries` attempts) and only returns mocks that pass validation.
+When `enableValidation` is enabled, generated mocks are automatically validated. If invalid mocks are detected, the system retries generation with AI self-correction (up to 1 retry attempt by default, configurable via the `MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES` environment variable) and only returns mocks that pass validation.
 
 Import the generated mappings (copy the `mappings` array from the response):
 ```bash
@@ -229,9 +229,10 @@ MockNest Serverless provides multiple ways to interact with the API:
 3. **Deploy**: Click "Deploy" and configure parameters:
    - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
-   - **BedrockInferenceMode**: Inference profile selection (default: "AUTO" - recommended)
-   - **LambdaMemorySize**: Memory allocation in MB (default: 512)
-   - **LambdaTimeout**: Function timeout in seconds (default: 30)
+   - **RuntimeLambdaMemorySize**: Runtime Lambda memory in MB (default: 512)
+   - **GenerationLambdaMemorySize**: Generation Lambda memory in MB (default: 512)
+   - **RuntimeLambdaTimeout**: Mock serving timeout in seconds (default: 10)
+   - **GenerationLambdaTimeout**: AI generation timeout in seconds (default: 29)
 
 ### Getting Started After Deployment
 
@@ -246,16 +247,6 @@ MockNest Serverless provides multiple ways to interact with the API:
 **Bedrock Model Availability**: Verify Amazon Nova Pro is available in your chosen region using the [AWS Bedrock model availability documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html). Amazon Nova Pro is ready to use immediately in supported regions.
 
 **Note**: If using third-party models (like Anthropic Claude), you may need to enable model access and accept terms in the Amazon Bedrock console.
-
-#### BedrockInferenceMode Configuration
-
-The `BedrockInferenceMode` parameter controls how MockNest selects Bedrock inference profiles:
-
-- **AUTO** (recommended): Tries region-specific inference profile first, then falls back to global/cross-region profile. Best for most users who want automatic optimization and maximum availability.
-  
-- **GLOBAL_ONLY**: Forces use of cross-region inference profile only. Use when you need consistent model behavior across all regions and data residency is not a concern.
-  
-- **GEO_ONLY**: Forces use of region-specific inference profile only (e.g., "eu" for eu-west-1, "us" for us-east-1). Use when you have strict data residency or compliance requirements.
 
 #### Support and Troubleshooting
 
@@ -329,7 +320,7 @@ For detailed memory sizing, cold start measurements, and tuning guidance, see [d
 
 ### AI Generation Timeout
 
-The default API Gateway REST API has a synchronous integration timeout of approximately 29 seconds. This constrains how many AI correction retries can complete within a single request. The `BedrockGenerationMaxRetries` parameter supports 0-2 retries, with 1 retry as the recommended default.
+The default API Gateway REST API has a synchronous integration timeout of approximately 29 seconds. This constrains how many AI correction retries can complete within a single request. By default, 1 retry is attempted; this can be overridden at runtime via the `MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES` environment variable (0-2).
 
 If you need longer-running AI generation requests, you can:
 - Switch to a Regional or private REST API endpoint type
@@ -388,7 +379,6 @@ sam deploy --region us-east-1
 ```bash
 sam deploy --parameter-overrides \
   BedrockModelName=AmazonNovaPro \
-  BedrockInferenceMode=AUTO \
   AuthMode=IAM
 ```
 
@@ -425,25 +415,47 @@ For detailed architecture information, see [Architecture Documentation](.kiro/st
 
 ## Configuration Reference
 
-MockNest Serverless can be configured through SAM deployment parameters or environment variables. The table below shows all configuration options and when to use each approach:
+MockNest Serverless can be configured through SAM deployment parameters or environment variables.
 
-| Configuration | SAM Parameter | Environment Variable | Possible Values | Default | When to Use |
-|---------------|---------------|---------------------|-----------------|---------|-------------|
-| **Bedrock Inference Mode** | `BedrockInferenceMode` | `BEDROCK_INFERENCE_MODE` | `AUTO`, `GLOBAL_ONLY`, `GEO_ONLY` | `AUTO` | SAM parameter for deployment; environment variable for runtime override. Use `AUTO` for best availability, `GLOBAL_ONLY` for cross-region consistency, `GEO_ONLY` for data residency |
-| **Bedrock Model** | `BedrockModelName` | `BEDROCK_MODEL_NAME` | Any Bedrock model ID | `AmazonNovaPro` | SAM parameter for deployment; environment variable for runtime override. Amazon Nova Pro is officially supported |
-| **S3 Bucket** | `BucketName` | `MOCKNEST_S3_BUCKET_NAME` | Valid S3 bucket name | Auto-generated | SAM parameter for deployment; environment variable for runtime override |
-| **Lambda Memory** | `LambdaMemorySize` | N/A | 512-10240 MB | `512` | SAM parameter only - set during deployment based on workload requirements |
-| **Lambda Timeout** | `LambdaTimeout` | N/A | 3-900 seconds | `30` | SAM parameter only - set during deployment. Default aligns with API Gateway synchronous timeout (~29s) |
-| **Log Retention** | `LogRetentionDays` | N/A | 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365+ | `7` | SAM parameter only - CloudWatch log retention for Lambda functions |
-| **Max Retries** | `BedrockGenerationMaxRetries` | `MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES` | 0-2 | `1` | SAM parameter for deployment; environment variable for runtime override. Limited by API Gateway timeout (~29s) |
-| **Deployment Name** | `DeploymentName` | N/A | Alphanumeric string | `mocks` | SAM parameter only - used for resource naming and identification |
-| **Auth Mode** | `AuthMode` | N/A | `API_KEY`, `IAM` | `API_KEY` | SAM parameter only — `API_KEY` (default) creates an API key and usage plan; `IAM` requires SigV4-signed requests and does not create an API key |
-| **Async Lambda Timeout** | `RuntimeAsyncTimeout` | N/A | 3-900 seconds | `30` | SAM parameter only - timeout for the RuntimeAsync Lambda function (webhook async processing) |
-| **Async Lambda Memory** | `RuntimeAsyncMemorySize` | N/A | 128-10240 MB | `256` | SAM parameter only - memory for the RuntimeAsync Lambda function |
-| **Webhook HTTP Timeout** | `WebhookTimeoutMs` | N/A | 1000-899000 ms | `25000` | SAM parameter only - timeout for outbound webhook HTTP calls. Must be less than `LambdaTimeout × 1000` |
-| **Webhook Queue Visibility** | `WebhookQueueVisibilityTimeout` | N/A | 0-43200 seconds | `60` | SAM parameter only - SQS VisibilityTimeout for the webhook queue. It should be set to `RuntimeAsyncTimeout` plus a buffer to prevent duplicate processing |
-| **Request Journal Retention** | `RequestJournalRetentionDays` | N/A | 1-365 days | `1` | SAM parameter only - days to retain request journal records in S3 (under the `requests/` prefix) |
-| **Sensitive Headers** | `SensitiveHeaders` | `MOCKNEST_SENSITIVE_HEADERS` | Comma-separated header names | `x-api-key,authorization,proxy-authorization,x-amz-security-token` | Header names to redact in the S3 request journal. Case-insensitive. Extend to include org-specific auth headers |
+**General**
+
+| Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
+|---------------|---------------|---------------------|-----------------|---------|-------|
+| **Deployment Name** | `DeploymentName` | N/A | Alphanumeric string | `mocks` | Used for resource naming and API Gateway stage name |
+| **Auth Mode** | `AuthMode` | N/A | `API_KEY`, `IAM` | `API_KEY` | `API_KEY` creates an API key and usage plan; `IAM` requires SigV4-signed requests |
+| **S3 Bucket** | `BucketName` | `MOCKNEST_S3_BUCKET_NAME` | Valid S3 bucket name | Auto-generated | Environment variable for runtime override |
+
+**Runtime Lambda** — serves mock responses
+
+| Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
+|---------------|---------------|---------------------|-----------------|---------|-------|
+| **Memory** | `RuntimeLambdaMemorySize` | N/A | 512-10240 MB | `512` | Default optimized via Lambda Power Tuner |
+| **Timeout** | `RuntimeLambdaTimeout` | N/A | 3-29 seconds | `10` | Bounded by API Gateway synchronous limit (~29s) |
+
+**Generation Lambda** — AI mock generation via Bedrock
+
+| Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
+|---------------|---------------|---------------------|-----------------|---------|-------|
+| **Memory** | `GenerationLambdaMemorySize` | N/A | 512-10240 MB | `512` | Increase for heavier AI models or large API specs |
+| **Timeout** | `GenerationLambdaTimeout` | N/A | 10-900 seconds | `29` | Default matches API Gateway limit. Each retry counts against this timeout |
+| **Bedrock Model** | `BedrockModelName` | `BEDROCK_MODEL_NAME` | Any Bedrock model ID | `AmazonNovaPro` | Amazon Nova Pro is officially supported |
+| **Max Retries** | N/A | `MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES` | 0-2 | `1` | Runtime override only. Each retry requires a full Bedrock round-trip |
+| **Inference Mode** | N/A | `BEDROCK_INFERENCE_MODE` | `AUTO`, `GLOBAL_ONLY`, `GEO_ONLY` | `AUTO` | Runtime override only. `AUTO` is recommended |
+
+**Webhook / RuntimeAsync Lambda** — asynchronous webhook dispatch
+
+| Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
+|---------------|---------------|---------------------|-----------------|---------|-------|
+| **Webhook Timeout** | `WebhookTimeoutSeconds` | N/A | 5, 10, 25, 55, 115 s | `25` | Also drives RuntimeAsync Lambda timeout (value + 5s) and SQS queue visibility (RuntimeAsync timeout × 2). Used by both Runtime and RuntimeAsync Lambda functions |
+| **Sensitive Headers** | `SensitiveHeaders` | `MOCKNEST_SENSITIVE_HEADERS` | Comma-separated names | `x-api-key,authorization,...` | Redacted in S3 request journal. Applied to both Runtime and RuntimeAsync Lambda functions |
+
+**Retention**
+
+| Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
+|---------------|---------------|---------------------|-----------------|---------|-------|
+| **Log Retention** | `LogRetentionDays` | N/A | 1, 3, 5, 7, 14, 30, 60, 90+ | `7` | Applies to all Lambda functions (Runtime, Generation, RuntimeAsync) |
+| **S3 Version Retention** | `S3VersionRetentionDays` | N/A | 1-365 days | `7` | Days to keep old S3 object versions (previous mock definitions after updates) |
+| **Request Journal Retention** | `RequestJournalRetentionDays` | N/A | 1-365 days | `1` | Days to keep request journal records in S3 (`requests/` prefix) |
 
 **Configuration Precedence**: Environment variables override SAM parameters at runtime. Use SAM parameters for initial deployment configuration and environment variables for runtime adjustments without redeployment.
 
