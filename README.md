@@ -441,7 +441,7 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 | **Async Lambda Timeout** | `RuntimeAsyncTimeout` | N/A | 3-900 seconds | `30` | SAM parameter only - timeout for the RuntimeAsync Lambda function (webhook async processing) |
 | **Async Lambda Memory** | `RuntimeAsyncMemorySize` | N/A | 128-10240 MB | `256` | SAM parameter only - memory for the RuntimeAsync Lambda function |
 | **Webhook HTTP Timeout** | `WebhookTimeoutMs` | N/A | 1000-899000 ms | `25000` | SAM parameter only - timeout for outbound webhook HTTP calls. Must be less than `LambdaTimeout × 1000` |
-| **Webhook Queue Visibility** | `WebhookQueueVisibilityTimeout` | N/A | 0-43200 seconds | `60` | SAM parameter only - SQS VisibilityTimeout for the webhook queue. Should be set to `RuntimeAsyncTimeout` plus a buffer to prevent duplicate processing |
+| **Webhook Queue Visibility** | `WebhookQueueVisibilityTimeout` | N/A | 0-43200 seconds | `60` | SAM parameter only - SQS VisibilityTimeout for the webhook queue. It should be set to `RuntimeAsyncTimeout` plus a buffer to prevent duplicate processing |
 | **Request Journal Retention** | `RequestJournalRetentionDays` | N/A | 1-365 days | `1` | SAM parameter only - days to retain request journal records in S3 (under the `requests/` prefix) |
 
 **Configuration Precedence**: Environment variables override SAM parameters at runtime. Use SAM parameters for initial deployment configuration and environment variables for runtime adjustments without redeployment.
