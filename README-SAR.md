@@ -36,6 +36,7 @@ When deploying from SAR, you can configure these parameters:
 | **GenerationLambdaTimeout** | Timeout in seconds | `29` | Range: 10-900 seconds. Default matches the API Gateway synchronous limit. Each retry counts against this timeout. |
 | **BedrockGenerationMaxRetries** | Max retry attempts for AI generation if validation fails | `1` | Enforced range: 0-2. Each retry requires a full Bedrock round-trip. |
 | **BedrockModelName** | Bedrock model name | `AmazonNovaPro` | Amazon Nova Pro is officially supported and tested. Other models are experimental. See [Bedrock models](https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html). |
+| **BedrockInferenceMode** | Cross-region inference routing mode | `AUTO` | `AUTO`, `GLOBAL_ONLY`, `GEO_ONLY`. Use `GEO_ONLY` for strict data residency. See [SECURITY.md](SECURITY.md). |
 
 **Webhook / RuntimeAsync Lambda** — asynchronous webhook dispatch
 

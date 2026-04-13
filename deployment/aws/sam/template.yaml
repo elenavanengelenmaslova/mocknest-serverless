@@ -90,6 +90,22 @@ Parameters:
       Each retry requires a full Bedrock round-trip and counts against GenerationLambdaTimeout.
       Limited to 0-2 due to the API Gateway synchronous timeout (~29s).
 
+  BedrockInferenceMode:
+    Type: String
+    Default: "AUTO"
+    AllowedValues:
+      - "AUTO"
+      - "GLOBAL_ONLY"
+      - "GEO_ONLY"
+    Description: |
+      Bedrock cross-region inference routing mode for AI mock generation.
+      AUTO (default) allows Bedrock to automatically select the optimal region,
+      providing the best balance of availability and latency.
+      GLOBAL_ONLY forces all inference requests through Bedrock's global routing,
+      regardless of the deployment region.
+      GEO_ONLY restricts inference to the AWS region where this stack is deployed;
+      use this when data-residency or compliance requirements prohibit cross-region calls.
+
   BedrockModelName:
     Type: String
     Default: 'AmazonNovaPro'
@@ -624,7 +640,7 @@ Resources:
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           BEDROCK_MODEL_NAME: !Ref BedrockModelName
-          BEDROCK_INFERENCE_MODE: 'AUTO'
+          BEDROCK_INFERENCE_MODE: !Ref BedrockInferenceMode
           BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
       DeadLetterQueue:
         Type: SQS
@@ -662,7 +678,7 @@ Resources:
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           BEDROCK_MODEL_NAME: !Ref BedrockModelName
-          BEDROCK_INFERENCE_MODE: 'AUTO'
+          BEDROCK_INFERENCE_MODE: !Ref BedrockInferenceMode
           BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
       DeadLetterQueue:
         Type: SQS

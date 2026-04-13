@@ -441,7 +441,7 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 | **Timeout** | `GenerationLambdaTimeout` | N/A | 10-900 seconds | `29` | Default matches API Gateway synchronous limit (~29s). Each retry counts against this timeout |
 | **Max Retries** | `BedrockGenerationMaxRetries` | `BEDROCK_GENERATION_MAX_RETRIES` | 0-2 (enforced) | `1` | Each retry requires a full Bedrock round-trip |
 | **Bedrock Model** | `BedrockModelName` | `BEDROCK_MODEL_NAME` | Any Bedrock model ID | `AmazonNovaPro` | Amazon Nova Pro is officially supported |
-| **Inference Mode** | N/A | `BEDROCK_INFERENCE_MODE` | `AUTO`, `GLOBAL_ONLY`, `GEO_ONLY` | `AUTO` | Runtime override only. `AUTO` is recommended |
+| **Inference Mode** | `BedrockInferenceMode` | `BEDROCK_INFERENCE_MODE` | `AUTO`, `GLOBAL_ONLY`, `GEO_ONLY` | `AUTO` | Controls cross-region inference routing. Use `GEO_ONLY` for strict data residency |
 
 **Webhook / RuntimeAsync Lambda** — asynchronous webhook dispatch
 
