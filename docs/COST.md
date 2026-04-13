@@ -22,7 +22,7 @@ MockNest Serverless uses a serverless, pay-as-you-go architecture — you only p
 
 **[Amazon S3](https://aws.amazon.com/s3/pricing/)**
 - **Storage**: Mock definitions, response payloads, and metadata
-- **Versioning**: [Enabled default](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html) with [30-day lifecycle for old versions](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-configuration-examples.html)
+- **Versioning**: [Enabled default](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html) with [7-day lifecycle for old versions](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-configuration-examples.html) (configurable via `S3VersionRetentionDays`)
 - **Access**: Private bucket with lifecycle rules for cleanup
 - **Encryption**: S3 applies server-side encryption by default (AWS S3-managed keys) — not explicitly configured in the SAM template, but enabled by AWS S3's default bucket encryption behavior
 
@@ -71,7 +71,7 @@ The following AWS services are used by MockNest. See each service's pricing page
 MockNest includes several built-in cost optimization features:
 
 - **API Gateway throttling** prevents unexpected scaling costs
-- **Lifecycle policies** automatically clean up old S3 object versions  
+- **Lifecycle policies** automatically clean up old S3 object versions after 7 days (configurable via `S3VersionRetentionDays`)
 - **JVM optimizations** reduce Lambda cold start costs
 - **Response externalization** keeps payloads in S3, not Lambda memory
 - **ARM64 architecture** provides 20% Lambda cost reduction

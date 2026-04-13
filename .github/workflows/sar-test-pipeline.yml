@@ -342,9 +342,11 @@ jobs:
           health_check_with_retry() {
             local endpoint_path="$1"
             local endpoint_name="$2"
-            local max_attempts=5
+            # API_KEY mode needs more retries: usage plan propagation can take
+            # 2-3 minutes after CloudFormation creates the UsagePlanKey resource
+            local max_attempts=8
             local attempt=1
-            local backoff_delays=(10 20 30 45 60)
+            local backoff_delays=(10 20 30 45 60 90 120 120)
 
             echo ""
             echo "Checking $endpoint_name endpoint..."
@@ -495,61 +497,6 @@ jobs:
 
           # Initialize cleanup status
           CLEANUP_STATUS="success"
-
-          # Query stack outputs for bucket name before deletion
-          echo "📋 Retrieving bucket name from stack outputs..."
-          BUCKET_NAME_FROM_STACK=$(aws cloudformation describe-stacks \
-            --stack-name "$STACK_NAME" \
-            --region ${{ inputs.aws-region }} \
-            --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].\
-          OutputValue' \
-            --output text 2>/dev/null || echo "")
-
-          if [ -n "$BUCKET_NAME_FROM_STACK" ]; then
-            echo "Bucket name: $BUCKET_NAME_FROM_STACK"
-          else
-            echo "⚠️  Warning: Could not retrieve bucket name from stack outputs"
-          fi
-
-          # Clear S3 request journal and mappings before stack deletion
-          # (S3 bucket must be empty for CloudFormation to delete it)
-          AUTH_MODE="${{ inputs.auth-mode || 'API_KEY' }}"
-          if [ -n "$API_URL" ]; then
-            echo "🧹 Clearing request journal and mappings before stack deletion..."
-            if [ "$AUTH_MODE" = "IAM" ]; then
-              curl -s -o /dev/null -w "DELETE /__admin/requests: HTTP %{http_code}\n" \
-                --max-time 30 \
-                --request DELETE \
-                --aws-sigv4 "aws:amz:${{ inputs.aws-region }}:execute-api" \
-                --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
-                -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
-                "${API_URL}/__admin/requests" \
-                || echo "⚠️  Warning: Failed to clear request journal"
-              curl -s -o /dev/null -w "DELETE /__admin/mappings: HTTP %{http_code}\n" \
-                --max-time 30 \
-                --request DELETE \
-                --aws-sigv4 "aws:amz:${{ inputs.aws-region }}:execute-api" \
-                --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
-                -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
-                "${API_URL}/__admin/mappings" \
-                || echo "⚠️  Warning: Failed to clear mappings"
-            else
-              curl -s -o /dev/null -w "DELETE /__admin/requests: HTTP %{http_code}\n" \
-                --max-time 30 \
-                --request DELETE \
-                -H "x-api-key: $API_KEY_VALUE" \
-                "${API_URL}/__admin/requests" \
-                || echo "⚠️  Warning: Failed to clear request journal"
-              curl -s -o /dev/null -w "DELETE /__admin/mappings: HTTP %{http_code}\n" \
-                --max-time 30 \
-                --request DELETE \
-                -H "x-api-key: $API_KEY_VALUE" \
-                "${API_URL}/__admin/mappings" \
-                || echo "⚠️  Warning: Failed to clear mappings"
-            fi
-          else
-            echo "⚠️  Warning: API_URL not set, skipping pre-delete cleanup"
-          fi
 
           # Delete CloudFormation stack
           echo "🗑️  Deleting CloudFormation stack: $STACK_NAME"

@@ -19,6 +19,8 @@ Metadata:
       - ai
 
 Parameters:
+
+  # ── General ──
   DeploymentName:
     Type: String
     Default: 'mocks'
@@ -37,22 +39,72 @@ Parameters:
       API_KEY (default): callers supply an x-api-key header. An API key and usage plan are created automatically.
       IAM: callers sign requests with AWS Signature Version 4. No API key is created.
 
-  LambdaMemorySize:
+  # ── Runtime Lambda (serves mock responses) ──
+  RuntimeLambdaMemorySize:
     Type: Number
     Default: "512"
     MinValue: "512"
     MaxValue: "10240"
     Description: |
-      Lambda function memory size in MB.
+      Memory size in MB for the Runtime Lambda function (serves mock responses).
       Default (512 MB) determined by Lambda Power Tuner analysis for optimal cost/performance balance.
       See docs/PERFORMANCE.md for tuning methodology and results.
 
-  LambdaTimeout:
+  RuntimeLambdaTimeout:
     Type: Number
-    Default: "30"
+    Default: "10"
     MinValue: "3"
+    MaxValue: "29"
+    Description: |
+      Timeout in seconds for the Runtime Lambda function (serves mock responses).
+      Bounded by the API Gateway synchronous integration limit (~29s).
+
+  # ── Generation Lambda (AI mock generation via Bedrock) ──
+  GenerationLambdaMemorySize:
+    Type: Number
+    Default: "512"
+    MinValue: "512"
+    MaxValue: "10240"
+    Description: |
+      Memory size in MB for the Generation Lambda function (AI mock generation).
+      Increase for heavier AI models or large API specifications.
+
+  GenerationLambdaTimeout:
+    Type: Number
+    Default: "29"
+    MinValue: "10"
     MaxValue: "900"
-    Description: Lambda function timeout in seconds. Default aligns with API Gateway synchronous timeout (~29s).
+    Description: |
+      Timeout in seconds for the Generation Lambda function (AI mock generation).
+      Default (29s) matches the API Gateway synchronous limit.
+      Increase if using a slow model — each retry (see BedrockGenerationMaxRetries)
+      requires a full Bedrock round-trip and counts against this timeout.
+
+  BedrockGenerationMaxRetries:
+    Type: Number
+    Default: "1"
+    MinValue: "0"
+    MaxValue: "2"
+    Description: |
+      Maximum number of retry attempts for AI mock generation if validation fails.
+      Each retry requires a full Bedrock round-trip and counts against GenerationLambdaTimeout.
+      Limited to 0-2 due to the API Gateway synchronous timeout (~29s).
+
+  BedrockInferenceMode:
+    Type: String
+    Default: "AUTO"
+    AllowedValues:
+      - "AUTO"
+      - "GLOBAL_ONLY"
+      - "GEO_ONLY"
+    Description: |
+      Bedrock cross-region inference routing mode for AI mock generation.
+      AUTO (default) allows Bedrock to automatically select the optimal region,
+      providing the best balance of availability and latency.
+      GLOBAL_ONLY forces all inference requests through Bedrock's global routing,
+      regardless of the deployment region.
+      GEO_ONLY restricts inference to the AWS region where this stack is deployed;
+      use this when data-residency or compliance requirements prohibit cross-region calls.
 
   BedrockModelName:
     Type: String
@@ -101,60 +153,23 @@ Parameters:
       - MetaLlama3_3_70BInstruct
     ConstraintDescription: Must be a valid BedrockModels constant name
 
-  BedrockInferenceMode:
-    Type: String
-    Default: 'AUTO'
-    Description: |
-      Inference profile selection mode for Bedrock model access:
-      - AUTO: Try region-specific inference profile first, then global (recommended for most use cases, especially Nova models)
-      - GLOBAL_ONLY: Force global inference profile only (use when model is only available globally)
-      - GEO_ONLY: Force region-specific inference profile only (use for data residency requirements)
+  # ── Webhook / RuntimeAsync Lambda (async webhook dispatch) ──
+  WebhookTimeoutSeconds:
+    Type: Number
+    Default: "25"
     AllowedValues:
-      - AUTO
-      - GLOBAL_ONLY
-      - GEO_ONLY
-    ConstraintDescription: Must be AUTO, GLOBAL_ONLY, or GEO_ONLY
-
-  BedrockGenerationMaxRetries:
-    Type: Number
-    Default: "1"
-    MinValue: "0"
-    MaxValue: "2"
-    Description: Maximum number of retry attempts for AI mock generation if validation fails. Limited to 0-2 due to API Gateway synchronous timeout (~29s).
-
-  RuntimeAsyncTimeout:
-    Type: Number
-    Default: "30"
-    MinValue: "3"
-    MaxValue: "900"
-    Description: Timeout in seconds for the RuntimeAsync Lambda function.
-
-  RuntimeAsyncMemorySize:
-    Type: Number
-    Default: "256"
-    MinValue: "128"
-    MaxValue: "10240"
-    Description: Memory size in MB for the RuntimeAsync Lambda function.
-
-  WebhookTimeoutMs:
-    Type: Number
-    Default: "25000"
-    MinValue: "1000"
-    MaxValue: "899000"
+      - 5
+      - 10
+      - 25
+      - 55
+      - 115
     Description: |
-      Timeout in milliseconds for outbound webhook HTTP calls.
-      Must be less than LambdaTimeout * 1000 to avoid the Lambda being killed before the HTTP client times out.
-      Default (25000 ms) provides a 5 s safety buffer against the default LambdaTimeout of 30 s.
-
-  WebhookQueueVisibilityTimeout:
-    Type: Number
-    Default: "60"
-    MinValue: "0"
-    MaxValue: "43200"
-    Description: |
-      SQS VisibilityTimeout in seconds for the webhook queue.
-      Should be set to RuntimeAsyncTimeout plus a buffer to prevent duplicate processing.
-      Default (60 s) = RuntimeAsyncTimeout default (30 s) + 30 s buffer.
+      Timeout in seconds for outbound webhook HTTP calls made by the RuntimeAsync Lambda.
+      This value drives three derived settings:
+        - RuntimeAsync Lambda timeout = this value + 5 s
+        - RuntimeAsync webhook HTTP client timeout = this value (in milliseconds)
+        - SQS webhook queue visibility timeout = RuntimeAsync Lambda timeout × 6 (AWS best practice)
+      Default (25 s) → RuntimeAsync Lambda timeout 30 s, queue visibility 180 s.
 
   SensitiveHeaders:
     Type: String
@@ -162,7 +177,9 @@ Parameters:
     Description: |
       Comma-separated list of HTTP header names whose values are redacted in the S3 request journal.
       Header names are matched case-insensitively.
+      Applied to both the Runtime Lambda and RuntimeAsync Lambda.
 
+  # ── Retention ──
   LogRetentionDays:
     Type: Number
     Default: "7"
@@ -189,14 +206,50 @@ Parameters:
       - 2922
       - 3288
       - 3653
-    Description: Number of days to retain CloudWatch logs for Lambda functions.
+    Description: Number of days to retain CloudWatch logs. Applies to all Lambda functions (Runtime, Generation, RuntimeAsync).
+
+  S3VersionRetentionDays:
+    Type: Number
+    Default: "7"
+    MinValue: "1"
+    MaxValue: "365"
+    Description: |
+      Number of days to retain noncurrent S3 object versions (old mock definitions after updates).
+      Default is 7 days.
 
   RequestJournalRetentionDays:
     Type: Number
     Default: "1"
     MinValue: "1"
     MaxValue: "365"
-    Description: Number of days to retain request journal records in S3 (under the requests/ prefix). Default is 1 day (24 hours).
+    Description: |
+      Number of days to retain request journal records in S3 (under the requests/ prefix).
+      These are the actual journal objects, not versions. Default is 1 day.
+
+
+Mappings:
+  # QueueVisibilitySeconds = AsyncTimeoutSeconds × 6 (AWS best practice for SQS event source mappings)
+  WebhookTimeoutConfig:
+    "5":
+      AsyncTimeoutSeconds: 10
+      QueueVisibilitySeconds: 60
+      WebhookTimeoutMillis: 5000
+    "10":
+      AsyncTimeoutSeconds: 15
+      QueueVisibilitySeconds: 90
+      WebhookTimeoutMillis: 10000
+    "25":
+      AsyncTimeoutSeconds: 30
+      QueueVisibilitySeconds: 180
+      WebhookTimeoutMillis: 25000
+    "55":
+      AsyncTimeoutSeconds: 60
+      QueueVisibilitySeconds: 360
+      WebhookTimeoutMillis: 55000
+    "115":
+      AsyncTimeoutSeconds: 120
+      QueueVisibilitySeconds: 720
+      WebhookTimeoutMillis: 115000
 
 Conditions:
   IsIamMode: !Equals [!Ref AuthMode, 'IAM']
@@ -207,8 +260,6 @@ Globals:
     Runtime: java25
     Architectures:
       - arm64
-    MemorySize: !Ref LambdaMemorySize
-    Timeout: !Ref LambdaTimeout
     Environment:
       Variables:
         SPRING_PROFILES_ACTIVE: aws
@@ -233,7 +284,7 @@ Resources:
               DaysAfterInitiation: 7
           - Id: DeleteOldVersions
             Status: Enabled
-            NoncurrentVersionExpirationInDays: 30
+            NoncurrentVersionExpirationInDays: !Ref S3VersionRetentionDays
           - Id: ExpireRequestJournalRecords
             Status: Enabled
             Prefix: requests/
@@ -405,7 +456,7 @@ Resources:
     Properties:
       QueueName: !Sub "${AWS::StackName}-webhook-queue"
       SqsManagedSseEnabled: true
-      VisibilityTimeout: !Ref WebhookQueueVisibilityTimeout
+      VisibilityTimeout: !FindInMap [WebhookTimeoutConfig, !Ref WebhookTimeoutSeconds, QueueVisibilitySeconds]
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt MockNestWebhookDLQ.Arn
         maxReceiveCount: 3
@@ -488,6 +539,8 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
+      Timeout: !Ref RuntimeLambdaTimeout
+      MemorySize: !Ref RuntimeLambdaMemorySize
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
@@ -499,7 +552,6 @@ Resources:
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           MOCKNEST_SENSITIVE_HEADERS: !Ref SensitiveHeaders
-          MOCKNEST_WEBHOOK_TIMEOUT_MS: !Ref WebhookTimeoutMs
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl
           MOCKNEST_REQUEST_JOURNAL_PREFIX: "requests/"
       DeadLetterQueue:
@@ -531,6 +583,8 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestLambdaRole.Arn
+      Timeout: !Ref RuntimeLambdaTimeout
+      MemorySize: !Ref RuntimeLambdaMemorySize
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
@@ -542,7 +596,6 @@ Resources:
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           MOCKNEST_SENSITIVE_HEADERS: !Ref SensitiveHeaders
-          MOCKNEST_WEBHOOK_TIMEOUT_MS: !Ref WebhookTimeoutMs
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl
           MOCKNEST_REQUEST_JOURNAL_PREFIX: "requests/"
       DeadLetterQueue:
@@ -574,6 +627,8 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestGenerationLambdaRole.Arn
+      Timeout: !Ref GenerationLambdaTimeout
+      MemorySize: !Ref GenerationLambdaMemorySize
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
@@ -586,7 +641,7 @@ Resources:
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           BEDROCK_MODEL_NAME: !Ref BedrockModelName
           BEDROCK_INFERENCE_MODE: !Ref BedrockInferenceMode
-          MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
+          BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
       DeadLetterQueue:
         Type: SQS
         TargetArn: !GetAtt MockNestDLQ.Arn
@@ -610,6 +665,8 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestGenerationLambdaRole.Arn
+      Timeout: !Ref GenerationLambdaTimeout
+      MemorySize: !Ref GenerationLambdaMemorySize
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
@@ -622,7 +679,7 @@ Resources:
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           BEDROCK_MODEL_NAME: !Ref BedrockModelName
           BEDROCK_INFERENCE_MODE: !Ref BedrockInferenceMode
-          MOCKNEST_BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
+          BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
       DeadLetterQueue:
         Type: SQS
         TargetArn: !GetAtt MockNestDLQ.Arn
@@ -646,8 +703,8 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestRuntimeAsyncRole.Arn
-      Timeout: !Ref RuntimeAsyncTimeout
-      MemorySize: !Ref RuntimeAsyncMemorySize
+      Timeout: !FindInMap [WebhookTimeoutConfig, !Ref WebhookTimeoutSeconds, AsyncTimeoutSeconds]
+      MemorySize: 256
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
@@ -657,6 +714,7 @@ Resources:
           SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeAsyncRouter"
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+          MOCKNEST_WEBHOOK_TIMEOUT_MS: !FindInMap [WebhookTimeoutConfig, !Ref WebhookTimeoutSeconds, WebhookTimeoutMillis]
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl
           MOCKNEST_SENSITIVE_HEADERS: !Ref SensitiveHeaders
       Tags:
@@ -678,8 +736,8 @@ Resources:
       CodeUri: ../../../build/dist/mocknest-serverless.jar
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestRuntimeAsyncRole.Arn
-      Timeout: !Ref RuntimeAsyncTimeout
-      MemorySize: !Ref RuntimeAsyncMemorySize
+      Timeout: !FindInMap [WebhookTimeoutConfig, !Ref WebhookTimeoutSeconds, AsyncTimeoutSeconds]
+      MemorySize: 256
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
@@ -689,6 +747,7 @@ Resources:
           SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeAsyncRouter"
           MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+          MOCKNEST_WEBHOOK_TIMEOUT_MS: !FindInMap [WebhookTimeoutConfig, !Ref WebhookTimeoutSeconds, WebhookTimeoutMillis]
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl
           MOCKNEST_SENSITIVE_HEADERS: !Ref SensitiveHeaders
       Tags:
