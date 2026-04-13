@@ -1,13 +1,12 @@
 package nl.vintik.mocknest.application.runtime.journal
 
-import com.fasterxml.jackson.module.kotlin.readValue
+import com.github.tomakehurst.wiremock.common.Json
 import com.github.tomakehurst.wiremock.store.RequestJournalStore
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.application.runtime.config.WebhookConfig
 import nl.vintik.mocknest.application.runtime.extensions.RedactSensitiveHeadersFilter
@@ -65,7 +64,7 @@ class S3RequestJournalStore(
     override fun get(key: UUID): Optional<ServeEvent> = runBlocking {
         runCatching {
             val json = storage.get("$prefix$key") ?: return@runBlocking Optional.empty()
-            Optional.ofNullable(mapper.readValue<ServeEvent>(json))
+            Optional.ofNullable(Json.getObjectMapper().readValue(json, ServeEvent::class.java))
         }.getOrElse { e ->
             logger.warn(e) { "S3RequestJournalStore: failed to get key=$key" }
             Optional.empty()
@@ -114,7 +113,7 @@ class S3RequestJournalStore(
             for (key in keys) {
                 runCatching {
                     val json = storage.get(key) ?: return@runCatching
-                    events.add(mapper.readValue(json))
+                    events.add(Json.getObjectMapper().readValue(json, ServeEvent::class.java))
                 }.onFailure { e ->
                     logger.warn(e) { "S3RequestJournalStore: failed to deserialize key=$key" }
                 }
