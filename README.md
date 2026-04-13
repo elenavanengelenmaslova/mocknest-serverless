@@ -430,14 +430,14 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 
 | Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
 |---------------|---------------|---------------------|-----------------|---------|-------|
-| **Memory** | `RuntimeLambdaMemorySize` | N/A | 512-10240 MB | `512` | Default optimized via Lambda Power Tuner |
+| **Memory** | `RuntimeLambdaMemorySize` | N/A | 256-10240 MB | `512` | Default optimized via Lambda Power Tuner. Increase for large mock response payloads. See [PERFORMANCE.md](docs/PERFORMANCE.md) |
 | **Timeout** | `RuntimeLambdaTimeout` | N/A | 3-29 seconds | `10` | Bounded by API Gateway synchronous limit (~29s) |
 
 **Generation Lambda** — AI mock generation via Bedrock
 
 | Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
 |---------------|---------------|---------------------|-----------------|---------|-------|
-| **Memory** | `GenerationLambdaMemorySize` | N/A | 512-10240 MB | `512` | Increase for heavier AI models or large API specs |
+| **Memory** | `GenerationLambdaMemorySize` | N/A | 256-10240 MB | `512` | Default optimized via Lambda Power Tuner. See [PERFORMANCE.md](docs/PERFORMANCE.md) |
 | **Timeout** | `GenerationLambdaTimeout` | N/A | 10-900 seconds | `29` | Default matches API Gateway synchronous limit (~29s). Each retry counts against this timeout |
 | **Max Retries** | `BedrockGenerationMaxRetries` | `BEDROCK_GENERATION_MAX_RETRIES` | 0-2 (enforced) | `1` | Each retry requires a full Bedrock round-trip |
 | **Bedrock Model** | `BedrockModelName` | `BEDROCK_MODEL_NAME` | Any Bedrock model ID | `AmazonNovaPro` | Amazon Nova Pro is officially supported |
@@ -448,6 +448,7 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 | Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
 |---------------|---------------|---------------------|-----------------|---------|-------|
 | **Webhook Timeout** | `WebhookTimeoutSeconds` | N/A | 5, 10, 25, 55, 115 s | `25` | Also drives RuntimeAsync Lambda timeout (value + 5s) and SQS queue visibility (RuntimeAsync timeout × 6, per AWS best practice) |
+| **RuntimeAsync Memory** | `RuntimeAsyncLambdaMemorySize` | N/A | 256-10240 MB | `256` | Memory for the RuntimeAsync Lambda (webhook dispatch via SQS). Default optimized via Lambda Power Tuner. See [PERFORMANCE.md](docs/PERFORMANCE.md) |
 | **Sensitive Headers** | `SensitiveHeaders` | `MOCKNEST_SENSITIVE_HEADERS` | Comma-separated names | `x-api-key,authorization,...` | Redacted in S3 request journal. Applied to both Runtime and RuntimeAsync Lambda functions |
 
 **Retention**
