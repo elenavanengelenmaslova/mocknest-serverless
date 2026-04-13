@@ -32,6 +32,19 @@ class S3RequestJournalStore(
 
     private val prefix: String get() = webhookConfig.requestJournalPrefix
 
+    @Volatile
+    private var writesEnabled = true
+
+    /** Suppress S3 writes — used during SnapStart priming to avoid creating versioned objects. */
+    fun suppressWrites() {
+        writesEnabled = false
+    }
+
+    /** Re-enable S3 writes — must be called before SnapStart snapshot is taken. */
+    fun enableWrites() {
+        writesEnabled = true
+    }
+
     // ── Store<UUID, ServeEvent> ───────────────────────────────────────────────
 
     override fun getAllKeys(): Stream<UUID> = runBlocking {
@@ -60,6 +73,10 @@ class S3RequestJournalStore(
     }
 
     override fun put(key: UUID, event: ServeEvent) = runBlocking {
+        if (!writesEnabled) {
+            logger.debug { "S3RequestJournalStore: writes suppressed (priming mode), skipping put for key=$key" }
+            return@runBlocking
+        }
         runCatching {
             val redactedJson = redactFilter.redactServeEvent(event)
             storage.save("$prefix$key", redactedJson)

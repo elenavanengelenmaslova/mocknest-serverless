@@ -231,7 +231,7 @@ MockNest Serverless provides multiple ways to interact with the API:
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
    - **RuntimeLambdaMemorySize**: Runtime Lambda memory in MB (default: 512)
    - **GenerationLambdaMemorySize**: Generation Lambda memory in MB (default: 512)
-   - **RuntimeLambdaTimeout**: Mock serving timeout in seconds (default: 10)
+   - **RuntimeLambdaTimeout**: Mock serving timeout in seconds (default: 29)
    - **GenerationLambdaTimeout**: AI generation timeout in seconds (default: 29)
 
 ### Getting Started After Deployment
@@ -433,7 +433,7 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 | Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
 |---------------|---------------|---------------------|-----------------|---------|-------|
 | **Memory** | `RuntimeLambdaMemorySize` | N/A | 256-10240 MB | `512` | Default optimized via Lambda Power Tuner. Increase for large mock response payloads. See [PERFORMANCE.md](docs/PERFORMANCE.md) |
-| **Timeout** | `RuntimeLambdaTimeout` | N/A | 3-29 seconds | `10` | Bounded by API Gateway synchronous limit (~29s) |
+| **Timeout** | `RuntimeLambdaTimeout` | N/A | 3-29 seconds | `29` | Bounded by API Gateway synchronous limit (~29s) |
 
 **Generation Lambda** — AI mock generation via Bedrock
 

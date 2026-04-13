@@ -39,16 +39,25 @@ class MockNestConfig {
     fun wiremockFilesBlobStore(storage: ObjectStorageInterface): BlobStore = ObjectStorageBlobStore(storage)
 
     @Bean
+    fun redactSensitiveHeadersFilter(webhookConfig: WebhookConfig) = RedactSensitiveHeadersFilter(webhookConfig)
+
+    @Bean
+    fun s3RequestJournalStore(
+        storage: ObjectStorageInterface,
+        webhookConfig: WebhookConfig,
+        redactFilter: RedactSensitiveHeadersFilter,
+    ) = S3RequestJournalStore(storage, webhookConfig, redactFilter)
+
+    @Bean
     fun wireMockServer(
         directCallHttpServerFactory: DirectCallHttpServerFactory,
         storage: ObjectStorageInterface,
         webhookConfig: WebhookConfig,
         sqsPublisher: SqsPublisherInterface,
         @Value("\${MOCKNEST_WEBHOOK_QUEUE_URL:}") webhookQueueUrl: String,
+        journalStore: S3RequestJournalStore,
+        redactFilter: RedactSensitiveHeadersFilter,
     ): WireMockServer {
-        val redactFilter = RedactSensitiveHeadersFilter(webhookConfig)
-        val journalStore = S3RequestJournalStore(storage, webhookConfig, redactFilter)
-
         val extensions = mutableListOf<Extension>(
             NormalizeMappingBodyFilter(storage),
             DeleteAllMappingsAndFilesFilter(storage),

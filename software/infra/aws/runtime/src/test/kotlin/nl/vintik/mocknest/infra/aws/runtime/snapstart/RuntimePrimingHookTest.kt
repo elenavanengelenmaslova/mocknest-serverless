@@ -3,9 +3,11 @@ package nl.vintik.mocknest.infra.aws.runtime.snapstart
 import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.HeadBucketResponse
 import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.direct.DirectCallHttpServer
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
+import nl.vintik.mocknest.application.runtime.journal.S3RequestJournalStore
 import nl.vintik.mocknest.domain.core.HttpResponse
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
@@ -33,11 +35,15 @@ class RuntimePrimingHookTest {
     private val mockS3Client: S3Client = mockk(relaxed = true)
     private val testBucketName = "test-bucket"
     private val mockWireMockServer: WireMockServer = mockk(relaxed = true)
+    private val mockDirectCallHttpServer: DirectCallHttpServer = mockk(relaxed = true)
+    private val mockJournalStore: S3RequestJournalStore = mockk(relaxed = true)
     private val primingHook = RuntimePrimingHook(
         mockHealthCheckUseCase,
         mockS3Client,
         testBucketName,
-        mockWireMockServer
+        mockWireMockServer,
+        mockDirectCallHttpServer,
+        mockJournalStore
     )
 
     @AfterEach
@@ -63,6 +69,9 @@ class RuntimePrimingHookTest {
             coVerify { mockS3Client.headBucket(any()) }
             verify { mockWireMockServer.stubFor(any()) }
             verify { mockWireMockServer.removeStubMapping(any<UUID>()) }
+            verify { mockDirectCallHttpServer.stubRequest(any()) }
+            verify { mockJournalStore.suppressWrites() }
+            verify { mockJournalStore.enableWrites() }
         }
 
         @Test

@@ -252,12 +252,16 @@ class PreservationPropertyTest {
             }
 
             val factory = config.directCallHttpServerFactory()
+            val redactFilter = config.redactSensitiveHeadersFilter(webhookConfig)
+            val journalStore = config.s3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
             val server = config.wireMockServer(
                 factory,
                 mockStorage,
                 webhookConfig,
                 capturingSqsPublisher,
                 "https://sqs.eu-west-1.amazonaws.com/123/test-queue", // non-blank
+                journalStore,
+                redactFilter,
             )
 
             try {
@@ -303,12 +307,16 @@ class PreservationPropertyTest {
             }
 
             val factory = config.directCallHttpServerFactory()
+            val redactFilter = config.redactSensitiveHeadersFilter(webhookConfig)
+            val journalStore = config.s3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
             val server = config.wireMockServer(
                 factory,
                 mockStorage,
                 webhookConfig,
                 capturingSqsPublisher,
                 "https://sqs.eu-west-1.amazonaws.com/123/test-queue",
+                journalStore,
+                redactFilter,
             )
 
             try {

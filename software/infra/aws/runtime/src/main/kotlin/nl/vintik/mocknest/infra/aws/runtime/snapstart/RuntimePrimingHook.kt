@@ -4,10 +4,14 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.HeadBucketRequest
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.direct.DirectCallHttpServer
+import com.github.tomakehurst.wiremock.http.ImmutableRequest
+import com.github.tomakehurst.wiremock.http.RequestMethod
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
+import nl.vintik.mocknest.application.runtime.journal.S3RequestJournalStore
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.annotation.Profile
@@ -28,7 +32,8 @@ private val logger = KotlinLogging.logger {}
  * - Detects SnapStart environment using AWS_LAMBDA_INITIALIZATION_TYPE
  * - Warms up health check endpoint
  * - Initializes S3 client connections
- * - Exercises WireMock engine (create/remove non-persistent stub — no S3 writes)
+ * - Exercises WireMock engine (create stub, send request through matching engine, remove stub)
+ * - Suppresses S3 journal writes during priming to avoid creating versioned objects
  * - Uses graceful degradation for non-critical failures
  */
 @Component
@@ -37,7 +42,9 @@ class RuntimePrimingHook(
     private val healthCheckUseCase: GetRuntimeHealth,
     private val s3Client: S3Client,
     @param:Value($$"${storage.bucket.name}") private val bucketName: String,
-    private val wireMockServer: WireMockServer
+    private val wireMockServer: WireMockServer,
+    private val directCallHttpServer: DirectCallHttpServer,
+    private val journalStore: S3RequestJournalStore
 ) {
     
     /**
@@ -97,14 +104,18 @@ class RuntimePrimingHook(
     }
     
     /**
-     * Exercise WireMock engine to warm up stub matching and routing code paths.
+     * Exercise WireMock engine to warm up stub matching, routing, and response rendering.
      *
-     * Uses a non-persistent, body-free stub so no data is written to S3:
-     * - persistent(false): WireMock skips ObjectStorageMappingsSource.save/remove → no mappings/ write
-     * - no response body:  NormalizeMappingBodyFilter is a no-op → no __files/ write
-     * - no stubRequest():  S3RequestJournalStore.add() is never triggered → no requests/ write
+     * Creates a non-persistent stub, suppresses S3 journal writes, sends a request
+     * through the full matching engine via [DirectCallHttpServer.stubRequest], then
+     * re-enables journal writes and removes the stub.
      *
-     * Exercises: WireMock stub creation, in-memory matching tree update, stub removal.
+     * The stubRequest() call exercises the complete request path: matching tree lookup,
+     * response rendering, redaction filter, and Jackson serialization. S3 journal writes
+     * are suppressed to avoid creating versioned objects that would prevent bucket cleanup.
+     *
+     * Journal writes are always re-enabled before this method returns (even on failure)
+     * to ensure the flag is `false` when the SnapStart snapshot is taken.
      *
      * @throws Exception if any step fails (caught by caller's runCatching)
      */
@@ -119,6 +130,18 @@ class RuntimePrimingHook(
                 .willReturn(WireMock.aResponse().withStatus(200))
         )
         logger.debug { "Created non-persistent test mapping: $testMappingId" }
+
+        try {
+            journalStore.suppressWrites()
+            val primingRequest = ImmutableRequest.create()
+                .withAbsoluteUrl("http://mocknest.internal$testPath")
+                .withMethod(RequestMethod.GET)
+                .build()
+            directCallHttpServer.stubRequest(primingRequest)
+            logger.debug { "Executed priming request through WireMock matching engine" }
+        } finally {
+            journalStore.enableWrites()
+        }
 
         wireMockServer.removeStubMapping(testMappingId)
         logger.debug { "Removed non-persistent test mapping: $testMappingId" }
