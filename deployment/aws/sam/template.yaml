@@ -43,7 +43,7 @@ Parameters:
   RuntimeLambdaMemorySize:
     Type: Number
     Default: "512"
-    MinValue: "512"
+    MinValue: "256"
     MaxValue: "10240"
     Description: |
       Memory size in MB for the Runtime Lambda function (serves mock responses).
@@ -63,7 +63,7 @@ Parameters:
   GenerationLambdaMemorySize:
     Type: Number
     Default: "512"
-    MinValue: "512"
+    MinValue: "256"
     MaxValue: "10240"
     Description: |
       Memory size in MB for the Generation Lambda function (AI mock generation).
@@ -154,6 +154,15 @@ Parameters:
     ConstraintDescription: Must be a valid BedrockModels constant name
 
   # ── Webhook / RuntimeAsync Lambda (async webhook dispatch) ──
+  RuntimeAsyncLambdaMemorySize:
+    Type: Number
+    Default: "256"
+    MinValue: "256"
+    MaxValue: "10240"
+    Description: |
+      Memory size in MB for the RuntimeAsync Lambda function (asynchronous webhook dispatch via SQS).
+      Default (256 MB) is sufficient for outbound HTTP calls. Increase if webhook payloads are large.
+
   WebhookTimeoutSeconds:
     Type: Number
     Default: "25"
@@ -704,7 +713,7 @@ Resources:
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestRuntimeAsyncRole.Arn
       Timeout: !FindInMap [WebhookTimeoutConfig, !Ref WebhookTimeoutSeconds, AsyncTimeoutSeconds]
-      MemorySize: 256
+      MemorySize: !Ref RuntimeAsyncLambdaMemorySize
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions
@@ -737,7 +746,7 @@ Resources:
       Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
       Role: !GetAtt MockNestRuntimeAsyncRole.Arn
       Timeout: !FindInMap [WebhookTimeoutConfig, !Ref WebhookTimeoutSeconds, AsyncTimeoutSeconds]
-      MemorySize: 256
+      MemorySize: !Ref RuntimeAsyncLambdaMemorySize
       AutoPublishAlias: live
       SnapStart:
         ApplyOn: PublishedVersions

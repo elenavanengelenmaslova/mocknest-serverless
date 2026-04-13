@@ -78,7 +78,7 @@ jobs:
           # Generate unique stack name
           # Generate auth-mode suffix for stack name isolation
           AUTH_MODE_SUFFIX=$(echo "${{ inputs.auth-mode || 'API_KEY' }}" | tr '[:upper:]' '[:lower:]' | tr '_' '-')
-          STACK_NAME="mocknest-sar-test-${{ github.run_id }}-${AUTH_MODE_SUFFIX}"
+          STACK_NAME="sar-${{ github.run_id }}-${AUTH_MODE_SUFFIX}"
           echo "STACK_NAME=$STACK_NAME" >> $GITHUB_ENV
 
           # Set SAR application URL (always from eu-west-1 where it's published)
@@ -204,8 +204,7 @@ jobs:
               aws cloudformation describe-stack-events \
                 --stack-name "$ACTUAL_STACK_NAME" \
                 --region ${{ inputs.aws-region }} \
-                --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].\
-          [Timestamp,ResourceType,LogicalResourceId,ResourceStatusReason]' \
+                --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].[Timestamp,ResourceType,LogicalResourceId,ResourceStatusReason]' \
                 --output table || echo "Failed to retrieve stack events"
 
               exit 1
