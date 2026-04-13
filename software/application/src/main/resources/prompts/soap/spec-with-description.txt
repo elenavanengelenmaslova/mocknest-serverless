@@ -34,6 +34,13 @@ SOAP 1.2 request matching rules (IMPORTANT):
     - Do not use a wildcard-nested matcher like "matches": ".*" inside matchesXPath.
 - If an XPath matcher uses namespace prefixes (e.g., `soap:Envelope`), you MUST include the `xPathNamespaces` field in the request matcher to define those prefixes
   - Example: `"xPathNamespaces": { "soap": "http://www.w3.org/2003/05/soap-envelope" }`
+- IMPORTANT: In a bodyPatterns item, `xPathNamespaces` MUST be a sibling of `matchesXPath`, not nested inside it.
+- Valid example:
+  { "matchesXPath": "//tns:Multiply", "xPathNamespaces": { "tns": "http://tempuri.org/" } }
+- Invalid example:
+  { "matchesXPath": { "expression": "//tns:Multiply", "xPathNamespaces": { "tns": "http://tempuri.org/" } } }
+- When possible, prefer `matchesXPath` as a simple string.
+- If matching scalar values in XPath, use quoted text values like `text()='6'`, not `text()=6`.
 - Preserve WSDL scalar types exactly.
 - Do not emit duplicate mappings.
 
