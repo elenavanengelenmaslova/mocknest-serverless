@@ -262,6 +262,7 @@ Resources:
             Status: Enabled
             Prefix: requests/
             ExpirationInDays: !Ref RequestJournalRetentionDays
+            NoncurrentVersionExpirationInDays: !Ref RequestJournalRetentionDays
       Tags:
         - Key: Application
           Value: MockNest-Serverless
