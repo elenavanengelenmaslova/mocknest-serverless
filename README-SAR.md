@@ -233,7 +233,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 
 **Current Limitations**:
 - AI generation supports REST, SOAP 1.2 and GraphQL APIs. SOAP 1.1 API generation is not supported, but can be added manually through runtime admin API.
-- **AI Generation Timeout**: The default API Gateway REST API has a synchronous integration timeout of ~29 seconds. This limits how many AI correction retries can complete within a single request. The default is 1 retry (configurable via the `BEDROCK_GENERATION_MAX_RETRIES` environment variable); values above 2 are unlikely to complete within the timeout. Users needing longer synchronous requests can switch to a Regional or private REST API endpoint type, and then request an AWS integration timeout increase (timeout increases are only available for Regional or private REST APIs).
+- **AI Generation Timeout**: The default API Gateway REST API has a synchronous integration timeout of ~29 seconds. This limits how many AI correction retries can complete within a single request. The default is 1 retry (configurable via the `BedrockGenerationMaxRetries` SAR parameter); values above 2 are unlikely to complete within the timeout. Users needing longer synchronous requests can switch to a Regional or private REST API endpoint type, and then request an AWS integration timeout increase (timeout increases are only available for Regional or private REST APIs).
 
 ## Architecture and Data Persistence
 
