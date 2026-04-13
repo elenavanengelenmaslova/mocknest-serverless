@@ -77,8 +77,18 @@ Parameters:
     Description: |
       Timeout in seconds for the Generation Lambda function (AI mock generation).
       Default (29s) matches the API Gateway synchronous limit.
-      Increase if using a slow model — each retry (configured via the BEDROCK_GENERATION_MAX_RETRIES
-      environment variable, default 1) requires a full Bedrock round-trip and counts against this timeout.
+      Increase if using a slow model — each retry (see BedrockGenerationMaxRetries)
+      requires a full Bedrock round-trip and counts against this timeout.
+
+  BedrockGenerationMaxRetries:
+    Type: Number
+    Default: "1"
+    MinValue: "0"
+    MaxValue: "2"
+    Description: |
+      Maximum number of retry attempts for AI mock generation if validation fails.
+      Each retry requires a full Bedrock round-trip and counts against GenerationLambdaTimeout.
+      Limited to 0-2 due to the API Gateway synchronous timeout (~29s).
 
   BedrockModelName:
     Type: String
@@ -615,7 +625,7 @@ Resources:
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           BEDROCK_MODEL_NAME: !Ref BedrockModelName
           BEDROCK_INFERENCE_MODE: 'AUTO'
-          BEDROCK_GENERATION_MAX_RETRIES: '1'
+          BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
       DeadLetterQueue:
         Type: SQS
         TargetArn: !GetAtt MockNestDLQ.Arn
@@ -653,7 +663,7 @@ Resources:
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           BEDROCK_MODEL_NAME: !Ref BedrockModelName
           BEDROCK_INFERENCE_MODE: 'AUTO'
-          BEDROCK_GENERATION_MAX_RETRIES: '1'
+          BEDROCK_GENERATION_MAX_RETRIES: !Ref BedrockGenerationMaxRetries
       DeadLetterQueue:
         Type: SQS
         TargetArn: !GetAtt MockNestDLQ.Arn
