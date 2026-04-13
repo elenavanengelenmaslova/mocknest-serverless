@@ -142,8 +142,8 @@ Parameters:
       This value drives three derived settings:
         - RuntimeAsync Lambda timeout = this value + 5 s
         - RuntimeAsync webhook HTTP client timeout = this value (in milliseconds)
-        - SQS webhook queue visibility timeout = RuntimeAsync Lambda timeout × 2
-      Default (25 s) → RuntimeAsync Lambda timeout 30 s, queue visibility 60 s.
+        - SQS webhook queue visibility timeout = RuntimeAsync Lambda timeout × 6 (AWS best practice)
+      Default (25 s) → RuntimeAsync Lambda timeout 30 s, queue visibility 180 s.
 
   SensitiveHeaders:
     Type: String
@@ -202,26 +202,27 @@ Parameters:
 
 
 Mappings:
+  # QueueVisibilitySeconds = AsyncTimeoutSeconds × 6 (AWS best practice for SQS event source mappings)
   WebhookTimeoutConfig:
     "5":
       AsyncTimeoutSeconds: 10
-      QueueVisibilitySeconds: 20
+      QueueVisibilitySeconds: 60
       WebhookTimeoutMillis: 5000
     "10":
       AsyncTimeoutSeconds: 15
-      QueueVisibilitySeconds: 30
+      QueueVisibilitySeconds: 90
       WebhookTimeoutMillis: 10000
     "25":
       AsyncTimeoutSeconds: 30
-      QueueVisibilitySeconds: 60
+      QueueVisibilitySeconds: 180
       WebhookTimeoutMillis: 25000
     "55":
       AsyncTimeoutSeconds: 60
-      QueueVisibilitySeconds: 120
+      QueueVisibilitySeconds: 360
       WebhookTimeoutMillis: 55000
     "115":
       AsyncTimeoutSeconds: 120
-      QueueVisibilitySeconds: 240
+      QueueVisibilitySeconds: 720
       WebhookTimeoutMillis: 115000
 
 Conditions:
