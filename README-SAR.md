@@ -46,6 +46,8 @@ When deploying from SAR, you can configure these parameters:
 
 **Note**: Before deploying with AI features, ensure Amazon Bedrock model access is enabled in your AWS account. Go to Amazon Bedrock console → Model access → Enable access for Amazon Nova Pro.
 
+**Stack name length**: AWS Lambda function names are limited to 64 characters. MockNest appends suffixes like `-runtime-async` (14 chars) to the stack name. SAR prepends `serverlessrepo-` (16 chars) to your chosen application name. Keep the application name short to avoid exceeding the limit — the default `MockNest-Serverless` works fine.
+
 ## Getting Your API Details
 
 After deployment, find your API Gateway endpoint and API key in the CloudFormation stack outputs:
