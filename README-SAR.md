@@ -44,7 +44,7 @@ When deploying from SAR, you can configure these parameters:
 - **S3VersionRetentionDays** (default: `7`): days to retain old S3 object versions — previous mock definitions after updates (range: 1–365).
 - **RequestJournalRetentionDays** (default: `1`): days to retain request journal records in S3 under the `requests/` prefix (range: 1–365).
 
-**Note**: Before deploying with AI features, ensure Amazon Bedrock model access is enabled in your AWS account. Go to Amazon Bedrock console → Model access → Enable access for Amazon Nova Pro.
+**Note**: If AI mock generation returns a model access error, check that Amazon Bedrock model access is enabled for your chosen model in your AWS account.
 
 **Stack name length**: AWS Lambda function names are limited to 64 characters. MockNest appends suffixes like `-runtime-async` (14 chars) to the stack name. SAR prepends `serverlessrepo-` (16 chars) to your chosen application name. Keep the application name short to avoid exceeding the limit — the default `MockNest-Serverless` works fine.
 
