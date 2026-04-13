@@ -204,8 +204,7 @@ jobs:
               aws cloudformation describe-stack-events \
                 --stack-name "$ACTUAL_STACK_NAME" \
                 --region ${{ inputs.aws-region }} \
-                --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].\
-          [Timestamp,ResourceType,LogicalResourceId,ResourceStatusReason]' \
+                --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].[Timestamp,ResourceType,LogicalResourceId,ResourceStatusReason]' \
                 --output table || echo "Failed to retrieve stack events"
 
               exit 1
