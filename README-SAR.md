@@ -40,7 +40,7 @@ When deploying from SAR, you can configure these parameters:
 
 | Parameter | Description | Default | Notes |
 |-----------|-------------|---------|-------|
-| **WebhookTimeoutSeconds** | Timeout in seconds for outbound webhook HTTP calls | `25` | Allowed: 5, 10, 25, 55, 115. Also drives the RuntimeAsync Lambda timeout (value + 5s) and SQS queue visibility timeout (RuntimeAsync timeout × 2). Used by both Runtime Lambda (sync dispatch) and RuntimeAsync Lambda (async dispatch). |
+| **WebhookTimeoutSeconds** | Timeout in seconds for outbound webhook HTTP calls | `25` | Allowed: 5, 10, 25, 55, 115. Also drives the RuntimeAsync Lambda timeout (value + 5s) and SQS queue visibility timeout (RuntimeAsync timeout × 2). |
 | **SensitiveHeaders** | HTTP header names redacted in the S3 request journal | `x-api-key,authorization,...` | Case-insensitive. Applied to both Runtime and RuntimeAsync Lambda functions. Extend to redact additional org-specific auth headers. |
 
 **Retention**

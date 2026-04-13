@@ -447,7 +447,7 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 
 | Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
 |---------------|---------------|---------------------|-----------------|---------|-------|
-| **Webhook Timeout** | `WebhookTimeoutSeconds` | N/A | 5, 10, 25, 55, 115 s | `25` | Also drives RuntimeAsync Lambda timeout (value + 5s) and SQS queue visibility (RuntimeAsync timeout × 2). Used by both Runtime and RuntimeAsync Lambda functions |
+| **Webhook Timeout** | `WebhookTimeoutSeconds` | N/A | 5, 10, 25, 55, 115 s | `25` | Also drives RuntimeAsync Lambda timeout (value + 5s) and SQS queue visibility (RuntimeAsync timeout × 2) |
 | **Sensitive Headers** | `SensitiveHeaders` | `MOCKNEST_SENSITIVE_HEADERS` | Comma-separated names | `x-api-key,authorization,...` | Redacted in S3 request journal. Applied to both Runtime and RuntimeAsync Lambda functions |
 
 **Retention**
