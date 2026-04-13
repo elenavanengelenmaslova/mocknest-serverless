@@ -40,7 +40,7 @@ When deploying from SAR, you can configure these parameters:
 
 **Retention**
 
-- **LogRetentionDays** (default: `7`): CloudWatch log retention in days. Applies to all Lambda functions (Runtime, Generation, RuntimeAsync). Allowed: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365+.
+- **LogRetentionDays** (default: `7`): CloudWatch log retention in days. Applies to all Lambda functions (Runtime, Generation, RuntimeAsync). Allowed: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653.
 - **S3VersionRetentionDays** (default: `7`): days to retain old S3 object versions — previous mock definitions after updates (range: 1–365).
 - **RequestJournalRetentionDays** (default: `1`): days to retain request journal records in S3 under the `requests/` prefix (range: 1–365).
 
