@@ -382,12 +382,12 @@ class PreservationPropertyTest {
         ) {
             val server = createServer()
             try {
-                // WireMock registers extensions during configuration. If any extension
-                // fails to register, server.start() would throw. The server being running
-                // confirms all extensions were registered successfully.
-                assertTrue(server.isRunning,
-                    "Preservation: WireMock server must be running — confirms extension " +
-                        "'$extensionName' was registered without errors"
+                assertTrue(server.isRunning, "Server must be running before checking extensions")
+                val registeredExtensions = server.options.getDeclaredExtensions().instances
+                assertTrue(
+                    registeredExtensions.containsKey(extensionName),
+                    "Preservation: extension '$extensionName' must be registered in WireMockServer. " +
+                        "Registered: ${registeredExtensions.keys}"
                 )
             } finally {
                 server.stop()
