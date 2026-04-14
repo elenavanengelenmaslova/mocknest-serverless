@@ -140,10 +140,12 @@ class RuntimePrimingHook(
             directCallHttpServer.stubRequest(primingRequest)
             logger.debug { "Executed priming request through WireMock matching engine" }
         } finally {
-            journalStore.enableWrites()
+            runCatching { journalStore.enableWrites() }
+                .onFailure { logger.warn(it) { "Failed to re-enable journal writes after priming request" } }
+            runCatching { wireMockServer.removeStubMapping(testMappingId) }
+                .onFailure { logger.warn(it) { "Failed to remove priming test mapping: $testMappingId" } }
         }
 
-        wireMockServer.removeStubMapping(testMappingId)
         logger.debug { "Removed non-persistent test mapping: $testMappingId" }
     }
     
