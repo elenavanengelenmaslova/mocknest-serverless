@@ -296,6 +296,8 @@ class BugConditionExplorationTest {
 
         val config = MockNestConfig()
         val factory = config.directCallHttpServerFactory()
+        val redactFilter = config.redactSensitiveHeadersFilter(webhookConfig)
+        val journalStore = config.s3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
 
         val server = config.wireMockServer(
             factory,
@@ -303,6 +305,8 @@ class BugConditionExplorationTest {
             webhookConfig,
             capturingSqsPublisher,
             "", // blank webhookQueueUrl — Bug 1.5 condition
+            journalStore,
+            redactFilter,
         )
 
         try {

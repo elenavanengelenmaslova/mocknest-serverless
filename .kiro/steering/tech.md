@@ -288,8 +288,9 @@ class AwsMockHandler(
 - Use `@Serializable` data classes for JSON handling
 - Use `Json.encodeToString()` and `Json.decodeFromString()` for serialization
 - Only fall back to Jackson when integrating with libraries that require it (like WireMock)
-- When Jackson is required, reuse the shared `mapper` if available instead of creating new instances
-- If a shared mapper is not available, create one with `jacksonObjectMapper()` and not `ObjectMapper()`, unless a specific WireMock-provided mapper is required
+- **When serializing or deserializing WireMock types** (`ServeEvent`, `StubMapping`, `Request`, etc.), always use `com.github.tomakehurst.wiremock.common.Json.getObjectMapper()`. WireMock's mapper handles internal type conflicts (e.g., `StubMapping.postServeActions` overloaded setters) that cause `InvalidDefinitionException` with any other Jackson mapper.
+- For non-WireMock Jackson needs, reuse the shared `mapper` from `JsonMapper.kt` instead of creating new instances
+- If a shared mapper is not available, create one with `jacksonObjectMapper()` and not `ObjectMapper()`
 
 ## Persistence
 

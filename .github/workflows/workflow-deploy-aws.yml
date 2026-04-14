@@ -90,9 +90,13 @@ jobs:
           if [ -n "$STACK_NAME_OVERRIDE" ]; then
             EXTRA_ARGS="$EXTRA_ARGS --stack-name $STACK_NAME_OVERRIDE"
           fi
+
+          # Always pass parameter overrides to ensure updated defaults take effect on existing stacks
+          PARAM_OVERRIDES="RuntimeLambdaTimeout=29"
           if [ "$AUTH_MODE" = "IAM" ]; then
-            EXTRA_ARGS="$EXTRA_ARGS --parameter-overrides AuthMode=IAM"
+            PARAM_OVERRIDES="$PARAM_OVERRIDES AuthMode=IAM"
           fi
+          EXTRA_ARGS="$EXTRA_ARGS --parameter-overrides $PARAM_OVERRIDES"
 
           DEPLOY_OUTPUT=$(sam deploy --config-env default --no-confirm-changeset --force-upload $EXTRA_ARGS 2>&1) && {
             echo "$DEPLOY_OUTPUT"

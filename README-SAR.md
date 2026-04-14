@@ -22,7 +22,7 @@ When deploying from SAR, you can configure these parameters:
 **Runtime Lambda** — serves mock responses
 
 - **RuntimeLambdaMemorySize** (default: `512`): memory size in MB (range: 256–10240). Increase for large mock response payloads. Default optimized via Lambda Power Tuner. See [PERFORMANCE.md](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/PERFORMANCE.md).
-- **RuntimeLambdaTimeout** (default: `10`): timeout in seconds (range: 3–29). Bounded by the API Gateway synchronous integration limit (~29s).
+- **RuntimeLambdaTimeout** (default: `29`): timeout in seconds (range: 3–29). Bounded by the API Gateway synchronous integration limit (~29s).
 
 **Generation Lambda** — AI mock generation via Bedrock
 

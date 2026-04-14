@@ -1,6 +1,5 @@
 package nl.vintik.mocknest.infra.aws.generation.ai.config
 
-import aws.sdk.kotlin.runtime.auth.credentials.DefaultChainCredentialsProvider
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import aws.smithy.kotlin.runtime.net.url.Url
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -27,7 +26,6 @@ class BedrockConfiguration {
         
         return BedrockRuntimeClient {
             this.region = region
-            credentialsProvider = DefaultChainCredentialsProvider()
             
             // Support custom endpoint for LocalStack testing
             if (!customEndpoint.isNullOrBlank()) {

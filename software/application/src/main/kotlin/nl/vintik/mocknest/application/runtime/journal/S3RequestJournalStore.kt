@@ -1,13 +1,12 @@
 package nl.vintik.mocknest.application.runtime.journal
 
-import com.fasterxml.jackson.module.kotlin.readValue
+import com.github.tomakehurst.wiremock.common.Json
 import com.github.tomakehurst.wiremock.store.RequestJournalStore
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.application.runtime.config.WebhookConfig
 import nl.vintik.mocknest.application.runtime.extensions.RedactSensitiveHeadersFilter
@@ -32,6 +31,19 @@ class S3RequestJournalStore(
 
     private val prefix: String get() = webhookConfig.requestJournalPrefix
 
+    @Volatile
+    private var writesEnabled = true
+
+    /** Suppress S3 writes — used during SnapStart priming to avoid creating versioned objects. */
+    fun suppressWrites() {
+        writesEnabled = false
+    }
+
+    /** Re-enable S3 writes — must be called before SnapStart snapshot is taken. */
+    fun enableWrites() {
+        writesEnabled = true
+    }
+
     // ── Store<UUID, ServeEvent> ───────────────────────────────────────────────
 
     override fun getAllKeys(): Stream<UUID> = runBlocking {
@@ -52,7 +64,7 @@ class S3RequestJournalStore(
     override fun get(key: UUID): Optional<ServeEvent> = runBlocking {
         runCatching {
             val json = storage.get("$prefix$key") ?: return@runBlocking Optional.empty()
-            Optional.ofNullable(mapper.readValue<ServeEvent>(json))
+            Optional.ofNullable(Json.getObjectMapper().readValue(json, ServeEvent::class.java))
         }.getOrElse { e ->
             logger.warn(e) { "S3RequestJournalStore: failed to get key=$key" }
             Optional.empty()
@@ -60,6 +72,10 @@ class S3RequestJournalStore(
     }
 
     override fun put(key: UUID, event: ServeEvent) = runBlocking {
+        if (!writesEnabled) {
+            logger.debug { "S3RequestJournalStore: writes suppressed (priming mode), skipping put for key=$key" }
+            return@runBlocking
+        }
         runCatching {
             val redactedJson = redactFilter.redactServeEvent(event)
             storage.save("$prefix$key", redactedJson)
@@ -97,7 +113,7 @@ class S3RequestJournalStore(
             for (key in keys) {
                 runCatching {
                     val json = storage.get(key) ?: return@runCatching
-                    events.add(mapper.readValue(json))
+                    events.add(Json.getObjectMapper().readValue(json, ServeEvent::class.java))
                 }.onFailure { e ->
                     logger.warn(e) { "S3RequestJournalStore: failed to deserialize key=$key" }
                 }

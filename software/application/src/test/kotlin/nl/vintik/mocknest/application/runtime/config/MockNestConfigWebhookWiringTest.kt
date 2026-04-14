@@ -44,7 +44,9 @@ class MockNestConfigWebhookWiringTest {
         }
 
         val factory = config.directCallHttpServerFactory()
-        val server = config.wireMockServer(factory, mockStorage, webhookConfig, capturingSqsPublisher, "test-queue-url")
+        val redactFilter = config.redactSensitiveHeadersFilter(webhookConfig)
+        val journalStore = config.s3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
+        val server = config.wireMockServer(factory, mockStorage, webhookConfig, capturingSqsPublisher, "test-queue-url", journalStore, redactFilter)
 
         try {
             server.addStubMapping(

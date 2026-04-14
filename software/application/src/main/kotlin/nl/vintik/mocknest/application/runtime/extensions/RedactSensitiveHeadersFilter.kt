@@ -1,6 +1,7 @@
 package nl.vintik.mocknest.application.runtime.extensions
 
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.github.tomakehurst.wiremock.common.Json as WireMockJson
 import com.github.tomakehurst.wiremock.extension.requestfilter.AdminRequestFilterV2
 import com.github.tomakehurst.wiremock.extension.requestfilter.RequestFilterAction
 import com.github.tomakehurst.wiremock.http.Request
@@ -55,7 +56,7 @@ class RedactSensitiveHeadersFilter(
      */
     fun redactServeEvent(event: ServeEvent): String {
         return runCatching {
-            val json = mapper.writeValueAsString(event)
+            val json = WireMockJson.write(event)
             redactHeadersInJson(json)
         }.getOrElse { e ->
             // Fix 1.3: fail closed — return a safe placeholder instead of retrying the same
