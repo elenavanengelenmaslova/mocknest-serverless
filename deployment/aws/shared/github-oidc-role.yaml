@@ -54,8 +54,6 @@ Resources:
                   - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main'
                   - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/feature/*'
                   - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/bugfix/*'
-                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/hotfix/*'
-                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:pull_request'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/PowerUserAccess
       Policies:
