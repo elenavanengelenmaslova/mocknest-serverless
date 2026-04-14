@@ -366,7 +366,7 @@ class PreservationPropertyTest {
         }
 
         @Test
-        fun `Given MockNestConfig When wireMockServer created Then server is running with ObjectStorageMappingsSource`() {
+        fun `Given MockNestConfig When wireMockServer created Then server is running`() {
             val server = createServer()
             try {
                 assertTrue(server.isRunning, "Preservation: WireMock server must be running after creation")
