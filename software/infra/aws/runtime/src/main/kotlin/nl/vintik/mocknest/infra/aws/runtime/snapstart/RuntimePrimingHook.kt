@@ -46,7 +46,7 @@ class RuntimePrimingHook(
     private val directCallHttpServer: DirectCallHttpServer,
     private val journalStore: S3RequestJournalStore
 ) {
-    
+
     /**
      * Triggered when Spring application context is fully initialized.
      * Only executes priming logic in SnapStart environments.
@@ -62,7 +62,7 @@ class RuntimePrimingHook(
             logger.debug { "Not a SnapStart environment - skipping priming hook" }
         }
     }
-    
+
     /**
      * Execute priming logic to warm up resources during snapshot creation.
      * 
@@ -71,7 +71,7 @@ class RuntimePrimingHook(
      */
     suspend fun prime() {
         logger.info { "Starting runtime function priming" }
-        
+
         // Warm up health check endpoint
         runCatching {
             healthCheckUseCase.invoke()
@@ -79,7 +79,7 @@ class RuntimePrimingHook(
         }.onFailure { exception ->
             logger.warn(exception) { "Health check priming failed - continuing with snapshot creation" }
         }
-        
+
         // Initialize S3 client connections with timeout protection
         runCatching {
             withTimeout(5000.milliseconds) { // 5 second timeout to prevent hanging snapshot creation
@@ -91,7 +91,7 @@ class RuntimePrimingHook(
         }.onFailure { exception ->
             logger.warn(exception) { "S3 client priming failed for bucket: $bucketName - continuing with snapshot creation" }
         }
-        
+
         // Exercise WireMock engine comprehensively
         runCatching {
             exerciseWireMock()
@@ -99,10 +99,10 @@ class RuntimePrimingHook(
         }.onFailure { exception ->
             logger.warn(exception) { "WireMock engine priming failed - continuing with snapshot creation" }
         }
-        
+
         logger.info { "Runtime function priming completed" }
     }
-    
+
     /**
      * Exercise WireMock engine to warm up stub matching, routing, and response rendering.
      *
@@ -143,12 +143,13 @@ class RuntimePrimingHook(
             runCatching { journalStore.enableWrites() }
                 .onFailure { logger.warn(it) { "Failed to re-enable journal writes after priming request" } }
             runCatching { wireMockServer.removeStubMapping(testMappingId) }
-                .onFailure { logger.warn(it) { "Failed to remove priming test mapping: $testMappingId" } }
+                .onSuccess {
+                    logger.debug { "Removed non-persistent test mapping: $testMappingId" }
+                }.onFailure { logger.warn(it) { "Failed to remove priming test mapping: $testMappingId" } }
         }
 
-        logger.debug { "Removed non-persistent test mapping: $testMappingId" }
     }
-    
+
     /**
      * Detect if running in SnapStart environment.
      * 
