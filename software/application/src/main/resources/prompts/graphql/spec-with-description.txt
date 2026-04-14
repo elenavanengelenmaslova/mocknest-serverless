@@ -47,6 +47,8 @@ GraphQL request matching rules (IMPORTANT):
   - Example: `{ "matchesJsonPath": "$[?(@.operationName == 'user')]" }` — where 'user' is an exact name from Key operations
   - CRITICAL: Do NOT use the `..` recursive descent operator in JSONPath expressions. Use `$[?(...)]` syntax instead of `$..[?(...)]` syntax.
   - Or match by query content: `{ "matchesJsonPath": "$[?(@.query =~ /.*user.*/)]" }`
+  - CRITICAL: For operationName matching, use this exact JSONPath template and do not alter the closing characters: `{ "matchesJsonPath": "$[?(@.operationName == 'ExactOperationName')]" }`
+  - The JSONPath string MUST end with `')]` and MUST NOT end with `'))` or omit the final `]`.
 - CRITICAL: JSONPath comparison operators MUST have consistent spacing. Use `== 'value'` (with space before ==) not `=='value'` (no space). Example: `$[?(@.operationName == 'pokemon')]`
 - You may add extra body matchers on variables or query content only when needed to make scenarios non-overlapping.
 - Every mapping MUST include `"urlPath": "/{{NAMESPACE}}/graphql"`.
