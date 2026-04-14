@@ -37,7 +37,7 @@ private val logger = KotlinLogging.logger {}
  * Excluded from the `async` profile — the async Lambda has its own lightweight priming.
  */
 @Component
-@Profile("!async")
+@Profile("generation")
 open class GenerationPrimingHook(
     private val aiHealthUseCase: GetAIHealth,
     private val s3Client: S3Client,

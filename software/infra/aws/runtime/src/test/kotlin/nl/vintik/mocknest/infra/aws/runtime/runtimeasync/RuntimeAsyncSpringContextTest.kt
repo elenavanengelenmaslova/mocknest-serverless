@@ -108,23 +108,31 @@ class RuntimeAsyncSpringContextTest {
     @Test
     fun `Given async profile active When Spring context loads Then wireMockServer bean is NOT registered by MockNestConfig`() {
         assertFalse(applicationContext.containsBean("wireMockServer"),
-            "wireMockServer must be absent — MockNestConfig excluded by @Profile(!async)")
+            "wireMockServer must be absent — MockNestConfig scoped to @Profile(\"runtime\")")
         assertFalse(applicationContext.containsBean("directCallHttpServerFactory"),
-            "directCallHttpServerFactory must be absent — MockNestConfig excluded by @Profile(!async)")
+            "directCallHttpServerFactory must be absent — MockNestConfig scoped to @Profile(\"runtime\")")
         assertFalse(applicationContext.containsBean("wiremockFilesBlobStore"),
-            "wiremockFilesBlobStore must be absent — MockNestConfig excluded by @Profile(!async)")
+            "wiremockFilesBlobStore must be absent — MockNestConfig scoped to @Profile(\"runtime\")")
     }
 
     @Test
     fun `Given async profile When context loads Then runtime request-handling beans are absent`() {
         assertFalse(applicationContext.containsBean("adminRequestUseCase"),
-            "adminRequestUseCase must be absent — excluded by @Profile(!async)")
+            "adminRequestUseCase must be absent — scoped to @Profile(\"runtime\")")
         assertFalse(applicationContext.containsBean("clientRequestUseCase"),
-            "clientRequestUseCase must be absent — excluded by @Profile(!async)")
+            "clientRequestUseCase must be absent — scoped to @Profile(\"runtime\")")
         assertFalse(applicationContext.containsBean("runtimeLambdaHandler"),
-            "runtimeLambdaHandler must be absent — excluded by @Profile(!async)")
+            "runtimeLambdaHandler must be absent — scoped to @Profile(\"runtime\")")
         assertFalse(applicationContext.containsBean("runtimePrimingHook"),
-            "runtimePrimingHook must be absent — excluded by @Profile(!async)")
+            "runtimePrimingHook must be absent — scoped to @Profile(\"runtime\")")
+        assertFalse(applicationContext.containsBean("runtimeMappingReloadHook"),
+            "runtimeMappingReloadHook must be absent — scoped to @Profile(\"runtime\")")
+    }
+
+    @Test
+    fun `Given async profile When context loads Then generationPrimingHook is absent`() {
+        assertFalse(applicationContext.containsBean("generationPrimingHook"),
+            "generationPrimingHook must be absent — scoped to @Profile(\"generation\")")
     }
 
     // ── End-to-end dispatch assertion ─────────────────────────────────────────

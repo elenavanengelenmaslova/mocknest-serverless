@@ -28,7 +28,7 @@ import org.springframework.context.annotation.PropertySource
 private val logger = KotlinLogging.logger {}
 
 @Configuration
-@Profile("!async")
+@Profile("runtime")
 @PropertySource("classpath:application.properties")
 class MockNestConfig {
 

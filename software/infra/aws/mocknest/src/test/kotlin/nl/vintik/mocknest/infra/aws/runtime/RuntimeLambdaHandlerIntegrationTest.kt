@@ -38,7 +38,7 @@ private val logger = KotlinLogging.logger {}
         "storage.bucket.name=test-bucket"
     ]
 )
-@ActiveProfiles("test")
+@ActiveProfiles("test", "runtime")
 @Import(AwsLocalStackTestConfiguration::class)
 @Testcontainers
 class RuntimeLambdaHandlerIntegrationTest {

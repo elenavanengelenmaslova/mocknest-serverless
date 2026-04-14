@@ -65,7 +65,7 @@ private val logger = KotlinLogging.logger {}
         "storage.bucket.name=$TEST_BUCKET_NAME"
     ]
 )
-@ActiveProfiles("test")
+@ActiveProfiles("test", "generation")
 @Import(AwsLocalStackTestConfiguration::class)
 @Testcontainers
 @Isolated

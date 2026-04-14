@@ -20,7 +20,7 @@ import java.util.function.Function
 private val logger = KotlinLogging.logger {}
 
 @Configuration
-@Profile("!async")
+@Profile("runtime")
 class RuntimeLambdaHandler(
     private val handleClientRequest: HandleClientRequest,
     private val handleAdminRequest: HandleAdminRequest,

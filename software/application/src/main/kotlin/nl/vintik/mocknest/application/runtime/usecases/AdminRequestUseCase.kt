@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component
 private val logger = KotlinLogging.logger {}
 
 @Component
-@Profile("!async")
+@Profile("runtime")
 class AdminRequestUseCase(
     private val directCallHttpServer: DirectCallHttpServer,
 ) : HandleAdminRequest {

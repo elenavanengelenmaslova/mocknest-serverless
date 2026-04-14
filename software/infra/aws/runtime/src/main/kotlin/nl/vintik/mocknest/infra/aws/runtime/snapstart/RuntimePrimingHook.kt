@@ -37,7 +37,7 @@ private val logger = KotlinLogging.logger {}
  * - Uses graceful degradation for non-critical failures
  */
 @Component
-@Profile("!async")
+@Profile("runtime")
 class RuntimePrimingHook(
     private val healthCheckUseCase: GetRuntimeHealth,
     private val s3Client: S3Client,
