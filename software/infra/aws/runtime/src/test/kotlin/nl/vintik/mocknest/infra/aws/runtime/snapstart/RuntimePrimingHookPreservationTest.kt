@@ -29,9 +29,6 @@ import java.util.UUID
  * Verifies that `RuntimePrimingHook.prime()` still exercises the WireMock engine
  * (create stub, send request, remove stub) with journal suppression using MockK.
  *
- * These tests MUST PASS on UNFIXED code to confirm the baseline behavior to preserve.
- * The prime() method body is unchanged by the fix — only the @Profile annotation changes.
- *
  * **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.7, 3.8**
  */
 class RuntimePrimingHookPreservationTest {
@@ -56,8 +53,6 @@ class RuntimePrimingHookPreservationTest {
     fun tearDown() {
         clearAllMocks()
     }
-
-    // ── Preservation: WireMock engine exercise sequence ──────────────────────
 
     @Test
     fun `Given prime called When WireMock engine exercised Then stub is created before request is sent`() = runTest {
@@ -104,8 +99,6 @@ class RuntimePrimingHookPreservationTest {
         verify { mockJournalStore.suppressWrites() }
         verify { mockJournalStore.enableWrites() }
     }
-
-    // ── Preservation: Parameterized verification of all priming steps ────────
 
     @ParameterizedTest(name = "Given prime called When all steps succeed Then ''{0}'' is invoked")
     @MethodSource("primingStepVerifications")

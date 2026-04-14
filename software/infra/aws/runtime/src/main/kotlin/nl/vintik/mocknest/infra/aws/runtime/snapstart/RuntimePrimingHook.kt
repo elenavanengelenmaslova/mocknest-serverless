@@ -10,8 +10,8 @@ import com.github.tomakehurst.wiremock.http.RequestMethod
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.application.runtime.journal.S3RequestJournalStore
+import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.annotation.Profile
@@ -44,7 +44,7 @@ class RuntimePrimingHook(
     @param:Value($$"${storage.bucket.name}") private val bucketName: String,
     private val wireMockServer: WireMockServer,
     private val directCallHttpServer: DirectCallHttpServer,
-    private val journalStore: S3RequestJournalStore
+    private val journalStore: S3RequestJournalStore,
 ) {
 
     /**
@@ -147,7 +147,6 @@ class RuntimePrimingHook(
                     logger.debug { "Removed non-persistent test mapping: $testMappingId" }
                 }.onFailure { logger.warn(it) { "Failed to remove priming test mapping: $testMappingId" } }
         }
-
     }
 
     /**

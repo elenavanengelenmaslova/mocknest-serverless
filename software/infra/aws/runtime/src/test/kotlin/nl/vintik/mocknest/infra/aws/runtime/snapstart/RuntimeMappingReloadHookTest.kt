@@ -29,7 +29,7 @@ class RuntimeMappingReloadHookTest {
     }
 
     @Test
-    fun `Given a restored snapshot When afterRestore is called Then wireMockServer resetMappings is called exactly once`() {
+    fun `Given a restored snapshot When afterRestore is called Then wireMockServer resetToDefaultMappings is called exactly once`() {
         // Given
         val hook = createHookWithoutRegistration()
         val context: Context<out Resource> = mockk(relaxed = true)
@@ -38,7 +38,7 @@ class RuntimeMappingReloadHookTest {
         hook.afterRestore(context)
 
         // Then
-        verify(exactly = 1) { wireMockServer.resetMappings() }
+        verify(exactly = 1) { wireMockServer.resetToDefaultMappings() }
     }
 
     @Test
@@ -51,6 +51,7 @@ class RuntimeMappingReloadHookTest {
         hook.beforeCheckpoint(context)
 
         // Then
+        verify(exactly = 0) { wireMockServer.resetToDefaultMappings() }
         verify(exactly = 0) { wireMockServer.resetMappings() }
         verify(exactly = 0) { wireMockServer.stop() }
         verify(exactly = 0) { wireMockServer.start() }
