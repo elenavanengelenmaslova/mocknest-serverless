@@ -90,6 +90,31 @@ subprojects {
         }
     }
 
+    // Security: Force patched versions of vulnerable transitive dependencies across all modules
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            // CVE-2026-29145, CVE-2026-24880, CVE-2026-29129, CVE-2026-32990, CVE-2026-25854,
+            // CVE-2026-34500, CVE-2026-34483: Multiple Tomcat vulnerabilities
+            // Fixed in tomcat-embed-core 11.0.21 (Spring Boot 4.0.5 ships 11.0.20)
+            if (requested.group == "org.apache.tomcat.embed") {
+                useVersion("11.0.21")
+                because("Fixes multiple Tomcat CVEs: authentication bypass, HTTP request smuggling, weak crypto, certificate validation, open redirect, improper encoding")
+            }
+            // CWE-770: Allocation of Resources Without Limits or Throttling in tools.jackson.core:jackson-core
+            // Fixed in 3.1.1 (Spring Boot 4.0.5 ships 3.1.0)
+            if (requested.group == "tools.jackson.core") {
+                useVersion("3.1.1")
+                because("Fixes CWE-770: Allocation of Resources Without Limits or Throttling")
+            }
+            // CVE-2026-33870: HTTP Request Smuggling in netty-codec-http
+            // Fixed in 4.2.12.Final (enforce globally, not just in generation module)
+            if (requested.group == "io.netty" && requested.name.startsWith("netty-")) {
+                useVersion("4.2.12.Final")
+                because("Fixes CVE-2026-33870: HTTP Request Smuggling in chunked encoding parsing")
+            }
+        }
+    }
+
     dependencies {
         val implementation by configurations
         val testImplementation by configurations
