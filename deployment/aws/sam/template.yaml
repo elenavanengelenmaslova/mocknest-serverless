@@ -269,9 +269,6 @@ Globals:
     Runtime: java25
     Architectures:
       - arm64
-    Environment:
-      Variables:
-        SPRING_PROFILES_ACTIVE: aws
 
 Resources:
   # S3 bucket for mock definitions and response payloads
@@ -555,6 +552,7 @@ Resources:
         ApplyOn: PublishedVersions
       Environment:
         Variables:
+          SPRING_PROFILES_ACTIVE: runtime
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
@@ -599,6 +597,7 @@ Resources:
         ApplyOn: PublishedVersions
       Environment:
         Variables:
+          SPRING_PROFILES_ACTIVE: runtime
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
@@ -643,6 +642,7 @@ Resources:
         ApplyOn: PublishedVersions
       Environment:
         Variables:
+          SPRING_PROFILES_ACTIVE: generation
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "generationRouter"
@@ -681,6 +681,7 @@ Resources:
         ApplyOn: PublishedVersions
       Environment:
         Variables:
+          SPRING_PROFILES_ACTIVE: generation
           MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
           SPRING_CLOUD_FUNCTION_DEFINITION: "generationRouter"

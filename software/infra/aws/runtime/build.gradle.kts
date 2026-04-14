@@ -40,6 +40,9 @@ dependencies {
     implementation("com.amazonaws:aws-lambda-java-core")
     implementation("com.amazonaws:aws-lambda-java-events")
 
+    // CRaC API for SnapStart lifecycle hooks (beforeCheckpoint / afterRestore)
+    implementation("org.crac:crac:1.5.0")
+
     // Testing with LocalStack
     testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")

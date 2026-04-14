@@ -4,10 +4,17 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.HeadBucketResponse
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.direct.DirectCallHttpServer
-import io.mockk.*
+import io.mockk.Runs
+import io.mockk.clearAllMocks
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
-import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.application.runtime.journal.S3RequestJournalStore
+import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.domain.core.HttpResponse
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
@@ -21,7 +28,7 @@ import org.springframework.http.HttpStatus
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables
 import uk.org.webcompere.systemstubs.jupiter.SystemStub
 import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension
-import java.util.*
+import java.util.UUID
 import java.util.stream.Stream
 
 @Isolated
@@ -43,7 +50,7 @@ class RuntimePrimingHookTest {
         testBucketName,
         mockWireMockServer,
         mockDirectCallHttpServer,
-        mockJournalStore
+        mockJournalStore,
     )
 
     @AfterEach
@@ -252,7 +259,7 @@ class RuntimePrimingHookTest {
         @MethodSource("nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimePrimingHookTest#snapStartInitTypes")
         fun `Given AWS_LAMBDA_INITIALIZATION_TYPE When onApplicationReady is called Then should invoke priming accordingly`(
             initType: String?,
-            shouldPrime: Boolean
+            shouldPrime: Boolean,
         ) {
             // Given
             environmentVariables.set(envVarName, initType)
