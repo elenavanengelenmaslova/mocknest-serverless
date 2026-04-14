@@ -6,34 +6,30 @@ import kotlin.test.assertTrue
 /**
  * Bug Condition Exploration Test — Property 1: Missing Post-Restore Reload
  *
- * This test PROVES the bug exists on UNFIXED code by verifying that
- * RuntimeMappingReloadHook does not exist yet.
+ * On unfixed code, `Class.forName("...RuntimeMappingReloadHook")` throws
+ * `ClassNotFoundException` because the class does not exist yet — the test FAILS,
+ * proving the bug exists (no CRaC afterRestore hook to reload mappings).
  *
- * EXPECTED TO FAIL on unfixed code — the class does not exist, so the
- * Class.forName call will throw ClassNotFoundException.
- *
- * DO NOT fix production code to make this pass.
- * DO NOT fix this test when it fails.
+ * On fixed code, the class exists, implements `org.crac.Resource`, and declares
+ * an `afterRestore` method — the test PASSES, verifying the fix.
  *
  * **Validates: Requirements 2.1, 2.2, 2.6**
  */
 class RuntimeMappingReloadHookExplorationTest {
 
     @Test
-    fun `Given unfixed code When checking for RuntimeMappingReloadHook Then class exists`() {
-        // This will throw ClassNotFoundException on unfixed code because
-        // RuntimeMappingReloadHook has not been created yet — proving the bug exists.
+    fun `Given fixed code When checking for RuntimeMappingReloadHook Then class exists with afterRestore method`() {
         val clazz = Class.forName(
             "nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimeMappingReloadHook"
         )
         assertTrue(
             clazz.declaredMethods.any { it.name == "afterRestore" },
-            "RuntimeMappingReloadHook must have an afterRestore() method that calls wireMockServer.resetMappings()"
+            "RuntimeMappingReloadHook must have an afterRestore() method"
         )
     }
 
     @Test
-    fun `Given unfixed code When checking RuntimeMappingReloadHook Then it implements CRaC Resource`() {
+    fun `Given fixed code When checking RuntimeMappingReloadHook Then it implements CRaC Resource`() {
         val clazz = Class.forName(
             "nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimeMappingReloadHook"
         )

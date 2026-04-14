@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import io.mockk.clearAllMocks
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.unmockkAll
 import io.mockk.verify
 import org.crac.Context
 import org.crac.Core
@@ -26,6 +27,7 @@ class RuntimeMappingReloadHookTest {
     @AfterEach
     fun tearDown() {
         clearAllMocks()
+        unmockkAll()
     }
 
     @Test

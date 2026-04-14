@@ -39,8 +39,12 @@ class RuntimeMappingReloadHook(
     }
 
     override fun afterRestore(context: Context<out Resource>?) {
-        logger.info { "SnapStart restore detected — reloading WireMock mappings from S3" }
-        wireMockServer.resetToDefaultMappings()
-        logger.info { "WireMock mappings reloaded successfully after SnapStart restore" }
+        runCatching {
+            logger.info { "SnapStart restore detected — reloading WireMock mappings from S3" }
+            wireMockServer.resetToDefaultMappings()
+            logger.info { "WireMock mappings reloaded successfully after SnapStart restore" }
+        }.onFailure { exception ->
+            logger.error(exception) { "SnapStart restore — failed to reload WireMock mappings from S3" }
+        }
     }
 }

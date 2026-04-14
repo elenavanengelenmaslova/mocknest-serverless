@@ -63,6 +63,7 @@ class AsyncProfileIsolationPreservationTest {
             "runtimeLambdaHandler",
             "adminRequestUseCase",
             "clientRequestUseCase",
+            "runtimeMappingReloadHook",
         )
     }
 }

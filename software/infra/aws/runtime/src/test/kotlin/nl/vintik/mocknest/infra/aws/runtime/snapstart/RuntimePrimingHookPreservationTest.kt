@@ -65,9 +65,11 @@ class RuntimePrimingHookPreservationTest {
         primingHook.prime()
 
         // Then — verify the WireMock exercise sequence: create stub → send request → remove stub
-        verify { mockWireMockServer.stubFor(any()) }
-        verify { mockDirectCallHttpServer.stubRequest(any()) }
-        verify { mockWireMockServer.removeStubMapping(any<UUID>()) }
+        io.mockk.verifyOrder {
+            mockWireMockServer.stubFor(any())
+            mockDirectCallHttpServer.stubRequest(any())
+            mockWireMockServer.removeStubMapping(any<UUID>())
+        }
     }
 
     @Test
