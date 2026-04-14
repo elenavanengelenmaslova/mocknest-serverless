@@ -115,7 +115,7 @@ class RuntimePrimingHook(
      * are suppressed to avoid creating versioned objects that would prevent bucket cleanup.
      *
      * Journal writes are always re-enabled before this method returns (even on failure)
-     * to ensure the flag is `false` when the SnapStart snapshot is taken.
+     * to ensure the flag is `true` when the SnapStart snapshot is taken.
      *
      * @throws Exception if any step fails (caught by caller's runCatching)
      */
