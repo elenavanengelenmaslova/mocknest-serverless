@@ -76,7 +76,7 @@ subprojects {
             dependency("com.amazonaws:aws-lambda-java-events:3.16.1")
             
             // Kotlinx Serialization for JSON
-            dependency("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+            dependency("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
             // TestContainers
             val testContainersVersion = "2.0.4"
             val testContainersExtensions = "1.21.4"
