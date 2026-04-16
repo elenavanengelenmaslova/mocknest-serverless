@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     kotlin("jvm")
     kotlin("plugin.spring")
@@ -73,6 +75,13 @@ dependencies {
     testImplementation("org.testcontainers:localstack")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(project(":software:infra:aws:mocknest"))
+
+    // Dokimos LLM evaluation framework (test-scope only)
+    val dokimosVersion = "0.14.2"
+    testImplementation("dev.dokimos:dokimos-core:$dokimosVersion")
+    testImplementation("dev.dokimos:dokimos-kotlin:$dokimosVersion")
+    testImplementation("dev.dokimos:dokimos-junit:$dokimosVersion")
+    testImplementation("dev.dokimos:dokimos-koog:$dokimosVersion")
 }
 
 configurations {
@@ -109,5 +118,13 @@ configurations {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("bedrock-eval")
+    }
+}
+
+tasks.register<Test>("bedrockEval") {
+    useJUnitPlatform {
+        includeTags("bedrock-eval")
+    }
 }

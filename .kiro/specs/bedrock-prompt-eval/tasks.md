@@ -6,19 +6,19 @@ This plan implements a manual, local-only Kotlin integration test for evaluating
 
 ## Tasks
 
-- [ ] 1. Create test-only token usage capture classes
-  - [ ] 1.1 Create `TokenUsageRecord` data class
+- [x] 1. Create test-only token usage capture classes
+  - [x] 1.1 Create `TokenUsageRecord` data class
     - Create file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/TokenUsageRecord.kt`
     - Simple data class with `inputTokens: Int = 0`, `outputTokens: Int = 0`, `totalTokens: Int = 0`
     - _Requirements: 5.1_
 
-  - [ ] 1.2 Create `TokenUsageStore` thread-safe collector
+  - [x] 1.2 Create `TokenUsageStore` thread-safe collector
     - Create file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/TokenUsageStore.kt`
     - Use `ConcurrentLinkedQueue<TokenUsageRecord>` for lock-free thread safety
     - Implement `record()`, `getRecords()`, `getTotalInputTokens()`, `getTotalOutputTokens()`, `getTotalTokens()`, `clear()`
     - _Requirements: 5.2, 5.4_
 
-  - [ ] 1.3 Create `TokenUsageCapturingClient` decorator
+  - [x] 1.3 Create `TokenUsageCapturingClient` decorator
     - Create file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/TokenUsageCapturingClient.kt`
     - Decorator around `BedrockRuntimeClient` using Kotlin `by` delegation
     - Override `converse` to extract `response.usage` and store in `TokenUsageStore`
@@ -41,26 +41,26 @@ This plan implements a manual, local-only Kotlin integration test for evaluating
     - Use `@ParameterizedTest` with `@MethodSource` providing 10+ diverse concurrency scenarios
     - **Validates: Requirements 5.2**
 
-  - [ ] 1.6 Run `./gradlew :software:infra:aws:generation:test` and confirm all tests pass
+  - [x] 1.6 Run `./gradlew :software:infra:aws:generation:test` and confirm all tests pass
 
-- [ ] 2. Configure Gradle for eval test gating and Dokimos dependencies
-  - [ ] 2.1 Update `software/infra/aws/generation/build.gradle.kts`
+- [x] 2. Configure Gradle for eval test gating and Dokimos dependencies
+  - [x] 2.1 Update `software/infra/aws/generation/build.gradle.kts`
     - Add `excludeTags("bedrock-eval")` to the existing `tasks.test` block
     - Register new `bedrockEval` test task with `includeTags("bedrock-eval")`
     - Add Dokimos `testImplementation` dependencies: `dev.dokimos:dokimos-core:0.14.2`, `dev.dokimos:dokimos-kotlin:0.14.2`, `dev.dokimos:dokimos-junit:0.14.2`, `dev.dokimos:dokimos-koog:0.14.2`
     - _Requirements: 1.5, 9.4, 10.1_
 
-  - [ ] 2.2 Run `./gradlew :software:infra:aws:generation:test` and confirm all existing tests still pass with the tag exclusion
+  - [x] 2.2 Run `./gradlew :software:infra:aws:generation:test` and confirm all existing tests still pass with the tag exclusion
     - _Requirements: 1.5, 8.2_
 
-- [ ] 3. Create test-only data models and utility classes
-  - [ ] 3.1 Create `IterationResult` and `SemanticScore` data classes
+- [x] 3. Create test-only data models and utility classes
+  - [x] 3.1 Create `IterationResult` and `SemanticScore` data classes
     - Create file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/IterationResult.kt`
     - `IterationResult` with fields: `iterationNumber`, `success`, `mockCount`, `mockIds`, `endpointPaths`, `errorMessage`, `semanticScore`, `tokenUsage`, `estimatedCost`
     - `SemanticScore` with fields: `petCountCorrect`, `endpointsCovered`, `schemaConsistent`, `statusesDistinct`, `llmJudgeScore`, `passed`
     - _Requirements: 4.1, 4.2, 11.1, 11.2, 11.3, 11.4_
 
-  - [ ] 3.2 Create `CostCalculator` object
+  - [x] 3.2 Create `CostCalculator` object
     - Create file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/CostCalculator.kt`
     - Constants for Amazon Nova Pro pricing: `NOVA_PRO_INPUT_PRICE_PER_TOKEN = 0.0000008`, `NOVA_PRO_OUTPUT_PRICE_PER_TOKEN = 0.0000032`
     - Pure function `calculateCost(inputTokens, outputTokens, inputPricePerToken, outputPricePerToken): Double`
@@ -73,7 +73,7 @@ This plan implements a manual, local-only Kotlin integration test for evaluating
     - Use `@ParameterizedTest` with `@MethodSource` providing 15+ diverse examples (zero tokens, large counts, max int boundary)
     - **Validates: Requirements 6.1**
 
-  - [ ] 3.4 Create `EvalReportBuilder` class
+  - [x] 3.4 Create `EvalReportBuilder` class
     - Create file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/EvalReportBuilder.kt`
     - `buildReport()` method accepting model name, region, iteration count, results list, duration, total token usage, total cost
     - Bordered format with labeled fields matching the design's report template
@@ -88,10 +88,10 @@ This plan implements a manual, local-only Kotlin integration test for evaluating
     - Use `@ParameterizedTest` with `@MethodSource` providing 10+ diverse scenarios (single iteration, multiple iterations, all success, all failure, mixed)
     - **Validates: Requirements 7.2, 7.5**
 
-  - [ ] 3.6 Run `./gradlew :software:infra:aws:generation:test` and confirm all tests pass
+  - [x] 3.6 Run `./gradlew :software:infra:aws:generation:test` and confirm all tests pass
 
-- [ ] 4. Implement success rate calculation and iteration count parsing logic
-  - [ ] 4.1 Create helper functions for success rate calculation and threshold assertion
+- [x] 4. Implement success rate calculation and iteration count parsing logic
+  - [x] 4.1 Create helper functions for success rate calculation and threshold assertion
     - Add to a utility file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/EvalMetrics.kt`
     - `calculateSuccessRate(results: List<IterationResult>): Double` — returns `(successful / total) × 100.0`
     - `calculateSemanticSuccessRate(results: List<IterationResult>): Double` — returns `(semantically passed / total) × 100.0`
@@ -125,31 +125,31 @@ This plan implements a manual, local-only Kotlin integration test for evaluating
     - Use `@ParameterizedTest` with `@MethodSource` providing 10+ diverse examples
     - **Validates: Requirements 4.1, 4.2**
 
-  - [ ] 4.6 Run `./gradlew :software:infra:aws:generation:test` and confirm all tests pass
+  - [x] 4.6 Run `./gradlew :software:infra:aws:generation:test` and confirm all tests pass
 
-- [ ] 5. Create Dokimos semantic evaluators
-  - [ ] 5.1 Create `PetCountEvaluator`
+- [x] 5. Create Dokimos semantic evaluators
+  - [x] 5.1 Create `PetCountEvaluator`
     - Create file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/evaluators/PetCountEvaluator.kt`
     - Extends Dokimos `BaseEvaluator`
     - Parses mock response bodies, counts distinct pet entities
     - Returns score 1.0 if count matches expected (4), 0.0 otherwise
     - _Requirements: 11.1, 10.4_
 
-  - [ ] 5.2 Create `EndpointCoverageEvaluator`
+  - [x] 5.2 Create `EndpointCoverageEvaluator`
     - Create file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/evaluators/EndpointCoverageEvaluator.kt`
     - Extends Dokimos `BaseEvaluator`
     - Checks mock endpoint paths against required endpoints (`GET /pet/{petId}`, `GET /pet/findByStatus`)
     - Returns score 1.0 if all required endpoints covered, 0.0 otherwise
     - _Requirements: 11.2, 10.4_
 
-  - [ ] 5.3 Create `SchemaConsistencyEvaluator`
+  - [x] 5.3 Create `SchemaConsistencyEvaluator`
     - Create file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/evaluators/SchemaConsistencyEvaluator.kt`
     - Extends Dokimos `BaseEvaluator`
     - Parses response bodies, checks for required fields (`id`, `name`, `status`)
     - Returns score 1.0 if all mocks have required fields, 0.0 otherwise
     - _Requirements: 11.3, 10.4_
 
-  - [ ] 5.4 Create `StatusDistinctnessEvaluator`
+  - [x] 5.4 Create `StatusDistinctnessEvaluator`
     - Create file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/evaluators/StatusDistinctnessEvaluator.kt`
     - Extends Dokimos `BaseEvaluator`
     - Extracts status values from pet response bodies
@@ -162,30 +162,30 @@ This plan implements a manual, local-only Kotlin integration test for evaluating
     - Use Given-When-Then naming convention
     - _Requirements: 11.1, 11.2, 11.3, 11.4_
 
-  - [ ] 5.6 Run `./gradlew :software:infra:aws:generation:test` and confirm all tests pass
+  - [x] 5.6 Run `./gradlew :software:infra:aws:generation:test` and confirm all tests pass
 
-- [ ] 6. Bundle test resources (Petstore spec and Dokimos eval dataset)
-  - [ ] 6.1 Download and bundle the Petstore OpenAPI 3.0 specification
+- [x] 6. Bundle test resources (Petstore spec and Dokimos eval dataset)
+  - [x] 6.1 Download and bundle the Petstore OpenAPI 3.0 specification
     - Download from `swagger-api/swagger-petstore` repository
     - Save to `software/infra/aws/generation/src/test/resources/eval/petstore-openapi-3.0.yaml`
     - Verify it covers GET, POST, PUT, DELETE endpoints for pets, orders, and users
     - _Requirements: 3.1, 3.2, 3.5_
 
-  - [ ] 6.2 Create the Dokimos eval dataset JSON
+  - [x] 6.2 Create the Dokimos eval dataset JSON
     - Create file `software/infra/aws/generation/src/test/resources/eval/petstore-eval-dataset.json`
     - Single test case with input describing the mock generation request (4 pets, different statuses, GET /pet/{petId} and GET /pet/findByStatus)
     - Include expected output description for evaluator reference
     - _Requirements: 3.3, 10.2_
 
-- [ ] 7. Implement the main `BedrockPromptEvalTest` class and wire everything together
-  - [ ] 7.1 Create `BedrockPromptEvalTest`
+- [x] 7. Implement the main `BedrockPromptEvalTest` class and wire everything together
+  - [x] 7.1 Create `BedrockPromptEvalTest`
     - Create file `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/ai/eval/BedrockPromptEvalTest.kt`
     - Annotate with `@Tag("bedrock-eval")` and `@EnabledIfEnvironmentVariable(named = "BEDROCK_EVAL_ENABLED", matches = "true")`
     - Manual wiring: `BedrockRuntimeClient` (with region from `AWS_REGION` env var, default `eu-west-1`), `TokenUsageStore`, `TokenUsageCapturingClient` wrapping the real client, `ModelConfiguration`, `PromptBuilderService`, `BedrockServiceAdapter`, `MockGenerationFunctionalAgent`
     - No Spring Boot context — all manual construction
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.5, 8.2, 8.4_
 
-  - [ ] 7.2 Implement iteration loop and result collection
+  - [x] 7.2 Implement iteration loop and result collection
     - Read `BEDROCK_EVAL_ITERATIONS` env var via `parseIterationCount()`
     - For each iteration: build `SpecWithDescriptionRequest` with `enableValidation = false` (Requirement 13.1), load Petstore spec from classpath, execute via `MockGenerationFunctionalAgent.generateFromSpecWithDescription()`
     - Capture token usage from `TokenUsageStore` per iteration
@@ -194,14 +194,14 @@ This plan implements a manual, local-only Kotlin integration test for evaluating
     - Record `IterationResult` for each iteration (continue on failure)
     - _Requirements: 2.4, 2.6, 2.7, 3.3, 3.4, 4.1, 4.2, 4.4, 4.6, 12.3, 12.5, 12.6, 13.1, 13.2, 13.3, 13.4, 13.5_
 
-  - [ ] 7.3 Implement LLM-as-a-judge faithfulness evaluator
+  - [x] 7.3 Implement LLM-as-a-judge faithfulness evaluator
     - Configure Dokimos `LLMJudgeEvaluator` using the same Bedrock model
     - Criteria: evaluate whether generated mocks are a faithful and complete representation of the requested scenario
     - Threshold: 0.7
     - Handle LLM judge failures gracefully (record `llmJudgeScore` as null, log warning)
     - _Requirements: 11.5, 10.3, 10.5_
 
-  - [ ] 7.4 Implement aggregate metrics and assertions
+  - [x] 7.4 Implement aggregate metrics and assertions
     - Calculate aggregate success rate and semantic success rate
     - Build and log `EvalReport` via `EvalReportBuilder`
     - Assert success rate >= configurable threshold (default 100% for single iteration)
@@ -209,13 +209,13 @@ This plan implements a manual, local-only Kotlin integration test for evaluating
     - Log per-iteration results with success/failure, mock count, mock IDs, endpoint paths
     - _Requirements: 4.3, 4.5, 4.7, 6.3, 6.4, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 11.6, 11.7, 11.8_
 
-  - [ ] 7.5 Use Dokimos `@ParameterizedTest` with `@DatasetSource` for test structure
+  - [x] 7.5 Use Dokimos `@ParameterizedTest` with `@DatasetSource` for test structure
     - Load eval dataset from `classpath:eval/petstore-eval-dataset.json`
     - Use Dokimos JUnit integration for structuring evaluation test cases
     - _Requirements: 10.2_
 
-- [ ] 8. Create developer documentation for running the eval test
-  - [ ] 8.1 Create `docs/PROMPT_EVAL.md`
+- [x] 8. Create developer documentation for running the eval test
+  - [x] 8.1 Create `docs/PROMPT_EVAL.md`
     - Create file `docs/PROMPT_EVAL.md` with the following sections:
     - **Overview**: What the eval test does (evaluates REST generation prompt quality against real Bedrock)
     - **Prerequisites**: AWS credentials with Bedrock access, `AWS_REGION` env var (default `eu-west-1`), model access to Amazon Nova Pro
@@ -227,17 +227,17 @@ This plan implements a manual, local-only Kotlin integration test for evaluating
     - **Troubleshooting**: Common issues (missing credentials, wrong region, model access not enabled, test not running)
     - **Safety**: Explain that the test is excluded from `./gradlew test` and CI via JUnit tag filtering
 
-- [ ] 9. Final checkpoint — verify full build and eval test gating
-  - [ ] 9.1 Run `./gradlew :software:infra:aws:generation:test` and confirm all tests pass (eval test is skipped due to missing env var)
+- [x] 9. Final checkpoint — verify full build and eval test gating
+  - [x] 9.1 Run `./gradlew :software:infra:aws:generation:test` and confirm all tests pass (eval test is skipped due to missing env var)
     - Verify the eval test is excluded from normal test runs via tag filtering
     - _Requirements: 1.1, 1.5_
 
-  - [ ] 9.2 Run `./gradlew clean test` from root and confirm the full project build passes
+  - [x] 9.2 Run `./gradlew clean test` from root and confirm the full project build passes
     - Ensure no regressions in any module
     - Ensure Kover coverage thresholds are still met
     - _Requirements: 8.1, 8.2, 8.3_
 
-  - [ ] 9.3 Verify eval test can be invoked manually (dry run)
+  - [x] 9.3 Verify eval test can be invoked manually (dry run)
     - Confirm `./gradlew :software:infra:aws:generation:bedrockEval` task exists and targets the correct tag
     - Without `BEDROCK_EVAL_ENABLED=true`, the test should be skipped with a descriptive message
     - Ensure all tests pass, ask the user if questions arise.
