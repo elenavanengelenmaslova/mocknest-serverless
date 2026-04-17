@@ -108,9 +108,9 @@ class EndpointCoverageEvaluator(private val requiredEndpoints: List<String>) : B
         }
 
         // Check if required path (without template) is a prefix match for findByStatus-style endpoints
-        val requiredBase = requiredPath.replace(Regex("\\{[^}]+}"), "")
+        val requiredBase = requiredPath.replace(Regex("\\{[^}]+}"), "").trimEnd('/')
         val actualBase = actualPath.replace(Regex("\\?.*"), "")
-        if (requiredBase.isNotEmpty() && actualBase.startsWith(requiredBase.trimEnd('/'))) return true
+        if (requiredBase.isNotEmpty() && (actualBase == requiredBase || actualBase.startsWith("$requiredBase/"))) return true
 
         return false
     }
