@@ -227,6 +227,7 @@ curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
 **Current Limitations**:
 - AI generation supports REST, SOAP 1.2 and GraphQL APIs. SOAP 1.1 API generation is not supported, but can be added manually through runtime admin API.
 - **AI Generation Timeout**: The default API Gateway REST API has a synchronous integration timeout of ~29 seconds. This limits how many AI correction retries can complete within a single request. The default is 1 retry (configurable via the `BedrockGenerationMaxRetries` SAR parameter); values above 2 are unlikely to complete within the timeout. Users needing longer synchronous requests can switch to a Regional or private REST API endpoint type, and then request an AWS integration timeout increase (timeout increases are only available for Regional or private REST APIs).
+- **Mock Count Scaling**: The default 1024 MB memory configuration is optimized for up to ~500 mocks. With 1000 mocks, optimal memory shifts to 1536 MB (configure via `RuntimeLambdaMemorySize`). For deployments exceeding ~1000 mocks, consider splitting into multiple MockNest instances grouped by authentication method, team, or traffic volume. See [PERFORMANCE.md](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/PERFORMANCE.md) for detailed benchmarks.
 
 ## Architecture and Data Persistence
 
