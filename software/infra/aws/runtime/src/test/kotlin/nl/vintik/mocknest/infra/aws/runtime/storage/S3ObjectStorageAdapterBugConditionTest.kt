@@ -12,7 +12,7 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.AppenderBase
-import io.mockk.clearAllMocks
+import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -74,7 +74,7 @@ class S3ObjectStorageAdapterBugConditionTest {
         adapterLogger?.detachAppender(logAppender)
         adapterLogger?.level = originalLoggerLevel
         logAppender.stop()
-        clearAllMocks()
+        clearMocks(s3Client)
     }
 
     companion object {

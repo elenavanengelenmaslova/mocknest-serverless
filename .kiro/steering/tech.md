@@ -320,13 +320,14 @@ Comprehensive guidelines for unit test creation and maintenance.
   private val mockService: SomeService = mockk(relaxed = true)
   ```
 
-- **Reset all mocks in teardown** to ensure test isolation:
+- **Reset only the mocks used in the test** in teardown to ensure test isolation without affecting other tests running in the same JVM:
   ```kotlin
   @AfterEach
   fun tearDown() {
-      clearAllMocks()
+      clearMocks(mockStorage, mockService)
   }
   ```
+  Avoid `clearAllMocks()` — it resets every mock in the process, which can cause interference when tests run in parallel or share static state. Use `clearMocks(...)` with the specific mock instances declared in the test class.
 
 - Use `relaxed = true` by default to avoid unnecessary stubbing of irrelevant method calls
 - Only use strict mocks when you need to verify that specific methods are NOT called
