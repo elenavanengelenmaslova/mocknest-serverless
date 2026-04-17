@@ -26,6 +26,17 @@ on:
         required: false
         default: 'GitHubOIDCAdmin'
         type: string
+      runtime-lambda-memory:
+        description: 'Runtime Lambda memory in MB (512-10240). Use 1536+ for 500+ mocks.'
+        required: false
+        default: '1536'
+        type: choice
+        options:
+          - '512'
+          - '1024'
+          - '1536'
+          - '2048'
+          - '3072'
 
 permissions:
   id-token: write
@@ -44,6 +55,7 @@ jobs:
       github-actions-role-name: ${{ inputs.github-actions-role-name }}
       stack-name: ${{ inputs.stack-name }}
       auth-mode: ${{ inputs.auth-mode }}
+      runtime-lambda-memory: ${{ fromJSON(inputs.runtime-lambda-memory) }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
