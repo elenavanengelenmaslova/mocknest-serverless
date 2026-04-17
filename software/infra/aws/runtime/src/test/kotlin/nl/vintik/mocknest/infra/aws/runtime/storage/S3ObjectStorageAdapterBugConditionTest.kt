@@ -23,6 +23,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.stream.Stream
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -47,6 +48,7 @@ class S3ObjectStorageAdapterBugConditionTest {
 
     private val capturedEvents = CopyOnWriteArrayList<ILoggingEvent>()
     private lateinit var logAppender: AppenderBase<ILoggingEvent>
+    private var originalLoggerLevel: Level? = null
 
     @BeforeEach
     fun attachLogAppender() {
@@ -59,20 +61,6 @@ class S3ObjectStorageAdapterBugConditionTest {
         logAppender.start()
 
         // Attach to the S3ObjectStorageAdapter logger specifically
-import ch.qos.logback.classic.Level
-import ch.qos.logback.classic.Logger
-import java.util.stream.Stream
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
-
-class S3ObjectStorageAdapterBugConditionTest {
-    private val capturedEvents = CopyOnWriteArrayList<ILoggingEvent>()
-    private lateinit var logAppender: AppenderBase<ILoggingEvent>
-    private var originalLoggerLevel: Level? = null
-
-    `@BeforeEach`
-    fun attachLogAppender() {
-        // Attach to the S3ObjectStorageAdapter logger specifically
         val adapterLogger = LoggerFactory.getLogger("nl.vintik.mocknest.infra.aws.runtime.storage.S3ObjectStorageAdapter") as? Logger
         assertNotNull(adapterLogger, "Expected Logback logger for S3ObjectStorageAdapter")
         originalLoggerLevel = adapterLogger.level
@@ -80,7 +68,7 @@ class S3ObjectStorageAdapterBugConditionTest {
         adapterLogger.addAppender(logAppender)
     }
 
-    `@AfterEach`
+    @AfterEach
     fun detachLogAppender() {
         val adapterLogger = LoggerFactory.getLogger("nl.vintik.mocknest.infra.aws.runtime.storage.S3ObjectStorageAdapter") as? Logger
         adapterLogger?.detachAppender(logAppender)
