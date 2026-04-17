@@ -60,9 +60,9 @@ class EndpointCoverageEvaluator(private val requiredEndpoints: List<String>) : B
     }
 
     private fun extractPath(request: JsonNode): String =
-        request.path("url").asText(null)
-            ?: request.path("urlPattern").asText(null)
-            ?: request.path("urlPathPattern").asText(null)
+        request.path("url").asText(null)?.takeIf { it.isNotBlank() }
+            ?: request.path("urlPattern").asText(null)?.takeIf { it.isNotBlank() }
+            ?: request.path("urlPathPattern").asText(null)?.takeIf { it.isNotBlank() }
             ?: ""
 
     private fun endpointMatches(required: String, actual: String): Boolean {
@@ -84,10 +84,14 @@ class EndpointCoverageEvaluator(private val requiredEndpoints: List<String>) : B
         if (requiredPath == actualPath) return true
 
         // Required path has template variables like {petId}
-        // Convert to regex and match against actual path
+        // Convert to regex and match against actual path, escaping literal segments
         if (requiredPath.contains("{")) {
-            val pattern = requiredPath.replace(Regex("\\{[^}]+}"), "[^/]+")
-            if (Regex(pattern).matches(actualPath)) return true
+            val placeholder = "__PATH_PARAM__"
+            val escapedPattern = requiredPath
+                .replace(Regex("\\{[^}]+}"), placeholder)
+                .let { Regex.escape(it) }
+                .replace(placeholder, "[^/]+")
+            if (Regex("^$escapedPattern$").matches(actualPath)) return true
         }
 
         // Actual path may be a regex pattern (e.g., /pet/[0-9]+)
@@ -99,12 +103,6 @@ class EndpointCoverageEvaluator(private val requiredEndpoints: List<String>) : B
                 val samplePath = requiredPath.replace(Regex("\\{[^}]+}"), "1")
                 if (regex.matches(samplePath)) return true
             }
-        }
-
-        // Check if actual path is a concrete instance of the required template
-        if (requiredPath.contains("{")) {
-            val pattern = requiredPath.replace(Regex("\\{[^}]+}"), "\\d+")
-            if (Regex(pattern).matches(actualPath)) return true
         }
 
         // Check if required path (without template) is a prefix match for findByStatus-style endpoints
