@@ -10,7 +10,7 @@ import nl.vintik.mocknest.application.core.mapper
 
 private val logger = KotlinLogging.logger {}
 
-class PetCountEvaluator(private val expectedCount: Int) : BaseEvaluator(
+class PetCountEvaluator(private val expectedCount: Int, private val exactMatch: Boolean = true) : BaseEvaluator(
     "Pet Count",
     1.0,
     listOf(EvalTestCaseParam.ACTUAL_OUTPUT)
@@ -24,8 +24,12 @@ class PetCountEvaluator(private val expectedCount: Int) : BaseEvaluator(
             logger.warn(e) { "Failed to parse actualOutput as JSON for pet count evaluation" }
         }.getOrElse { emptySet() }
 
-        val score = if (uniquePetIds.size == expectedCount) 1.0 else 0.0
-        val reason = "Found ${uniquePetIds.size} unique pet(s), expected $expectedCount. Pet IDs: $uniquePetIds"
+        val score = if (exactMatch) {
+            if (uniquePetIds.size == expectedCount) 1.0 else 0.0
+        } else {
+            if (uniquePetIds.size >= expectedCount) 1.0 else 0.0
+        }
+        val reason = "Found ${uniquePetIds.size} unique pet(s), expected ${if (exactMatch) "exactly" else "at least"} $expectedCount. Pet IDs: $uniquePetIds"
 
         return EvalResult.builder()
             .name(name())

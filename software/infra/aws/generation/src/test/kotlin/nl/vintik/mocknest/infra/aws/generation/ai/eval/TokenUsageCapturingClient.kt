@@ -21,10 +21,13 @@ class TokenUsageCapturingClient(
 ) : BedrockRuntimeClient by delegate {
 
     override suspend fun converse(input: ConverseRequest): ConverseResponse {
+        logger.info { "TokenUsageCapturingClient: intercepted converse call for model=${input.modelId}" }
         val response = delegate.converse(input)
         val usage = response.usage
         if (usage == null) {
             logger.warn { "No token usage data in Bedrock converse response, recording zeros" }
+        } else {
+            logger.info { "Token usage captured: input=${usage.inputTokens}, output=${usage.outputTokens}, total=${usage.totalTokens}" }
         }
         tokenUsageStore.record(
             TokenUsageRecord(

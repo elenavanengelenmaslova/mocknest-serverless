@@ -1,0 +1,10 @@
+{
+  "name": "Bored API REST Eval",
+  "description": "Evaluates REST mock generation quality using the Bored API OpenAPI 3.0 specification",
+  "examples": [
+    {
+      "input": "Generate WireMock mocks for the Bored API covering all 3 endpoints: GET /random, GET /filter, and GET /activity/{key}. Include realistic activity data in the responses.",
+      "expectedOutput": "3 WireMock mappings covering GET /random, GET /filter, and GET /activity/{key} with realistic activity response bodies"
+    }
+  ]
+}

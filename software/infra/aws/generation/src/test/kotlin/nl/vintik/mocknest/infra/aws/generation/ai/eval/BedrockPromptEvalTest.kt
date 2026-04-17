@@ -1,23 +1,36 @@
 package nl.vintik.mocknest.infra.aws.generation.ai.eval
 
+import ai.koog.agents.core.agent.AIAgent
+import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.prompt.executor.clients.bedrock.BedrockAPIMethod
+import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
+import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
-import aws.sdk.kotlin.services.bedrockruntime.model.ContentBlock
-import aws.sdk.kotlin.services.bedrockruntime.model.ConverseOutput
-import aws.sdk.kotlin.services.bedrockruntime.model.ConverseRequest
-import aws.sdk.kotlin.services.bedrockruntime.model.ConversationRole
-import aws.sdk.kotlin.services.bedrockruntime.model.Message
 import dev.dokimos.core.EvalTestCase
 import dev.dokimos.core.EvalTestCaseParam
-import dev.dokimos.core.JudgeLM
 import dev.dokimos.core.evaluators.LLMJudgeEvaluator
-import dev.dokimos.core.Example
-import dev.dokimos.junit.DatasetSource
+import dev.dokimos.koog.asJudge
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import nl.vintik.mocknest.application.generation.agent.MockGenerationFunctionalAgent
+import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducer
+import nl.vintik.mocknest.application.generation.parsers.GraphQLSpecificationParser
 import nl.vintik.mocknest.application.generation.parsers.OpenAPISpecificationParser
+import nl.vintik.mocknest.application.generation.parsers.WsdlSpecificationParser
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
+import nl.vintik.mocknest.application.generation.validators.GraphQLMockValidator
 import nl.vintik.mocknest.application.generation.validators.OpenAPIMockValidator
+import nl.vintik.mocknest.application.generation.validators.SoapMockValidator
+import nl.vintik.mocknest.application.generation.wsdl.WsdlParser
+import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducer
 import nl.vintik.mocknest.domain.generation.GenerationOptions
 import nl.vintik.mocknest.domain.generation.MockNamespace
 import nl.vintik.mocknest.domain.generation.SpecWithDescriptionRequest
@@ -26,31 +39,28 @@ import nl.vintik.mocknest.infra.aws.generation.ai.BedrockServiceAdapter
 import nl.vintik.mocknest.infra.aws.generation.ai.config.DefaultInferencePrefixResolver
 import nl.vintik.mocknest.infra.aws.generation.ai.config.InferenceMode
 import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
-import nl.vintik.mocknest.infra.aws.generation.ai.eval.evaluators.EndpointCoverageEvaluator
-import nl.vintik.mocknest.infra.aws.generation.ai.eval.evaluators.PetCountEvaluator
-import nl.vintik.mocknest.infra.aws.generation.ai.eval.evaluators.SchemaConsistencyEvaluator
-import nl.vintik.mocknest.infra.aws.generation.ai.eval.evaluators.StatusDistinctnessEvaluator
 import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
-import org.junit.jupiter.params.ParameterizedTest
 import kotlin.system.measureTimeMillis
 
 private val logger = KotlinLogging.logger {}
 
 /**
- * Manual, local-only Bedrock prompt evaluation test.
+ * Multi-protocol Bedrock prompt evaluation test.
  *
- * Exercises the real Koog + Bedrock initial generation prompt path against the
- * Petstore OpenAPI specification. Runs N iterations (configurable via
- * `BEDROCK_EVAL_ITERATIONS`, default 1), validates semantic correctness using
- * Dokimos evaluators, captures token usage, and produces a structured eval report.
+ * Exercises the real Koog + Bedrock generation prompt path against REST (OpenAPI),
+ * GraphQL, and SOAP (WSDL) specifications. Reads scenarios from a dataset JSON,
+ * runs each scenario with retry 0 (generation-only) and retry 1 (generation +
+ * validation/correction), captures token usage, and produces a per-protocol
+ * summary table.
  *
  * This test is excluded from normal `./gradlew test` runs via the `bedrock-eval`
  * JUnit tag and the `BEDROCK_EVAL_ENABLED` environment variable gate.
  *
  * Run with:
  * ```
- * BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_ITERATIONS=1 \
+ * BEDROCK_EVAL_ENABLED=true \
  *   ./gradlew :software:infra:aws:generation:bedrockEval
  * ```
  */
@@ -82,271 +92,397 @@ class BedrockPromptEvalTest {
     private val aiModelService = BedrockServiceAdapter(
         bedrockClient = bedrockClient,
         modelConfiguration = modelConfiguration,
-        promptBuilder = promptBuilder
+        promptBuilder = promptBuilder,
+        apiMethod = BedrockAPIMethod.Converse
     )
 
-    private val specificationParser = OpenAPISpecificationParser()
+    // --- LLM-as-a-judge via Koog + Dokimos integration ---
 
-    private val mockValidator = OpenAPIMockValidator()
-
-    private val agent = MockGenerationFunctionalAgent(
-        aiModelService = aiModelService,
-        specificationParser = specificationParser,
-        mockValidator = mockValidator,
-        promptBuilder = promptBuilder
-    )
-
-    // --- Semantic evaluators ---
-
-    private val petCountEvaluator = PetCountEvaluator(expectedCount = 4)
-    private val endpointCoverageEvaluator = EndpointCoverageEvaluator(
-        requiredEndpoints = listOf("GET /pet/{petId}", "GET /pet/findByStatus")
-    )
-    private val schemaConsistencyEvaluator = SchemaConsistencyEvaluator(
-        requiredFields = listOf("id", "name", "status")
-    )
-    private val statusDistinctnessEvaluator = StatusDistinctnessEvaluator()
-
-    // --- LLM-as-a-judge ---
-
-    private val judgeLM = JudgeLM { prompt ->
-        runBlocking {
-            val request = ConverseRequest {
-                modelId = modelConfiguration.getModel().id
-                messages = listOf(
-                    Message {
-                        role = ConversationRole.User
-                        content = listOf(ContentBlock.Text(prompt))
-                    }
-                )
-            }
-            val response = bedrockClient.converse(request)
-            val output = response.output
-            if (output is ConverseOutput.Message) {
-                output.value.content
-                    .filterIsInstance<ContentBlock.Text>()
-                    .joinToString("") { it.value }
-            } else {
-                ""
-            }
-        }
+    private val judgeExecutor by lazy {
+        SingleLLMPromptExecutor(BedrockLLMClient(bedrockClient, apiMethod = BedrockAPIMethod.Converse))
     }
 
-    private val llmJudgeEvaluator: LLMJudgeEvaluator = LLMJudgeEvaluator.builder()
-        .name("Faithfulness")
-        .criteria(
-            "Evaluate whether the generated WireMock mocks are a faithful and complete " +
-                "representation of the requested mock scenario. The request asked for 4 pets " +
-                "with different statuses, mocking GET /pet/{petId} and GET /pet/findByStatus " +
-                "endpoints from the Petstore API. Score 1.0 if the output fully satisfies " +
-                "the request, 0.0 if it does not."
+    private val judgeLM = asJudge { prompt ->
+        val judgeAgent = AIAgent(
+            promptExecutor = judgeExecutor,
+            llmModel = modelConfiguration.getModel(),
+            systemPrompt = "You are an evaluation judge. Respond only with a numeric score.",
+            toolRegistry = ToolRegistry.EMPTY
         )
-        .evaluationParams(listOf(EvalTestCaseParam.INPUT, EvalTestCaseParam.ACTUAL_OUTPUT))
-        .judge(judgeLM)
-        .threshold(0.7)
-        .build()
-
-    // --- Test resources ---
-
-    private val petstoreSpec: String by lazy {
-        checkNotNull(
-            javaClass.getResourceAsStream("/eval/petstore-openapi-3.0.yaml")
-        ) { "Petstore OpenAPI spec not found on classpath" }.use { it.bufferedReader().readText() }
+        judgeAgent.run(prompt)
     }
 
-    // --- Report builder ---
+    // --- Scenario data class ---
 
-    private val reportBuilder = EvalReportBuilder()
+    private data class EvalScenario(
+        val input: String,
+        val protocol: String,
+        val specFile: String,
+        val format: String,
+        val namespace: String,
+        val description: String,
+        val semanticCheck: String
+    )
+
+    // --- Per-scenario result ---
+
+    private data class ScenarioResult(
+        val scenario: EvalScenario,
+        val success: Boolean,
+        val mockCount: Int = 0,
+        val totalGenerated: Int = 0,
+        val mocksDropped: Int = 0,
+        val firstPassValid: Boolean = true,
+        val firstPassMocksGenerated: Int = 0,
+        val firstPassMocksValid: Int = 0,
+        val allValid: Boolean = true,
+        val attempts: Int = 1,
+        val validationErrors: List<String> = emptyList(),
+        val latencyMs: Long = 0,
+        val tokenUsage: TokenUsageRecord = TokenUsageRecord(),
+        val estimatedCost: Double = 0.0,
+        val semanticPassed: Boolean = false,
+        val errorMessage: String? = null
+    ) {
+        val scenarioPassed: Boolean
+            get() = success && allValid && semanticPassed
+
+        /** % of mocks valid on first pass (0.0-1.0) */
+        val firstPassValidRate: Double
+            get() = if (firstPassMocksGenerated > 0) firstPassMocksValid.toDouble() / firstPassMocksGenerated else 0.0
+
+        /** % of mocks valid after retry (0.0-1.0) */
+        val afterRetryValidRate: Double
+            get() = if (totalGenerated > 0) mockCount.toDouble() / totalGenerated else 0.0
+    }
 
     // --- Main eval test ---
 
-    @ParameterizedTest
-    @DatasetSource("classpath:eval/petstore-eval-dataset.json")
-    fun `Evaluate Bedrock prompt quality for Petstore spec`(example: Example) {
+    @Test
+    fun `Evaluate Bedrock prompt quality across REST, GraphQL, and SOAP protocols`() {
+        val scenarios = loadScenarios()
         val iterationCount = parseIterationCount(System.getenv("BEDROCK_EVAL_ITERATIONS"))
-        val results = mutableListOf<IterationResult>()
+        val results = mutableListOf<ScenarioResult>()
 
         logger.info {
-            "Starting Bedrock prompt eval: $iterationCount iteration(s), " +
+            "Starting multi-protocol Bedrock prompt eval: ${scenarios.size} scenario(s), " +
+                "$iterationCount iteration(s) each, " +
                 "model=${modelConfiguration.getModelName()}, region=$region"
         }
 
-        val totalDurationMs = measureTimeMillis {
-            for (i in 1..iterationCount) {
-                logger.info { "--- Iteration #$i of $iterationCount ---" }
-                tokenUsageStore.clear()
+        for (scenario in scenarios) {
+            logger.info { "=== Scenario: ${scenario.input} (${scenario.protocol}) ===" }
 
-                val iterationResult = runSingleIteration(i, example.input())
-                results.add(iterationResult)
+            for (iter in 1..iterationCount) {
+                logger.info { "--- Iteration $iter/$iterationCount ---" }
 
-                if (iterationResult.success) {
-                    logger.info {
-                        "Iteration #$i: SUCCESS — ${iterationResult.mockCount} mock(s), " +
-                            "semantic=${iterationResult.semanticScore?.passed}, " +
-                            "tokens=${iterationResult.tokenUsage.totalTokens}, " +
-                            "cost=${"$"}${"%.4f".format(iterationResult.estimatedCost)}"
-                    }
-                } else {
-                    logger.warn { "Iteration #$i: FAILED — ${iterationResult.errorMessage}" }
-                }
+                // Single run with enableValidation=true (retry budget = 1)
+                val result = runScenario(scenario)
+                results.add(result)
+                logScenarioResult(result)
             }
         }
 
-        // Aggregate metrics
-        val successRate = calculateSuccessRate(results)
-        val semanticSuccessRate = calculateSemanticSuccessRate(results)
-
-        val totalTokenUsage = TokenUsageRecord(
-            inputTokens = results.sumOf { it.tokenUsage.inputTokens },
-            outputTokens = results.sumOf { it.tokenUsage.outputTokens },
-            totalTokens = results.sumOf { it.tokenUsage.totalTokens }
-        )
-        val totalEstimatedCost = results.sumOf { it.estimatedCost }
-
-        // Build and log report
-        val report = reportBuilder.buildReport(
-            modelName = modelConfiguration.getModelName(),
-            region = region,
-            iterationCount = iterationCount,
-            results = results,
-            totalDurationMs = totalDurationMs,
-            totalTokenUsage = totalTokenUsage,
-            totalEstimatedCost = totalEstimatedCost
-        )
-        logger.info { "\n$report" }
-
-        // Assertions
-        val successThreshold = 100.0
-        val semanticThreshold = 100.0
-        assertThreshold(successRate, successThreshold, "Success Rate")
-        assertThreshold(semanticSuccessRate, semanticThreshold, "Semantic Success Rate")
+        // Print summary table
+        val summaryTable = buildSummaryTable(results)
+        logger.info { "\n$summaryTable" }
     }
 
-    // --- Iteration execution ---
+    // --- Scenario execution ---
 
-    private fun runSingleIteration(iterationNumber: Int, description: String): IterationResult {
+    private fun runScenario(scenario: EvalScenario): ScenarioResult {
+        tokenUsageStore.clear()
+
         return runCatching {
+            val agent = createAgentForProtocol(scenario.protocol)
+            val specContent = loadSpecContent(scenario.specFile)
+            val specFormat = parseFormat(scenario.format)
+
             val request = SpecWithDescriptionRequest(
-                namespace = MockNamespace(apiName = "petstore-eval"),
-                specificationContent = petstoreSpec,
-                format = SpecificationFormat.OPENAPI_3,
-                description = description,
-                options = GenerationOptions(enableValidation = false)
+                namespace = MockNamespace(apiName = scenario.namespace),
+                specificationContent = specContent,
+                format = specFormat,
+                description = scenario.description,
+                options = GenerationOptions(enableValidation = true)
             )
 
-            val generationResult = runBlocking {
-                agent.generateFromSpecWithDescription(request)
+            // Time only the Bedrock call
+            var generationResult: nl.vintik.mocknest.domain.generation.GenerationResult? = null
+            val latencyMs = measureTimeMillis {
+                generationResult = runBlocking {
+                    agent.generateFromSpecWithDescription(request)
+                }
             }
 
-            // Capture token usage for this iteration
+            val result = checkNotNull(generationResult)
+
+            // Capture token usage
             val records = tokenUsageStore.getRecords()
-            val iterationTokenUsage = TokenUsageRecord(
+            val tokenUsage = TokenUsageRecord(
                 inputTokens = records.sumOf { it.inputTokens },
                 outputTokens = records.sumOf { it.outputTokens },
                 totalTokens = records.sumOf { it.totalTokens }
             )
-            val iterationCost = CostCalculator.calculateCost(
-                inputTokens = iterationTokenUsage.inputTokens,
-                outputTokens = iterationTokenUsage.outputTokens
+            val cost = CostCalculator.calculateCost(
+                inputTokens = tokenUsage.inputTokens,
+                outputTokens = tokenUsage.outputTokens
             )
 
-            if (!generationResult.success) {
-                return IterationResult(
-                    iterationNumber = iterationNumber,
+            if (!result.success) {
+                return ScenarioResult(
+                    scenario = scenario,
                     success = false,
-                    errorMessage = generationResult.error ?: "Generation failed",
-                    tokenUsage = iterationTokenUsage,
-                    estimatedCost = iterationCost
+                    latencyMs = latencyMs,
+                    tokenUsage = tokenUsage,
+                    estimatedCost = cost,
+                    errorMessage = result.error ?: "Generation failed"
                 )
             }
 
-            val mocks = generationResult.mocks
-            val mockIds = mocks.map { it.id }
-            val endpointPaths = mocks.map { "${it.metadata.endpoint.method} ${it.metadata.endpoint.path}" }
-
-            // Serialize mocks to JSON for evaluators
+            val mocks = result.mocks
             val mappingsJson = "[${mocks.joinToString(",") { it.wireMockMapping }}]"
 
-            // Run semantic evaluators
-            val semanticScore = runSemanticEvaluators(description, mappingsJson)
+            // Extract validation metadata
+            val meta = result.metadata
+            val totalGenerated = (meta["totalGenerated"] as? Int) ?: mocks.size
+            val mocksDropped = (meta["mocksDropped"] as? Int) ?: 0
+            val allValid = (meta["allValid"] as? Boolean) ?: true
+            val firstPassValid = (meta["firstPassValid"] as? Boolean) ?: true
+            val firstPassMocksGenerated = (meta["firstPassMocksGenerated"] as? Int) ?: mocks.size
+            val firstPassMocksValid = (meta["firstPassMocksValid"] as? Int) ?: mocks.size
+            val attempts = (meta["attempts"] as? Int) ?: 1
+            @Suppress("UNCHECKED_CAST")
+            val validationErrors = (meta["validationErrors"] as? List<String>) ?: emptyList()
 
-            IterationResult(
-                iterationNumber = iterationNumber,
+            if (mocksDropped > 0 || validationErrors.isNotEmpty()) {
+                logger.warn {
+                    "  Validation report for ${scenario.input}: " +
+                        "generated=$totalGenerated, returned=${mocks.size}, " +
+                        "dropped=$mocksDropped, errors=${validationErrors.size}, " +
+                        "firstPassValid=$firstPassValid, attempts=$attempts"
+                }
+            }
+
+            // Run LLM judge for semantic check
+            val semanticPassed = runSemanticJudge(scenario, mappingsJson)
+
+            ScenarioResult(
+                scenario = scenario,
                 success = true,
                 mockCount = mocks.size,
-                mockIds = mockIds,
-                endpointPaths = endpointPaths,
-                semanticScore = semanticScore,
-                tokenUsage = iterationTokenUsage,
-                estimatedCost = iterationCost
+                totalGenerated = totalGenerated,
+                mocksDropped = mocksDropped,
+                firstPassValid = firstPassValid,
+                firstPassMocksGenerated = firstPassMocksGenerated,
+                firstPassMocksValid = firstPassMocksValid,
+                allValid = allValid,
+                attempts = attempts,
+                validationErrors = validationErrors,
+                latencyMs = latencyMs,
+                tokenUsage = tokenUsage,
+                estimatedCost = cost,
+                semanticPassed = semanticPassed
             )
         }.getOrElse { e ->
-            logger.error(e) { "Iteration #$iterationNumber failed with exception" }
+            logger.error(e) { "Scenario ${scenario.input} failed with exception" }
 
-            // Still capture any token usage that occurred before the failure
             val records = tokenUsageStore.getRecords()
-            val iterationTokenUsage = TokenUsageRecord(
+            val tokenUsage = TokenUsageRecord(
                 inputTokens = records.sumOf { it.inputTokens },
                 outputTokens = records.sumOf { it.outputTokens },
                 totalTokens = records.sumOf { it.totalTokens }
             )
-            val iterationCost = CostCalculator.calculateCost(
-                inputTokens = iterationTokenUsage.inputTokens,
-                outputTokens = iterationTokenUsage.outputTokens
+            val cost = CostCalculator.calculateCost(
+                inputTokens = tokenUsage.inputTokens,
+                outputTokens = tokenUsage.outputTokens
             )
 
-            IterationResult(
-                iterationNumber = iterationNumber,
+            ScenarioResult(
+                scenario = scenario,
                 success = false,
-                errorMessage = e.message ?: "Unknown error",
-                tokenUsage = iterationTokenUsage,
-                estimatedCost = iterationCost
+                tokenUsage = tokenUsage,
+                estimatedCost = cost,
+                errorMessage = e.message ?: "Unknown error"
             )
         }
     }
 
-    // --- Semantic evaluation ---
+    // --- Protocol-specific agent creation ---
 
-    private fun runSemanticEvaluators(input: String, actualOutput: String): SemanticScore {
-        val testCase = EvalTestCase.builder()
-            .input(input)
-            .actualOutput(actualOutput)
-            .expectedOutput("")
-            .build()
-
-        val petCountResult = petCountEvaluator.evaluate(testCase)
-        val endpointResult = endpointCoverageEvaluator.evaluate(testCase)
-        val schemaResult = schemaConsistencyEvaluator.evaluate(testCase)
-        val statusResult = statusDistinctnessEvaluator.evaluate(testCase)
-
-        logger.info {
-            "Semantic results: petCount=${petCountResult.success()}, " +
-                "endpoints=${endpointResult.success()}, " +
-                "schema=${schemaResult.success()}, " +
-                "statusDistinct=${statusResult.success()}"
+    private fun createAgentForProtocol(protocol: String): MockGenerationFunctionalAgent {
+        return when (protocol.uppercase()) {
+            "REST" -> MockGenerationFunctionalAgent(
+                aiModelService = aiModelService,
+                specificationParser = OpenAPISpecificationParser(),
+                mockValidator = OpenAPIMockValidator(),
+                promptBuilder = promptBuilder
+            )
+            "GRAPHQL" -> MockGenerationFunctionalAgent(
+                aiModelService = aiModelService,
+                specificationParser = GraphQLSpecificationParser(
+                    mockk(relaxed = true),
+                    GraphQLSchemaReducer()
+                ),
+                mockValidator = GraphQLMockValidator(),
+                promptBuilder = promptBuilder
+            )
+            "SOAP" -> MockGenerationFunctionalAgent(
+                aiModelService = aiModelService,
+                specificationParser = WsdlSpecificationParser(
+                    mockk(relaxed = true),
+                    WsdlParser(),
+                    WsdlSchemaReducer()
+                ),
+                mockValidator = SoapMockValidator(),
+                promptBuilder = promptBuilder
+            )
+            else -> error("Unsupported protocol: $protocol")
         }
+    }
 
-        // LLM-as-a-judge (graceful failure)
-        val llmJudgeScore = runCatching {
-            val judgeResult = llmJudgeEvaluator.evaluate(testCase)
-            logger.info { "LLM judge score: ${judgeResult.score()} (threshold: ${judgeResult.threshold()})" }
-            judgeResult.score()
+    // --- Semantic evaluation via LLM judge ---
+
+    private fun runSemanticJudge(scenario: EvalScenario, actualOutput: String): Boolean {
+        return runCatching {
+            val evaluator = LLMJudgeEvaluator.builder()
+                .name("Scenario Semantic Check")
+                .criteria(scenario.semanticCheck)
+                .evaluationParams(listOf(EvalTestCaseParam.INPUT, EvalTestCaseParam.ACTUAL_OUTPUT))
+                .judge(judgeLM)
+                .threshold(0.7)
+                .build()
+
+            val testCase = EvalTestCase.builder()
+                .input(scenario.description)
+                .actualOutput(actualOutput)
+                .expectedOutput("")
+                .build()
+
+            val result = evaluator.evaluate(testCase)
+            logger.info {
+                "LLM judge for ${scenario.input}: score=${result.score()}, " +
+                    "threshold=${result.threshold()}, passed=${result.success()}"
+            }
+            result.success()
         }.onFailure { e ->
-            logger.warn(e) { "LLM-as-a-judge evaluation failed, recording null score" }
-        }.getOrNull()
+            logger.warn(e) { "LLM judge evaluation failed for ${scenario.input}" }
+        }.getOrDefault(false)
+    }
 
-        val allProgrammaticPassed = petCountResult.success() &&
-            endpointResult.success() &&
-            schemaResult.success() &&
-            statusResult.success()
+    // --- Dataset loading ---
 
-        return SemanticScore(
-            petCountCorrect = petCountResult.success(),
-            endpointsCovered = endpointResult.success(),
-            schemaConsistent = schemaResult.success(),
-            statusesDistinct = statusResult.success(),
-            llmJudgeScore = llmJudgeScore,
-            passed = allProgrammaticPassed
-        )
+    private fun loadScenarios(): List<EvalScenario> {
+        val datasetJson = checkNotNull(
+            javaClass.getResourceAsStream("/eval/multi-protocol-eval-dataset.json")
+        ) { "Multi-protocol eval dataset not found on classpath" }.use { it.bufferedReader().readText() }
+
+        val root = Json.parseToJsonElement(datasetJson).jsonObject
+        val examples = root["examples"]?.jsonArray ?: error("No 'examples' in dataset")
+
+        return examples.map { example ->
+            val obj = example.jsonObject
+            val input = obj["input"]?.jsonPrimitive?.content ?: error("Missing 'input'")
+            val metadata = obj["metadata"]?.jsonObject ?: error("Missing 'metadata'")
+
+            EvalScenario(
+                input = input,
+                protocol = metadata["protocol"]?.jsonPrimitive?.content ?: error("Missing 'protocol'"),
+                specFile = metadata["specFile"]?.jsonPrimitive?.content ?: error("Missing 'specFile'"),
+                format = metadata["format"]?.jsonPrimitive?.content ?: error("Missing 'format'"),
+                namespace = metadata["namespace"]?.jsonPrimitive?.content ?: error("Missing 'namespace'"),
+                description = metadata["description"]?.jsonPrimitive?.content ?: error("Missing 'description'"),
+                semanticCheck = metadata["semanticCheck"]?.jsonPrimitive?.content ?: error("Missing 'semanticCheck'")
+            )
+        }
+    }
+
+    private fun loadSpecContent(specFile: String): String {
+        return checkNotNull(
+            javaClass.getResourceAsStream("/$specFile")
+        ) { "Spec file not found on classpath: $specFile" }.use { it.bufferedReader().readText() }
+    }
+
+    private fun parseFormat(format: String): SpecificationFormat {
+        return when (format.uppercase()) {
+            "OPENAPI_3" -> SpecificationFormat.OPENAPI_3
+            "GRAPHQL" -> SpecificationFormat.GRAPHQL
+            "WSDL" -> SpecificationFormat.WSDL
+            else -> error("Unsupported format: $format")
+        }
+    }
+
+    // --- Logging helpers ---
+
+    private fun logScenarioResult(result: ScenarioResult) {
+        if (result.success) {
+            logger.info {
+                "  ${result.scenario.input}: SUCCESS — " +
+                    "${result.mockCount} mock(s), " +
+                    "1stPass=${result.firstPassMocksValid}/${result.firstPassMocksGenerated} (${"%.0f".format(result.firstPassValidRate * 100)}%), " +
+                    "afterRetry=${result.mockCount}/${result.totalGenerated} (${"%.0f".format(result.afterRetryValidRate * 100)}%), " +
+                    "attempts=${result.attempts}, " +
+                    "semantic=${result.semanticPassed}, PASS=${result.scenarioPassed}, " +
+                    "latency=${result.latencyMs}ms, " +
+                    "cost=${"$"}${"%.4f".format(result.estimatedCost)}"
+            }
+        } else {
+            logger.warn {
+                "  ${result.scenario.input}: FAILED — ${result.errorMessage}"
+            }
+        }
+    }
+
+    // --- Summary table ---
+
+    private fun buildSummaryTable(results: List<ScenarioResult>): String {
+        val protocols = listOf("REST", "GraphQL", "SOAP")
+
+        return buildString {
+            appendLine("╔══════════════════════════════════════════════════════════════════════════════════════════════════════╗")
+            appendLine("║                         MULTI-PROTOCOL BEDROCK PROMPT EVAL SUMMARY                                  ║")
+            appendLine("╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣")
+            appendLine("║ Model: ${modelConfiguration.getModelName().padEnd(86)}║")
+            appendLine("║ Region: ${region.padEnd(85)}║")
+            appendLine("╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣")
+            appendLine("║ Protocol  │ Runs │ 1st-pass valid │ After retry valid │ Scenario pass │ Avg cost/run │ Avg latency ║")
+            appendLine("╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣")
+
+            for (protocol in protocols) {
+                val group = results.filter {
+                    it.scenario.protocol.equals(protocol, ignoreCase = true)
+                }
+                if (group.isEmpty()) continue
+
+                val runs = group.size
+                val successfulRuns = group.filter { it.success }
+
+                // 1st-pass valid: avg mock-level valid rate across successful runs
+                val firstPassRate = if (successfulRuns.isNotEmpty()) {
+                    successfulRuns.map { it.firstPassValidRate }.average() * 100.0
+                } else 0.0
+
+                // After retry valid: avg mock-level valid rate after retry
+                val afterRetryRate = if (successfulRuns.isNotEmpty()) {
+                    successfulRuns.map { it.afterRetryValidRate }.average() * 100.0
+                } else 0.0
+
+                // Scenario pass: % of ALL runs where generation succeeded + all valid + semantic passed
+                val scenarioPassRate = group.count { it.scenarioPassed }.toDouble() / runs * 100.0
+
+                val avgCost = group.sumOf { it.estimatedCost } / runs
+                val avgLatency = group.sumOf { it.latencyMs }.toDouble() / runs / 1000.0
+
+                val line = "║ ${protocol.padEnd(9)} │ " +
+                    "$runs".padEnd(5) + "│ " +
+                    "${"%.0f".format(firstPassRate)}%".padEnd(15) + "│ " +
+                    "${"%.0f".format(afterRetryRate)}%".padEnd(18) + "│ " +
+                    "${"%.0f".format(scenarioPassRate)}%".padEnd(14) + "│ " +
+                    "${"$"}${"%.4f".format(avgCost)}".padEnd(13) + "│ " +
+                    "${"%.1f".format(avgLatency)}s".padEnd(12) + "║"
+                appendLine(line)
+            }
+
+            append("╚══════════════════════════════════════════════════════════════════════════════════════════════════════╝")
+        }
     }
 }

@@ -1,0 +1,17 @@
+{
+  "name": "GraphQL-Only Eval (jsonBody fix)",
+  "description": "Tests GraphQL jsonBody example fix for Int type encoding",
+  "examples": [
+    {
+      "input": "graphql-pokemon-team",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/pokemon-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "pokemon-eval",
+        "description": "Generate mocks for the pokemon query returning 3 different Pokemon: Pikachu (id 25, height 4, weight 60, type electric), Charmander (id 4, height 6, weight 85, type fire), and Bulbasaur (id 1, height 7, weight 69, type grass). Each must have at least 2 abilities and 2 moves. Include all required fields from the schema.",
+        "semanticCheck": "Strictly verify: 1) There must be 3 pokemon query mocks. 2) Pikachu must have id 25 and type electric. 3) Charmander must have id 4 and type fire. 4) Bulbasaur must have id 1 and type grass. 5) Each pokemon must have at least 2 abilities. Score 0 if any pokemon is missing or has wrong id/type."
+      }
+    }
+  ]
+}

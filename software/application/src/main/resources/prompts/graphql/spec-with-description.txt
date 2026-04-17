@@ -67,6 +67,12 @@ GraphQL response format rules (IMPORTANT):
 Schema-based field validation rules (IMPORTANT):
 - Response data MUST include all required fields as defined in the schema for the return type.
 - Scalar types must use compatible values (String → string, Int → number, Boolean → boolean, Float → decimal).
+- CRITICAL TYPE ENFORCEMENT: Int fields in the schema MUST be JSON numbers (e.g., 25), NEVER quoted strings (e.g., "25"). Boolean fields MUST be JSON true/false, NEVER "true"/"false". Float fields MUST be JSON decimals (e.g., 3.14), NEVER strings. This is the most common validation failure — double-check every scalar value before returning.
+
+EXAMPLE of correct jsonBody with proper scalar types (STUDY THIS):
+  Correct:   "jsonBody": {"data":{"pokemon":{"id":25,"name":"pikachu","height":4,"weight":60,"types":[{"slot":1,"type":{"name":"electric"}}]}}}
+  WRONG:     "jsonBody": {"data":{"pokemon":{"id":"25","name":"pikachu","height":"4","weight":"60"}}}
+  Notice: id (25), height (4), weight (60), slot (1) are bare JSON numbers inside the jsonBody object. name ("pikachu") is a quoted string because it is a String type. Do NOT quote integers — this is the #1 validation failure.
 - Enum values in responses MUST be one of the valid values defined in the schema.
 - List fields must return arrays; object fields must return objects.
 - Nested types must include their required fields recursively.

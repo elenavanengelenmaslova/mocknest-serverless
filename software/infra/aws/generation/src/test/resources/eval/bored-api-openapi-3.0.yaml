@@ -1,0 +1,102 @@
+openapi: "3.0.3"
+info:
+  title: Bored API
+  description: A simple API that suggests activities when you're bored.
+  version: "1.0.0"
+servers:
+  - url: https://bored-api.appbrewery.com
+paths:
+  /random:
+    get:
+      operationId: getRandomActivity
+      summary: Get a random activity
+      description: Returns a randomly selected activity from the available activities.
+      responses:
+        "200":
+          description: A random activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+  /filter:
+    get:
+      operationId: filterActivities
+      summary: Filter activities
+      description: Returns a list of activities filtered by type and/or participants.
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: "The type of activity. One of: education, recreational, social, charity, cooking, relaxation, busywork."
+          schema:
+            type: string
+            enum: [education, recreational, social, charity, cooking, relaxation, busywork]
+        - name: participants
+          in: query
+          required: false
+          description: "The number of participants. One of: 1, 2, 3, 4, 5, 6, 8."
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: A list of matching activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+  /activity/{key}:
+    get:
+      operationId: getActivityByKey
+      summary: Get activity by key
+      description: Returns the activity with the specified key.
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: The unique key of the activity.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The activity with the given key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+components:
+  schemas:
+    Activity:
+      type: object
+      properties:
+        activity:
+          type: string
+          description: The name of the activity
+        availability:
+          type: number
+          description: "Availability factor (0.0 to 1.0)"
+        type:
+          type: string
+          description: The category of the activity
+        participants:
+          type: integer
+          description: Number of participants needed
+        price:
+          type: number
+          description: "Cost factor (0.0 to 1.0)"
+        accessibility:
+          type: string
+          description: Accessibility description
+        duration:
+          type: string
+          description: Estimated duration
+        kidFriendly:
+          type: boolean
+          description: Whether the activity is suitable for kids
+        link:
+          type: string
+          description: Optional URL with more information
+        key:
+          type: string
+          description: Unique identifier for the activity

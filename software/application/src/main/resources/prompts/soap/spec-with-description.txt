@@ -48,7 +48,8 @@ SOAP 1.2 response format rules (IMPORTANT):
 - ALL SOAP responses MUST be valid XML SOAP 1.2 envelopes
 - Use envelope namespace `http://www.w3.org/2003/05/soap-envelope`
 - Response Content-Type MUST be `application/soap+xml; charset=utf-8`
-- Example envelope:
+- The target namespace for response elements MUST match the targetNamespace from the WSDL exactly — do NOT use http://tempuri.org/ unless the WSDL specifies it
+- Example envelope (using the WSDL's target namespace):
   ```xml
   <soapenv:Envelope xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope" xmlns:tns="TARGET_NAMESPACE">
     <soapenv:Body>
@@ -58,6 +59,7 @@ SOAP 1.2 response format rules (IMPORTANT):
     </soapenv:Body>
   </soapenv:Envelope>
   ```
+- CRITICAL: Replace TARGET_NAMESPACE with the actual targetNamespace from the WSDL specification summary above. Using the wrong namespace is the most common SOAP validation failure.
 - The element inside `<soapenv:Body>` MUST use the target namespace from the compact WSDL
 - NEVER return a bare XML document without a SOAP Envelope wrapper
 - NEVER use JSON as the response body — SOAP responses are always XML

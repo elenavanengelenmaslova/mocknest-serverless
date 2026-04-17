@@ -124,7 +124,15 @@ tasks.test {
 }
 
 tasks.register<Test>("bedrockEval") {
+    description = "Run Bedrock prompt evaluation tests (requires BEDROCK_EVAL_ENABLED=true)"
+    group = "verification"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform {
         includeTags("bedrock-eval")
+    }
+    // Forward eval-related environment variables to the forked test JVM
+    listOf("BEDROCK_EVAL_ENABLED", "BEDROCK_EVAL_ITERATIONS", "AWS_REGION").forEach { key ->
+        System.getenv(key)?.let { environment(key, it) }
     }
 }
