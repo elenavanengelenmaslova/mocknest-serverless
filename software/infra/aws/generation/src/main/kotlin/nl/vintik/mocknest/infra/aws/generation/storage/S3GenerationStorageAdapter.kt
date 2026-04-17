@@ -390,9 +390,10 @@ class S3GenerationStorageAdapter(
             val objects = listObjectsV2(listRequest).contents ?: emptyList()
             
             // Collect all keys to delete: mock objects + results file
-            val keysToDelete = objects.mapNotNull { it.key } + "$jobKey/results.json"
+            val mockKeys = objects.mapNotNull { it.key }
+            val keysToDelete = mockKeys + "$jobKey/results.json"
             
-            if (keysToDelete.isEmpty()) return@runCatching true
+            // keysToDelete always has at least results.json, but guard anyway for clarity
             
             // Batch delete all objects in a single request
             deleteObjects(DeleteObjectsRequest {
