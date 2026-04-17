@@ -1,0 +1,86 @@
+@startuml ai-generation-flow
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 13
+skinparam sequenceArrowThickness 2
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 260
+skinparam sequenceLifeLineBorderColor #BBBBBB
+skinparam sequenceGroupBorderColor #888888
+skinparam sequenceGroupBodyBackgroundColor #F5F0FF
+
+skinparam participant {
+  BackgroundColor #E8F0FE
+  BorderColor #4A7BCC
+  FontSize 14
+  FontStyle bold
+}
+
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #E0C860
+  FontSize 12
+}
+
+skinparam sequence {
+  DividerBackgroundColor #F0F0F0
+  DividerBorderColor #CCCCCC
+  DividerFontSize 13
+  DividerFontStyle bold
+}
+
+title <size:16>AI Mock Generation Flow</size>
+
+actor "User" as User
+participant "Generation\nLambda" as GL
+participant "Amazon\nBedrock" as LLM
+
+User -> GL : API spec + description\n//(OpenAPI, GraphQL, or WSDL)//
+activate GL #E8F0FE
+
+== Parse & Compress ==
+
+GL -> GL : Parse spec into\ncompact representation
+
+== Generate ==
+
+note right of GL
+  **Generation prompt:**
+  compressed spec, user description,
+  WireMock schema rules, prompt template
+end note
+
+GL -> LLM : Generation prompt
+activate LLM #FFF3E0
+LLM --> GL : WireMock JSON mappings
+deactivate LLM
+
+== Validate ==
+
+GL -> GL : Validate each mapping
+
+alt #F5F0FF Invalid mocks detected
+
+  GL -> GL : Separate valid from invalid
+
+  note right of GL
+    **Correction prompt:**
+    invalid mocks + errors, spec context,
+    correction template
+    //LLM session retains original context//
+  end note
+
+  GL -> LLM : Correction prompt\n//(invalid mocks + errors only)//
+  activate LLM #FFF3E0
+  LLM --> GL : Corrected mappings
+  deactivate LLM
+
+  GL -> GL : Re-validate & merge\nwith valid originals
+end
+
+== Return ==
+
+GL --> User : **Valid WireMock mappings only**
+deactivate GL
+
+@enduml
