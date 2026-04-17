@@ -1,0 +1,6 @@
+[
+  {
+    "input": "Generate WireMock mocks for 4 pets with different statuses (available, pending, sold, and adopted), mocking the GET /pet/{petId} and GET /pet/findByStatus endpoints from the Petstore API.",
+    "expected": "4 WireMock mappings covering GET /pet/{petId} and GET /pet/findByStatus with distinct pet statuses"
+  }
+]

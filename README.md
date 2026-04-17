@@ -7,8 +7,9 @@
 [![CodeQL](https://github.com/elenavanengelenmaslova/mocknest-serverless/actions/workflows/codeql.yml/badge.svg?branch=main&event=push)](https://github.com/elenavanengelenmaslova/mocknest-serverless/security/code-scanning)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/elenavanengelenmaslova/mocknest-serverless/badge)](https://securityscorecards.dev/viewer/?uri=github.com/elenavanengelenmaslova/mocknest-serverless)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12218/badge)](https://www.bestpractices.dev/projects/12218)
-[![Snyk Security](https://snyk.io/test/github/elenavanengelenmaslova/mocknest-serverless/badge.svg)](https://app.snyk.io/org/elenavanengelenmaslova/)
 [![OpenAPI](https://img.shields.io/swagger/valid/3.0?specUrl=https%3A%2F%2Fraw.githubusercontent.com%2Felenavanengelenmaslova%2Fmocknest-serverless%2Fmain%2Fdocs%2Fapi%2Fmocknest-openapi.yaml&label=OpenAPI)](https://raw.githubusercontent.com/elenavanengelenmaslova/mocknest-serverless/main/docs/api/mocknest-openapi.yaml)
+
+
 [![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -50,6 +51,14 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 - **AI-Assisted Mock Generation**: Generate realistic, consistent mocks from OpenAPI, WSDL/SOAP, or GraphQL specs using Amazon Bedrock (configurable model, defaults to Amazon Nova Pro)
 - **One-Click Deployment**: Deploy via AWS Serverless Application Repository (SAR) or build from source with SAM
 - **Low Latency**: Lambda SnapStart minimises cold start times
+
+### AI Mock Generation Flow
+
+The user sends an API specification (OpenAPI, GraphQL, or WSDL) together with a natural language description. MockNest parses and compresses the spec, then assembles a prompt combining the spec summary, user description, WireMock schema rules, and a prompt template. Amazon Bedrock generates WireMock JSON mappings, which are validated automatically. If any mappings are invalid, only those mappings and their errors are sent back to the model for correction. The final response contains only valid mappings.
+
+<div style="text-align: center;">
+  <img src="docs/images/ai-generation-flow.png" alt="AI Mock Generation Flow" width="700">
+</div>
 
 ### Planned Features
 See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslova/projects/3) 
