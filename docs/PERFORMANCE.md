@@ -2,15 +2,18 @@
 
 ## Memory Configuration
 
-Runtime and Generation functions default to **512 MB**, RuntimeAsync defaults to **256 MB**, all based on AWS Lambda Power Tuner analysis using the `balanced` strategy.
+Runtime and Generation functions default to **1024 MB** and **512 MB** respectively, RuntimeAsync defaults to **256 MB**, all based on AWS Lambda Power Tuner analysis using the `balanced` strategy.
 
 ### Runtime Function Results
 
+Tested with a 100-mock import payload to reflect realistic workload.
+
 | Metric | Value |
 |---|---|
-| Optimal power | 512 MB |
-| Duration at 512 MB | 3.30 ms |
-| Visualization | [View chart](https://lambda-power-tuning.show/#AAIABAAGAAgADA==;Hz5TQIlBWEB56W5AfM1VQIAjVEA=;b6XpMm+laTMYC9szb6XpMxM8LzQ=) |
+| Optimal power | 1024 MB |
+| Cost at optimal | $0.000001632 |
+| Duration at 1024 MB | 118.89 ms |
+| Visualization | [View chart](https://lambda-power-tuning.show/#AAIABAAGAAgADA==;rLwTQ4LH7UKJiO5C+YXsQqtj90I=;Sf2HNRgL2zVSSCQ2zTdZNqsgqzY=) |
 
 ### Generation Function Results
 
@@ -28,7 +31,7 @@ Runtime and Generation functions default to **512 MB**, RuntimeAsync defaults to
 | Duration at 256 MB | 107.05 ms (includes outbound HTTP call latency) |
 | Visualization | [View chart](https://lambda-power-tuning.show/#AAEAAgAEAAYACAAM;phvWQqHMC0NXgA1D+/DYQtj8BkM3UKdC;lSPFNB6wgDXDmQE2KDkVNsY/eDbJu2g2) |
 
-> At 512 MB and ~3.3 ms average duration, Runtime and Generation functions fit comfortably within the [AWS Lambda free tier](https://aws.amazon.com/lambda/pricing/) (1M requests and 400,000 GB-seconds per month). RuntimeAsync at 256 MB is cost-efficient given its lightweight dispatch workload.
+> At 1024 MB and ~119 ms average duration (with 100-mock import), the Runtime function remains cost-efficient. Generation at 512 MB and ~3.2 ms fits comfortably within the [AWS Lambda free tier](https://aws.amazon.com/lambda/pricing/) (1M requests and 400,000 GB-seconds per month). RuntimeAsync at 256 MB is cost-efficient given its lightweight dispatch workload.
 
 ## Tuning Your Deployment
 
@@ -123,7 +126,7 @@ The RuntimeAsync Lambda receives SQS events containing a fully rendered `AsyncEv
 5. Update your deployment with the optimal values:
 ```bash
 sam deploy --parameter-overrides \
-  LambdaMemorySize=512 \
+  RuntimeLambdaMemorySize=1024 \
   RuntimeAsyncMemorySize=256
 ```
 

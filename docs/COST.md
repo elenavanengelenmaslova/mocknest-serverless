@@ -8,7 +8,7 @@ MockNest Serverless uses a serverless, pay-as-you-go architecture — you only p
 
 **[AWS Lambda](https://aws.amazon.com/lambda/pricing/)**
 - **3 Lambda functions**: Runtime (mock serving), Generation (AI features), RuntimeAsync (async webhook dispatch)
-- **Memory**: Runtime and Generation default to [512 MB](https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html) (configurable 512–10240 MB); RuntimeAsync defaults to 256 MB (configurable 128–10240 MB)
+- **Memory**: Runtime defaults to [1024 MB](https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html) (configurable 256–10240 MB); Generation defaults to 512 MB (configurable 256–10240 MB); RuntimeAsync defaults to 256 MB (configurable 128–10240 MB)
 - **Timeout**: [30 seconds default](https://docs.aws.amazon.com/lambda/latest/dg/configuration-timeout.html) (configurable 3-900 seconds via `LambdaTimeout` parameter). The synchronous API Gateway timeout (~29 seconds) is the practical constraint for request duration.
 - **Concurrency**: Auto-scales within AWS account limits - designed for cost efficiency
 - **Architecture**: [ARM64](https://docs.aws.amazon.com/lambda/latest/dg/foundation-arch.html) for 20% cost reduction (SnapStart enabled for reduced cold start latency)
@@ -76,7 +76,7 @@ MockNest includes several built-in cost optimization features:
 - **Response externalization** keeps payloads in S3, not Lambda memory
 - **ARM64 architecture** provides 20% Lambda cost reduction
 - **SnapStart enabled** for improved cold start performance and cost efficiency
-- **Power-tuned memory defaults** — default memory sizes (512 MB for Runtime/Generation, 256 MB for RuntimeAsync) were determined using [AWS Lambda Power Tuning](https://github.com/alexcasalboni/aws-lambda-power-tuning) to find the optimal cost/performance balance
+- **Power-tuned memory defaults** — default memory sizes (1024 MB for Runtime, 512 MB for Generation, 256 MB for RuntimeAsync) were determined using [AWS Lambda Power Tuning](https://github.com/alexcasalboni/aws-lambda-power-tuning) to find the optimal cost/performance balance
 
 ## Cost Monitoring
 
