@@ -625,14 +625,17 @@ class S3GenerationStorageAdapterTest {
             }
             coEvery { s3Client.listObjectsV2(match<ListObjectsV2Request> { it.prefix?.contains("mocks/") == true }) } returns mocksListResponse
 
-            coEvery { s3Client.deleteObject(any<DeleteObjectRequest>()) } returns DeleteObjectResponse {}
+            coEvery { s3Client.deleteObjects(any<DeleteObjectsRequest>()) } returns DeleteObjectsResponse {}
 
             // When
             val result = adapter.deleteGeneratedMocks(jobId)
 
             // Then
             assertTrue(result)
-            coVerify(exactly = 3) { s3Client.deleteObject(any<DeleteObjectRequest>()) } // 2 mocks + 1 results file
+            // Batch deleteObjects() should be called once with all keys (2 mocks + 1 results file)
+            coVerify(exactly = 1) { s3Client.deleteObjects(any<DeleteObjectsRequest>()) }
+            // Individual deleteObject() should NOT be called
+            coVerify(exactly = 0) { s3Client.deleteObject(any<DeleteObjectRequest>()) }
         }
 
         @Test

@@ -92,10 +92,7 @@ class ObjectStorageMappingsSource(
             val flow = storage.runCatching { listPrefix(prefix) }
                 .onFailure { e -> logger.error(e) { "Failed to list mappings for removeAll with prefix '$prefix'" } }
                 .getOrThrow()
-            flow.collect { key ->
-                storage.runCatching { delete(key) }
-                    .onFailure { e -> logger.error(e) { "Failed to delete mapping key $key" } }
-            }
+            storage.deleteMany(flow)
         }
     }
 }

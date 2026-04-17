@@ -1,0 +1,138 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration tests
+  - **Property 1: Bug Condition** — Sequential Deletes & INFO-Level Logging
+  - **CRITICAL**: These tests MUST FAIL on unfixed code — failure confirms the bugs exist
+  - **DO NOT attempt to fix the tests or the code when they fail**
+  - **NOTE**: These tests encode the expected behavior — they will validate the fix when they pass after implementation
+  - **GOAL**: Surface counterexamples that demonstrate all three bugs exist
+  - **Scoped PBT Approach**: Use `@ParameterizedTest` with `@MethodSource` to test across varying numbers of mapping keys (0, 1, 5) for batch delete verification, and across all three per-object operations (get, delete, save) for log level verification
+  - **Test 1a — `ObjectStorageMappingsSource.removeAll()` uses sequential deletes instead of batch**:
+    - File: `software/application/src/test/kotlin/nl/vintik/mocknest/application/runtime/mappings/ObjectStorageMappingsSourceBugConditionTest.kt` (NEW)
+    - Mock `ObjectStorageInterface` with `mockk(relaxed = true)`
+    - Set up `storage.listPrefix(prefix)` to return a flow of N keys (parameterized: 0, 1, 5)
+    - Call `removeAll()`
+    - Assert `storage.deleteMany()` is called exactly once with the keys flow (from Bug Condition in design: `removeAll()` should use `deleteMany()`)
+    - Assert `storage.delete()` is NOT called individually (`coVerify(exactly = 0)`)
+    - Run on UNFIXED code — expect FAILURE: `deleteMany()` is never called, `delete()` is called N times
+    - Document counterexample: `removeAll()` with 5 keys calls `storage.delete(key)` 5 times instead of `storage.deleteMany(flow)` once
+  - **Test 1b — `S3ObjectStorageAdapter` per-object operations log at INFO instead of DEBUG**:
+    - File: `software/infra/aws/runtime/src/test/kotlin/nl/vintik/mocknest/infra/aws/runtime/storage/S3ObjectStorageAdapterBugConditionTest.kt` (NEW)
+    - Mock `S3Client` with `mockk(relaxed = true)` and stub `putObject`, `getObject`, `deleteObject` to return success responses
+    - Use `@ParameterizedTest` with `@MethodSource` providing the three operations: `get`, `delete`, `save`
+    - For each operation, capture log output using a test log appender or verify via code inspection
+    - Assert that per-object log messages are at DEBUG level, not INFO level (from Bug Condition in design)
+    - Run on UNFIXED code — expect FAILURE: log messages are at INFO level
+    - Document counterexample: `get("test-key")` logs `INFO: Getting object with id: test-key` instead of `DEBUG`
+  - **Test 1c — `S3GenerationStorageAdapter.deleteGeneratedMocks()` uses sequential deletes instead of batch**:
+    - File: `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/storage/S3GenerationStorageAdapterBugConditionTest.kt` (NEW)
+    - Mock `S3Client` with `mockk(relaxed = true)`
+    - Set up `listObjectsV2` to return 3 mock objects for a job, and `findJobKey` to resolve the job prefix
+    - Call `deleteGeneratedMocks(jobId)`
+    - Assert `s3Client.deleteObjects()` (batch API) is called at least once (from Bug Condition in design)
+    - Assert `s3Client.deleteObject()` (individual API) is NOT called for mock objects (`coVerify(exactly = 0)` for mock keys)
+    - Run on UNFIXED code — expect FAILURE: `deleteObjects()` is never called, `deleteObject()` is called 3+ times
+    - Document counterexample: `deleteGeneratedMocks("job-123")` with 3 mocks calls `deleteObject()` 4 times (3 mocks + 1 results) instead of `deleteObjects()` once
+  - Run all tests on UNFIXED code
+  - **EXPECTED OUTCOME**: All three tests FAIL (this is correct — it proves the bugs exist)
+  - Document counterexamples found to understand root cause
+  - Mark task complete when tests are written, run, and failures are documented
+  - _Requirements: 1.1, 1.3, 1.4, 2.1, 2.3, 2.4_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** — Unchanged Behavior for Non-Bug Operations
+  - **IMPORTANT**: Follow observation-first methodology
+  - **Observation Phase** — Run UNFIXED code and record behavior for non-bug-condition inputs:
+    - Observe: `ObjectStorageMappingsSource.save(mapping)` calls `storage.save("mappings/{id}.json", json)` for a single mapping
+    - Observe: `ObjectStorageMappingsSource.remove(mapping)` calls `storage.delete("mappings/{id}.json")` for a single mapping
+    - Observe: `ObjectStorageMappingsSource.loadMappingsInto()` uses `flatMapMerge(concurrency)` to load mappings concurrently from S3
+    - Observe: `S3ObjectStorageAdapter.deleteMany()` batches keys into groups of 1000 and uses `flatMapMerge` for parallel batch submission
+    - Observe: `S3GenerationStorageAdapter.storeGeneratedMocks()`, `getGeneratedMocks()`, `storeJob()`, `getJob()` all work correctly
+    - Observe: `DeleteAllMappingsAndFilesFilter` calls `storage.deleteMany(storage.listPrefix(FILES_PREFIX))` for `__files/` cleanup
+  - **Test 2a — Individual mapping save/remove preservation**:
+    - File: `software/application/src/test/kotlin/nl/vintik/mocknest/application/runtime/mappings/ObjectStorageMappingsSourcePreservationTest.kt` (NEW)
+    - Use `@ParameterizedTest` with `@MethodSource` providing 5+ diverse `StubMapping` instances (varying IDs, request patterns, response definitions)
+    - For each mapping: call `save(mapping)`, verify `storage.save("mappings/{id}.json", matchingJson)` is called exactly once
+    - For each mapping: call `remove(mapping)`, verify `storage.delete("mappings/{id}.json")` is called exactly once
+    - Verify `storage.deleteMany()` is NOT called during individual save/remove operations
+    - Property: _For all individual mapping operations, the system uses single-object storage calls, not batch operations_
+  - **Test 2b — Mapping loading preservation**:
+    - In the same test file, write a test verifying `loadMappingsInto()` still loads all valid mappings from S3 using `storage.listPrefix()` and `storage.get()` with concurrent streaming
+    - Use `@ParameterizedTest` with varying numbers of mappings (0, 1, 3) to verify loading works for different sizes
+    - Property: _For all valid mapping sets, loadMappingsInto() loads all mappings and marks them non-persistent_
+  - **Test 2c — S3GenerationStorageAdapter non-delete operations preservation**:
+    - File: `software/infra/aws/generation/src/test/kotlin/nl/vintik/mocknest/infra/aws/generation/storage/S3GenerationStorageAdapterPreservationTest.kt` (NEW)
+    - Use `@ParameterizedTest` with `@MethodSource` providing diverse job/mock configurations
+    - Verify `storeGeneratedMocks()` still calls `s3Client.putObject()` for each mock and results file
+    - Verify `getGeneratedMocks()` still retrieves and deserializes mocks correctly
+    - Verify `storeJob()` and `getJob()` still work correctly
+    - Property: _For all non-deleteGeneratedMocks operations, the system behavior is unchanged_
+  - Verify all preservation tests PASS on UNFIXED code
+  - **EXPECTED OUTCOME**: All tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+
+- [x] 3. Fix for S3 bulk delete and logging level
+
+  - [x] 3.1 Implement `ObjectStorageMappingsSource.removeAll()` batch delete fix
+    - File: `software/application/src/main/kotlin/nl/vintik/mocknest/application/runtime/mappings/ObjectStorageMappingsSource.kt`
+    - Replace the sequential `flow.collect { key -> storage.runCatching { delete(key) } ... }` block with `storage.deleteMany(flow)`
+    - The `deleteMany()` method already handles batching (1000 keys per batch), parallel submission (`flatMapMerge`), and error handling internally
+    - Keep the outer `runCatching` for `listPrefix()` failure handling
+    - _Bug_Condition: isBugCondition(input) where input.operation = "removeAll" AND input.target = "ObjectStorageMappingsSource"_
+    - _Expected_Behavior: removeAll() calls storage.deleteMany(flow) exactly once, storage.delete() is NOT called individually_
+    - _Preservation: save(), remove(), loadMappingsInto() are unchanged — only removeAll() method body is modified_
+    - _Requirements: 1.1, 2.1, 2.2, 3.1, 3.3, 3.4, 3.5_
+
+  - [x] 3.2 Change `S3ObjectStorageAdapter` log levels from INFO to DEBUG
+    - File: `software/infra/aws/runtime/src/main/kotlin/nl/vintik/mocknest/infra/aws/runtime/storage/S3ObjectStorageAdapter.kt`
+    - Change `logger.info { "Saving object with id: $id" }` to `logger.debug { "Saving object with id: $id" }` in `save()`
+    - Change `logger.info { "Getting object with id: $id" }` to `logger.debug { "Getting object with id: $id" }` in `get()`
+    - Change `logger.info { "Deleting object with id: $id" }` to `logger.debug { "Deleting object with id: $id" }` in `delete()`
+    - _Bug_Condition: isBugCondition(input) where input.operation IN {"get", "delete", "save"} AND input.target = "S3ObjectStorageAdapter"_
+    - _Expected_Behavior: Per-object log messages are at DEBUG level, not INFO level_
+    - _Preservation: Operation semantics (success/failure behavior) are unchanged — only log level changes. Messages remain visible when DEBUG logging is enabled (Requirement 3.8)_
+    - _Requirements: 1.3, 2.3, 3.2, 3.8_
+
+  - [x] 3.3 Implement `S3GenerationStorageAdapter.deleteGeneratedMocks()` batch delete fix
+    - File: `software/infra/aws/generation/src/main/kotlin/nl/vintik/mocknest/infra/aws/generation/storage/S3GenerationStorageAdapter.kt`
+    - Replace the `objects.forEach { obj -> deleteObject(DeleteObjectRequest { ... }) }` loop and the separate results file `deleteObject()` call
+    - Collect all object keys (mock objects + results file key) into a single list
+    - Call `s3Client.deleteObjects(DeleteObjectsRequest { ... })` with a `Delete` block containing all keys as `ObjectIdentifier` entries, with `quiet = true`
+    - Handle empty object list: if no mock objects found and no results file, return early
+    - This mirrors the pattern used in `S3ObjectStorageAdapter.deleteMany()`
+    - _Bug_Condition: isBugCondition(input) where input.operation = "deleteGeneratedMocks" AND input.target = "S3GenerationStorageAdapter"_
+    - _Expected_Behavior: deleteGeneratedMocks() calls s3Client.deleteObjects() with batch request, s3Client.deleteObject() is NOT called for mock objects_
+    - _Preservation: storeGeneratedMocks(), getGeneratedMocks(), storeJob(), getJob(), and all other non-delete operations are unchanged_
+    - _Requirements: 1.4, 2.4, 3.7_
+
+  - [x] 3.4 Run `./gradlew clean test` and confirm all tests pass
+    - This checkpoint verifies the full build passes after all implementation changes
+    - All existing tests must continue to pass (preservation)
+    - Note: The existing `ObjectStorageMappingsSourceTest` test `Given keys in storage When removeAll Then should delete each key returned by listPrefix` will need to be updated to reflect the new batch delete behavior — update it to verify `deleteMany()` is called instead of individual `delete()` calls
+
+  - [x] 3.5 Verify bug condition exploration tests now pass
+    - **Property 1: Expected Behavior** — Batch Deletes & DEBUG-Level Logging Verified
+    - **IMPORTANT**: Re-run the SAME tests from task 1 — do NOT write new tests
+    - The tests from task 1 encode the expected behavior
+    - When these tests pass, it confirms:
+      - `removeAll()` calls `storage.deleteMany()` instead of sequential `storage.delete()` calls
+      - `get()`, `delete()`, `save()` log at DEBUG level instead of INFO
+      - `deleteGeneratedMocks()` calls `s3Client.deleteObjects()` instead of sequential `s3Client.deleteObject()` calls
+    - Run bug condition exploration tests from task 1
+    - **EXPECTED OUTCOME**: Tests PASS (confirms bugs are fixed)
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+  - [x] 3.6 Verify preservation tests still pass
+    - **Property 2: Preservation** — Unchanged Behavior for Non-Bug Operations
+    - **IMPORTANT**: Re-run the SAME tests from task 2 — do NOT write new tests
+    - Run preservation property tests from task 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all preservation tests still pass after fix (no regressions)
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Run `./gradlew clean test` and confirm all tests pass
+  - Verify bug condition exploration tests (task 1) pass — confirms all three bugs are fixed
+  - Verify preservation tests (task 2) pass — confirms no regressions in non-bug operations
+  - Verify existing tests pass — confirms no unintended side effects
+  - Ensure all tests pass, ask the user if questions arise

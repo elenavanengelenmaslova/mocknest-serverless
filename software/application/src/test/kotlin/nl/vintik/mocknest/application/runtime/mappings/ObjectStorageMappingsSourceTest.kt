@@ -146,7 +146,7 @@ class ObjectStorageMappingsSourceTest {
         }
 
         @Test
-        fun `Given keys in storage When removeAll Then should delete each key returned by listPrefix`() {
+        fun `Given keys in storage When removeAll Then should delete via batch deleteMany`() {
             val key1 = "${prefix}a.json"
             val key2 = "${prefix}b.json"
 
@@ -155,8 +155,8 @@ class ObjectStorageMappingsSourceTest {
             source.removeAll()
 
             coVerify(exactly = 1) { storage.listPrefix(prefix) }
-            coVerify(exactly = 1) { storage.delete(key1) }
-            coVerify(exactly = 1) { storage.delete(key2) }
+            coVerify(exactly = 1) { storage.deleteMany(any<Flow<String>>(), any()) }
+            coVerify(exactly = 0) { storage.delete(any()) }
         }
     }
 
