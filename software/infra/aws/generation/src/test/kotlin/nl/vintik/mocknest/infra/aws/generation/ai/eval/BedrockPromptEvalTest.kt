@@ -263,6 +263,21 @@ class BedrockPromptEvalTest {
                 }
             }
 
+            // Log first-pass validation errors for analysis
+            @Suppress("UNCHECKED_CAST")
+            val firstPassValidationErrors = (meta["firstPassValidationErrors"] as? List<String>) ?: emptyList()
+            if (firstPassValidationErrors.isNotEmpty()) {
+                logger.info {
+                    "  1st-pass errors for ${scenario.input}: ${firstPassValidationErrors.joinToString(" | ")}"
+                }
+            }
+            // Log final validation errors if any remain
+            if (validationErrors.isNotEmpty()) {
+                logger.info {
+                    "  Final errors for ${scenario.input}: ${validationErrors.joinToString(" | ")}"
+                }
+            }
+
             // Run LLM judge for semantic check
             val semanticPassed = runSemanticJudge(scenario, mappingsJson)
 

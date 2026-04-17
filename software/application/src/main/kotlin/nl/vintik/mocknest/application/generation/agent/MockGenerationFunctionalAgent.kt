@@ -196,6 +196,7 @@ class MockGenerationFunctionalAgent(
                         "attempts" to ctx.attempt,
                         "mocksDropped" to droppedCount,
                         "validationErrors" to ctx.errors,
+                        "firstPassValidationErrors" to (ctx.firstPassErrors ?: emptyList()),
                         "allValid" to (ctx.errors.isEmpty() && droppedCount == 0),
                         "firstPassValid" to firstPassWasValid,
                         "firstPassMocksGenerated" to ctx.firstPassMocksGenerated,

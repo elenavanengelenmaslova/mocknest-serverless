@@ -19,12 +19,14 @@ Requirements:
 
 SOAP 1.2 request matching rules (IMPORTANT):
 - ALL SOAP requests MUST use POST method — never GET, PUT, DELETE, or any other method
-- Match on the `action` parameter inside the `Content-Type` header using the exact soapAction value from the Key operations list
+- Match on the `action` parameter inside the `Content-Type` header using the EXACT soapAction value from the Key operations list above
+  - CRITICAL: Copy the soapAction URL VERBATIM from the Key operations list. Do NOT invent URLs like http://tempuri.org/ or http://namespace/Operation — use the exact URL shown.
   - Example: `"headers": { "Content-Type": { "contains": "action=\"http://example.com/service/OperationName\"" } }`
 - Do NOT use a `SOAPAction` header — SOAP 1.2 uses the `action` parameter in `Content-Type` instead
 - Use `urlPath` for the service endpoint path
 - The `urlPath` MUST use the format `/{{NAMESPACE}}/` followed by the WSDL service path suffix
   - Example: If WSDL service path is `/calculator.asmx`, use `"urlPath": "/{{NAMESPACE}}/calculator.asmx"`
+  - CRITICAL: Extract the service path from the WSDL's `<soap12:address location="..."/>` element. Use only the path portion after the host.
 - Each mapping MUST target a different operation via its action parameter
 - Generate one primary success stub per SOAP operation unless the description explicitly requires additional scenarios (e.g., error cases, multiple test inputs)
 - Never generate multiple stubs for the same SOAP operation unless request matchers are mutually exclusive (e.g., different XPath body matches or different action values)

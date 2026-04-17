@@ -1,16 +1,38 @@
 {
-  "name": "GraphQL-Only Eval (jsonBody fix)",
-  "description": "Tests GraphQL jsonBody example fix for Int type encoding",
+  "name": "GraphQL + SOAP Eval (error analysis)",
+  "description": "Tests with detailed error logging for GraphQL and SOAP",
   "examples": [
     {
-      "input": "graphql-pokemon-team",
+      "input": "graphql-pokemon-pikachu",
       "metadata": {
         "protocol": "GraphQL",
         "specFile": "eval/pokemon-graphql-introspection.json",
         "format": "GRAPHQL",
         "namespace": "pokemon-eval",
-        "description": "Generate mocks for the pokemon query returning 3 different Pokemon: Pikachu (id 25, height 4, weight 60, type electric), Charmander (id 4, height 6, weight 85, type fire), and Bulbasaur (id 1, height 7, weight 69, type grass). Each must have at least 2 abilities and 2 moves. Include all required fields from the schema.",
-        "semanticCheck": "Strictly verify: 1) There must be 3 pokemon query mocks. 2) Pikachu must have id 25 and type electric. 3) Charmander must have id 4 and type fire. 4) Bulbasaur must have id 1 and type grass. 5) Each pokemon must have at least 2 abilities. Score 0 if any pokemon is missing or has wrong id/type."
+        "description": "Generate a mock for the pokemon query returning Pikachu with id 25, name pikachu, height 4, weight 60, type electric, and at least 2 abilities (static and lightning-rod). Include all required fields from the schema including types, abilities, and moves arrays.",
+        "semanticCheck": "Strictly verify: 1) There must be a pokemon query mock. 2) The response must contain data.pokemon with name pikachu and id 25. 3) The types array must contain at least one entry with type.name electric. 4) The abilities array must have at least 2 entries. Score 0 if pikachu is missing or id is wrong."
+      }
+    },
+    {
+      "input": "graphql-books-two-books",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/books-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "books-eval",
+        "description": "Generate a mock for the books query returning exactly 2 books. Book 1: id 1, title 'The Great Gatsby', author name 'F. Scott Fitzgerald', genre 'fiction'. Book 2: id 2, title '1984', author name 'George Orwell', genre 'dystopian'.",
+        "semanticCheck": "Strictly verify: 1) There must be a books query mock. 2) The response data.books must be an array with exactly 2 items. 3) One book must have title 'The Great Gatsby' and the other '1984'. Score 0 if any book is missing or titles are wrong."
+      }
+    },
+    {
+      "input": "soap-calculator-all-operations",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/calculator-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "calculator-eval",
+        "description": "Generate mocks for all 3 operations: Add(10, 5) returning 15, Subtract(10, 5) returning 5, and Multiply(10, 5) returning 50. Each operation must have the correct result.",
+        "semanticCheck": "Strictly verify: 1) There must be exactly 3 mappings, one per operation. 2) Add result must be 15. 3) Subtract result must be 5. 4) Multiply result must be 50. Score 0 if any result is wrong or any operation is missing."
       }
     }
   ]
