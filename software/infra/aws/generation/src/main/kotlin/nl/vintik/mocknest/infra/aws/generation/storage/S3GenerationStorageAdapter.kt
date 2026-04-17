@@ -389,18 +389,19 @@ class S3GenerationStorageAdapter(
             
             val objects = listObjectsV2(listRequest).contents ?: emptyList()
             
-            // Delete all mock objects
-            objects.forEach { obj ->
-                deleteObject(DeleteObjectRequest {
-                    bucket = bucketName
-                    key = obj.key!!
-                })
-            }
+            // Collect all keys to delete: mock objects + results file
+            val mockKeys = objects.mapNotNull { it.key }
+            val keysToDelete = mockKeys + "$jobKey/results.json"
             
-            // Delete results file
-            deleteObject(DeleteObjectRequest {
+            // keysToDelete always has at least results.json, but guard anyway for clarity
+            
+            // Batch delete all objects in a single request
+            deleteObjects(DeleteObjectsRequest {
                 bucket = bucketName
-                key = "$jobKey/results.json"
+                delete = Delete {
+                    this.objects = keysToDelete.map { key -> ObjectIdentifier { this.key = key } }
+                    quiet = true
+                }
             })
             
             true

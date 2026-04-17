@@ -238,7 +238,7 @@ MockNest Serverless provides multiple ways to interact with the API:
 3. **Deploy**: Click "Deploy" and configure parameters:
    - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
    - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
-   - **RuntimeLambdaMemorySize**: Runtime Lambda memory in MB (default: 512)
+   - **RuntimeLambdaMemorySize**: Runtime Lambda memory in MB (default: 1024)
    - **GenerationLambdaMemorySize**: Generation Lambda memory in MB (default: 512)
    - **RuntimeLambdaTimeout**: Mock serving timeout in seconds (default: 29)
    - **GenerationLambdaTimeout**: AI generation timeout in seconds (default: 29)
@@ -298,13 +298,13 @@ The following WireMock capabilities have been validated in the serverless enviro
 
 **Cold Start Impact**: Mock definitions are loaded into memory at Lambda startup. With very large numbers of persistent mocks (thousands), cold start times may increase. For typical development and testing scenarios with hundreds of mocks, this is not a concern.
 
+**Runtime Latency by Mock Count**: Lambda Power Tuner testing shows warm invocation latency stays flat as mock count grows — ~119 ms with 100 mocks (1024 MB) and ~113 ms with 1000 mocks (1536 MB). The optimal memory shifts from 1024 MB to 1536 MB at 1000 mocks due to increased heap and CPU demand, with per-invocation cost rising from ~$0.0000016 to ~$0.0000023 (still well within free tier).
+
 **Scaling Strategy**: For large-scale deployments or when managing many APIs, consider these approaches:
 
-- **Multiple Deployments**: Deploy separate MockNest instances for different API groups or teams
-  - Provides better isolation and independent scaling
-  - Reduces cold start times by keeping mock sets smaller per deployment
-  - Allows separate access control and security configurations
+- **Multiple Deployments**: Deploy separate MockNest instances for different API groups or teams. Group APIs by authentication method (since `AuthMode` is a deployment-level setting), team ownership, or traffic volume. This keeps mock sets smaller per deployment, reduces cold start times, and allows independent access control.
   - Example: `mocknest-payment-apis`, `mocknest-user-apis`, `mocknest-notification-apis`
+  - Recommended when mock count exceeds ~1000 per deployment
 
 - **Namespace Organization**: Within a single deployment, use namespaces to logically group mocks
   - Simple API: `/petstore/`
@@ -312,9 +312,9 @@ The following WireMock capabilities have been validated in the serverless enviro
   - Multi-tenant: `/tenant-b/petstore/`
   - Allows multiple teams and APIs to coexist without conflicts
 
-**Recommendation**: Use namespaces for logical grouping within a deployment, and use multiple deployments when you need isolation, separate access control, or independent scaling.
+**Recommendation**: Keep each deployment under ~500–1000 mappings for optimal performance. Use namespaces for logical grouping within a deployment, and use multiple deployments when you need isolation, separate auth modes, or independent scaling.
 
-For detailed memory sizing, cold start measurements, and tuning guidance, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
+For detailed memory sizing, cold start measurements, scaling benchmarks (100 vs 1000 mocks), and tuning guidance, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
 ### SOAP/WSDL Support
 
@@ -441,7 +441,7 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 
 | Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
 |---------------|---------------|---------------------|-----------------|---------|-------|
-| **Memory** | `RuntimeLambdaMemorySize` | N/A | 256-10240 MB | `512` | Default optimized via Lambda Power Tuner. Increase for large mock response payloads. See [PERFORMANCE.md](docs/PERFORMANCE.md) |
+| **Memory** | `RuntimeLambdaMemorySize` | N/A | 512-10240 MB | `1024` | Default optimized via Lambda Power Tuner with 100 mocks. See [PERFORMANCE.md](docs/PERFORMANCE.md) |
 | **Timeout** | `RuntimeLambdaTimeout` | N/A | 3-29 seconds | `29` | Bounded by API Gateway synchronous limit (~29s) |
 
 **Generation Lambda** — AI mock generation via Bedrock

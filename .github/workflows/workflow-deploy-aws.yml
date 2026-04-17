@@ -27,6 +27,11 @@ on:
         type: string
         default: 'API_KEY'
         description: 'Authentication mode for API Gateway: API_KEY or IAM'
+      runtime-lambda-memory:
+        required: false
+        type: number
+        default: 1024
+        description: 'Memory size in MB for the Runtime Lambda function (512-10240). Default 1024, use 1536+ for 500+ mocks.'
     secrets:
       AWS_ACCOUNT_ID:
         required: true
@@ -92,7 +97,7 @@ jobs:
           fi
 
           # Always pass parameter overrides to ensure updated defaults take effect on existing stacks
-          PARAM_OVERRIDES="RuntimeLambdaTimeout=29"
+          PARAM_OVERRIDES="RuntimeLambdaTimeout=29 RuntimeLambdaMemorySize=${{ inputs.runtime-lambda-memory }}"
           if [ "$AUTH_MODE" = "IAM" ]; then
             PARAM_OVERRIDES="$PARAM_OVERRIDES AuthMode=IAM"
           fi

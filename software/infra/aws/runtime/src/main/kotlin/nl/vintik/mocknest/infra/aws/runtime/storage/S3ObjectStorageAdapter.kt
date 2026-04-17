@@ -23,7 +23,7 @@ class S3ObjectStorageAdapter(
 ) : ObjectStorageInterface {
 
     override suspend fun save(id: String, content: String): String {
-        logger.info { "Saving object with id: $id" }
+        logger.debug { "Saving object with id: $id" }
         val contentBytes = content.toByteArray(StandardCharsets.UTF_8)
         val byteStream = ByteStream.fromBytes(contentBytes)
         s3Client.putObject(
@@ -43,7 +43,7 @@ class S3ObjectStorageAdapter(
     }
 
     override suspend fun get(id: String): String? {
-        logger.info { "Getting object with id: $id" }
+        logger.debug { "Getting object with id: $id" }
         return s3Client.runCatching {
             var content: String? = null
             getObject(GetObjectRequest {
@@ -59,7 +59,7 @@ class S3ObjectStorageAdapter(
     }
 
     override suspend fun delete(id: String) {
-        logger.info { "Deleting object with id: $id" }
+        logger.debug { "Deleting object with id: $id" }
         s3Client.runCatching {
             deleteObject(DeleteObjectRequest {
                 bucket = bucketName
