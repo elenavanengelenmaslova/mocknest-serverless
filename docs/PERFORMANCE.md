@@ -6,7 +6,7 @@ Runtime and Generation functions default to **1024 MB** and **512 MB** respectiv
 
 ### Runtime Function Results
 
-Tested with a 100-mock import payload to reflect realistic workload.
+Tested with 100 mocks loaded in the system.
 
 | Metric | Value |
 |---|---|
@@ -31,7 +31,7 @@ Tested with a 100-mock import payload to reflect realistic workload.
 | Duration at 256 MB | 107.05 ms (includes outbound HTTP call latency) |
 | Visualization | [View chart](https://lambda-power-tuning.show/#AAEAAgAEAAYACAAM;phvWQqHMC0NXgA1D+/DYQtj8BkM3UKdC;lSPFNB6wgDXDmQE2KDkVNsY/eDbJu2g2) |
 
-> At 1024 MB and ~119 ms average duration (with 100-mock import), the Runtime function remains cost-efficient. Generation at 512 MB and ~3.2 ms fits comfortably within the [AWS Lambda free tier](https://aws.amazon.com/lambda/pricing/) (1M requests and 400,000 GB-seconds per month). RuntimeAsync at 256 MB is cost-efficient given its lightweight dispatch workload.
+> At 1024 MB and ~119 ms average duration (with 100 mocks in the system), the Runtime function remains cost-efficient. Generation at 512 MB and ~3.2 ms fits comfortably within the [AWS Lambda free tier](https://aws.amazon.com/lambda/pricing/) (1M requests and 400,000 GB-seconds per month). RuntimeAsync at 256 MB is cost-efficient given its lightweight dispatch workload.
 
 ## Tuning Your Deployment
 

@@ -43,11 +43,11 @@ Parameters:
   RuntimeLambdaMemorySize:
     Type: Number
     Default: "1024"
-    MinValue: "256"
+    MinValue: "512"
     MaxValue: "10240"
     Description: |
       Memory size in MB for the Runtime Lambda function (serves mock responses).
-      Default (1024 MB) determined by Lambda Power Tuner analysis with 100-mock import payload for optimal cost/performance balance.
+      Default (1024 MB) determined by Lambda Power Tuner analysis with 100 mocks in the system for optimal cost/performance balance.
       See docs/PERFORMANCE.md for tuning methodology and results.
 
   RuntimeLambdaTimeout:

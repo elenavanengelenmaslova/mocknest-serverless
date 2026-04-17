@@ -441,7 +441,7 @@ MockNest Serverless can be configured through SAM deployment parameters or envir
 
 | Configuration | SAM Parameter | Environment Variable | Possible Values | Default | Notes |
 |---------------|---------------|---------------------|-----------------|---------|-------|
-| **Memory** | `RuntimeLambdaMemorySize` | N/A | 256-10240 MB | `1024` | Default optimized via Lambda Power Tuner with 100-mock import payload. See [PERFORMANCE.md](docs/PERFORMANCE.md) |
+| **Memory** | `RuntimeLambdaMemorySize` | N/A | 512-10240 MB | `1024` | Default optimized via Lambda Power Tuner with 100 mocks. See [PERFORMANCE.md](docs/PERFORMANCE.md) |
 | **Timeout** | `RuntimeLambdaTimeout` | N/A | 3-29 seconds | `29` | Bounded by API Gateway synchronous limit (~29s) |
 
 **Generation Lambda** — AI mock generation via Bedrock
