@@ -94,9 +94,9 @@ class S3ObjectStorageAdapterTest {
         fun `Given existing object When getting Then should return content`() = runTest {
             val expectedContent = """{"mapping":"data"}"""
             coEvery {
-                mockS3Client.getObject(any<GetObjectRequest>(), any<suspend (GetObjectResponse) -> String?>())
+                mockS3Client.getObject(any<GetObjectRequest>(), any<suspend (GetObjectResponse) -> Unit>())
             } coAnswers {
-                val block = secondArg<suspend (GetObjectResponse) -> String?>()
+                val block = secondArg<suspend (GetObjectResponse) -> Unit>()
                 val response = GetObjectResponse {
                     body = ByteStream.fromBytes(expectedContent.toByteArray())
                 }
@@ -112,7 +112,7 @@ class S3ObjectStorageAdapterTest {
         @Test
         fun `Given non-existing object When getting Then should return null`() = runTest {
             coEvery {
-                mockS3Client.getObject(any<GetObjectRequest>(), any<suspend (GetObjectResponse) -> String?>())
+                mockS3Client.getObject(any<GetObjectRequest>(), any<suspend (GetObjectResponse) -> Unit>())
             } throws NoSuchKey {}
 
             val result = adapter.get("mappings/missing.json")
@@ -221,15 +221,15 @@ class S3ObjectStorageAdapterTest {
             val ids = flowOf("a.json", "b.json")
 
             coEvery {
-                mockS3Client.getObject(match<GetObjectRequest> { it.key == "a.json" }, any<suspend (GetObjectResponse) -> String?>())
+                mockS3Client.getObject(match<GetObjectRequest> { it.key == "a.json" }, any<suspend (GetObjectResponse) -> Unit>())
             } coAnswers {
-                val block = secondArg<suspend (GetObjectResponse) -> String?>()
+                val block = secondArg<suspend (GetObjectResponse) -> Unit>()
                 block(GetObjectResponse { body = ByteStream.fromBytes("content-a".toByteArray()) })
             }
             coEvery {
-                mockS3Client.getObject(match<GetObjectRequest> { it.key == "b.json" }, any<suspend (GetObjectResponse) -> String?>())
+                mockS3Client.getObject(match<GetObjectRequest> { it.key == "b.json" }, any<suspend (GetObjectResponse) -> Unit>())
             } coAnswers {
-                val block = secondArg<suspend (GetObjectResponse) -> String?>()
+                val block = secondArg<suspend (GetObjectResponse) -> Unit>()
                 block(GetObjectResponse { body = ByteStream.fromBytes("content-b".toByteArray()) })
             }
 
@@ -245,13 +245,13 @@ class S3ObjectStorageAdapterTest {
             val ids = flowOf("good.json", "bad.json")
 
             coEvery {
-                mockS3Client.getObject(match<GetObjectRequest> { it.key == "good.json" }, any<suspend (GetObjectResponse) -> String?>())
+                mockS3Client.getObject(match<GetObjectRequest> { it.key == "good.json" }, any<suspend (GetObjectResponse) -> Unit>())
             } coAnswers {
-                val block = secondArg<suspend (GetObjectResponse) -> String?>()
+                val block = secondArg<suspend (GetObjectResponse) -> Unit>()
                 block(GetObjectResponse { body = ByteStream.fromBytes("content".toByteArray()) })
             }
             coEvery {
-                mockS3Client.getObject(match<GetObjectRequest> { it.key == "bad.json" }, any<suspend (GetObjectResponse) -> String?>())
+                mockS3Client.getObject(match<GetObjectRequest> { it.key == "bad.json" }, any<suspend (GetObjectResponse) -> Unit>())
             } throws NoSuchKey {}
 
             val results = adapter.getMany(ids).toList().sortedBy { it.first }
