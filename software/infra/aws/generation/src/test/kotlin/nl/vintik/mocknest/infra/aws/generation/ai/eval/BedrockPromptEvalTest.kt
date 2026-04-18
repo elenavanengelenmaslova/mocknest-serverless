@@ -193,6 +193,8 @@ class BedrockPromptEvalTest {
     private fun runScenario(scenario: EvalScenario): ScenarioResult {
         tokenUsageStore.clear()
 
+        var latencyMs = 0L
+
         return runCatching {
             val agent = createAgentForProtocol(scenario.protocol)
             val specContent = loadSpecContent(scenario.specFile)
@@ -208,7 +210,7 @@ class BedrockPromptEvalTest {
 
             // Time only the Bedrock call
             var generationResult: nl.vintik.mocknest.domain.generation.GenerationResult? = null
-            val latencyMs = measureTimeMillis {
+            latencyMs = measureTimeMillis {
                 generationResult = runBlocking {
                     agent.generateFromSpecWithDescription(request)
                 }
@@ -315,6 +317,7 @@ class BedrockPromptEvalTest {
             ScenarioResult(
                 scenario = scenario,
                 success = false,
+                latencyMs = latencyMs,
                 tokenUsage = tokenUsage,
                 estimatedCost = cost,
                 errorMessage = e.message ?: "Unknown error"

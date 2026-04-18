@@ -82,25 +82,39 @@ class MockGenerationFunctionalAgent(
 
         // Node 3: Validation
         val validateNode by node<MockGenerationContext, MockGenerationContext>("validate") { ctx ->
-            logger.info { "Validating ${ctx.mocks.size} mocks for jobId: ${ctx.request.jobId}" }
-            val validationResults = ctx.mocks.map { it to mockValidator.validate(it, ctx.specification) }
-            val errors = validationResults.flatMap { it.second.errors }
-            val validCount = validationResults.count { it.second.isValid }
-            if (errors.isEmpty()) {
-                logger.info { "All mocks passed validation for jobId: ${ctx.request.jobId}" }
+            // If a parse failure occurred, preserve the existing errors and skip validation
+            if (ctx.parseFailure) {
+                logger.info { "Skipping validation due to parse failure for jobId: ${ctx.request.jobId}" }
+                if (ctx.attempt == 1 && ctx.firstPassErrors == null) {
+                    ctx.copy(
+                        firstPassErrors = ctx.errors,
+                        firstPassMocksGenerated = 0,
+                        firstPassMocksValid = 0
+                    )
+                } else {
+                    ctx
+                }
             } else {
-                logger.info { "${errors.size} validation errors found for jobId: ${ctx.request.jobId}" }
-            }
-            // Capture first-pass stats only on the first attempt
-            if (ctx.attempt == 1 && ctx.firstPassErrors == null) {
-                ctx.copy(
-                    errors = errors,
-                    firstPassErrors = errors,
-                    firstPassMocksGenerated = ctx.mocks.size,
-                    firstPassMocksValid = validCount
-                )
-            } else {
-                ctx.copy(errors = errors)
+                logger.info { "Validating ${ctx.mocks.size} mocks for jobId: ${ctx.request.jobId}" }
+                val validationResults = ctx.mocks.map { it to mockValidator.validate(it, ctx.specification) }
+                val errors = validationResults.flatMap { it.second.errors }
+                val validCount = validationResults.count { it.second.isValid }
+                if (errors.isEmpty()) {
+                    logger.info { "All mocks passed validation for jobId: ${ctx.request.jobId}" }
+                } else {
+                    logger.info { "${errors.size} validation errors found for jobId: ${ctx.request.jobId}" }
+                }
+                // Capture first-pass stats only on the first attempt
+                if (ctx.attempt == 1 && ctx.firstPassErrors == null) {
+                    ctx.copy(
+                        errors = errors,
+                        firstPassErrors = errors,
+                        firstPassMocksGenerated = ctx.mocks.size,
+                        firstPassMocksValid = validCount
+                    )
+                } else {
+                    ctx.copy(errors = errors)
+                }
             }
         }
 
