@@ -307,12 +307,12 @@ For detailed security information and vulnerability reporting, see [SECURITY.md]
 - **API Reference**: Complete [OpenAPI specification](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/api/mocknest-openapi.yaml)
 - **Use Cases & Examples**: Detailed examples in the [main README](https://github.com/elenavanengelenmaslova/mocknest-serverless#common-use-cases)
 - **Feedback & Support**: Report bugs or request features via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
-- **Video Demo**: [https://youtu.be/Rvip8rtULww](https://youtu.be/Rvip8rtULww)
+- **Video Demo**: [https://youtu.be/NjzcsuE1gqA](https://youtu.be/NjzcsuE1gqA)
 
 ## Learn More
 
 - **Article**: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)
-- **AWS Builder**: [MockNest Serverless – AI-Powered API Mocking](https://builder.aws.com/content/2zkFqqTTTB259ZesLX6l9ZbAqjD/aideas-mocknest-serverless-ai-powered-api-mocking-for-cloud-native-testing)
+- **AWS Builder**: [AIdeas Finalist: MockNest Serverless](https://builder.aws.com/content/3BzM2TZzM7RnsPFR7bzO7qlORUv/aideas-finalist-mocknest-serverless)
 
 ---
 
