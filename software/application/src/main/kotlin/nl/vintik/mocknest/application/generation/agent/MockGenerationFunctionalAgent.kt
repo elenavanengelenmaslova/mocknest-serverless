@@ -1,6 +1,7 @@
 package nl.vintik.mocknest.application.generation.agent
 
 import ai.koog.agents.core.dsl.builder.forwardTo
+import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.prompt.message.Message
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -31,7 +32,9 @@ data class MockGenerationContext(
 
 /**
  * Koog Functional Agent for AI-powered mock generation.
-...
+ *
+ * Koog 0.8.0 review: The strategy DSL (strategy, node, edge, forwardTo, onCondition,
+ * transformed, llm.writeSession) compiles unchanged in 0.8.0. No adaptation needed.
  */
 class MockGenerationFunctionalAgent(
     private val aiModelService: AIModelServiceInterface,

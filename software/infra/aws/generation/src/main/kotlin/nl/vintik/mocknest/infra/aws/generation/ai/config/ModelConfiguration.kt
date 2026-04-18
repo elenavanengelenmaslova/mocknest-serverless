@@ -24,6 +24,9 @@ private val logger = KotlinLogging.logger {}
  * 
  * If an invalid model name is provided, logs a warning and falls back to
  * BedrockModels.AmazonNovaPro.
+ * 
+ * Koog 0.8.0 review: BedrockModels constants, reflection-based lookup, and
+ * withInferenceProfile extension are all unchanged in 0.8.0. No adaptation needed.
  */
 @Component
 class ModelConfiguration(

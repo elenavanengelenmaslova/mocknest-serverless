@@ -3,6 +3,11 @@ package nl.vintik.mocknest.infra.aws.generation.ai.eval
 /**
  * Calculates estimated cost from token usage and pricing constants.
  * Default pricing is for Amazon Nova Pro on-demand.
+ *
+ * Koog 0.8.0 review: This calculator is Koog-independent — it uses only primitive
+ * arithmetic on token counts and pricing constants. Pricing constants verified against
+ * Amazon Nova Pro on-demand pricing (source: aws.amazon.com/bedrock/pricing/) as of
+ * June 2025: $0.80/1M input tokens, $3.20/1M output tokens.
  */
 object CostCalculator {
     // Amazon Nova Pro on-demand pricing (USD per token)
