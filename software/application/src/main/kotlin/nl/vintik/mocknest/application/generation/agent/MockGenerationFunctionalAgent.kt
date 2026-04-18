@@ -24,6 +24,9 @@ data class MockGenerationContext(
     val attempt: Int = 1,
     val errors: List<String> = emptyList(),
     val parseFailure: Boolean = false,
+    val firstPassErrors: List<String>? = null,
+    val firstPassMocksGenerated: Int = 0,
+    val firstPassMocksValid: Int = 0,
 )
 
 /**
@@ -79,15 +82,40 @@ class MockGenerationFunctionalAgent(
 
         // Node 3: Validation
         val validateNode by node<MockGenerationContext, MockGenerationContext>("validate") { ctx ->
-            logger.info { "Validating ${ctx.mocks.size} mocks for jobId: ${ctx.request.jobId}" }
-            val validationResults = ctx.mocks.map { it to mockValidator.validate(it, ctx.specification) }
-            val errors = validationResults.flatMap { it.second.errors }
-            if (errors.isEmpty()) {
-                logger.info { "All mocks passed validation for jobId: ${ctx.request.jobId}" }
+            // If a parse failure occurred, preserve the existing errors and skip validation
+            if (ctx.parseFailure) {
+                logger.info { "Skipping validation due to parse failure for jobId: ${ctx.request.jobId}" }
+                if (ctx.attempt == 1 && ctx.firstPassErrors == null) {
+                    ctx.copy(
+                        firstPassErrors = ctx.errors,
+                        firstPassMocksGenerated = 0,
+                        firstPassMocksValid = 0
+                    )
+                } else {
+                    ctx
+                }
             } else {
-                logger.info { "${errors.size} validation errors found for jobId: ${ctx.request.jobId}" }
+                logger.info { "Validating ${ctx.mocks.size} mocks for jobId: ${ctx.request.jobId}" }
+                val validationResults = ctx.mocks.map { it to mockValidator.validate(it, ctx.specification) }
+                val errors = validationResults.flatMap { it.second.errors }
+                val validCount = validationResults.count { it.second.isValid }
+                if (errors.isEmpty()) {
+                    logger.info { "All mocks passed validation for jobId: ${ctx.request.jobId}" }
+                } else {
+                    logger.info { "${errors.size} validation errors found for jobId: ${ctx.request.jobId}" }
+                }
+                // Capture first-pass stats only on the first attempt
+                if (ctx.attempt == 1 && ctx.firstPassErrors == null) {
+                    ctx.copy(
+                        errors = errors,
+                        firstPassErrors = errors,
+                        firstPassMocksGenerated = ctx.mocks.size,
+                        firstPassMocksValid = validCount
+                    )
+                } else {
+                    ctx.copy(errors = errors)
+                }
             }
-            ctx.copy(errors = errors)
         }
 
         // Node 4: AI-Powered Correction (handles both validation errors and parse failures)
@@ -156,8 +184,13 @@ class MockGenerationFunctionalAgent(
         // If validation is disabled, go straight to finish
         edge(generateNode forwardTo nodeFinish onCondition { ctx -> !ctx.request.options.enableValidation }
                 transformed { ctx ->
-                    if (ctx.mocks.isEmpty()) GenerationResult.failure(ctx.request.jobId, ctx.errors.firstOrNull() ?: "No mocks generated")
-                    else GenerationResult.success(ctx.request.jobId, ctx.mocks)
+                    val metadata = mapOf<String, Any>(
+                        "totalGenerated" to ctx.mocks.size,
+                        "validationSkipped" to true,
+                        "attempts" to ctx.attempt
+                    )
+                    if (ctx.mocks.isEmpty()) GenerationResult.failure(ctx.request.jobId, ctx.errors.firstOrNull() ?: "No mocks generated", metadata)
+                    else GenerationResult.success(ctx.request.jobId, ctx.mocks, metadata)
                 }
         )
 
@@ -169,8 +202,22 @@ class MockGenerationFunctionalAgent(
                 onCondition { ctx -> ctx.errors.isEmpty() || ctx.attempt > maxRetries }
                 transformed { ctx ->
                     val finalMocks = ctx.mocks.filter { m -> !mockValidator.validate(m, ctx.specification).isFatal }
-                    if (finalMocks.isEmpty()) GenerationResult.failure(ctx.request.jobId, ctx.errors.firstOrNull() ?: "No valid mocks generated")
-                    else GenerationResult.success(ctx.request.jobId, finalMocks)
+                    val droppedCount = ctx.mocks.size - finalMocks.size
+                    val firstPassWasValid = ctx.firstPassErrors?.isEmpty() ?: true
+                    val metadata = mapOf<String, Any>(
+                        "totalGenerated" to ctx.mocks.size,
+                        "validationSkipped" to false,
+                        "attempts" to ctx.attempt,
+                        "mocksDropped" to droppedCount,
+                        "validationErrors" to ctx.errors,
+                        "firstPassValidationErrors" to (ctx.firstPassErrors ?: emptyList()),
+                        "allValid" to (ctx.errors.isEmpty() && droppedCount == 0),
+                        "firstPassValid" to firstPassWasValid,
+                        "firstPassMocksGenerated" to ctx.firstPassMocksGenerated,
+                        "firstPassMocksValid" to ctx.firstPassMocksValid
+                    )
+                    if (finalMocks.isEmpty()) GenerationResult.failure(ctx.request.jobId, ctx.errors.firstOrNull() ?: "No valid mocks generated", metadata)
+                    else GenerationResult.success(ctx.request.jobId, finalMocks, metadata)
                 }
         )
 

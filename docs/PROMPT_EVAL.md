@@ -1,120 +1,145 @@
-# Bedrock Prompt Eval
+# Bedrock Prompt Evaluation Tests
 
-## Overview
+MockNest Serverless includes a prompt evaluation suite that measures the quality of AI-generated mocks across protocols. These tests call Amazon Bedrock with real API specifications and evaluate the output using both structural validation and an LLM-as-a-judge semantic check.
 
-The Bedrock Prompt Eval is a manual, local-only integration test that evaluates the quality of MockNest's initial REST `spec-with-description` generation prompt against real AWS Bedrock (Amazon Nova Pro). It runs the generation prompt N times against the Petstore OpenAPI specification, validates semantic correctness of generated mocks using the [Dokimos](https://github.com/dokimos-dev/dokimos) LLM evaluation framework, and produces a structured report with success rates, semantic scores, token usage, and estimated cost.
+## Why Run Eval Tests
 
-The eval exercises only the initial generation prompt in generation-only mode (`enableValidation = false`) — the correction/retry prompt path is explicitly out of scope and will be evaluated separately.
+Prompt templates directly affect the quality of generated mocks. When you change a prompt file under `software/application/src/main/resources/prompts/`, the eval tests help you measure whether the change improved or regressed generation quality.
 
-This test is **never** included in CI pipelines or normal `./gradlew test` runs. It requires real AWS credentials and makes real Bedrock API calls.
+The recommended workflow for any prompt change:
+
+1. Run the eval suite **before** the change to establish a baseline
+2. Make the prompt change
+3. Run the eval suite **after** the change
+4. Compare the results (scenario pass rate, first-pass valid rate, latency, cost)
+
+This before/after comparison gives you concrete data on the impact of your change.
 
 ## Prerequisites
 
-- **AWS credentials** with Bedrock access, resolved via the default credential chain (environment variables, AWS profile, or instance metadata)
-- **Model access** to Amazon Nova Pro enabled in your AWS account for the target region
-- **`AWS_REGION`** environment variable (defaults to `eu-west-1` if not set)
-- **Java 25** and **Gradle** (see [BUILDING.md](BUILDING.md) for setup)
+- AWS credentials configured with access to Amazon Bedrock in the target region
+- The `eu.amazon.nova-pro-v1:0` model (or your configured model) must be enabled in your Bedrock console
+- These tests incur a small cost per run (typically $0.01–$0.02 for the full suite)
 
-## Quick Start
-
-Run a single-iteration eval:
+## Running the Eval Suite
 
 ```bash
-BEDROCK_EVAL_ENABLED=true ./gradlew :software:infra:aws:generation:bedrockEval
+BEDROCK_EVAL_ENABLED=true \
+  ./gradlew :software:infra:aws:generation:bedrockEval
 ```
 
-Run a multi-iteration eval for statistical assessment:
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BEDROCK_EVAL_ENABLED` | — | Must be set to `true` to run eval tests |
+| `BEDROCK_EVAL_ITERATIONS` | `1` | Number of iterations per scenario (higher values reduce variance) |
+| `AWS_REGION` | `eu-west-1` | AWS region for Bedrock API calls |
+
+### Example: Multiple Iterations for Statistical Confidence
 
 ```bash
-BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_ITERATIONS=10 ./gradlew :software:infra:aws:generation:bedrockEval
+BEDROCK_EVAL_ENABLED=true \
+BEDROCK_EVAL_ITERATIONS=3 \
+  ./gradlew :software:infra:aws:generation:bedrockEval
 ```
 
-## Configuration
+## What the Tests Measure
 
-| Environment Variable | Description | Default |
-|---|---|---|
-| `BEDROCK_EVAL_ENABLED` | Gate flag. Must be set to `true` for the eval test to run. Any other value or absence causes the test to be skipped. | Not set (test skipped) |
-| `BEDROCK_EVAL_ITERATIONS` | Number of times the generation prompt is executed per eval run. Must be a positive integer. | `1` |
-| `AWS_REGION` | AWS region for the Bedrock client. | `eu-west-1` |
+Each scenario in the eval dataset goes through:
 
-## Reading Results
+1. **Mock generation** — The full generation pipeline runs against Bedrock, including specification parsing, schema reduction, prompt construction, and AI response parsing
+2. **Structural validation** — Protocol-specific validators check the generated mocks (e.g., GraphQL response structure, SOAP envelope format, REST status codes)
+3. **Correction retry** — If validation fails on the first pass, the correction prompt is sent to fix issues (retry budget = 1)
+4. **LLM-as-a-judge** — A separate Bedrock call evaluates whether the generated mocks semantically match the scenario description
 
-After the eval completes, a structured report is printed to the test log. The report contains:
+### Metrics Reported
 
-- **Success Rate** — The percentage of iterations that produced a successful `GenerationResult` (e.g., `8/10 = 80.0%`)
-- **Semantic Score** — The percentage of successful iterations that passed all semantic correctness checks (pet count, endpoint coverage, schema consistency, status distinctness, and LLM-as-a-judge faithfulness)
-- **Total Mocks** — The total number of generated WireMock mappings across all iterations
-- **Token Usage** — Input, output, and total token counts aggregated across all iterations
-- **Estimated Cost** — Total estimated cost in USD based on Nova Pro pricing
-- **Per-Iteration Breakdown** — Each iteration's success/failure status, mock count, semantic score, token usage, and cost
+| Metric | Description |
+|--------|-------------|
+| **1st-pass valid** | Percentage of mocks that passed validation without correction |
+| **After retry valid** | Percentage of mocks valid after the correction retry |
+| **Scenario pass** | Whether the scenario passed all checks (generation + validation + semantic) |
+| **Avg cost/run** | Estimated Bedrock API cost per scenario run |
+| **Avg latency** | Average wall-clock time for generation + validation |
 
-## Example Output
+## Summary Table
+
+After all scenarios complete, a summary table is printed to the test output:
 
 ```
-╔══════════════════════════════════════════════════════════════╗
-║                  BEDROCK PROMPT EVAL REPORT                  ║
-║                    (Generation-Only Mode)                    ║
-╠══════════════════════════════════════════════════════════════╣
-║ Model:            Amazon Nova Pro                            ║
-║ Region:           eu-west-1                                  ║
-║ Iterations:       10                                         ║
-║ Duration:         45230 ms                                   ║
-╠══════════════════════════════════════════════════════════════╣
-║ Success Rate:     8/10 = 80.0%                               ║
-║ Semantic Score:   7/10 = 70.0%                               ║
-║ Total Mocks:      32                                         ║
-╠══════════════════════════════════════════════════════════════╣
-║ Token Usage:                                                 ║
-║   Input Tokens:   12500                                      ║
-║   Output Tokens:  8400                                       ║
-║   Total Tokens:   20900                                      ║
-║ Estimated Cost:   $0.0369                                    ║
-╠══════════════════════════════════════════════════════════════╣
-║ Per-Iteration Breakdown:                                     ║
-║  #1  ✓  mocks=4  semantic=✓  in=1250 out=840  $0.0037       ║
-║  #2  ✓  mocks=4  semantic=✓  in=1250 out=840  $0.0037       ║
-║  #3  ✗  error: Model response parsing failed                 ║
-║  ...                                                         ║
-╚══════════════════════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                         MULTI-PROTOCOL BEDROCK PROMPT EVAL SUMMARY                                  ║
+╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣
+║ Protocol  │ Runs │ 1st-pass valid │ After retry valid │ Scenario pass │ Avg cost/run │ Avg latency ║
+╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣
+║ GraphQL   │ 2    │ 50%            │ 100%              │ 100%          │ $0.0053      │ 2.6s        ║
+║ SOAP      │ 1    │ 100%           │ 100%              │ 100%          │ $0.0046      │ 3.2s        ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════╝
 ```
 
-## Cost Estimation
+## Eval Dataset
 
-The eval uses Amazon Nova Pro on-demand pricing:
+Scenarios are defined in:
 
-| Token Type | Price |
-|---|---|
-| Input tokens | $0.0008 per 1K tokens |
-| Output tokens | $0.0032 per 1K tokens |
+```
+software/infra/aws/generation/src/test/resources/eval/multi-protocol-eval-dataset.json
+```
 
-A typical single iteration consumes roughly 1,200–1,500 input tokens and 800–1,000 output tokens, resulting in an estimated cost of **~$0.003–$0.004 per iteration**.
+Each scenario specifies:
+- **protocol** — REST, GraphQL, or SOAP
+- **specFile** — Path to the API specification file (under `src/test/resources/eval/`)
+- **format** — Specification format (OPENAPI_3, GRAPHQL, WSDL)
+- **description** — Natural language instructions for mock generation
+- **semanticCheck** — Criteria for the LLM judge to evaluate the output
 
-Start with 1 iteration to verify setup and assess cost before scaling up. A 10-iteration run typically costs under $0.04.
+### Adding New Scenarios
 
-## Troubleshooting
+To add a new eval scenario:
 
-**Test not running / silently skipped**
-- Ensure `BEDROCK_EVAL_ENABLED=true` is set. The test is gated by `@EnabledIfEnvironmentVariable` and will be skipped without this exact value.
+1. Place the API specification file in `software/infra/aws/generation/src/test/resources/eval/`
+2. Add an entry to the `examples` array in `multi-protocol-eval-dataset.json`:
 
-**Authentication errors**
-- Verify your AWS credentials are configured and not expired. The test uses the default credential chain — check `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` environment variables, `~/.aws/credentials`, or your SSO session.
+```json
+{
+  "input": "my-new-scenario",
+  "metadata": {
+    "protocol": "REST",
+    "specFile": "eval/my-api-spec.yaml",
+    "format": "OPENAPI_3",
+    "namespace": "my-api-eval",
+    "description": "Generate mocks for the GET /users endpoint returning 2 users.",
+    "semanticCheck": "Verify there is a GET /users mock returning an array of 2 users."
+  }
+}
+```
 
-**Wrong region / model not available**
-- Set `AWS_REGION` to a region where Amazon Nova Pro is available. The default is `eu-west-1`.
-- Ensure you have [requested model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html) for Amazon Nova Pro in your target region.
+3. Run the eval suite to verify the new scenario works
 
-**Throttling or rate limit errors**
-- If Bedrock returns throttling errors, individual iterations are recorded as failed but the eval continues. Reduce `BEDROCK_EVAL_ITERATIONS` or wait before retrying.
+## Test Isolation
 
-**`bedrockEval` task not found**
-- Run from the project root: `./gradlew :software:infra:aws:generation:bedrockEval`
-- Ensure the `software/infra/aws/generation/build.gradle.kts` has the `bedrockEval` task registered.
+The eval tests are excluded from the normal `./gradlew test` run via the `bedrock-eval` JUnit tag. They only run through the dedicated `bedrockEval` Gradle task and require the `BEDROCK_EVAL_ENABLED` environment variable to be set.
 
-## Safety
+This ensures:
+- Normal CI/CD builds are not affected
+- No unexpected Bedrock costs from routine test runs
+- Eval tests can be run on-demand when prompt quality needs to be measured
 
-The eval test is excluded from normal test runs and CI through two mechanisms:
+## Cost Considerations
 
-1. **JUnit tag filtering** — The test class is annotated with `@Tag("bedrock-eval")`. The standard `test` task in `software/infra/aws/generation/build.gradle.kts` excludes this tag via `excludeTags("bedrock-eval")`, so `./gradlew test` never picks it up.
-2. **Environment variable gating** — The test is annotated with `@EnabledIfEnvironmentVariable(named = "BEDROCK_EVAL_ENABLED", matches = "true")`. Even if the tag filter were bypassed, the test would still be skipped without the explicit environment variable.
+Each eval run makes multiple Bedrock API calls:
+- One generation call per scenario (input tokens: ~2,500–3,000, output tokens: ~200–800)
+- One correction call per scenario if first-pass validation fails
+- One LLM judge call per scenario
 
-The dedicated `bedrockEval` Gradle task includes only the `bedrock-eval` tag, providing a clear, intentional entry point for running the eval.
+Typical cost per full suite run: **$0.01–$0.02** (3 scenarios, 1 iteration each).
+
+With `BEDROCK_EVAL_ITERATIONS=3`, expect roughly 3x the cost.
+
+## Viewing Detailed Results
+
+Beyond the summary table in stdout, you can find:
+- **JUnit XML report**: `software/infra/aws/generation/build/test-results/bedrockEval/`
+- **HTML report**: `software/infra/aws/generation/build/reports/tests/bedrockEval/`
+
+The XML report includes the full test output with per-scenario logs, token usage, validation errors, and the summary table.

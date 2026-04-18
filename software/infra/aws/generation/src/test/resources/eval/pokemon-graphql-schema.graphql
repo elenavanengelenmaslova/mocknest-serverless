@@ -1,0 +1,50 @@
+type Query {
+  pokemon(name: String!): Pokemon
+  pokemons(limit: Int, offset: Int): PokemonList
+}
+
+type PokemonList {
+  count: Int!
+  results: [PokemonSummary!]!
+}
+
+type PokemonSummary {
+  name: String!
+  url: String!
+}
+
+type Pokemon {
+  id: Int!
+  name: String!
+  height: Int!
+  weight: Int!
+  types: [PokemonType!]!
+  abilities: [PokemonAbility!]!
+  moves: [PokemonMove!]!
+}
+
+type PokemonType {
+  slot: Int!
+  type: TypeInfo!
+}
+
+type TypeInfo {
+  name: String!
+}
+
+type PokemonAbility {
+  ability: AbilityInfo!
+  isHidden: Boolean!
+}
+
+type AbilityInfo {
+  name: String!
+}
+
+type PokemonMove {
+  move: MoveInfo!
+}
+
+type MoveInfo {
+  name: String!
+}

@@ -17,8 +17,8 @@
 *AI-powered API mocking for cloud-native testing on AWS*
 
 MockNest Serverless is a serverless WireMock-compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
-- [Concept article](https://builder.aws.com/content/2zkFqqTTTB259ZesLX6l9ZbAqjD/aideas-mocknest-serverless-ai-powered-api-mocking-for-cloud-native-testing)
-- [Demo](https://youtu.be/Rvip8rtULww)
+- [Concept article](https://builder.aws.com/content/3BzM2TZzM7RnsPFR7bzO7qlORUv/aideas-finalist-mocknest-serverless)
+- [Demo](https://youtu.be/NjzcsuE1gqA)
 
 <p>
   <img src="docs/images/MockNestServerlessLogo.png" alt="MockNest Serverless Logo" width="400">
@@ -298,7 +298,7 @@ The following WireMock capabilities have been validated in the serverless enviro
 
 **Cold Start Impact**: Mock definitions are loaded into memory at Lambda startup. With very large numbers of persistent mocks (thousands), cold start times may increase. For typical development and testing scenarios with hundreds of mocks, this is not a concern.
 
-**Runtime Latency by Mock Count**: Lambda Power Tuner testing shows warm invocation latency stays flat as mock count grows — ~119 ms with 100 mocks (1024 MB) and ~113 ms with 1000 mocks (1536 MB). The optimal memory shifts from 1024 MB to 1536 MB at 1000 mocks due to increased heap and CPU demand, with per-invocation cost rising from ~$0.0000016 to ~$0.0000023 (still well within free tier).
+**Runtime Latency by Mock Count**: Lambda Power Tuner testing shows warm invocation latency stays flat as mock count grows — ~119 ms with 100 mocks (1024 MB) and ~113 ms with 1000 mocks (1536 MB). The optimal memory shifts from 1024 MB to 1536 MB at 1000 mocks due to increased heap and CPU demand, with per-invocation cost rising from ~$0.0000016 to ~$0.0000023.
 
 **Scaling Strategy**: For large-scale deployments or when managing many APIs, consider these approaches:
 
@@ -539,4 +539,4 @@ This project is open source and available under the [MIT License](LICENSE).
 
 A detailed explanation of the problem and approach: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)  
 
-For additional context and background: [AIdeas: MockNest Serverless – AI-Powered API Mocking for Cloud-Native Testing](https://builder.aws.com/content/2zkFqqTTTB259ZesLX6l9ZbAqjD/aideas-mocknest-serverless-ai-powered-api-mocking-for-cloud-native-testing)
+For additional context and background: [AIdeas Finalist: MockNest Serverless](https://builder.aws.com/content/3BzM2TZzM7RnsPFR7bzO7qlORUv/aideas-finalist-mocknest-serverless)

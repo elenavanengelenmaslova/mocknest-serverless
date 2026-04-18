@@ -45,6 +45,9 @@ class PromptBuilderService {
                 val responseType = response200?.schema?.type?.name ?: "OBJECT"
                 if (format == SpecificationFormat.GRAPHQL && endpoint.operationId != null) {
                     "- ${endpoint.operationId} (Returns: $responseType)"
+                } else if (format == SpecificationFormat.WSDL) {
+                    val soapAction = endpoint.metadata["soapAction"] ?: ""
+                    "- ${endpoint.method} ${endpoint.path} (soapAction: $soapAction) (Returns: $responseType)"
                 } else {
                     "- ${endpoint.method} ${endpoint.path} (Returns: $responseType)"
                 }

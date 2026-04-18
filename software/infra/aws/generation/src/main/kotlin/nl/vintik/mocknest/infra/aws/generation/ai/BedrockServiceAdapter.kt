@@ -4,6 +4,7 @@ import ai.koog.agents.core.agent.GraphAIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.prompt.executor.clients.bedrock.BedrockAPIMethod
 import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
 import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
@@ -31,12 +32,13 @@ private val logger = KotlinLogging.logger {}
 class BedrockServiceAdapter(
     private val bedrockClient: BedrockRuntimeClient,
     private val modelConfiguration: ModelConfiguration,
-    private val promptBuilder: PromptBuilderService
+    private val promptBuilder: PromptBuilderService,
+    private val apiMethod: BedrockAPIMethod = BedrockAPIMethod.InvokeModel
 ) : AIModelServiceInterface {
 
     // Lazy initialization of Koog components to avoid cold start penalty
     private val executor by lazy {
-        SingleLLMPromptExecutor(BedrockLLMClient(bedrockClient))
+        SingleLLMPromptExecutor(BedrockLLMClient(bedrockClient, apiMethod = apiMethod))
     }
 
     override suspend fun <Input, Output> runStrategy(

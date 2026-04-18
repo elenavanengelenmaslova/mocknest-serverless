@@ -30,6 +30,7 @@ GraphQL-specific corrections (IMPORTANT):
 - If the error is `Response 'errors' field must be an array`: make `errors` an array.
 - If the error is `Missing required field: '...'`: add all required fields for the return type as defined in the schema, including nested required fields recursively.
 - If the error is `Field '...' must be an object/array/string/integer/number/boolean/null`: ensure the response field shape and scalar type match the schema.
+- If the error is `Field '...' must be an integer`: the value is likely a quoted string like "25" instead of a bare number 25. Remove the quotes to make it a JSON number. Check ALL Int fields in the response, not just the one mentioned in the error — this mistake tends to repeat across multiple fields.
 - If the error indicates an invalid enum value: replace the enum value with one of the valid values defined in the schema for that enum type.
 
 Non-overlapping constraint (CRITICAL):

@@ -37,8 +37,9 @@ Feature requests are welcome! Please:
 3. **Make your changes** following our [coding standards](.kiro/steering/05-kiro-usage.md#code-generation-standards) and [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
 4. **Add tests** for any new functionality
 5. **Ensure all tests pass** and coverage remains at 90%+
-6. **Update documentation** if needed following our [documentation practices](.kiro/steering/05-kiro-usage.md#documentation-practices)
-7. **Submit a pull request**
+6. **If you changed prompt templates** under `software/application/src/main/resources/prompts/`, run the [Bedrock Prompt Eval Tests](docs/PROMPT_EVAL.md) before and after your change to measure impact on generation quality
+7. **Update documentation** if needed following our [documentation practices](.kiro/steering/05-kiro-usage.md#documentation-practices)
+8. **Submit a pull request**
 
 #### Pull Request Guidelines
 
@@ -145,6 +146,7 @@ For detailed MockNest Serverless guidelines, see our steering documentation:
   <img src="docs/images/CleanArchitecture.jpg" alt="Clean Architecture" width="350">
 - **Code Quality & Standards**: [Code Generation Standards](.kiro/steering/tech.md#code-generation-standards)
 - **Testing Strategy**: [Testing Strategy](.kiro/steering/tech.md#testing-strategy)
+- **Prompt Evaluation**: [Bedrock Prompt Eval Tests](docs/PROMPT_EVAL.md) — run before and after any prompt template change
 - **Development Workflow**: [Development Workflow](.kiro/steering/05-kiro-usage.md#development-workflow)
 - **Project Structure**: [Project Structure](.kiro/steering/05-kiro-usage.md#project-structure)
 

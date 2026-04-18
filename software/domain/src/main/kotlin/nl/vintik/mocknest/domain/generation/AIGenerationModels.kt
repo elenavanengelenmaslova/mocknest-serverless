@@ -32,14 +32,15 @@ data class GenerationResult(
     val success: Boolean,
     val mocksGenerated: Int = 0,
     val mocks: List<GeneratedMock> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val metadata: Map<String, Any> = emptyMap()
 ) {
     companion object {
-        fun success(jobId: String, mocks: List<GeneratedMock>) =
-            GenerationResult(jobId, true, mocks.size, mocks)
+        fun success(jobId: String, mocks: List<GeneratedMock>, metadata: Map<String, Any> = emptyMap()) =
+            GenerationResult(jobId, true, mocks.size, mocks, metadata = metadata)
 
-        fun failure(jobId: String, error: String) =
-            GenerationResult(jobId, false, error = error)
+        fun failure(jobId: String, error: String, metadata: Map<String, Any> = emptyMap()) =
+            GenerationResult(jobId, false, error = error, metadata = metadata)
     }
 }
 

@@ -28,6 +28,8 @@ class EndpointCoverageEvaluator(private val requiredEndpoints: List<String>) : B
             coveredEndpoints.none { covered -> endpointMatches(required, covered) }
         }
 
+        logger.info { "Endpoint coverage: found=$coveredEndpoints, required=$requiredEndpoints, missing=$missingEndpoints" }
+
         val score = if (missingEndpoints.isEmpty()) 1.0 else 0.0
         val reason = if (missingEndpoints.isEmpty()) {
             "All required endpoints covered: $requiredEndpoints"

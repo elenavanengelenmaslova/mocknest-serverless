@@ -1,6 +1,10 @@
-[
-  {
-    "input": "Generate WireMock mocks for 4 pets with different statuses (available, pending, sold, and adopted), mocking the GET /pet/{petId} and GET /pet/findByStatus endpoints from the Petstore API.",
-    "expected": "4 WireMock mappings covering GET /pet/{petId} and GET /pet/findByStatus with distinct pet statuses"
-  }
-]
+{
+  "name": "Petstore REST Eval",
+  "description": "Evaluates REST mock generation quality using the Petstore OpenAPI 3.0 specification",
+  "examples": [
+    {
+      "input": "Generate WireMock mocks for 4 pets with different statuses (available, pending, sold, and adopted), mocking the GET /pet/{petId} and GET /pet/findByStatus endpoints from the Petstore API.",
+      "expectedOutput": "4 WireMock mappings covering GET /pet/{petId} and GET /pet/findByStatus with distinct pet statuses"
+    }
+  ]
+}

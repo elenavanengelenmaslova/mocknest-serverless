@@ -26,7 +26,8 @@ All coding standards, testing requirements, and quality guidelines are documente
 1. Ensure all tests pass: `./gradlew test`
 2. Verify coverage meets 90%: `./gradlew koverVerify`
 3. Run full build: `./gradlew build`
-4. Follow the commit message guidelines in [CONTRIBUTING.md](../CONTRIBUTING.md)
+4. If you changed prompt templates, run the [Bedrock Prompt Eval Tests](PROMPT_EVAL.md) before and after your change
+5. Follow the commit message guidelines in [CONTRIBUTING.md](../CONTRIBUTING.md)
 
 ### Documentation Updates
 When making changes that affect architecture or behavior:
