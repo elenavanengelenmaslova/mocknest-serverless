@@ -543,6 +543,21 @@ AI assistance for test creation, execution, and maintenance:
 - Prefer focused integration tests that validate mapping normalization, content-type defaults, and file externalization behaviors instead of broad unit test suites
 - Follow the MockK configuration and Given-When-Then naming conventions as specified in the unit testing standards
 
+## Bedrock Prompt Eval Tests
+
+When prompt templates under `software/application/src/main/resources/prompts/` are modified, the Bedrock prompt evaluation suite should be run to measure the impact on generation quality. See [docs/PROMPT_EVAL.md](../../docs/PROMPT_EVAL.md) for the full guide.
+
+**Before running eval tests, always ask the user for confirmation** — these tests call Amazon Bedrock and incur a small cost (typically $0.01–$0.02 per run).
+
+**Workflow for prompt changes:**
+1. Ask the user: "The prompt eval tests call Bedrock and cost ~$0.01–$0.02 per run. Run them before and after the change to measure impact?"
+2. If confirmed, run the baseline: `BEDROCK_EVAL_ENABLED=true ./gradlew :software:infra:aws:generation:bedrockEval`
+3. Apply the prompt change
+4. Run the eval suite again
+5. Compare the summary tables (scenario pass rate, first-pass valid rate, latency, cost)
+
+**Do not run eval tests automatically** — always get explicit user confirmation first due to the cost involved.
+
 # Documentation Practices
 
 Documentation in this project is designed to stay accurate, intentional, and easy to maintain as the system evolves. The goal is to avoid duplication, reduce drift between code and documentation, and clearly communicate architectural intent.
