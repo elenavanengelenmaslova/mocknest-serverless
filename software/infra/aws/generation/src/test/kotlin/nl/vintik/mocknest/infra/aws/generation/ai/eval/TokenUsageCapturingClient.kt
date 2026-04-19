@@ -14,6 +14,12 @@ private val logger = KotlinLogging.logger {}
  *
  * This class lives entirely in the test source set and is never included in the
  * production deployment JAR.
+ *
+ * Koog 0.8.0 review: This decorator operates on the AWS SDK `BedrockRuntimeClient` type,
+ * not on any Koog type. The Koog upgrade has no impact on this class. The DataDog LLM
+ * Observability exporter added in Koog 0.8.0 (#1591) provides similar token tracking but
+ * requires DataDog infrastructure — the custom approach remains appropriate for MockNest's
+ * test-only usage.
  */
 class TokenUsageCapturingClient(
     private val delegate: BedrockRuntimeClient,

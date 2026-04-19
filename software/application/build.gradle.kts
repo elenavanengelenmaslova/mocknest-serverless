@@ -42,4 +42,5 @@ dependencies {
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("ai.koog:agents-test")
 }

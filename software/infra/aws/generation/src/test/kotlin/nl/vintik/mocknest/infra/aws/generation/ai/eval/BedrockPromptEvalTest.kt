@@ -4,7 +4,8 @@ import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.prompt.executor.clients.bedrock.BedrockAPIMethod
 import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
-import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
+import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
+import ai.koog.prompt.llm.LLMProvider
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import dev.dokimos.core.EvalTestCase
 import dev.dokimos.core.EvalTestCaseParam
@@ -66,6 +67,7 @@ private val logger = KotlinLogging.logger {}
  */
 @Tag("bedrock-eval")
 @EnabledIfEnvironmentVariable(named = "BEDROCK_EVAL_ENABLED", matches = "true")
+@OptIn(kotlin.time.ExperimentalTime::class)
 class BedrockPromptEvalTest {
 
     // --- Manual wiring (no Spring context) ---
@@ -98,8 +100,19 @@ class BedrockPromptEvalTest {
 
     // --- LLM-as-a-judge via Koog + Dokimos integration ---
 
+    // Koog 0.8.0 upgrade review:
+    //   - Migrated from SingleLLMPromptExecutor to MultiLLMPromptExecutor for consistency
+    //     with BedrockServiceAdapter (SingleLLMPromptExecutor deprecated in 0.8.0).
+    //   - LLMProvider.Bedrock singleton restored in 0.8.0 (#1800).
+    //   - AIAgent constructor for the LLM judge verified unchanged in 0.8.0 — it still
+    //     accepts (promptExecutor, llmModel, systemPrompt, toolRegistry).
+    //   - Token usage capture via TokenUsageCapturingClient is Koog-independent — it
+    //     decorates the AWS SDK BedrockRuntimeClient, not a Koog type.
+    //   - measureTimeMillis latency measurement is Koog-independent — it is a Kotlin
+    //     stdlib function (kotlin.system), unaffected by the Koog upgrade.
     private val judgeExecutor by lazy {
-        SingleLLMPromptExecutor(BedrockLLMClient(bedrockClient, apiMethod = BedrockAPIMethod.Converse))
+        val bedrockLLMClient = BedrockLLMClient(bedrockClient, apiMethod = BedrockAPIMethod.Converse)
+        MultiLLMPromptExecutor(LLMProvider.Bedrock to bedrockLLMClient)
     }
 
     private val judgeLM = asJudge { prompt ->

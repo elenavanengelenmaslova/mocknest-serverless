@@ -21,7 +21,7 @@ class ModelConfigurationTest {
     @SpringBootTest(
         classes = [TestConfig::class],
         properties = [
-            "bedrock.model.name=AnthropicClaude35SonnetV2",
+            "bedrock.model.name=AnthropicClaude4_5Sonnet",
             "bedrock.inference.mode=AUTO",
             "AWS_REGION=eu-west-1"
         ]
@@ -35,13 +35,13 @@ class ModelConfigurationTest {
         lateinit var deployRegion: String
 
         @Test
-        fun `Given Claude 3-5 Sonnet v2 model name When getting Bedrock model Then should return model with EU prefix`() {
+        fun `Given Claude 4-5 Sonnet model name When getting Bedrock model Then should return model with EU prefix`() {
             val resolver = DefaultInferencePrefixResolver(deployRegion, InferenceMode.AUTO)
             val config = ModelConfiguration(modelName, resolver)
             val model = config.getModel()
 
-            assertEquals(BedrockModels.AnthropicClaude35SonnetV2.withInferenceProfile("eu").id, model.id)
-            assertEquals("AnthropicClaude35SonnetV2", config.getModelName())
+            assertEquals(BedrockModels.AnthropicClaude4_5Sonnet.withInferenceProfile("eu").id, model.id)
+            assertEquals("AnthropicClaude4_5Sonnet", config.getModelName())
         }
     }
 

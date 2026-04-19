@@ -6,7 +6,8 @@ import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.prompt.executor.clients.bedrock.BedrockAPIMethod
 import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
-import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
+import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
+import ai.koog.prompt.llm.LLMProvider
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import com.fasterxml.jackson.databind.JsonNode
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -29,16 +30,20 @@ private val logger = KotlinLogging.logger {}
  * Amazon Bedrock implementation of AI model service.
  * Provides AI-powered mock generation.
  */
+@OptIn(kotlin.time.ExperimentalTime::class)
 class BedrockServiceAdapter(
     private val bedrockClient: BedrockRuntimeClient,
     private val modelConfiguration: ModelConfiguration,
     private val promptBuilder: PromptBuilderService,
-    private val apiMethod: BedrockAPIMethod = BedrockAPIMethod.InvokeModel
+    private val apiMethod: BedrockAPIMethod = BedrockAPIMethod.Converse
 ) : AIModelServiceInterface {
 
-    // Lazy initialization of Koog components to avoid cold start penalty
+    // Lazy initialization of Koog components to avoid cold start penalty.
+    // Koog 0.8.0: SingleLLMPromptExecutor replaced by MultiLLMPromptExecutor.
+    // Detailed migration notes in PR #<koog-0.8.0-upgrade>.
     private val executor by lazy {
-        SingleLLMPromptExecutor(BedrockLLMClient(bedrockClient, apiMethod = apiMethod))
+        val bedrockLLMClient = BedrockLLMClient(bedrockClient, apiMethod = apiMethod)
+        MultiLLMPromptExecutor(LLMProvider.Bedrock to bedrockLLMClient)
     }
 
     override suspend fun <Input, Output> runStrategy(

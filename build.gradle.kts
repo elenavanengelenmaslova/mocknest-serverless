@@ -49,8 +49,9 @@ subprojects {
             dependency("org.mozilla:rhino:1.9.1")
             
             // Koog Framework for AI Agents
-            val koogVersion = "0.6.2"
+            val koogVersion = "0.8.0"
             dependency("ai.koog:koog-agents:$koogVersion")
+            dependency("ai.koog:agents-test:$koogVersion")
             
             // Kotlin AWS SDK
             val awsSdkKotlinVersion = "1.6.56"

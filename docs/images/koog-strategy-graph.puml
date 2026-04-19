@@ -1,0 +1,57 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 13
+skinparam roundcorner 10
+skinparam ArrowColor #444444
+skinparam ActivityBackgroundColor #E8F4FD
+skinparam ActivityBorderColor #2196F3
+skinparam ActivityDiamondBackgroundColor #FFF3E0
+skinparam ActivityDiamondBorderColor #FF9800
+
+|Koog Strategy Graph|
+
+start
+
+:__Setup Node__
+Parse API specification
+(OpenAPI, GraphQL, or WSDL);
+
+:__Generate Node__
+""llm.writeSession""
+Ask Bedrock to produce
+WireMock mock mappings;
+
+:__Validate Node__
+Check mocks against spec:
+URL paths, response schemas,
+SOAP envelopes, required fields;
+
+if (Errors found?) then (yes)
+  if (Retries left?) then (yes)
+    :__Correct Node__
+    ""llm.writeSession""
+    Send original output +
+    specific validation errors
+    back to Bedrock;
+    -> validate again;
+    :__Validate Node__
+    Re-check corrected mocks;
+    if (Still errors?) then (yes)
+      :Return partial result
+      (valid mocks only);
+    else (no)
+      :Return all mocks ✓;
+    endif
+  else (no)
+    :Return partial result
+    (valid mocks only);
+  endif
+else (no)
+  :Return all mocks ✓;
+endif
+
+stop
+
+@enduml
