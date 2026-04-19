@@ -35,53 +35,17 @@ class BedrockServiceAdapter(
     private val bedrockClient: BedrockRuntimeClient,
     private val modelConfiguration: ModelConfiguration,
     private val promptBuilder: PromptBuilderService,
-    private val apiMethod: BedrockAPIMethod = BedrockAPIMethod.InvokeModel
+    private val apiMethod: BedrockAPIMethod = BedrockAPIMethod.Converse
 ) : AIModelServiceInterface {
 
     // Lazy initialization of Koog components to avoid cold start penalty.
-    //
-    // Koog 0.8.0 upgrade review:
-    //
-    // APIs changed:
-    //   - SingleLLMPromptExecutor → MultiLLMPromptExecutor (SingleLLMPromptExecutor deprecated in 0.8.0)
-    //   - BedrockLLMClient constructor unchanged despite "LLMClient constructor decoupling
-    //     from Ktor" (#1742) — the decoupling was internal and did not alter the public API.
-    //   - LLMProvider singleton restoration (#1800) does not affect us since we instantiate
-    //     BedrockLLMClient directly.
-    //
-    // APIs unchanged:
-    //   - GraphAIAgent, AIAgentConfig.withSystemPrompt, ToolRegistry.EMPTY — all stable in 0.8.0
-    //   - Strategy DSL (strategy, node, edge, forwardTo, onCondition, transformed, llm.writeSession)
-    //     used by MockGenerationFunctionalAgent compiles unchanged.
-    //
-    // Not applicable:
-    //   - prepareEnvironment abstraction (#1790) — MockNest uses GraphAIAgent directly,
-    //     not a custom agent subclass.
-    //
-    // Prompt caching opportunity (Koog 0.7.3, #1583):
-    //   Koog 0.7.3 added CacheControl on messages within the Prompt and integrated explicit
-    //   cache blocks in the Bedrock Converse API. MockNest sends an identical system prompt
-    //   on every agent invocation, so prompt caching COULD reduce input token costs. However,
-    //   adoption is deferred to a future iteration because:
-    //     1. The current system prompt is relatively small
-    //     2. Adoption requires adding CacheControl markers to prompt construction
-    //     3. Cost savings would be minimal for the current usage pattern
-    //     4. Should be evaluated when MockNest handles higher volumes
-    //
-    // DataDog LLM Observability (Koog 0.8.0, #1591):
-    //   Koog 0.8.0 added DataDog LLM Observability with response metadata forwarding.
-    //   MockNest doesn't use DataDog, so the custom TokenUsageCapturingClient (test-only
-    //   AWS SDK decorator) remains the appropriate approach for token tracking. Worth
-    //   revisiting if MockNest adopts DataDog in the future.
+    // Koog 0.8.0: SingleLLMPromptExecutor replaced by MultiLLMPromptExecutor.
+    // Detailed migration notes in PR #<koog-0.8.0-upgrade>.
     private val executor by lazy {
         val bedrockLLMClient = BedrockLLMClient(bedrockClient, apiMethod = apiMethod)
         MultiLLMPromptExecutor(LLMProvider.Bedrock to bedrockLLMClient)
     }
 
-    // Koog 0.8.0 upgrade review: GraphAIAgent, AIAgentConfig.withSystemPrompt, and
-    // ToolRegistry.EMPTY APIs are all unchanged in 0.8.0. The strategy DSL (strategy,
-    // node, edge, forwardTo, onCondition, transformed, llm.writeSession) used by
-    // MockGenerationFunctionalAgent also compiles unchanged.
     override suspend fun <Input, Output> runStrategy(
         strategy: AIAgentGraphStrategy<Input, Output>,
         input: Input

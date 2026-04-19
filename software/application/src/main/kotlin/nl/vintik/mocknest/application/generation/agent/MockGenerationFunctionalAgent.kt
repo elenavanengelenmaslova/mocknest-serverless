@@ -45,7 +45,7 @@ class MockGenerationFunctionalAgent(
     private val urlFetcher: UrlFetcher = SafeUrlResolver()
 ) {
 
-    private val mockGenerationStrategy = strategy<SpecWithDescriptionRequest, GenerationResult>("mock-generation") {
+    internal val mockGenerationStrategy = strategy<SpecWithDescriptionRequest, GenerationResult>("mock-generation") {
 
         // Node 1: Setup and Parse Specification
         val setupNode by node<SpecWithDescriptionRequest, MockGenerationContext>("setup") { request ->

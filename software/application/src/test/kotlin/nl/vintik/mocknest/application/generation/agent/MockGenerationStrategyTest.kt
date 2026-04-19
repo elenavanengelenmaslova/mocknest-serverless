@@ -100,13 +100,11 @@ class MockGenerationStrategyTest {
     }
 
     /**
-     * Extracts the private mockGenerationStrategy field from MockGenerationFunctionalAgent via reflection.
+     * Returns the mock generation strategy from MockGenerationFunctionalAgent
+     * via its internal accessor.
      */
-    @Suppress("UNCHECKED_CAST")
     private fun extractStrategy(): AIAgentGraphStrategy<SpecWithDescriptionRequest, GenerationResult> {
-        val strategyField = MockGenerationFunctionalAgent::class.java.getDeclaredField("mockGenerationStrategy")
-        strategyField.isAccessible = true
-        return strategyField.get(agent) as AIAgentGraphStrategy<SpecWithDescriptionRequest, GenerationResult>
+        return agent.mockGenerationStrategy
     }
 
     @Nested
@@ -314,9 +312,9 @@ class MockGenerationStrategyTest {
             every { aiModelService.parseModelResponse(any(), any(), any(), any()) } returns listOf(testMock)
 
             val strategy = extractStrategy()
-            // The mock executor should receive the prompt built by promptBuilder
+            // The mock executor should receive the full prompt built by promptBuilder
             val mockExecutor = getMockExecutor {
-                mockLLMAnswer(validLlmResponse) onRequestContains "Test API"
+                mockLLMAnswer(validLlmResponse) onRequestEquals expectedPrompt
                 mockLLMAnswer(validLlmResponse).asDefaultResponse
             }
             val agentConfig = AIAgentConfig.withSystemPrompt(
