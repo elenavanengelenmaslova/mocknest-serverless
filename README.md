@@ -60,6 +60,14 @@ The user sends an API specification (OpenAPI, GraphQL, or WSDL) together with a 
   <img src="docs/images/ai-generation-flow.png" alt="AI Mock Generation Flow" width="700">
 </div>
 
+#### Koog Agent Strategy
+
+Under the hood, the AI generation is powered by a Koog agent that follows a structured strategy graph — parse the spec, generate mocks via Bedrock, validate them, and self-correct if needed:
+
+<div style="text-align: center;">
+  <img src="docs/images/koog-strategy-graph.png" alt="Koog Agent Strategy Graph" width="500">
+</div>
+
 ### Planned Features
 See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslova/projects/3) 
 
