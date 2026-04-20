@@ -18,8 +18,16 @@ WHICH ENDPOINTS TO GENERATE (CRITICAL — read this before generating):
 - If the description says "all GET endpoints", generate ONLY GET endpoints — do not include POST, PUT, DELETE, or other methods.
 - If the description mentions specific endpoints (e.g., "error responses for pet endpoints"), generate mocks ONLY for those endpoints — not success responses for every endpoint in the spec.
 - If the description does not restrict which endpoints to generate, generate mocks for ALL endpoints in the specification.
+- NEVER invent endpoints that are not in the Key endpoints list above. Use ONLY the exact method + path combinations listed. For example, if the list shows "PUT /pet" but not "PUT /pet/{petId}", do NOT generate a mock for PUT /pet/{petId}.
 - Count your mappings carefully. Generating too many mappings risks exceeding the output token limit and producing truncated, unparseable JSON.
 - One high-quality mapping per endpoint/scenario. Prefer fewer, correct mappings over many incomplete ones.
+
+RESPONSE TYPE RULES (CRITICAL):
+- The Key endpoints list shows the expected return type in parentheses, e.g., "(Returns: OBJECT)" or "(Returns: ARRAY)" or "(Returns: STRING)".
+- If an endpoint says "(Returns: OBJECT)", the response jsonBody MUST be a JSON object `{ ... }`, NEVER a string, number, or array.
+- If an endpoint says "(Returns: ARRAY)", the response jsonBody MUST be a JSON array `[ ... ]`.
+- If an endpoint says "(Returns: STRING)", the response body may be a plain string value.
+- This is the #1 validation failure for REST mocks — double-check every response body matches the declared return type.
 
 - Generate WireMock mappings that follow the API specification structure
 - IMPORTANT: All mock URLs must be prefixed with /{{NAMESPACE}} (e.g., if the spec has /users, the mock URL should be /{{NAMESPACE}}/users)
