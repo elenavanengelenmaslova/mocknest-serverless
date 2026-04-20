@@ -38,7 +38,7 @@ dependencies {
     implementation("ai.koog:koog-agents")
 
     // OpenAPI specification parsing
-    implementation("io.swagger.parser.v3:swagger-parser:2.1.39")
+    implementation("io.swagger.parser.v3:swagger-parser:2.1.40")
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
