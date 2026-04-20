@@ -12,6 +12,15 @@ Namespace:
 Enhancement Description: {{DESCRIPTION}}
 
 Requirements:
+
+WHICH ENDPOINTS TO GENERATE (CRITICAL — read this before generating):
+- Generate mocks ONLY for endpoints explicitly mentioned or implied by the Enhancement Description.
+- If the description says "all GET endpoints", generate ONLY GET endpoints — do not include POST, PUT, DELETE, or other methods.
+- If the description mentions specific endpoints (e.g., "error responses for pet endpoints"), generate mocks ONLY for those endpoints — not success responses for every endpoint in the spec.
+- If the description does not restrict which endpoints to generate, generate mocks for ALL endpoints in the specification.
+- Count your mappings carefully. Generating too many mappings risks exceeding the output token limit and producing truncated, unparseable JSON.
+- One high-quality mapping per endpoint/scenario. Prefer fewer, correct mappings over many incomplete ones.
+
 - Generate WireMock mappings that follow the API specification structure
 - IMPORTANT: All mock URLs must be prefixed with /{{NAMESPACE}} (e.g., if the spec has /users, the mock URL should be /{{NAMESPACE}}/users)
 - CRITICAL: Every mapping MUST include `"persistent": true` to ensure mocks survive Lambda cold starts and are stored in S3

@@ -153,6 +153,8 @@ class BedrockPromptEvalTest {
         val validationErrors: List<String> = emptyList(),
         val latencyMs: Long = 0,
         val tokenUsage: TokenUsageRecord = TokenUsageRecord(),
+        val generationCost: Double = 0.0,
+        val judgeCost: Double = 0.0,
         val estimatedCost: Double = 0.0,
         val semanticPassed: Boolean = false,
         val errorMessage: String? = null
@@ -199,6 +201,10 @@ class BedrockPromptEvalTest {
         // Print summary table
         val summaryTable = buildSummaryTable(results)
         logger.info { "\n$summaryTable" }
+
+        // Print scenario detail table
+        val detailTable = buildScenarioDetailTable(results)
+        logger.info { "\n$detailTable" }
     }
 
     // --- Scenario execution ---
@@ -221,6 +227,9 @@ class BedrockPromptEvalTest {
                 options = GenerationOptions(enableValidation = true)
             )
 
+            // Set phase to GENERATION before the Bedrock generation call
+            tokenUsageStore.currentPhase = TokenPhase.GENERATION
+
             // Time only the Bedrock call
             var generationResult: nl.vintik.mocknest.domain.generation.GenerationResult? = null
             latencyMs = measureTimeMillis {
@@ -231,16 +240,19 @@ class BedrockPromptEvalTest {
 
             val result = checkNotNull(generationResult)
 
-            // Capture token usage
+            // Compute generation cost from phase-filtered records
+            val generationRecords = tokenUsageStore.getGenerationRecords()
+            val generationCost = CostCalculator.calculateCost(
+                inputTokens = generationRecords.sumOf { it.inputTokens },
+                outputTokens = generationRecords.sumOf { it.outputTokens }
+            )
+
+            // Capture total token usage
             val records = tokenUsageStore.getRecords()
             val tokenUsage = TokenUsageRecord(
                 inputTokens = records.sumOf { it.inputTokens },
                 outputTokens = records.sumOf { it.outputTokens },
                 totalTokens = records.sumOf { it.totalTokens }
-            )
-            val cost = CostCalculator.calculateCost(
-                inputTokens = tokenUsage.inputTokens,
-                outputTokens = tokenUsage.outputTokens
             )
 
             if (!result.success) {
@@ -249,7 +261,9 @@ class BedrockPromptEvalTest {
                     success = false,
                     latencyMs = latencyMs,
                     tokenUsage = tokenUsage,
-                    estimatedCost = cost,
+                    generationCost = generationCost,
+                    judgeCost = 0.0,
+                    estimatedCost = generationCost,
                     errorMessage = result.error ?: "Generation failed"
                 )
             }
@@ -293,8 +307,20 @@ class BedrockPromptEvalTest {
                 }
             }
 
+            // Set phase to JUDGE before the semantic judge call
+            tokenUsageStore.currentPhase = TokenPhase.JUDGE
+
             // Run LLM judge for semantic check
             val semanticPassed = runSemanticJudge(scenario, mappingsJson)
+
+            // Compute judge cost from phase-filtered records
+            val judgeRecords = tokenUsageStore.getJudgeRecords()
+            val judgeCost = CostCalculator.calculateCost(
+                inputTokens = judgeRecords.sumOf { it.inputTokens },
+                outputTokens = judgeRecords.sumOf { it.outputTokens }
+            )
+
+            val totalCost = generationCost + judgeCost
 
             ScenarioResult(
                 scenario = scenario,
@@ -310,11 +336,25 @@ class BedrockPromptEvalTest {
                 validationErrors = validationErrors,
                 latencyMs = latencyMs,
                 tokenUsage = tokenUsage,
-                estimatedCost = cost,
+                generationCost = generationCost,
+                judgeCost = judgeCost,
+                estimatedCost = totalCost,
                 semanticPassed = semanticPassed
             )
         }.getOrElse { e ->
             logger.error(e) { "Scenario ${scenario.input} failed with exception" }
+
+            // Compute generation and judge costs from phase-filtered records
+            val generationRecords = tokenUsageStore.getGenerationRecords()
+            val generationCost = CostCalculator.calculateCost(
+                inputTokens = generationRecords.sumOf { it.inputTokens },
+                outputTokens = generationRecords.sumOf { it.outputTokens }
+            )
+            val judgeRecords = tokenUsageStore.getJudgeRecords()
+            val judgeCost = CostCalculator.calculateCost(
+                inputTokens = judgeRecords.sumOf { it.inputTokens },
+                outputTokens = judgeRecords.sumOf { it.outputTokens }
+            )
 
             val records = tokenUsageStore.getRecords()
             val tokenUsage = TokenUsageRecord(
@@ -322,17 +362,15 @@ class BedrockPromptEvalTest {
                 outputTokens = records.sumOf { it.outputTokens },
                 totalTokens = records.sumOf { it.totalTokens }
             )
-            val cost = CostCalculator.calculateCost(
-                inputTokens = tokenUsage.inputTokens,
-                outputTokens = tokenUsage.outputTokens
-            )
 
             ScenarioResult(
                 scenario = scenario,
                 success = false,
                 latencyMs = latencyMs,
                 tokenUsage = tokenUsage,
-                estimatedCost = cost,
+                generationCost = generationCost,
+                judgeCost = judgeCost,
+                estimatedCost = generationCost + judgeCost,
                 errorMessage = e.message ?: "Unknown error"
             )
         }
@@ -392,7 +430,8 @@ class BedrockPromptEvalTest {
             val result = evaluator.evaluate(testCase)
             logger.info {
                 "LLM judge for ${scenario.input}: score=${result.score()}, " +
-                    "threshold=${result.threshold()}, passed=${result.success()}"
+                    "threshold=${result.threshold()}, passed=${result.success()}, " +
+                    "reason=${result.reason()}"
             }
             result.success()
         }.onFailure { e ->
@@ -410,7 +449,7 @@ class BedrockPromptEvalTest {
         val root = Json.parseToJsonElement(datasetJson).jsonObject
         val examples = root["examples"]?.jsonArray ?: error("No 'examples' in dataset")
 
-        return examples.map { example ->
+        val allScenarios = examples.map { example ->
             val obj = example.jsonObject
             val input = obj["input"]?.jsonPrimitive?.content ?: error("Missing 'input'")
             val metadata = obj["metadata"]?.jsonObject ?: error("Missing 'metadata'")
@@ -425,6 +464,34 @@ class BedrockPromptEvalTest {
                 semanticCheck = metadata["semanticCheck"]?.jsonPrimitive?.content ?: error("Missing 'semanticCheck'")
             )
         }
+
+        return filterScenarios(allScenarios)
+    }
+
+    /**
+     * Filters scenarios by case-insensitive substring match on the `input` field
+     * using the `BEDROCK_EVAL_FILTER` environment variable.
+     *
+     * When the env var is not set or empty, returns all scenarios unchanged.
+     * If the filter matches zero scenarios, logs a warning but does not fail.
+     */
+    private fun filterScenarios(scenarios: List<EvalScenario>): List<EvalScenario> {
+        val filter = System.getenv("BEDROCK_EVAL_FILTER")
+
+        if (filter.isNullOrBlank()) {
+            logger.info { "BEDROCK_EVAL_FILTER not set — running all ${scenarios.size} scenario(s)" }
+            return scenarios
+        }
+
+        val filtered = scenarios.filter { it.input.contains(filter, ignoreCase = true) }
+
+        if (filtered.isEmpty()) {
+            logger.warn { "BEDROCK_EVAL_FILTER='$filter' matched 0 of ${scenarios.size} scenario(s) — no scenarios will run" }
+        } else {
+            logger.info { "BEDROCK_EVAL_FILTER='$filter' matched ${filtered.size} of ${scenarios.size} scenario(s)" }
+        }
+
+        return filtered
     }
 
     private fun loadSpecContent(specFile: String): String {
@@ -454,11 +521,104 @@ class BedrockPromptEvalTest {
                     "attempts=${result.attempts}, " +
                     "semantic=${result.semanticPassed}, PASS=${result.scenarioPassed}, " +
                     "latency=${result.latencyMs}ms, " +
-                    "cost=${"$"}${"%.4f".format(result.estimatedCost)}"
+                    "genCost=${"$"}${"%.4f".format(result.generationCost)}, " +
+                    "judgeCost=${"$"}${"%.4f".format(result.judgeCost)}, " +
+                    "totalCost=${"$"}${"%.4f".format(result.estimatedCost)}"
             }
         } else {
             logger.warn {
                 "  ${result.scenario.input}: FAILED — ${result.errorMessage}"
+            }
+        }
+    }
+
+    // --- Scenario detail table ---
+
+    private fun buildScenarioDetailTable(results: List<ScenarioResult>): String {
+        // Extract API spec name from specFile path (e.g., "eval/petstore-openapi-3.0.yaml" → "petstore")
+        fun extractSpecName(specFile: String): String {
+            val fileName = specFile.substringAfterLast("/")
+            return fileName.replace("-openapi-3.0.yaml", "")
+                .replace("-openapi-3.0.json", "")
+                .replace(".yaml", "")
+                .replace(".json", "")
+        }
+
+        // Column widths
+        val colInput = 35
+        val col1stPass = 12
+        val colRetry = 12
+        val colPass = 6
+        val colGenCost = 10
+        val colJudgeCost = 10
+        val colTotal = 10
+        val colLatency = 9
+        val colReason = 30
+
+        val totalWidth = colInput + col1stPass + colRetry + colPass + colGenCost + colJudgeCost + colTotal + colLatency + colReason + 10 // 10 for separators
+
+        return buildString {
+            appendLine("╔${"═".repeat(totalWidth)}╗")
+            appendLine("║${"SCENARIO DETAIL TABLE".padStart((totalWidth + 21) / 2).padEnd(totalWidth)}║")
+            appendLine("╠${"═".repeat(totalWidth)}╣")
+
+            // Header row
+            val header = "║ " +
+                "Scenario".padEnd(colInput) + "│ " +
+                "1st-pass".padEnd(col1stPass) + "│ " +
+                "After-retry".padEnd(colRetry) + "│ " +
+                "Pass".padEnd(colPass) + "│ " +
+                "Gen cost".padEnd(colGenCost) + "│ " +
+                "Judge cost".padEnd(colJudgeCost) + "│ " +
+                "Total".padEnd(colTotal) + "│ " +
+                "Latency".padEnd(colLatency) + "│ " +
+                "Failure reason".padEnd(colReason) + "║"
+            appendLine(header)
+            appendLine("╠${"═".repeat(totalWidth)}╣")
+
+            // Group results by API spec name
+            val grouped = results.groupBy { extractSpecName(it.scenario.specFile) }
+
+            for ((specName, specResults) in grouped) {
+                // Group header
+                appendLine("║ [$specName]".padEnd(totalWidth + 1) + "║")
+                appendLine("╠${"─".repeat(totalWidth)}╣")
+
+                for (result in specResults) {
+                    val input = result.scenario.input.take(colInput - 1).padEnd(colInput)
+                    val firstPass = "${"%.0f".format(result.firstPassValidRate * 100)}%".padEnd(col1stPass)
+                    val afterRetry = "${"%.0f".format(result.afterRetryValidRate * 100)}%".padEnd(colRetry)
+                    val pass = (if (result.scenarioPassed) "✓" else "✗").padEnd(colPass)
+                    val genCost = "$${"%.4f".format(result.generationCost)}".padEnd(colGenCost)
+                    val judgeCost = "$${"%.4f".format(result.judgeCost)}".padEnd(colJudgeCost)
+                    val totalCost = "$${"%.4f".format(result.estimatedCost)}".padEnd(colTotal)
+                    val latency = "${"%.1f".format(result.latencyMs / 1000.0)}s".padEnd(colLatency)
+
+                    val failureReason = if (!result.scenarioPassed) {
+                        val reason = when {
+                            result.errorMessage != null -> result.errorMessage
+                            !result.semanticPassed -> "Semantic check failed"
+                            !result.allValid -> "Validation failed"
+                            else -> "Unknown"
+                        }
+                        reason.take(colReason - 1)
+                    } else ""
+                    val reasonPadded = failureReason.padEnd(colReason)
+
+                    val row = "║ $input│ $firstPass│ $afterRetry│ $pass│ $genCost│ $judgeCost│ $totalCost│ $latency│ $reasonPadded║"
+                    appendLine(row)
+                }
+
+                appendLine("╠${"─".repeat(totalWidth)}╣")
+            }
+
+            // Replace last separator with bottom border
+            val current = toString()
+            if (current.endsWith("╠${"─".repeat(totalWidth)}╣\n")) {
+                deleteRange(length - ("╠${"─".repeat(totalWidth)}╣\n").length, length)
+                append("╚${"═".repeat(totalWidth)}╝")
+            } else {
+                append("╚${"═".repeat(totalWidth)}╝")
             }
         }
     }
@@ -469,14 +629,14 @@ class BedrockPromptEvalTest {
         val protocols = listOf("REST", "GraphQL", "SOAP")
 
         return buildString {
-            appendLine("╔══════════════════════════════════════════════════════════════════════════════════════════════════════╗")
-            appendLine("║                         MULTI-PROTOCOL BEDROCK PROMPT EVAL SUMMARY                                  ║")
-            appendLine("╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣")
-            appendLine("║ Model: ${modelConfiguration.getModelName().padEnd(86)}║")
-            appendLine("║ Region: ${region.padEnd(85)}║")
-            appendLine("╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣")
-            appendLine("║ Protocol  │ Runs │ 1st-pass valid │ After retry valid │ Scenario pass │ Avg cost/run │ Avg latency ║")
-            appendLine("╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣")
+            appendLine("╔════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗")
+            appendLine("║                              MULTI-PROTOCOL BEDROCK PROMPT EVAL SUMMARY                                                  ║")
+            appendLine("╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣")
+            appendLine("║ Model: ${modelConfiguration.getModelName().padEnd(108)}║")
+            appendLine("║ Region: ${region.padEnd(107)}║")
+            appendLine("╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣")
+            appendLine("║ Protocol  │ Runs │ 1st-pass valid │ After retry valid │ Scenario pass │ Gen cost │ Judge cost │ Avg cost/run │ Avg latency ║")
+            appendLine("╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣")
 
             for (protocol in protocols) {
                 val group = results.filter {
@@ -500,6 +660,8 @@ class BedrockPromptEvalTest {
                 // Scenario pass: % of ALL runs where generation succeeded + all valid + semantic passed
                 val scenarioPassRate = group.count { it.scenarioPassed }.toDouble() / runs * 100.0
 
+                val totalGenCost = group.sumOf { it.generationCost }
+                val totalJudgeCost = group.sumOf { it.judgeCost }
                 val avgCost = group.sumOf { it.estimatedCost } / runs
                 val avgLatency = group.sumOf { it.latencyMs }.toDouble() / runs / 1000.0
 
@@ -508,12 +670,31 @@ class BedrockPromptEvalTest {
                     "${"%.0f".format(firstPassRate)}%".padEnd(15) + "│ " +
                     "${"%.0f".format(afterRetryRate)}%".padEnd(18) + "│ " +
                     "${"%.0f".format(scenarioPassRate)}%".padEnd(14) + "│ " +
+                    "${"$"}${"%.4f".format(totalGenCost)}".padEnd(9) + "│ " +
+                    "${"$"}${"%.4f".format(totalJudgeCost)}".padEnd(11) + "│ " +
                     "${"$"}${"%.4f".format(avgCost)}".padEnd(13) + "│ " +
                     "${"%.1f".format(avgLatency)}s".padEnd(12) + "║"
                 appendLine(line)
             }
 
-            append("╚══════════════════════════════════════════════════════════════════════════════════════════════════════╝")
+            // Total cost footer row
+            val totalGenCost = results.sumOf { it.generationCost }
+            val totalJudgeCost = results.sumOf { it.judgeCost }
+            val totalCombinedCost = results.sumOf { it.estimatedCost }
+
+            appendLine("╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣")
+            val footerLine = "║ TOTAL     │ " +
+                "${results.size}".padEnd(5) + "│ " +
+                "".padEnd(15) + "│ " +
+                "".padEnd(18) + "│ " +
+                "".padEnd(14) + "│ " +
+                "${"$"}${"%.4f".format(totalGenCost)}".padEnd(9) + "│ " +
+                "${"$"}${"%.4f".format(totalJudgeCost)}".padEnd(11) + "│ " +
+                "${"$"}${"%.4f".format(totalCombinedCost)}".padEnd(13) + "│ " +
+                "".padEnd(12) + "║"
+            appendLine(footerLine)
+
+            append("╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝")
         }
     }
 }

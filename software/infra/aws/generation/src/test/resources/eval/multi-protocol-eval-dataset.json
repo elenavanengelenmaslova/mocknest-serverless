@@ -1,6 +1,6 @@
 {
-  "name": "GraphQL + SOAP Eval (error analysis)",
-  "description": "Tests with detailed error logging for GraphQL and SOAP",
+  "name": "Multi-Protocol Eval (GraphQL + SOAP + REST)",
+  "description": "Evaluation dataset covering GraphQL, SOAP, and REST scenarios across multiple API specifications and prompt complexity levels (Basic, Filtered, Consistency, Error, Realistic_Data, Edge_Case)",
   "examples": [
     {
       "input": "graphql-pokemon-pikachu",
@@ -33,6 +33,160 @@
         "namespace": "calculator-eval",
         "description": "Generate mocks for all 3 operations: Add(10, 5) returning 15, Subtract(10, 5) returning 5, and Multiply(10, 5) returning 50. Each operation must have the correct result.",
         "semanticCheck": "Strictly verify: 1) There must be exactly 3 mappings, one per operation. 2) Add result must be 15. 3) Subtract result must be 5. 4) Multiply result must be 50. Score 0 if any result is wrong or any operation is missing."
+      }
+    },
+    {
+      "input": "rest-petstore-basic-get",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate mocks for all GET endpoints in the Petstore API.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with url/urlPath/urlPathPattern) and 'response' (with jsonBody or body). URLs are prefixed with a namespace like /petstore-eval/. Additional response fields beyond those listed are acceptable. Verify: 1) There must be mocks matching GET endpoints for /pet/findByStatus, /pet/findByTags, /pet/{petId}, /store/inventory, /store/order/{orderId}, /user/login, /user/logout, and /user/{username} (URLs may have a namespace prefix). 2) The pet response jsonBody must include at least: id (number), name (string), status (string). 3) The order response jsonBody must include at least: id, petId, quantity, status. 4) The user response jsonBody must include at least: id, username, firstName, lastName, email. 5) All mocks must return HTTP 200. Score 0 only if a GET endpoint is completely missing."
+      }
+    },
+    {
+      "input": "rest-bored-basic-all",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/bored-api-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "bored-eval",
+        "description": "Generate mocks for all 3 endpoints in the Bored API.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with url/urlPath/urlPathPattern) and 'response' (with jsonBody or body). URLs are prefixed with a namespace like /bored-eval/. Additional response fields beyond those listed are acceptable. Verify: 1) There must be mocks matching GET /random, GET /filter, and GET /activity/{key} (URLs may have a namespace prefix or use urlPathPattern with regex). 2) The GET /random response jsonBody must include at least: activity (string), type (string), participants (number), and key (string). Additional fields like price or accessibility are acceptable. 3) The GET /filter response jsonBody must be an array of objects each containing at least activity and type. 4) The GET /activity/{key} response must include at least: activity, type, participants, key. 5) All mocks must return HTTP 200. Score 0 only if an endpoint is completely missing."
+      }
+    },
+    {
+      "input": "rest-social-basic-get",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/social-content-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "social-eval",
+        "description": "Generate mocks for all GET endpoints in the Social Content API.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with url/urlPath/urlPathPattern) and 'response' (with jsonBody or body). URLs are prefixed with a namespace like /social-eval/. Additional response fields beyond those listed are acceptable. Verify: 1) There must be mocks matching GET /users, GET /users/{userId}, GET /posts, GET /posts/{postId}, and GET /posts/{postId}/comments (URLs may have a namespace prefix). 2) The user response jsonBody must include at least: id, username, displayName, email. 3) The post response jsonBody must include at least: id, title, body, authorId. 4) The comments response must be an array of objects each containing at least: id, postId, body. 5) All mocks must return HTTP 200. Score 0 only if a GET endpoint is completely missing."
+      }
+    },
+    {
+      "input": "rest-petstore-filtered-pets",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate mocks only for pet-related endpoints: GET /pet/findByStatus, GET /pet/findByTags, GET /pet/{petId}, PUT /pet, POST /pet, POST /pet/{petId}, DELETE /pet/{petId}, and POST /pet/{petId}/uploadImage.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /petstore-eval/. Verify: 1) There must be mocks for pet endpoints including at least GET /pet/findByStatus, GET /pet/{petId}, and one of PUT /pet or POST /pet (URLs will have namespace prefix). 2) There must be NO mocks for store endpoints (containing /store/) or user endpoints (containing /user/). Check the urlPath or urlPathPattern fields — none should contain '/store/' or '/user/'. 3) The GET /pet/{petId} response jsonBody must include at least: id, name, status. Additional fields are acceptable. Score 0 if any store or user endpoint mock is present, or if no pet endpoint mocks exist."
+      }
+    },
+    {
+      "input": "rest-social-filtered-users",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/social-content-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "social-eval",
+        "description": "Generate mocks only for user-related endpoints: GET /users, GET /users/{userId}, POST /users, and PUT /users/{userId}.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /social-eval/. Verify: 1) There must be mocks for user endpoints including at least GET /users and GET /users/{userId} (URLs will have namespace prefix). 2) There must be NO mocks for post endpoints (containing /posts) or comment endpoints (containing /comments). Check the urlPath or urlPathPattern fields — none should contain '/posts' or '/comments'. 3) The GET /users/{userId} response jsonBody must include at least: id, username, displayName, email. Additional fields are acceptable. Score 0 if any post or comment endpoint mock is present, or if no user endpoint mocks exist."
+      }
+    },
+    {
+      "input": "rest-petstore-consistency",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate mocks where GET /pet/1 returns a pet, GET /store/order/1 returns an order referencing that pet, and GET /user/john returns a user. The order's petId must match the pet's id, and all entities must use consistent, cross-referenced data.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /petstore-eval/. Verify: 1) There must be a mock for a pet endpoint (URL containing /pet/ with id 1), an order endpoint (URL containing /store/order/ with id 1), and a user endpoint (URL containing /user/ with username john). 2) The pet response jsonBody must contain an id field. 3) The order response jsonBody must contain a petId field whose value matches the pet's id. 4) The user response jsonBody must contain username with value 'john'. Score 0 if the petId in the order does not match the pet id, or if any of the 3 endpoint mocks is missing."
+      }
+    },
+    {
+      "input": "rest-social-consistency",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/social-content-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "social-eval",
+        "description": "Generate mocks where GET /posts/1 returns a post whose authorId matches the id from GET /users/1, and GET /posts/1/comments returns comments whose postId is 1 and whose authorId references a valid user id.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /social-eval/. Verify: 1) There must be mocks for a user endpoint (URL containing /users/ with id 1), a post endpoint (URL containing /posts/ with id 1), and a comments endpoint (URL containing /posts/1/comments or similar). 2) The post response jsonBody must contain authorId whose value equals the user's id (1). 3) Each comment in the comments response must contain postId with value 1. Score 0 if the post authorId does not reference the user, or if any comment postId is not 1."
+      }
+    },
+    {
+      "input": "rest-petstore-error",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate 404 and 500 error responses for pet endpoints. Include a 404 response for GET /pet/{petId} when the pet is not found, and a 500 internal server error response for GET /pet/{petId}.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /petstore-eval/. Verify: 1) There must be a mock for a pet endpoint (URL containing /pet/) with response status 404 and a non-empty response body indicating not found. 2) There must be a mock for a pet endpoint (URL containing /pet/) with response status 500 and a non-empty response body indicating server error. 3) Check the 'response.status' field in each mapping for values 404 and 500. 4) Both error responses must have a non-empty body or jsonBody. Score 0 if either the 404 or 500 error mock is missing or has an empty response body."
+      }
+    },
+    {
+      "input": "rest-payment-error",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/payment-financial-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "payment-eval",
+        "description": "Generate error responses for payment failures: a 402 Payment Required response for POST /payments when funds are insufficient, a 404 Not Found response for GET /payments/{paymentId} when the payment does not exist, and a 422 Validation Exception response for POST /payments with invalid input.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /payment-eval/. Verify: 1) There must be a mock for POST /payments with response status 402 and a body containing an error message. 2) There must be a mock for GET /payments/{paymentId} with response status 404 and a body containing an error message. 3) There must be a mock for POST /payments with response status 422 and a body containing a validation error message. 4) Check the 'response.status' field for values 402, 404, and 422. Each must have a non-empty jsonBody or body with error information. Score 0 if any of the 3 error status codes (402, 404, 422) is missing from the mappings."
+      }
+    },
+    {
+      "input": "rest-social-realistic",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/social-content-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "social-eval",
+        "description": "Generate mocks with realistic European names and content. GET /users should return users with European names (e.g., Hans Mueller, Sophie Dubois, Giulia Rossi). GET /posts should return posts with realistic titles and body content. GET /posts/{postId}/comments should return comments with realistic text.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /social-eval/. Response data is inside 'response.jsonBody'. Verify: 1) There must be mocks for user, post, and comment endpoints (URLs containing /users, /posts, and /comments respectively). 2) User response data must contain displayName or name fields with realistic full names (not placeholder values like user1, test, foo). Names should look like real European names. 3) Post response data must contain title and body fields with meaningful content (not placeholder text like title1 or body1). 4) The data should feel realistic and domain-appropriate. Score 0 if names are obviously placeholder values (user1, test, foo, lorem ipsum) or if content is generic filler."
+      }
+    },
+    {
+      "input": "rest-payment-realistic",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/payment-financial-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "payment-eval",
+        "description": "Generate mocks with realistic payment amounts in EUR. GET /payments should return payments with realistic EUR amounts (e.g., 49.99, 150.00, 299.50). GET /invoices should return invoices with lineItems containing realistic descriptions, quantities, and unit prices that sum correctly. All currency fields must be EUR.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /payment-eval/. Response data is inside 'response.jsonBody'. Verify: 1) There must be mocks for payment and invoice endpoints (URLs containing /payments and /invoices). 2) Payment response data must have currency set to EUR (or eur). 3) Payment amounts must be realistic positive numbers (not 0, not negative). 4) Invoice response data must have currency set to EUR and contain a non-empty lineItems array. 5) Each lineItem must have at least a description and a numeric amount or unitPrice. Score 0 if currency is not EUR or if amounts are zero/negative."
+      }
+    },
+    {
+      "input": "rest-petstore-pagination",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate mocks for GET /pet/findByStatus with 3 pages of results. Each page should return a different set of pets with status=available. Use query parameter or response metadata to distinguish pages. Each page should contain at least 2 pet objects.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /petstore-eval/. Verify: 1) There must be at least 3 distinct mocks for a findByStatus endpoint (URL containing /pet/findByStatus). They may be distinguished by query parameters, priority, or different URL patterns. 2) Each mock response must contain an array of pet objects with at least 2 items. 3) Each pet object must include at least: id (number), name (string), and status with value 'available'. Additional fields are acceptable. 4) Pet ids should be unique across pages. Score 0 if fewer than 3 findByStatus mocks exist or if any page has fewer than 2 pets."
+      }
+    },
+    {
+      "input": "rest-weather-basic",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/weather-utility-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "weather-eval",
+        "description": "Generate mocks for all weather endpoints: GET /weather/current and GET /weather/forecast.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /weather-eval/. Response data is inside 'response.jsonBody'. Additional response fields beyond those listed are acceptable. Verify: 1) There must be mocks for GET /weather/current and GET /weather/forecast (URLs will contain /weather/current and /weather/forecast with namespace prefix). 2) The current weather response jsonBody must include at least a temperature-related numeric field (temperature, temp, or similar) and a city or location string field. Additional fields like humidity, windSpeed, description are acceptable but not required for passing. 3) The forecast response jsonBody must include a days or forecast array with at least one item containing temperature-related fields. 4) All mocks must return HTTP 200. Score 0 only if either the current or forecast endpoint mock is completely missing."
+      }
+    },
+    {
+      "input": "rest-payment-basic",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/payment-financial-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "payment-eval",
+        "description": "Generate mocks for all GET endpoints in the Payment Financial API.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /payment-eval/. Response data is inside 'response.jsonBody'. Additional response fields beyond those listed are acceptable. Verify: 1) There must be mocks for GET endpoints covering customers, payments, and invoices (URLs containing /customers, /payments, and /invoices with namespace prefix). 2) Customer response data must include at least: id, name or email. 3) Payment response data must include at least: id, amount (number), status (string). 4) Invoice response data must include at least: id, lineItems (array), and a total or totalAmount field. 5) All mocks must return HTTP 200. Score 0 only if an entire resource type (customers, payments, or invoices) has no GET mock."
       }
     }
   ]

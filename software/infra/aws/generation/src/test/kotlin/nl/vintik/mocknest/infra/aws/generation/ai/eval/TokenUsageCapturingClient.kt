@@ -39,7 +39,8 @@ class TokenUsageCapturingClient(
             TokenUsageRecord(
                 inputTokens = usage?.inputTokens ?: 0,
                 outputTokens = usage?.outputTokens ?: 0,
-                totalTokens = usage?.totalTokens ?: 0
+                totalTokens = usage?.totalTokens ?: 0,
+                phase = tokenUsageStore.currentPhase
             )
         )
         return response

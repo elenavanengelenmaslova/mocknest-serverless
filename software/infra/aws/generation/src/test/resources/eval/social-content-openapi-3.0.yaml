@@ -1,0 +1,533 @@
+---
+openapi: "3.0.3"
+info:
+  title: Social Content API
+  description: |-
+    A social content platform API for managing users, posts, and comments.
+    Supports cross-entity relationships where posts reference authors and comments reference posts.
+  version: "1.0.0"
+servers:
+  - url: https://api.socialcontent.example.com/v1
+tags:
+  - name: users
+    description: User management operations
+  - name: posts
+    description: Post management operations
+  - name: comments
+    description: Comment management operations
+paths:
+  /users:
+    get:
+      tags:
+        - users
+      summary: List all users.
+      description: Returns a paginated list of all registered users.
+      operationId: listUsers
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of users to return
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Number of users to skip for pagination
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: A list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - users
+      summary: Create a new user.
+      description: Registers a new user on the platform.
+      operationId: createUser
+      requestBody:
+        description: User object to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /users/{userId}:
+    get:
+      tags:
+        - users
+      summary: Get user by ID.
+      description: Returns a single user by their unique identifier.
+      operationId: getUserById
+      parameters:
+        - name: userId
+          in: path
+          description: Unique identifier of the user
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The requested user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - users
+      summary: Update a user.
+      description: Updates an existing user's profile information.
+      operationId: updateUser
+      parameters:
+        - name: userId
+          in: path
+          description: Unique identifier of the user to update
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: Updated user data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "200":
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /posts:
+    get:
+      tags:
+        - posts
+      summary: List all posts.
+      description: Returns a paginated list of posts, optionally filtered by author.
+      operationId: listPosts
+      parameters:
+        - name: authorId
+          in: query
+          description: Filter posts by author user ID
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: status
+          in: query
+          description: Filter posts by publication status
+          required: false
+          schema:
+            type: string
+            enum:
+              - draft
+              - published
+              - archived
+        - name: limit
+          in: query
+          description: Maximum number of posts to return
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: A list of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - posts
+      summary: Create a new post.
+      description: Creates a new post authored by the specified user.
+      operationId: createPost
+      requestBody:
+        description: Post object to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePostRequest"
+      responses:
+        "201":
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Author not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /posts/{postId}:
+    get:
+      tags:
+        - posts
+      summary: Get post by ID.
+      description: Returns a single post by its unique identifier.
+      operationId: getPostById
+      parameters:
+        - name: postId
+          in: path
+          description: Unique identifier of the post
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The requested post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - posts
+      summary: Delete a post.
+      description: Deletes a post and all associated comments.
+      operationId: deletePost
+      parameters:
+        - name: postId
+          in: path
+          description: Unique identifier of the post to delete
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Post deleted successfully
+        "404":
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /posts/{postId}/comments:
+    get:
+      tags:
+        - comments
+      summary: List comments for a post.
+      description: Returns all comments associated with a specific post.
+      operationId: listCommentsForPost
+      parameters:
+        - name: postId
+          in: path
+          description: Unique identifier of the post
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: A list of comments for the post
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+        "404":
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - comments
+      summary: Add a comment to a post.
+      description: Creates a new comment on the specified post.
+      operationId: createComment
+      parameters:
+        - name: postId
+          in: path
+          description: Unique identifier of the post to comment on
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: Comment object to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommentRequest"
+      responses:
+        "201":
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /comments/{commentId}:
+    delete:
+      tags:
+        - comments
+      summary: Delete a comment.
+      description: Deletes a specific comment by its unique identifier.
+      operationId: deleteComment
+      parameters:
+        - name: commentId
+          in: path
+          description: Unique identifier of the comment to delete
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Comment deleted successfully
+        "404":
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        username:
+          type: string
+          example: "johndoe"
+        displayName:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        bio:
+          type: string
+          example: "Software developer and tech enthusiast"
+        avatarUrl:
+          type: string
+          format: uri
+          example: "https://avatars.example.com/johndoe.png"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - displayName
+        - email
+      properties:
+        username:
+          type: string
+          example: "johndoe"
+        displayName:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        bio:
+          type: string
+          example: "Software developer and tech enthusiast"
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 101
+        title:
+          type: string
+          example: "Getting Started with Kotlin"
+        body:
+          type: string
+          example: "Kotlin is a modern programming language..."
+        authorId:
+          type: integer
+          format: int64
+          description: References the user who authored this post (User.id)
+          example: 1
+        status:
+          type: string
+          description: Publication status of the post
+          enum:
+            - draft
+            - published
+            - archived
+          example: "published"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["kotlin", "programming", "tutorial"]
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-02-01T14:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-02-01T16:30:00Z"
+    CreatePostRequest:
+      type: object
+      required:
+        - title
+        - body
+        - authorId
+      properties:
+        title:
+          type: string
+          example: "Getting Started with Kotlin"
+        body:
+          type: string
+          example: "Kotlin is a modern programming language..."
+        authorId:
+          type: integer
+          format: int64
+          description: ID of the user authoring this post
+          example: 1
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["kotlin", "programming"]
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 501
+        postId:
+          type: integer
+          format: int64
+          description: References the post this comment belongs to (Post.id)
+          example: 101
+        authorId:
+          type: integer
+          format: int64
+          description: References the user who wrote this comment (User.id)
+          example: 2
+        body:
+          type: string
+          example: "Great article! Very helpful for beginners."
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-02-02T09:15:00Z"
+    CreateCommentRequest:
+      type: object
+      required:
+        - authorId
+        - body
+      properties:
+        authorId:
+          type: integer
+          format: int64
+          description: ID of the user writing this comment
+          example: 2
+        body:
+          type: string
+          example: "Great article! Very helpful for beginners."
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 400
+        message:
+          type: string
+          example: "Invalid request parameters"
