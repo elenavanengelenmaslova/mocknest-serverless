@@ -681,10 +681,11 @@ class BedrockPromptEvalTest {
             val totalGenCost = results.sumOf { it.generationCost }
             val totalJudgeCost = results.sumOf { it.judgeCost }
             val totalCombinedCost = results.sumOf { it.estimatedCost }
+            val totalRuns = results.size
 
             appendLine("╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣")
             val footerLine = "║ TOTAL     │ " +
-                "${results.size}".padEnd(5) + "│ " +
+                "$totalRuns".padEnd(5) + "│ " +
                 "".padEnd(15) + "│ " +
                 "".padEnd(18) + "│ " +
                 "".padEnd(14) + "│ " +
@@ -693,6 +694,11 @@ class BedrockPromptEvalTest {
                 "${"$"}${"%.4f".format(totalCombinedCost)}".padEnd(13) + "│ " +
                 "".padEnd(12) + "║"
             appendLine(footerLine)
+            appendLine("╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣")
+            val totalCostLine = "║ TOTAL EVAL COST: ${"$"}${"%.4f".format(totalCombinedCost)} " +
+                "(generation: ${"$"}${"%.4f".format(totalGenCost)}, judge: ${"$"}${"%.4f".format(totalJudgeCost)}, " +
+                "runs: $totalRuns)"
+            appendLine(totalCostLine.padEnd(121) + "║")
 
             append("╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝")
         }
