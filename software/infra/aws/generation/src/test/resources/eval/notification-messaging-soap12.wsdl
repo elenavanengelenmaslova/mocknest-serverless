@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/notification-messaging"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/notification-messaging"
+                  name="NotificationMessagingService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/notification-messaging">
+
+      <!-- Complex type: NotificationStatus (6 fields) -->
+      <xsd:complexType name="NotificationStatus">
+        <xsd:sequence>
+          <xsd:element name="notificationId" type="xsd:string"/>
+          <xsd:element name="recipientId" type="xsd:string"/>
+          <xsd:element name="channel" type="xsd:string"/>
+          <xsd:element name="status" type="xsd:string"/>
+          <xsd:element name="sentAt" type="xsd:dateTime"/>
+          <xsd:element name="deliveredAt" type="xsd:dateTime"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- SendNotification operation types (5 fields in request, cross-entity: recipientId references a user) -->
+      <xsd:element name="SendNotificationRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="recipientId" type="xsd:string"/>
+            <xsd:element name="channel" type="xsd:string"/>
+            <xsd:element name="subject" type="xsd:string"/>
+            <xsd:element name="body" type="xsd:string"/>
+            <xsd:element name="priority" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="SendNotificationResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="notificationId" type="xsd:string"/>
+            <xsd:element name="status" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- GetNotificationStatus operation types (cross-entity: notificationId from SendNotification) -->
+      <xsd:element name="GetNotificationStatusRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="notificationId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetNotificationStatusResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="notification" type="tns:NotificationStatus"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- ListNotifications operation types (cross-entity: recipientId references a user) -->
+      <xsd:element name="ListNotificationsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="recipientId" type="xsd:string"/>
+            <xsd:element name="channel" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="ListNotificationsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="notifications" type="tns:NotificationStatus" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- UpdatePreferences operation types (6 fields in request, UserPreferences type) -->
+      <xsd:element name="UpdatePreferencesRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="userId" type="xsd:string"/>
+            <xsd:element name="emailEnabled" type="xsd:boolean"/>
+            <xsd:element name="smsEnabled" type="xsd:boolean"/>
+            <xsd:element name="pushEnabled" type="xsd:boolean"/>
+            <xsd:element name="quietHoursStart" type="xsd:string"/>
+            <xsd:element name="quietHoursEnd" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="UpdatePreferencesResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="userId" type="xsd:string"/>
+            <xsd:element name="updated" type="xsd:boolean"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </wsdl:types>
+
+  <!-- Messages -->
+  <wsdl:message name="SendNotificationRequestMsg"><wsdl:part name="parameters" element="tns:SendNotificationRequest"/></wsdl:message>
+  <wsdl:message name="SendNotificationResponseMsg"><wsdl:part name="parameters" element="tns:SendNotificationResponse"/></wsdl:message>
+  <wsdl:message name="GetNotificationStatusRequestMsg"><wsdl:part name="parameters" element="tns:GetNotificationStatusRequest"/></wsdl:message>
+  <wsdl:message name="GetNotificationStatusResponseMsg"><wsdl:part name="parameters" element="tns:GetNotificationStatusResponse"/></wsdl:message>
+  <wsdl:message name="ListNotificationsRequestMsg"><wsdl:part name="parameters" element="tns:ListNotificationsRequest"/></wsdl:message>
+  <wsdl:message name="ListNotificationsResponseMsg"><wsdl:part name="parameters" element="tns:ListNotificationsResponse"/></wsdl:message>
+  <wsdl:message name="UpdatePreferencesRequestMsg"><wsdl:part name="parameters" element="tns:UpdatePreferencesRequest"/></wsdl:message>
+  <wsdl:message name="UpdatePreferencesResponseMsg"><wsdl:part name="parameters" element="tns:UpdatePreferencesResponse"/></wsdl:message>
+
+  <!-- Port Type -->
+  <wsdl:portType name="NotificationPortType">
+    <wsdl:operation name="SendNotification">
+      <wsdl:input message="tns:SendNotificationRequestMsg"/>
+      <wsdl:output message="tns:SendNotificationResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetNotificationStatus">
+      <wsdl:input message="tns:GetNotificationStatusRequestMsg"/>
+      <wsdl:output message="tns:GetNotificationStatusResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="ListNotifications">
+      <wsdl:input message="tns:ListNotificationsRequestMsg"/>
+      <wsdl:output message="tns:ListNotificationsResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="UpdatePreferences">
+      <wsdl:input message="tns:UpdatePreferencesRequestMsg"/>
+      <wsdl:output message="tns:UpdatePreferencesResponseMsg"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <!-- Binding -->
+  <wsdl:binding name="NotificationBinding" type="tns:NotificationPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="SendNotification">
+      <soap12:operation soapAction="http://example.com/notification-messaging/SendNotification"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetNotificationStatus">
+      <soap12:operation soapAction="http://example.com/notification-messaging/GetNotificationStatus"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ListNotifications">
+      <soap12:operation soapAction="http://example.com/notification-messaging/ListNotifications"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="UpdatePreferences">
+      <soap12:operation soapAction="http://example.com/notification-messaging/UpdatePreferences"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <!-- Service -->
+  <wsdl:service name="NotificationMessagingService">
+    <wsdl:port name="NotificationPort" binding="tns:NotificationBinding">
+      <soap12:address location="http://example.com/notifications/v1"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

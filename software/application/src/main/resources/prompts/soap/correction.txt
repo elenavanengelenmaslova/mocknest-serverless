@@ -16,9 +16,11 @@ Requirements:
 SOAP 1.2 specific corrections (IMPORTANT):
 - If the error is "Request method must be POST": change the `request.method` to `"POST"` — SOAP always uses POST
 - If the error is "Request URL path does not match any endpoint path in the WSDL":
-  - Update the `urlPath` to use the format `/{{NAMESPACE}}/` followed by the WSDL service path suffix
-  - Preserve the WSDL service path suffix exactly as it appears in the WSDL
-  - Example: Change `"/calculator.asmx"` to `"/{{NAMESPACE}}/calculator.asmx"`
+  - Update the `urlPath` by prepending `/{{NAMESPACE}}` to the FULL path from the WSDL's `<soap12:address location="..."/>` element
+  - CRITICAL: Use the COMPLETE path portion after the host. Do NOT shorten or truncate the path.
+  - Example 1: If WSDL address is `http://example.com/calculator.asmx`, use `"/{{NAMESPACE}}/calculator.asmx"`
+  - Example 2: If WSDL address is `http://example.com/banking-service/v1`, use `"/{{NAMESPACE}}/banking-service/v1"`
+  - WRONG: For `http://example.com/banking-service/v1`, using `"/{{NAMESPACE}}/v1"` is INCORRECT
 - If the error is "SOAPAction does not match any operation in the WSDL":
   - Update the `action` parameter in the `Content-Type` header to match a valid operation name
   - Do NOT use a `SOAPAction` header — SOAP 1.2 uses the `action` parameter in `Content-Type`
@@ -28,8 +30,8 @@ SOAP 1.2 specific corrections (IMPORTANT):
   - Ensure the root element is named `Envelope` (not `Envelope1`, `soap:Envelope` without namespace, etc.)
 - If the error is "SOAP Body element missing inside Envelope": add `<soapenv:Body>...</soapenv:Body>` as a direct child of the Envelope element
 - If the error is "Response body element namespace does not match WSDL targetNamespace":
-  - The element inside `<soapenv:Body>` must use the correct target namespace from the WSDL
-  - Add the correct namespace declaration: `xmlns:tns="TARGET_NAMESPACE"` and prefix the body element with `tns:`
+  - The element inside `<soapenv:Body>` must use the target namespace `{{TARGET_NAMESPACE}}`
+  - Add the namespace declaration: `xmlns:tns="{{TARGET_NAMESPACE}}"` and prefix the body element with `tns:`
 - If the error is "Content-Type header does not match SOAP version":
   - Set response Content-Type to `application/soap+xml; charset=utf-8`
 - If the error mentions XPath matching failures and the request uses XPath matchers with namespace prefixes:
@@ -42,12 +44,12 @@ SOAP 1.2 request matching rules (IMPORTANT):
 - Match on the `action` parameter inside the `Content-Type` header
 - Do NOT use a `SOAPAction` header
 - Use `urlPath` for the service endpoint path
-- The `urlPath` MUST use the format `/{{NAMESPACE}}/` followed by the WSDL service path suffix
+- The `urlPath` MUST be constructed by prepending `/{{NAMESPACE}}` to the FULL path from the WSDL's `<soap12:address location="..."/>` element
 
 SOAP 1.2 response format rules (IMPORTANT):
 - ALL SOAP responses MUST be valid XML SOAP 1.2 envelopes with namespace `http://www.w3.org/2003/05/soap-envelope`
 - Response Content-Type MUST be `application/soap+xml; charset=utf-8`
-- The element inside `<soapenv:Body>` MUST use the target namespace from the WSDL
+- The element inside `<soapenv:Body>` MUST use `xmlns:tns="{{TARGET_NAMESPACE}}"` and prefix the element with `tns:`
 - NEVER return a bare XML document without a SOAP Envelope wrapper
 - NEVER use JSON as the response body
 

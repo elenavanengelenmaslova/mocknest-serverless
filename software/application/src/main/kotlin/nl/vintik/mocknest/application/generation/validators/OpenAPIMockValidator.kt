@@ -65,7 +65,11 @@ class OpenAPIMockValidator : MockValidatorInterface {
             // 3. Validate status code
             val status = responseNode!!["status"]?.jsonPrimitive?.intOrNull ?: 200
             val responseDef = endpoint.responses[status]
-            if (responseDef == null) {
+            if (responseDef == null && status in 200..299) {
+                // Only reject undefined success status codes (2xx).
+                // Error status codes (4xx, 5xx) are accepted without validation — they are
+                // commonly generated for error scenarios even when not explicitly listed in
+                // the spec (many specs use a 'default' response to cover error codes).
                 return MockValidationResult.invalid(listOf("Status code $status not defined in specification for ${endpoint.method} ${endpoint.path}"))
             }
 
@@ -78,7 +82,7 @@ class OpenAPIMockValidator : MockValidatorInterface {
 
             // 5. Validate response body schema
             val body = responseNode["jsonBody"] ?: responseNode["body"]
-            val schema = responseDef.schema
+            val schema = responseDef?.schema
             if (body != null && schema != null) {
                 errors.addAll(validateResponseBodyAgainstSchema(body, schema, "${endpoint.method} ${endpoint.path} - $status"))
             }
@@ -193,7 +197,7 @@ class OpenAPIMockValidator : MockValidatorInterface {
                     val expectedValue = mockSegments[paramIdx]
                     val jsonBody = response["jsonBody"] ?: response["body"]
                     if (jsonBody is JsonObject) {
-                        val bodyValue = jsonBody["id"]?.jsonPrimitive?.content ?: jsonBody[param.name]?.jsonPrimitive?.content
+                        val bodyValue = jsonBody[param.name]?.jsonPrimitive?.content ?: jsonBody["id"]?.jsonPrimitive?.content
                         if (bodyValue != null && bodyValue != expectedValue) errors.add("[CONSISTENCY] Consistency error: path parameter '${param.name}' is '$expectedValue' but response body has value '$bodyValue'")
                     }
                 }

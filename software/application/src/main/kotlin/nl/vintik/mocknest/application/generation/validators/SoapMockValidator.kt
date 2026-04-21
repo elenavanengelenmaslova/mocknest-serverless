@@ -287,14 +287,20 @@ class SoapMockValidator : MockValidatorInterface {
         }
 
         // Rule 6: Element inside Body must use correct target namespace
+        // Skip this check for SOAP Fault elements — faults use the envelope namespace, not the target namespace
         if (targetNamespace.isNotBlank()) {
             val bodyChild = firstChildElement(bodyElement)
             if (bodyChild != null) {
-                val bodyChildNs = bodyChild.namespaceURI ?: ""
-                if (bodyChildNs != targetNamespace) {
-                    errors.add(
-                        "Response body element namespace does not match WSDL targetNamespace. Expected: $targetNamespace"
-                    )
+                val isFaultElement = bodyChild.localName == "Fault" &&
+                    bodyChild.namespaceURI == soapVersion.envelopeNamespace
+                if (!isFaultElement) {
+                    val bodyChildNs = bodyChild.namespaceURI ?: ""
+                    if (bodyChildNs != targetNamespace) {
+                        errors.add(
+                            "Response body element namespace does not match WSDL targetNamespace. " +
+                                "Expected: $targetNamespace, Found: ${bodyChildNs.ifEmpty { "(none)" }}"
+                        )
+                    }
                 }
             }
         }

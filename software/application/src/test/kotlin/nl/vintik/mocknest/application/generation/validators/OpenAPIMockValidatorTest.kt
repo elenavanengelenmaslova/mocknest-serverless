@@ -521,21 +521,40 @@ class OpenAPIMockValidatorTest {
     inner class InvalidStatusCodes {
 
         @Test
-        fun `Given mock with undefined status code When validating Then should return error`() = runTest {
-            // Given
+        fun `Given mock with undefined success status code When validating Then should return error`() = runTest {
+            // Given — use status 201 which is not defined for GET /api/users/123 (only 200 is)
             val specification = createTestSpecification()
-            val mockJson = loadTestData("invalid-status-code-mock.json")
-            val mock = createGeneratedMock("invalid-status-code-mock", mockJson)
+            val mockJson = """
+                {
+                  "request": { "method": "GET", "urlPath": "/api/users/123" },
+                  "response": { "status": 201, "jsonBody": { "id": "123", "name": "Test", "email": "t@t.com", "active": true } }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("invalid-success-status-mock", mockJson)
 
             // When
             val result = validator.validate(mock, specification)
 
-            // Then
+            // Then — undefined 2xx status codes are rejected
             assertFalse(result.isValid)
             assertTrue(
-                result.errors.any { it.contains("Status code 404 not defined in specification") },
-                "Should report undefined status code 404"
+                result.errors.any { it.contains("Status code 201 not defined in specification") },
+                "Should report undefined success status code 201"
             )
+        }
+
+        @Test
+        fun `Given mock with undefined error status code When validating Then should accept it`() = runTest {
+            // Given — 4xx/5xx error codes are accepted even when not in the spec
+            val specification = createTestSpecification()
+            val mockJson = loadTestData("invalid-status-code-mock.json")
+            val mock = createGeneratedMock("error-status-code-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then — error status codes (4xx/5xx) are accepted without validation
+            assertTrue(result.isValid, "Error status codes should be accepted. Errors: ${result.errors}")
         }
 
         @Test

@@ -35,15 +35,18 @@ RESPONSE TYPE RULES (CRITICAL):
 - Enhance the mappings based on the description (add error cases, specific data, behaviors, etc.)
 - Include realistic response data that matches both the spec and description
 - Handle appropriate HTTP status codes
+- CRITICAL: Only use HTTP status codes that are defined in the API specification for each endpoint. If the description asks for a 500 error but the spec only defines 400 for that endpoint, use 400 instead. If the spec defines no error codes for an endpoint, use the closest standard error code that IS defined somewhere in the spec. Do NOT generate a status code that appears nowhere in the specification.
 - Include relevant headers and proper content types
 - Ensure data consistency and correct response format (IMPORTANT):
   - If an endpoint filters by query parameters (e.g. `status=available`), the response MUST only contain items with that status.
   - If an endpoint uses path parameters (e.g. `/pet/1`), the response data MUST match that ID.
+  - CRITICAL: When a URL contains a path parameter value (e.g., `/user/john`), the response body MUST reflect that same value in the corresponding field (e.g., `"username": "john"`). The path parameter value and the response field value must be identical — do NOT use a different value like a numeric ID.
   - Ensure you use the correct response format (Object vs Array) as defined in the specification for each endpoint.
   - When the description defines specific entities with properties (e.g., a pet with a specific name, status, or image),
     those entities MUST appear consistently across ALL relevant endpoints — list endpoints, detail endpoints, and filtered endpoints.
     For example, if pet ID=1 is a bird with status "available", then GET /pet/1, GET /pets, and GET /pets?status=available must all return consistent data for that bird.
   - If entities have tags or other filterable properties, ensure that filter/search endpoints return exactly the correct subset of entities matching that filter.
+  - CRITICAL: Only use query parameters that are defined in the API specification for each endpoint. Do NOT invent query parameters like `page`, `limit`, `offset`, `username`, `password`, or any other parameter not listed in the spec. If the spec does not define pagination parameters, do not add them.
 - Generate comprehensive mappings that cover the described scenarios
 - Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
 - WireMock URL matching rules (IMPORTANT):

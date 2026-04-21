@@ -1,6 +1,6 @@
 {
   "name": "Multi-Protocol Eval (GraphQL + SOAP + REST)",
-  "description": "Evaluation dataset covering GraphQL, SOAP, and REST scenarios across multiple API specifications and prompt complexity levels (Basic, Filtered, Consistency, Error, Realistic_Data, Edge_Case)",
+  "description": "Evaluation dataset covering GraphQL, SOAP (4 WSDL specs: calculator, banking, inventory, notification), and REST scenarios across multiple API specifications and prompt complexity levels (Basic, Filtered, Consistency, Error, Realistic_Data, Edge_Case)",
   "examples": [
     {
       "input": "graphql-pokemon-pikachu",
@@ -35,6 +35,151 @@
         "semanticCheck": "Strictly verify: 1) There must be exactly 3 mappings, one per operation. 2) Add result must be 15. 3) Subtract result must be 5. 4) Multiply result must be 50. Score 0 if any result is wrong or any operation is missing."
       }
     },
+
+    {
+      "input": "soap-banking-basic-all",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate mocks for all 5 banking operations: GetAccount, CreateAccount, GetTransactions, TransferFunds, and GetAccountBalance. Each operation must return a valid SOAP 1.2 response with realistic banking data.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be exactly 5 mappings, one for each operation: GetAccount (action http://example.com/banking-service/GetAccount), CreateAccount (action http://example.com/banking-service/CreateAccount), GetTransactions (action http://example.com/banking-service/GetTransactions), TransferFunds (action http://example.com/banking-service/TransferFunds), and GetAccountBalance (action http://example.com/banking-service/GetAccountBalance). 2) Each mapping must use method POST and have a Content-Type header matching with the corresponding soapAction. 3) Each response body must contain a valid SOAP 1.2 envelope with the namespace http://example.com/banking-service. 4) The GetAccount response must include an accountId and holderName element. 5) The GetTransactions response must include at least one transaction record element. Score 0 if any of the 5 operations is missing or if any response does not contain a SOAP envelope."
+      }
+    },
+    {
+      "input": "soap-inventory-basic-all",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/inventory-warehouse-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "inventory-eval",
+        "description": "Generate mocks for all 6 inventory operations: GetItem, ListItems, CreateItem, UpdateStock, CreateShipment, and GetShipment. Each operation must return a valid SOAP 1.2 response with realistic inventory data.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/inventory-warehouse. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be exactly 6 mappings, one for each operation: GetItem (action http://example.com/inventory-warehouse/GetItem), ListItems (action http://example.com/inventory-warehouse/ListItems), CreateItem (action http://example.com/inventory-warehouse/CreateItem), UpdateStock (action http://example.com/inventory-warehouse/UpdateStock), CreateShipment (action http://example.com/inventory-warehouse/CreateShipment), and GetShipment (action http://example.com/inventory-warehouse/GetShipment). 2) Each mapping must use method POST and have a Content-Type header matching with the corresponding soapAction. 3) Each response body must contain a valid SOAP 1.2 envelope with the namespace http://example.com/inventory-warehouse. 4) The GetItem response must include an itemId and name element. 5) The ListItems response must include at least one item element. Score 0 if any of the 6 operations is missing or if any response does not contain a SOAP envelope."
+      }
+    },
+    {
+      "input": "soap-notification-basic-all",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/notification-messaging-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "notification-eval",
+        "description": "Generate mocks for all 4 notification operations: SendNotification, GetNotificationStatus, ListNotifications, and UpdatePreferences. Each operation must return a valid SOAP 1.2 response with realistic notification data.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/notification-messaging. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be exactly 4 mappings, one for each operation: SendNotification (action http://example.com/notification-messaging/SendNotification), GetNotificationStatus (action http://example.com/notification-messaging/GetNotificationStatus), ListNotifications (action http://example.com/notification-messaging/ListNotifications), and UpdatePreferences (action http://example.com/notification-messaging/UpdatePreferences). 2) Each mapping must use method POST and have a Content-Type header matching with the corresponding soapAction. 3) Each response body must contain a valid SOAP 1.2 envelope with the namespace http://example.com/notification-messaging. 4) The SendNotification response must include a notificationId element. 5) The GetNotificationStatus response must include a status element. Score 0 if any of the 4 operations is missing or if any response does not contain a SOAP envelope."
+      }
+    },
+    {
+      "input": "soap-banking-filtered-account",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate mocks only for account-related operations: GetAccount, CreateAccount, and GetAccountBalance. Do NOT generate mocks for TransferFunds or GetTransactions.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be exactly 3 mappings for account-related operations: GetAccount (action http://example.com/banking-service/GetAccount), CreateAccount (action http://example.com/banking-service/CreateAccount), and GetAccountBalance (action http://example.com/banking-service/GetAccountBalance). 2) There must be NO mappings with action containing TransferFunds or GetTransactions. Check all Content-Type header matchers — none should reference http://example.com/banking-service/TransferFunds or http://example.com/banking-service/GetTransactions. 3) Each response body must contain a valid SOAP 1.2 envelope with the namespace http://example.com/banking-service. Score 0 if any TransferFunds or GetTransactions mapping is present, or if any of the 3 account operations is missing."
+      }
+    },
+    {
+      "input": "soap-banking-error-faults",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate SOAP fault responses for error scenarios: TransferFunds with insufficient funds (fault code soapenv:Sender, reason 'Insufficient funds') and GetAccount with account not found (fault code soapenv:Sender, reason 'Account not found'). Each fault must use a proper SOAP 1.2 Fault envelope.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for TransferFunds (action http://example.com/banking-service/TransferFunds) whose response body contains a SOAP 1.2 Fault element with a Code containing soapenv:Sender or env:Sender and a Reason element with text referencing insufficient funds. 2) There must be a mapping for GetAccount (action http://example.com/banking-service/GetAccount) whose response body contains a SOAP 1.2 Fault element with a Code containing soapenv:Sender or env:Sender and a Reason element with text referencing account not found. 3) Both fault responses must contain a properly structured soapenv:Fault or env:Fault element inside a SOAP 1.2 envelope. 4) The response status should be 500 (standard for SOAP faults). Score 0 if either fault response is missing or if the response body does not contain a Fault element."
+      }
+    },
+    {
+      "input": "soap-banking-realistic-data",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate mocks for GetAccount and GetTransactions with realistic European banking data. GetAccount must return an account with a realistic holder name (e.g., Hans Mueller, Sophie Dubois), an IBAN-format account number (e.g., DE89370400440532013000), currency EUR, and a realistic balance. GetTransactions must return at least 2 transaction records with realistic EUR amounts and meaningful descriptions (e.g., 'Grocery store purchase', 'Monthly salary').",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for GetAccount (action http://example.com/banking-service/GetAccount) whose response contains a holderName element with a realistic full name (not placeholder values like user1, test, Account Holder). 2) The GetAccount response must contain a currency element with value EUR and a balance element with a realistic positive numeric amount. 3) There must be a mapping for GetTransactions (action http://example.com/banking-service/GetTransactions) whose response contains at least 2 transaction record elements. 4) Each transaction must have an amount element with a realistic EUR value and a description element with meaningful text (not placeholder like desc1 or transaction1). Score 0 if holder names are obviously placeholder values or if currency is not EUR."
+      }
+    },
+    {
+      "input": "soap-banking-consistency",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate mocks for GetAccount and GetTransactions where the accountId returned in the GetAccount response is the same accountId that appears in the GetTransactions response records. The data must be cross-referenced and consistent between the two operations.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for GetAccount (action http://example.com/banking-service/GetAccount) whose response contains an accountId element with a non-empty value. 2) There must be a mapping for GetTransactions (action http://example.com/banking-service/GetTransactions) whose response contains at least one transaction record with an accountId element. 3) The accountId value in the GetAccount response must match the accountId value in the GetTransactions transaction records. 4) Both responses must contain valid SOAP 1.2 envelopes with the namespace http://example.com/banking-service. Score 0 if the accountId in GetTransactions does not match the accountId in GetAccount, or if either operation is missing."
+      }
+    },
+    {
+      "input": "soap-inventory-edge-xpath",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/inventory-warehouse-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "inventory-eval",
+        "description": "Generate mocks for GetItem and ListItems operations using XPath body matchers to disambiguate the two operations that share the same endpoint. GetItem should match when the request body contains a GetItemRequest element, and ListItems should match when the request body contains a ListItemsRequest element. Use bodyPatterns with matchesXPath to differentiate.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/inventory-warehouse. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for GetItem (action http://example.com/inventory-warehouse/GetItem) and a mapping for ListItems (action http://example.com/inventory-warehouse/ListItems). 2) At least one of the two mappings must use bodyPatterns with a matchesXPath expression to match on the request body content (e.g., matching on GetItemRequest or ListItemsRequest element). 3) The GetItem response must contain an itemId element. 4) The ListItems response must contain at least one item element. 5) Both responses must contain valid SOAP 1.2 envelopes with the namespace http://example.com/inventory-warehouse. Score 0 if neither mapping uses XPath body matching, or if either operation is missing."
+      }
+    },
+    {
+      "input": "soap-inventory-realistic-data",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/inventory-warehouse-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "inventory-eval",
+        "description": "Generate mocks for GetItem and ListItems with realistic warehouse data. GetItem must return an item with a realistic SKU code (e.g., SKU-ELC-001 or WH-FRN-042), a realistic product name (e.g., 'Wireless Bluetooth Headphones', 'Oak Standing Desk'), a realistic unit price, and a realistic stock quantity. ListItems must return at least 3 items with diverse product names and categories.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/inventory-warehouse. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for GetItem (action http://example.com/inventory-warehouse/GetItem) whose response contains a name element with a realistic product name (not placeholder values like item1, test, Product Name). 2) The GetItem response must contain a sku element with a code-like value and a unitPrice element with a realistic positive numeric amount. 3) There must be a mapping for ListItems (action http://example.com/inventory-warehouse/ListItems) whose response contains at least 3 item elements with diverse product names. 4) Each item must have a name element with a meaningful product name and a quantity element with a realistic positive integer. Score 0 if product names are obviously placeholder values (item1, test, foo) or if prices are zero or negative."
+      }
+    },
+    {
+      "input": "soap-notification-consistency",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/notification-messaging-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "notification-eval",
+        "description": "Generate mocks for SendNotification and GetNotificationStatus where the notificationId returned in the SendNotification response is the same notificationId used in the GetNotificationStatus response. The data must be cross-referenced and consistent between the two operations.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/notification-messaging. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for SendNotification (action http://example.com/notification-messaging/SendNotification) whose response contains a notificationId element with a non-empty value. 2) There must be a mapping for GetNotificationStatus (action http://example.com/notification-messaging/GetNotificationStatus) whose response contains a notificationId element. 3) The notificationId value in the SendNotification response must match the notificationId value in the GetNotificationStatus response. 4) The GetNotificationStatus response must also contain a status element with a non-empty value. 5) Both responses must contain valid SOAP 1.2 envelopes with the namespace http://example.com/notification-messaging. Score 0 if the notificationId in GetNotificationStatus does not match the notificationId in SendNotification, or if either operation is missing."
+      }
+    },
+    {
+      "input": "soap-inventory-filtered-shipment",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/inventory-warehouse-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "inventory-eval",
+        "description": "Generate mocks only for shipment-related operations: CreateShipment and GetShipment. Do NOT generate mocks for GetItem, ListItems, CreateItem, or UpdateStock.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/inventory-warehouse. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be exactly 2 mappings for shipment operations: CreateShipment (action http://example.com/inventory-warehouse/CreateShipment) and GetShipment (action http://example.com/inventory-warehouse/GetShipment). 2) There must be NO mappings with action containing GetItem, ListItems, CreateItem, or UpdateStock. Check all Content-Type header matchers — none should reference those operations. 3) The CreateShipment response must contain a shipmentId element. 4) The GetShipment response must contain a shipmentId and status element. 5) Both responses must contain valid SOAP 1.2 envelopes with the namespace http://example.com/inventory-warehouse. Score 0 if any non-shipment operation mapping is present, or if either shipment operation is missing."
+      }
+    },
+    {
+      "input": "soap-notification-realistic-data",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/notification-messaging-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "notification-eval",
+        "description": "Generate mocks for SendNotification and GetNotificationStatus with realistic notification data. SendNotification must include a realistic recipientId (e.g., user-12345), channel set to 'email', a realistic subject line (e.g., 'Your order has shipped'), and a realistic body message. GetNotificationStatus must return a realistic status (e.g., 'delivered') with realistic sentAt and deliveredAt timestamps in ISO 8601 format.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/notification-messaging. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for SendNotification (action http://example.com/notification-messaging/SendNotification) whose response contains a notificationId element with a non-empty value. 2) There must be a mapping for GetNotificationStatus (action http://example.com/notification-messaging/GetNotificationStatus) whose response contains a status element with a realistic value (not placeholder like status1 or test). 3) The GetNotificationStatus response must contain sentAt or deliveredAt elements with timestamp-like values. 4) Both responses must contain valid SOAP 1.2 envelopes with the namespace http://example.com/notification-messaging. Score 0 if either operation is missing or if status values are obviously placeholder."
+      }
+    },
+    {
+      "input": "soap-banking-multi-fault",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate mocks for GetAccount with two scenarios: a success response returning account details for an existing account, and a SOAP fault response for account not found. Use XPath body matchers to differentiate the two GetAccount stubs — the success stub should match when the request contains accountId 'ACC-001', and the fault stub should match when the request contains accountId 'ACC-INVALID'.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be at least 2 mappings for GetAccount (action http://example.com/banking-service/GetAccount). 2) One mapping must return a success response (status 200) with an account element containing an id or accountId. 3) One mapping must return a SOAP fault response containing a Fault element with a Code and Reason. 4) At least one of the two mappings must use bodyPatterns with matchesXPath to differentiate based on the accountId value in the request. 5) Both responses must be valid SOAP 1.2 envelopes. Score 0 if there is only one GetAccount mapping, or if neither a success nor a fault response is present."
+      }
+    },
+
     {
       "input": "rest-petstore-basic-get",
       "metadata": {
