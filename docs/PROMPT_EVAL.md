@@ -143,7 +143,9 @@ SOAP scenarios are distributed across 6 prompt complexity levels to measure qual
 
 ## Summary Table
 
-After all scenarios complete, a summary table is printed to the test output showing per-protocol aggregate metrics with cost breakdown:
+After all scenarios complete, a summary table is printed to the test output showing per-protocol aggregate metrics with cost breakdown. The latest results are published in the [README Generation Quality section](../README.md#generation-quality).
+
+Example output format:
 
 ```
 ╔════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗

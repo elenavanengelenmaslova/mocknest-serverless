@@ -71,6 +71,18 @@ Under the hood, the AI generation is powered by a Koog agent that follows a stru
 ### Planned Features
 See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslova/projects/3) 
 
+### Generation Quality
+
+Generation quality is measured using a 42-scenario eval suite across 12 API specifications, with automated structural validation and LLM-as-a-judge semantic checks.
+
+| Protocol | Scenarios | 1st-pass valid | After retry | Scenario pass | Avg cost/run | Avg latency |
+|----------|-----------|----------------|-------------|---------------|--------------|-------------|
+| REST     | 14        | 94%            | 100%        | 100%          | $0.005       | 2.9s        |
+| GraphQL  | 14        | 85%            | 96%         | 93%           | $0.007       | 2.5s        |
+| SOAP     | 14        | 100%           | —            | 100%          | $0.007       | 4.6s        |
+
+*Tested with Amazon Nova Pro (`eu-west-1`). "After retry" reflects the built-in self-correction mechanism. For methodology, scenario details, and how to run the eval suite yourself, see the [Prompt Eval Guide](docs/PROMPT_EVAL.md).*
+
 ## Getting Started
 
 ### Quick Start (5 Minutes)

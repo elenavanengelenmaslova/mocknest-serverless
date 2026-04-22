@@ -74,8 +74,16 @@ EXAMPLE of correct jsonBody with proper scalar types (STUDY THIS):
   Correct:   "jsonBody": {"data":{"pokemon":{"id":25,"name":"pikachu","height":4,"weight":60,"types":[{"slot":1,"type":{"name":"electric"}}]}}}
   WRONG:     "jsonBody": {"data":{"pokemon":{"id":"25","name":"pikachu","height":"4","weight":"60"}}}
   Notice: id (25), height (4), weight (60), slot (1) are bare JSON numbers inside the jsonBody object. name ("pikachu") is a quoted string because it is a String type. Do NOT quote integers — this is the #1 validation failure.
+
+EXAMPLE of correct jsonBody with ID! type (STUDY THIS — #2 most common failure):
+  Schema:    id: ID!    name: String!    price: Float!    inStock: Boolean!
+  Correct:   "jsonBody": {"data":{"product":{"id":"P-001","name":"Laptop","price":999.99,"inStock":true}}}
+  WRONG:     "jsonBody": {"data":{"product":{"id":1,"name":"Laptop","price":999.99,"inStock":true}}}
+  Notice: id is "P-001" (quoted string) because the schema type is ID!, NOT Int!. price (999.99) is a bare number because it is Float!. inStock (true) is a bare boolean. If the schema says ID!, the value MUST be a quoted string — never a bare number.
+
   IMPORTANT: The GraphQL ID type maps to a JSON STRING, not a number. If the schema says `id: ID!`, use "id": "1" (quoted string). If the schema says `id: Int!`, use "id": 1 (bare number). Check the schema type carefully for each id field. This is the most common ID-related failure — ALWAYS quote ID values as strings.
 - ENUM VALUE CASING (CRITICAL — #2 validation failure): Enum values MUST be written in EXACT UPPER_CASE as defined in the schema. For example, if the schema defines `ProductCategory` with values `ELECTRONICS, CLOTHING, FOOD, HOME, SPORTS`, you MUST use `"ELECTRONICS"` — NEVER `"Electronics"`, `"electronics"`, or `"Electronic"`. Copy enum values character-for-character from the schema definition. This applies to ALL enum fields in the response.
+  COMMON ENUM MISTAKES: `TO_DO` instead of `TODO`, `COMPLETED` instead of `DONE`, `PENDING` instead of `TODO`, `NOT_STARTED` instead of `TODO`. Always copy the exact value from the enum definition in the schema above — do not invent similar-sounding values.
 - List fields must return arrays; object fields must return objects.
 - Nested types must include their required fields recursively.
 - NESTED REQUIRED FIELDS (CRITICAL — #3 validation failure): When a return type contains object-type fields (e.g., Order has `customer: Customer!`, Task has `project: Project!`), you MUST include those nested objects with ALL of their own required fields. Walk through the FULL type chain:
