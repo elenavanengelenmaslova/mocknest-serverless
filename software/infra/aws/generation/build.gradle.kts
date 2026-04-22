@@ -133,6 +133,11 @@ tasks.register<Test>("bedrockEval") {
     useJUnitPlatform {
         includeTags("bedrock-eval")
     }
+    reports {
+        html.outputLocation.set(layout.buildDirectory.dir("reports/tests/bedrockEval"))
+        junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/bedrockEval"))
+    }
+    failFast = false
     // Forward eval-related environment variables to the forked test JVM
     listOf("BEDROCK_EVAL_ENABLED", "BEDROCK_EVAL_ITERATIONS", "BEDROCK_EVAL_FILTER", "AWS_REGION").forEach { key ->
         System.getenv(key)?.let { environment(key, it) }

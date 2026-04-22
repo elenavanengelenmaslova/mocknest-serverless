@@ -1,6 +1,9 @@
 package nl.vintik.mocknest.infra.aws.generation.ai.eval
 
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducer
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
@@ -142,12 +145,13 @@ class GraphqlIntrospectionSpecValidationTest {
                 // Verify the raw introspection JSON contains INPUT_OBJECT definitions
                 val rawHasInputObject = json.contains("\"INPUT_OBJECT\"")
                 // Verify the reducer extracted those INPUT_OBJECT types into the types map
-                // INPUT_OBJECT types have inputFields in the raw JSON; the reducer stores them
-                // as GraphQLType entries. We check that at least one type name from the reducer
-                // matches an INPUT_OBJECT name in the raw JSON.
-                val inputObjectNames = Regex("\"kind\"\\s*:\\s*\"INPUT_OBJECT\"[^}]*\"name\"\\s*:\\s*\"([^\"]+)\"")
-                    .findAll(json)
-                    .map { it.groupValues[1] }
+                // Parse the JSON to find INPUT_OBJECT type names reliably
+                val root = kotlinx.serialization.json.Json.parseToJsonElement(json).jsonObject
+                val types = root["data"]?.jsonObject?.get("__schema")?.jsonObject?.get("types")?.jsonArray
+                    ?: kotlinx.serialization.json.JsonArray(emptyList())
+                val inputObjectNames = types
+                    .filter { it.jsonObject["kind"]?.jsonPrimitive?.content == "INPUT_OBJECT" }
+                    .mapNotNull { it.jsonObject["name"]?.jsonPrimitive?.content }
                     .toSet()
                 val reducerHasInputTypes = inputObjectNames.any { it in compactSchema.types }
                 rawHasInputObject && reducerHasInputTypes
@@ -168,12 +172,8 @@ class GraphqlIntrospectionSpecValidationTest {
 
                 compactSchema.types.values.any { type ->
                     type.fields.any { field ->
-                        // Strip NON_NULL (!) and LIST ([]) wrappers to get the base type name
-                        val baseType = field.type
-                            .removeSuffix("!")
-                            .removePrefix("[")
-                            .removeSuffix("]")
-                            .removeSuffix("!")
+                        // Strip all GraphQL wrappers (!, [], NON_NULL, LIST) to get the base type name
+                        val baseType = field.type.replace(Regex("[\\[\\]!]"), "")
                         baseType in typeNames
                     }
                 }

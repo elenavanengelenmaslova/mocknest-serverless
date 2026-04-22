@@ -174,7 +174,7 @@ class BedrockPromptEvalTest {
     // --- Main eval test ---
 
     @Test
-    fun `Evaluate Bedrock prompt quality across REST, GraphQL, and SOAP protocols`() {
+    fun `Given multi-protocol eval dataset When running all scenarios Then summary and detail tables are produced`() {
         val scenarios = loadScenarios()
         val iterationCount = parseIterationCount(System.getenv("BEDROCK_EVAL_ITERATIONS"))
         val results = mutableListOf<ScenarioResult>()
@@ -205,6 +205,17 @@ class BedrockPromptEvalTest {
         // Print scenario detail table
         val detailTable = buildScenarioDetailTable(results)
         logger.info { "\n$detailTable" }
+    }
+
+    // --- Token usage aggregation helper ---
+
+    private fun aggregateTokenUsage(): TokenUsageRecord {
+        val records = tokenUsageStore.getRecords()
+        return TokenUsageRecord(
+            inputTokens = records.sumOf { it.inputTokens },
+            outputTokens = records.sumOf { it.outputTokens },
+            totalTokens = records.sumOf { it.totalTokens }
+        )
     }
 
     // --- Scenario execution ---
@@ -248,12 +259,7 @@ class BedrockPromptEvalTest {
             )
 
             // Capture total token usage
-            val records = tokenUsageStore.getRecords()
-            val tokenUsage = TokenUsageRecord(
-                inputTokens = records.sumOf { it.inputTokens },
-                outputTokens = records.sumOf { it.outputTokens },
-                totalTokens = records.sumOf { it.totalTokens }
-            )
+            val tokenUsage = aggregateTokenUsage()
 
             if (!result.success) {
                 return ScenarioResult(
@@ -323,12 +329,7 @@ class BedrockPromptEvalTest {
             val totalCost = generationCost + judgeCost
 
             // Recompute total token usage after judge call so it includes both phases
-            val allRecords = tokenUsageStore.getRecords()
-            val tokenUsageWithJudge = TokenUsageRecord(
-                inputTokens = allRecords.sumOf { it.inputTokens },
-                outputTokens = allRecords.sumOf { it.outputTokens },
-                totalTokens = allRecords.sumOf { it.totalTokens }
-            )
+            val tokenUsageWithJudge = aggregateTokenUsage()
 
             ScenarioResult(
                 scenario = scenario,
@@ -364,12 +365,7 @@ class BedrockPromptEvalTest {
                 outputTokens = judgeRecords.sumOf { it.outputTokens }
             )
 
-            val records = tokenUsageStore.getRecords()
-            val tokenUsage = TokenUsageRecord(
-                inputTokens = records.sumOf { it.inputTokens },
-                outputTokens = records.sumOf { it.outputTokens },
-                totalTokens = records.sumOf { it.totalTokens }
-            )
+            val tokenUsage = aggregateTokenUsage()
 
             ScenarioResult(
                 scenario = scenario,
@@ -546,10 +542,11 @@ class BedrockPromptEvalTest {
         // Extract API spec name from specFile path (e.g., "eval/petstore-openapi-3.0.yaml" → "petstore")
         fun extractSpecName(specFile: String): String {
             val fileName = specFile.substringAfterLast("/")
-            return fileName.replace("-openapi-3.0.yaml", "")
-                .replace("-openapi-3.0.json", "")
-                .replace(".yaml", "")
-                .replace(".json", "")
+            return fileName
+                .replace(Regex("-openapi-3\\.0"), "")
+                .replace(Regex("-graphql-introspection"), "")
+                .replace(Regex("-soap12"), "")
+                .replace(Regex("\\.(yaml|yml|json|wsdl|graphql|gql)$"), "")
         }
 
         // Column widths
@@ -563,7 +560,7 @@ class BedrockPromptEvalTest {
         val colLatency = 9
         val colReason = 30
 
-        val totalWidth = colInput + col1stPass + colRetry + colPass + colGenCost + colJudgeCost + colTotal + colLatency + colReason + 10 // 10 for separators
+        val totalWidth = colInput + col1stPass + colRetry + colPass + colGenCost + colJudgeCost + colTotal + colLatency + colReason + 19 // 19 for "║ " prefix + 8 "│ " separators + trailing "║"
 
         return buildString {
             appendLine("╔${"═".repeat(totalWidth)}╗")

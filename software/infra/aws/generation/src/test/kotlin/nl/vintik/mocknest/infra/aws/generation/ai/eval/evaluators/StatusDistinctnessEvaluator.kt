@@ -55,21 +55,15 @@ class StatusDistinctnessEvaluator : BaseEvaluator(
         return statuses
     }
 
-    private fun extractResponseBody(mapping: JsonNode): JsonNode? {
-        val bodyString = mapping.path("response").path("body").asText(null) ?: return null
-        return runCatching {
-            mapper.readTree(bodyString)
-        }.onFailure { e ->
-            logger.debug(e) { "Could not parse response body as JSON" }
-        }.getOrNull()
-    }
-
     private fun collectStatuses(node: JsonNode, statuses: MutableList<String>) {
         when {
             node.isArray -> node.forEach { element -> collectStatuses(element, statuses) }
-            node.isObject && node.has("status") -> {
-                val status = node.get("status").asText()
-                statuses.add(status)
+            node.isObject -> {
+                if (node.has("status")) {
+                    statuses.add(node.get("status").asText())
+                }
+                // Continue into nested fields
+                node.fields().forEach { (_, value) -> collectStatuses(value, statuses) }
             }
         }
     }

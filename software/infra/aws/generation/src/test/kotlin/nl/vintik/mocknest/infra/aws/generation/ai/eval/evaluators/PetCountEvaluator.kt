@@ -51,19 +51,16 @@ class PetCountEvaluator(private val expectedCount: Int, private val exactMatch: 
         return petIds
     }
 
-    private fun extractResponseBody(mapping: JsonNode): JsonNode? {
-        val bodyString = mapping.path("response").path("body").asText(null) ?: return null
-        return runCatching {
-            mapper.readTree(bodyString)
-        }.onFailure { e ->
-            logger.debug(e) { "Could not parse response body as JSON" }
-        }.getOrNull()
-    }
-
     private fun collectPetIds(node: JsonNode, petIds: MutableSet<String>) {
         when {
             node.isArray -> node.forEach { element -> collectPetIds(element, petIds) }
-            node.isObject && node.has("id") -> petIds.add(node.get("id").asText())
+            node.isObject -> {
+                if (node.has("id") && node.has("name")) {
+                    petIds.add(node.get("id").asText())
+                }
+                // Continue into nested fields
+                node.fields().forEach { (_, value) -> collectPetIds(value, petIds) }
+            }
         }
     }
 }
