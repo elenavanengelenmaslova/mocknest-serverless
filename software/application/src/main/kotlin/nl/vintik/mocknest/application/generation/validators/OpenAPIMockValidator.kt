@@ -197,7 +197,8 @@ class OpenAPIMockValidator : MockValidatorInterface {
                     val expectedValue = mockSegments[paramIdx]
                     val jsonBody = response["jsonBody"] ?: response["body"]
                     if (jsonBody is JsonObject) {
-                        val bodyValue = jsonBody[param.name]?.jsonPrimitive?.content ?: jsonBody["id"]?.jsonPrimitive?.content
+                        val bodyValue = (jsonBody[param.name] as? JsonPrimitive)?.content
+                            ?: (jsonBody["id"] as? JsonPrimitive)?.content
                         if (bodyValue != null && bodyValue != expectedValue) errors.add("[CONSISTENCY] Consistency error: path parameter '${param.name}' is '$expectedValue' but response body has value '$bodyValue'")
                     }
                 }

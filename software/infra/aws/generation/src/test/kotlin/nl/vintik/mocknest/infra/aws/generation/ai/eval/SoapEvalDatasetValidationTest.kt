@@ -35,11 +35,11 @@ class SoapEvalDatasetValidationTest {
         }
 
         private val soapScenarios: List<JsonNode> by lazy {
-            allExamples.filter { it["metadata"]["protocol"].asText() == "SOAP" }
+            allExamples.filter { it.path("metadata").path("protocol").asText() == "SOAP" }
         }
 
         private val newSoapScenarios: List<JsonNode> by lazy {
-            soapScenarios.filter { it["input"].asText() != "soap-calculator-all-operations" }
+            soapScenarios.filter { it.path("input").asText() != "soap-calculator-all-operations" }
         }
 
         private val newWsdlSpecFiles = listOf(
@@ -233,7 +233,7 @@ class SoapEvalDatasetValidationTest {
             val hasSoapActionUrl = semanticCheck.contains("http://example.com/")
             val hasXmlElement = Regex("\\b[a-z][a-zA-Z]*(?:Id|Name|Status|Type|Amount|Price)\\b")
                 .containsMatchIn(semanticCheck)
-            val hasNamespaceUri = semanticCheck.contains("namespace")
+            val hasNamespaceUri = Regex("http(s)?://\\S+").containsMatchIn(semanticCheck)
             val hasConcreteValue = Regex("\\b\\d+\\b").containsMatchIn(semanticCheck)
 
             assertTrue(

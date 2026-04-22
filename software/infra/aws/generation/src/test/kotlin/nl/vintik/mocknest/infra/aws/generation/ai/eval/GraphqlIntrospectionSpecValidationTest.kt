@@ -31,7 +31,7 @@ class GraphqlIntrospectionSpecValidationTest {
     private fun loadIntrospectionContent(fileName: String): String {
         val stream = javaClass.getResourceAsStream("/eval/$fileName")
         assertNotNull(stream, "Introspection file not found on classpath: eval/$fileName")
-        return stream.bufferedReader().readText()
+        return stream.use { it.bufferedReader().readText() }
     }
 
     /**
@@ -139,17 +139,23 @@ class GraphqlIntrospectionSpecValidationTest {
             val hasInputTypes = allIntrospectionFiles.any { fileName ->
                 val json = loadIntrospectionContent(fileName)
                 val compactSchema = schemaReducer.reduce(json)
-                compactSchema.types.values.any { type ->
-                    // INPUT_OBJECT types are stored in the types map; they come from inputFields
-                    // We detect them by checking if the introspection JSON has INPUT_OBJECT kind
-                    val introspectionJson = loadIntrospectionContent(fileName)
-                    introspectionJson.contains("\"INPUT_OBJECT\"")
-                }
+                // Verify the raw introspection JSON contains INPUT_OBJECT definitions
+                val rawHasInputObject = json.contains("\"INPUT_OBJECT\"")
+                // Verify the reducer extracted those INPUT_OBJECT types into the types map
+                // INPUT_OBJECT types have inputFields in the raw JSON; the reducer stores them
+                // as GraphQLType entries. We check that at least one type name from the reducer
+                // matches an INPUT_OBJECT name in the raw JSON.
+                val inputObjectNames = Regex("\"kind\"\\s*:\\s*\"INPUT_OBJECT\"[^}]*\"name\"\\s*:\\s*\"([^\"]+)\"")
+                    .findAll(json)
+                    .map { it.groupValues[1] }
+                    .toSet()
+                val reducerHasInputTypes = inputObjectNames.any { it in compactSchema.types }
+                rawHasInputObject && reducerHasInputTypes
             }
 
             assertTrue(
                 hasInputTypes,
-                "At least one introspection schema should have INPUT_OBJECT types"
+                "At least one introspection schema should have INPUT_OBJECT types extracted by the reducer"
             )
         }
 

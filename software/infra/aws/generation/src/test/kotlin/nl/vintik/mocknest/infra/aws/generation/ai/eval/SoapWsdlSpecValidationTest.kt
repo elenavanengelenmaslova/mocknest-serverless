@@ -33,7 +33,7 @@ class SoapWsdlSpecValidationTest {
     private fun loadWsdlContent(wsdlFile: String): String {
         val stream = javaClass.getResourceAsStream("/eval/$wsdlFile")
         assertNotNull(stream, "WSDL file not found on classpath: eval/$wsdlFile")
-        return stream.bufferedReader().readText()
+        return stream.use { it.bufferedReader().readText() }
     }
 
     /**

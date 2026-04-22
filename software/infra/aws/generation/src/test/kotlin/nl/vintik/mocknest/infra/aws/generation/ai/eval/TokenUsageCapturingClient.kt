@@ -28,6 +28,7 @@ class TokenUsageCapturingClient(
 
     override suspend fun converse(input: ConverseRequest): ConverseResponse {
         logger.info { "TokenUsageCapturingClient: intercepted converse call for model=${input.modelId}" }
+        val capturedPhase = tokenUsageStore.currentPhase
         val response = delegate.converse(input)
         val usage = response.usage
         if (usage == null) {
@@ -40,7 +41,7 @@ class TokenUsageCapturingClient(
                 inputTokens = usage?.inputTokens ?: 0,
                 outputTokens = usage?.outputTokens ?: 0,
                 totalTokens = usage?.totalTokens ?: 0,
-                phase = tokenUsageStore.currentPhase
+                phase = capturedPhase
             )
         )
         return response

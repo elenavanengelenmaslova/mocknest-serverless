@@ -322,6 +322,14 @@ class BedrockPromptEvalTest {
 
             val totalCost = generationCost + judgeCost
 
+            // Recompute total token usage after judge call so it includes both phases
+            val allRecords = tokenUsageStore.getRecords()
+            val tokenUsageWithJudge = TokenUsageRecord(
+                inputTokens = allRecords.sumOf { it.inputTokens },
+                outputTokens = allRecords.sumOf { it.outputTokens },
+                totalTokens = allRecords.sumOf { it.totalTokens }
+            )
+
             ScenarioResult(
                 scenario = scenario,
                 success = true,
@@ -335,7 +343,7 @@ class BedrockPromptEvalTest {
                 attempts = attempts,
                 validationErrors = validationErrors,
                 latencyMs = latencyMs,
-                tokenUsage = tokenUsage,
+                tokenUsage = tokenUsageWithJudge,
                 generationCost = generationCost,
                 judgeCost = judgeCost,
                 estimatedCost = totalCost,

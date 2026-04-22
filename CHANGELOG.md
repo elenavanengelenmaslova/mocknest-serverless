@@ -9,14 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.6.0] - 2026-04-22
 ### Documentation
 - Added generation quality evaluation metrics with a 42-scenario evaluation suite and protocol-by-protocol results reporting validity rates, costs, and latency.
+- Added compatibility notes and updated Bedrock pricing documentation.
 ### Bug Fixes
 - Improved OpenAPI response validation to correctly handle 2xx status codes and parameter lookups.
 - Enhanced SOAP namespace validation with special handling for fault elements and improved error messaging.
 - Added WSDL service address tracking and metadata support.
+### Dependencies
+- Upgraded Koog Framework to 0.8.0 and added Koog test utilities for tests.
+- Updated Bedrock model support to Anthropic Claude 4.5 Sonnet.
 ### Tests
 - Added comprehensive validation test suites for GraphQL, SOAP, and WSDL specifications.
 - Implemented phase-based cost tracking separating generation and evaluation costs.
-
 ## [0.5.4] - 2026-04-18
 - Improve prompts after eval tests
 - Improve performance on delete mappings
