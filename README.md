@@ -551,6 +551,7 @@ This project is open source and available under the [MIT License](LICENSE).
 ## Support
 
 - **Issues**: Report bugs and feature requests via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
+- **Changelog**: See [CHANGELOG.md](CHANGELOG.md) for release history and recent changes
 - **Documentation**: Additional documentation in the `docs/` directory
 - **Architecture**: Design decisions documented in `.kiro/steering/`
 - **Community**: Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md)

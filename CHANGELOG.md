@@ -4,6 +4,19 @@ All notable changes to MockNest Serverless will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+
+## [0.6.0] - 2026-04-22
+### Documentation
+- Added generation quality evaluation metrics with a 42-scenario evaluation suite and protocol-by-protocol results reporting validity rates, costs, and latency.
+### Bug Fixes
+- Improved OpenAPI response validation to correctly handle 2xx status codes and parameter lookups.
+- Enhanced SOAP namespace validation with special handling for fault elements and improved error messaging.
+- Added WSDL service address tracking and metadata support.
+### Tests
+- Added comprehensive validation test suites for GraphQL, SOAP, and WSDL specifications.
+- Implemented phase-based cost tracking separating generation and evaluation costs.
+
 ## [0.5.4] - 2026-04-18
 - Improve prompts after eval tests
 - Improve performance on delete mappings

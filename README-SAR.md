@@ -304,6 +304,7 @@ For detailed security information and vulnerability reporting, see [SECURITY.md]
 ## Additional Resources
 
 - **Full Documentation**: See the [main README](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/README.md) for comprehensive documentation
+- **Changelog**: See [CHANGELOG.md](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/CHANGELOG.md) for release history and recent changes
 - **API Reference**: Complete [OpenAPI specification](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/api/mocknest-openapi.yaml)
 - **Use Cases & Examples**: Detailed examples in the [main README](https://github.com/elenavanengelenmaslova/mocknest-serverless#common-use-cases)
 - **Feedback & Support**: Report bugs or request features via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
