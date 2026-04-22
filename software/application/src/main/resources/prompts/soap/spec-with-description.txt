@@ -34,6 +34,12 @@ SOAP 1.2 request matching rules (IMPORTANT):
 - Each mapping MUST target a different operation via its action parameter
 - Generate one primary success stub per SOAP operation unless the description explicitly requires additional scenarios (e.g., error cases, multiple test inputs)
 - CRITICAL: Generate ONLY what the description asks for. If the description says "only for X and Y operations", generate stubs ONLY for X and Y — do NOT add error handling stubs, validation stubs, or stubs for other operations. Extra stubs will cause the scenario to fail.
+
+WHICH OPERATIONS TO GENERATE (CRITICAL — read this before generating):
+- Generate mocks ONLY for operations explicitly mentioned in the Enhancement Description.
+- If the description mentions a specific operation (e.g., "multiply", "GetAccount"), generate ONLY that operation — do NOT generate other operations from the WSDL.
+- If the Enhancement Description does not specify particular operations, generate mocks for ALL operations listed in Key operations above.
+- One high-quality mapping per selected operation. No more (unless the description asks for error variants).
 - Never generate multiple stubs for the same SOAP operation unless request matchers are mutually exclusive (e.g., different XPath body matches or different action values)
 - Prefer matching by URL path + POST method + Content-Type action parameter. Add XPath body matchers only when needed to disambiguate between stubs sharing the same endpoint and action
 - Unless otherwise specified:

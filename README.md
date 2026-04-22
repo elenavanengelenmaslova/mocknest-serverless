@@ -73,13 +73,13 @@ See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslov
 
 ### Generation Quality
 
-Generation quality is measured using a 42-scenario eval suite across 12 API specifications, with automated structural validation and LLM-as-a-judge semantic checks.
+Generation quality is measured using a 46-scenario eval suite across 12 API specifications, with automated structural validation and LLM-as-a-judge semantic checks.
 
 | Protocol | Scenarios | 1st-pass valid | After retry | Scenario pass | Avg cost/run | Avg latency |
 |----------|-----------|----------------|-------------|---------------|--------------|-------------|
-| REST     | 14        | 94%            | 100%        | 100%          | $0.005       | 2.9s        |
-| GraphQL  | 14        | 85%            | 96%         | 93%           | $0.007       | 2.5s        |
-| SOAP     | 14        | 100%           | —            | 100%          | $0.007       | 4.6s        |
+| REST     | 16        | 98%            | 100%        | 94%           | $0.005       | 2.7s        |
+| GraphQL  | 15        | 84%            | 93%         | 87%           | $0.007       | 2.5s        |
+| SOAP     | 15        | 100%           | —            | 93%           | $0.006       | 3.6s        |
 
 *Tested with Amazon Nova Pro (`eu-west-1`). "After retry" reflects the built-in self-correction mechanism. For methodology, scenario details, and how to run the eval suite yourself, see the [Prompt Eval Guide](docs/PROMPT_EVAL.md).*
 

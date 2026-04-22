@@ -1,6 +1,6 @@
 {
-  "name": "Multi-Protocol Eval (GraphQL + SOAP + REST) — 14 GraphQL scenarios across 4 introspection schemas",
-  "description": "Evaluation dataset covering GraphQL (4 introspection schemas: pokemon, books, ecommerce, taskmanagement — 14 scenarios), SOAP (4 WSDL specs: calculator, banking, inventory, notification), and REST scenarios across multiple API specifications and prompt complexity levels (Basic, Filtered, Consistency, Error, Realistic_Data, Edge_Case)",
+  "name": "Multi-Protocol Eval (GraphQL + SOAP + REST) — 15 scenarios per protocol across 12 API specifications",
+  "description": "Evaluation dataset covering GraphQL (4 introspection schemas: pokemon, books, ecommerce, taskmanagement — 15 scenarios), SOAP (4 WSDL specs: calculator, banking, inventory, notification — 15 scenarios), and REST (5 OpenAPI specs: petstore, bored, social, payment, weather — 15 scenarios) across multiple API specifications and prompt complexity levels (Basic, Filtered, Consistency, Error, Realistic_Data, Edge_Case)",
   "examples": [
     {
       "input": "graphql-pokemon-pikachu",
@@ -66,6 +66,17 @@
         "namespace": "pokemon-eval",
         "description": "Generate a mock for the pokemons query returning a list of 5 Pokemon with pagination arguments limit 5 and offset 0. The response must include count and results array where each result has a name field.",
         "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'pokemons' and the response jsonBody must contain data.pokemons with a results array containing exactly 5 items. 2) Each item in the results array must have a name field with a non-empty string value. 3) The response must include a count field with a numeric value. Score 0 if the pokemons operation stub is missing or if the results array does not contain 5 items."
+      }
+    },
+    {
+      "input": "graphql-pokemon-abilities",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/pokemon-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "pokemon-eval",
+        "description": "Generate a mock for the pokemon query returning a Pokemon named Bulbasaur with id 1, at least 2 abilities (overgrow and chlorophyll), and type grass. Include realistic but consistent test data for all required fields.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath ending in /graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper). The urlPath includes a namespace prefix (e.g., /pokemon-eval/graphql) — do not penalize for the specific namespace used.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'pokemon' and the response jsonBody must contain data.pokemon with name 'bulbasaur' (case-insensitive) and id 1. 2) The abilities array must contain at least 2 entries with ability.name fields. 3) The types array must contain at least one entry with type.name 'grass'. Additional fields beyond those listed are acceptable. Score 0 if the pokemon stub is missing or if the name is not bulbasaur."
       }
     },
     {
@@ -165,6 +176,17 @@
         "namespace": "calculator-eval",
         "description": "Generate mocks for all 3 operations: Add(10, 5) returning 15, Subtract(10, 5) returning 5, and Multiply(10, 5) returning 50. Each operation must have the correct result.",
         "semanticCheck": "Strictly verify: 1) There must be exactly 3 mappings, one per operation. 2) Add result must be 15. 3) Subtract result must be 5. 4) Multiply result must be 50. Score 0 if any result is wrong or any operation is missing."
+      }
+    },
+    {
+      "input": "soap-calculator-filtered-multiply",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/calculator-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "calculator-eval",
+        "description": "Generate a mock for only the Multiply operation: Multiply(6, 7) returning 42. Do NOT generate mocks for Add or Subtract operations.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope).\n\nStrictly verify: 1) There must be at least one mapping for the Multiply operation with a Content-Type action containing 'Multiply'. 2) The Multiply response body must contain a SOAP 1.2 envelope with a result element containing the value 42. 3) There must be NO mappings with Content-Type action containing 'Add' or 'Subtract'. Additional mappings for the same Multiply operation (e.g., error variants) are acceptable. Score 0 if the Multiply mapping is missing, if the result is not 42, or if Add or Subtract mappings are present."
       }
     },
 
@@ -324,6 +346,17 @@
       }
     },
     {
+      "input": "rest-petstore-realistic-birds",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate mocks for 4 pets with realistic test data including pet names, only GET endpoints. 1 pet is a bird with image https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg, available, new, tag id=1 name=new. API call findByTags to get all new pets returns that bird. The other 3 pets are available but not new.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with url/urlPath/urlPathPattern) and 'response' (with jsonBody or body). URLs are prefixed with a namespace like /petstore-eval/. Additional response fields beyond those listed are acceptable.\n\nStrictly verify: 1) There must be a mock for GET /pet/findByTags (URL containing /pet/findByTags) whose response contains at least one pet that is a bird with status 'available' and a tag with name 'new'. 2) There must be at least 4 distinct pets across all response bodies, each with a realistic name (not placeholder like pet1 or test). 3) At least one pet must have a photoUrls array containing the bird image URL. 4) Only GET method mocks should be present — no POST, PUT, or DELETE. Score 0 if the findByTags mock is missing or if fewer than 4 pets are present."
+      }
+    },
+    {
       "input": "rest-bored-basic-all",
       "metadata": {
         "protocol": "REST",
@@ -442,6 +475,17 @@
         "namespace": "petstore-eval",
         "description": "Generate mocks for GET /pet/findByStatus with 3 pages of results. Each page should return a different set of pets with status=available. Use query parameter or response metadata to distinguish pages. Each page should contain at least 2 pet objects.",
         "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /petstore-eval/. Verify: 1) There must be at least 3 distinct mocks for a findByStatus endpoint (URL containing /pet/findByStatus). They may be distinguished by query parameters, priority, or different URL patterns. 2) Each mock response must contain an array of pet objects with at least 2 items. 3) Each pet object must include at least: id (number), name (string), and status with value 'available'. Additional fields are acceptable. 4) Pet ids should be unique across pages. Score 0 if fewer than 3 findByStatus mocks exist or if any page has fewer than 2 pets."
+      }
+    },
+    {
+      "input": "rest-petstore-findByTags-bird",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate mocks for 4 pets with realistic test data including pet names, only GET endpoints. 1 pet is a bird with image URL, available status, new tag (id=1, name=new). The findByTags endpoint for tag 'new' returns that bird. The other 3 pets are available but not new.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with url/urlPath/urlPathPattern) and 'response' (with jsonBody or body). URLs are prefixed with a namespace like /petstore-eval/. Additional response fields beyond those listed are acceptable.\n\nStrictly verify: 1) There must be at least one mock for a findByTags endpoint (URL containing /pet/findByTags). 2) At least one pet in the responses must have status 'available' and a tags array containing a tag with name 'new'. 3) There must be at least 4 distinct pet objects across all response bodies (identified by unique id values). 4) All mocks must use GET method. Score 0 if no findByTags mock exists or if fewer than 4 pets are present across all responses."
       }
     },
     {
