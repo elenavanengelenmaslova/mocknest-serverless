@@ -473,11 +473,8 @@ class BedrockPromptEvalTest {
     }
 
     /**
-     * Filters scenarios by case-insensitive substring match on the `input` field
-     * using the `BEDROCK_EVAL_FILTER` environment variable.
-     *
      * When the env var is not set or empty, returns all scenarios unchanged.
-     * If the filter matches zero scenarios, logs a warning but does not fail.
+     * If the filter is set but matches zero scenarios, fails fast to surface typos.
      */
     private fun filterScenarios(scenarios: List<EvalScenario>): List<EvalScenario> {
         val filter = System.getenv("BEDROCK_EVAL_FILTER")
@@ -489,11 +486,12 @@ class BedrockPromptEvalTest {
 
         val filtered = scenarios.filter { it.input.contains(filter, ignoreCase = true) }
 
-        if (filtered.isEmpty()) {
-            logger.warn { "BEDROCK_EVAL_FILTER='$filter' matched 0 of ${scenarios.size} scenario(s) — no scenarios will run" }
-        } else {
-            logger.info { "BEDROCK_EVAL_FILTER='$filter' matched ${filtered.size} of ${scenarios.size} scenario(s)" }
+        check(filtered.isNotEmpty()) {
+            "BEDROCK_EVAL_FILTER='$filter' matched 0 of ${scenarios.size} scenario(s). " +
+                "Available inputs: ${scenarios.map { it.input }}"
         }
+
+        logger.info { "BEDROCK_EVAL_FILTER='$filter' matched ${filtered.size} of ${scenarios.size} scenario(s)" }
 
         return filtered
     }
