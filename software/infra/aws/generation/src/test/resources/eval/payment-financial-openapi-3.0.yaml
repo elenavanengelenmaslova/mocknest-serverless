@@ -1,0 +1,580 @@
+---
+openapi: "3.0.3"
+info:
+  title: Payment Financial API
+  description: |-
+    A payment processing API for managing customers, payments, and invoices.
+    Supports nested line items on invoices, enum-based statuses, decimal monetary amounts, and date fields.
+  version: "1.0.0"
+servers:
+  - url: https://api.payments.example.com/v1
+tags:
+  - name: customers
+    description: Customer management operations
+  - name: payments
+    description: Payment processing operations
+  - name: invoices
+    description: Invoice management operations
+paths:
+  /customers:
+    get:
+      tags:
+        - customers
+      summary: List all customers.
+      description: Returns a list of all registered customers.
+      operationId: listCustomers
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of customers to return
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: A list of customers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - customers
+      summary: Create a new customer.
+      description: Registers a new customer in the payment system.
+      operationId: createCustomer
+      requestBody:
+        description: Customer object to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerRequest"
+      responses:
+        "201":
+          description: Customer created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /customers/{customerId}:
+    get:
+      tags:
+        - customers
+      summary: Get customer by ID.
+      description: Returns a single customer by their unique identifier.
+      operationId: getCustomerById
+      parameters:
+        - name: customerId
+          in: path
+          description: Unique identifier of the customer
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The requested customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /payments:
+    get:
+      tags:
+        - payments
+      summary: List payments.
+      description: Returns a list of payments, optionally filtered by status or customer.
+      operationId: listPayments
+      parameters:
+        - name: customerId
+          in: query
+          description: Filter payments by customer ID
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: status
+          in: query
+          description: Filter payments by status
+          required: false
+          schema:
+            type: string
+            enum:
+              - pending
+              - completed
+              - failed
+              - refunded
+      responses:
+        "200":
+          description: A list of payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - payments
+      summary: Create a new payment.
+      description: Initiates a new payment for a customer.
+      operationId: createPayment
+      requestBody:
+        description: Payment object to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentRequest"
+      responses:
+        "201":
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "402":
+          description: Payment required - insufficient funds
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /payments/{paymentId}:
+    get:
+      tags:
+        - payments
+      summary: Get payment by ID.
+      description: Returns a single payment by its unique identifier.
+      operationId: getPaymentById
+      parameters:
+        - name: paymentId
+          in: path
+          description: Unique identifier of the payment
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The requested payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "404":
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /invoices:
+    get:
+      tags:
+        - invoices
+      summary: List invoices.
+      description: Returns a list of invoices, optionally filtered by customer or status.
+      operationId: listInvoices
+      parameters:
+        - name: customerId
+          in: query
+          description: Filter invoices by customer ID
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: status
+          in: query
+          description: Filter invoices by status
+          required: false
+          schema:
+            type: string
+            enum:
+              - draft
+              - sent
+              - paid
+              - overdue
+              - cancelled
+      responses:
+        "200":
+          description: A list of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invoice"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - invoices
+      summary: Create a new invoice.
+      description: Creates a new invoice for a customer with line items.
+      operationId: createInvoice
+      requestBody:
+        description: Invoice object to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceRequest"
+      responses:
+        "201":
+          description: Invoice created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /invoices/{invoiceId}:
+    get:
+      tags:
+        - invoices
+      summary: Get invoice by ID.
+      description: Returns a single invoice with its line items by unique identifier.
+      operationId: getInvoiceById
+      parameters:
+        - name: invoiceId
+          in: path
+          description: Unique identifier of the invoice
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The requested invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "404":
+          description: Invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Acme Corporation"
+        email:
+          type: string
+          format: email
+          example: "billing@acme.example.com"
+        address:
+          $ref: "#/components/schemas/Address"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-10T08:00:00Z"
+    CreateCustomerRequest:
+      type: object
+      required:
+        - name
+        - email
+      properties:
+        name:
+          type: string
+          example: "Acme Corporation"
+        email:
+          type: string
+          format: email
+          example: "billing@acme.example.com"
+        address:
+          $ref: "#/components/schemas/Address"
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          example: "123 Main Street"
+        city:
+          type: string
+          example: "Amsterdam"
+        postalCode:
+          type: string
+          example: "1012 AB"
+        country:
+          type: string
+          example: "NL"
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1001
+        customerId:
+          type: integer
+          format: int64
+          description: References the customer who made this payment (Customer.id)
+          example: 1
+        amount:
+          type: number
+          format: double
+          description: Payment amount in the specified currency
+          example: 149.99
+        currency:
+          type: string
+          description: ISO 4217 currency code
+          example: "EUR"
+        status:
+          type: string
+          description: Current status of the payment
+          enum:
+            - pending
+            - completed
+            - failed
+            - refunded
+          example: "completed"
+        paymentMethod:
+          type: string
+          description: Method used for payment
+          enum:
+            - credit_card
+            - bank_transfer
+            - direct_debit
+          example: "credit_card"
+        description:
+          type: string
+          example: "Payment for Invoice #2001"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-03-15T12:00:00Z"
+    CreatePaymentRequest:
+      type: object
+      required:
+        - customerId
+        - amount
+        - currency
+        - paymentMethod
+      properties:
+        customerId:
+          type: integer
+          format: int64
+          description: ID of the customer making the payment
+          example: 1
+        amount:
+          type: number
+          format: double
+          description: Payment amount
+          example: 149.99
+        currency:
+          type: string
+          description: ISO 4217 currency code
+          example: "EUR"
+        paymentMethod:
+          type: string
+          enum:
+            - credit_card
+            - bank_transfer
+            - direct_debit
+          example: "credit_card"
+        description:
+          type: string
+          example: "Payment for Invoice #2001"
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 2001
+        customerId:
+          type: integer
+          format: int64
+          description: References the customer this invoice belongs to (Customer.id)
+          example: 1
+        status:
+          type: string
+          description: Current status of the invoice
+          enum:
+            - draft
+            - sent
+            - paid
+            - overdue
+            - cancelled
+          example: "sent"
+        issueDate:
+          type: string
+          format: date
+          description: Date the invoice was issued
+          example: "2024-03-01"
+        dueDate:
+          type: string
+          format: date
+          description: Date the invoice payment is due
+          example: "2024-03-31"
+        lineItems:
+          type: array
+          description: List of items on this invoice
+          items:
+            $ref: "#/components/schemas/LineItem"
+        subtotal:
+          type: number
+          format: double
+          description: Sum of all line item amounts before tax
+          example: 250.00
+        taxRate:
+          type: number
+          format: double
+          description: Tax rate as a percentage
+          example: 21.0
+        taxAmount:
+          type: number
+          format: double
+          description: Calculated tax amount
+          example: 52.50
+        totalAmount:
+          type: number
+          format: double
+          description: Total amount including tax
+          example: 302.50
+        currency:
+          type: string
+          description: ISO 4217 currency code
+          example: "EUR"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-03-01T09:00:00Z"
+    CreateInvoiceRequest:
+      type: object
+      required:
+        - customerId
+        - lineItems
+        - currency
+      properties:
+        customerId:
+          type: integer
+          format: int64
+          description: ID of the customer for this invoice
+          example: 1
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateLineItemRequest"
+        currency:
+          type: string
+          description: ISO 4217 currency code
+          example: "EUR"
+        dueDate:
+          type: string
+          format: date
+          description: Payment due date
+          example: "2024-03-31"
+    LineItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 5001
+        description:
+          type: string
+          example: "Consulting services - March 2024"
+        quantity:
+          type: integer
+          example: 10
+        unitPrice:
+          type: number
+          format: double
+          description: Price per unit
+          example: 25.00
+        amount:
+          type: number
+          format: double
+          description: Total amount for this line item (quantity × unitPrice)
+          example: 250.00
+    CreateLineItemRequest:
+      type: object
+      required:
+        - description
+        - quantity
+        - unitPrice
+      properties:
+        description:
+          type: string
+          example: "Consulting services - March 2024"
+        quantity:
+          type: integer
+          example: 10
+        unitPrice:
+          type: number
+          format: double
+          example: 25.00
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 400
+        message:
+          type: string
+          example: "Invalid request parameters"

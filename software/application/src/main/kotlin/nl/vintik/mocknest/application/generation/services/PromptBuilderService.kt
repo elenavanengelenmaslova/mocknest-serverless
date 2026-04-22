@@ -66,6 +66,8 @@ class PromptBuilderService {
             .replace("{{CLIENT_SECTION}}", clientSection)
             .replace("{{DESCRIPTION}}", description)
             .replace("{{NAMESPACE}}", namespace.displayName())
+            .replace("{{TARGET_NAMESPACE}}", specification.metadata["targetNamespace"] ?: "")
+            .replace("{{SERVICE_ADDRESS}}", specification.metadata.getOrDefault("serviceAddress", ""))
             .replace("{{WIREMOCK_SCHEMA}}", wireMockSchema)
     }
 
@@ -86,11 +88,13 @@ class PromptBuilderService {
         val template = loadTemplate(promptPath)
         
         val specContext = specification?.let {
+            val targetNs = it.metadata["targetNamespace"] ?: ""
             """
 API Specification Context:
 - Title: ${it.title}
 - Version: ${it.version}
 - Endpoints: ${it.endpoints.size}
+- Target Namespace: $targetNs
 
 """
         } ?: ""
@@ -106,12 +110,15 @@ Validation Errors:
 ${errors.joinToString("\n") { "- $it" }}"""
         }
         
+        val targetNamespace = specification?.metadata?.get("targetNamespace") ?: ""
+        
         return template
             .replace("{{SPEC_CONTEXT}}", specContext)
             .replace("{{API_NAME}}", namespace.apiName)
             .replace("{{CLIENT_SECTION}}", clientSection)
             .replace("{{MOCKS_WITH_ERRORS}}", mocksWithErrors)
             .replace("{{NAMESPACE}}", namespace.displayName())
+            .replace("{{TARGET_NAMESPACE}}", targetNamespace)
     }
 
     /**

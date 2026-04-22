@@ -59,19 +59,11 @@ class SchemaConsistencyEvaluator(private val requiredFields: List<String>) : Bas
         }
     }
 
-    private fun extractResponseBody(mapping: JsonNode): JsonNode? {
-        val bodyString = mapping.path("response").path("body").asText(null) ?: return null
-        return runCatching {
-            mapper.readTree(bodyString)
-        }.onFailure { e ->
-            logger.debug(e) { "Could not parse response body as JSON" }
-        }.getOrNull()
-    }
-
     private fun extractPetObjects(node: JsonNode): List<JsonNode> =
         when {
             node.isArray -> node.flatMap { extractPetObjects(it) }
-            node.isObject && node.has("id") -> listOf(node)
+            node.isObject && node.has("id") && node.has("name") -> listOf(node)
+            node.isObject -> node.fields().asSequence().flatMap { (_, value) -> extractPetObjects(value).asSequence() }.toList()
             else -> emptyList()
         }
 

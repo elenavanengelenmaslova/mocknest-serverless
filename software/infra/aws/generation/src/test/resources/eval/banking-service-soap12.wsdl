@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/banking-service"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/banking-service"
+                  name="BankingService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/banking-service">
+
+      <!-- Simple type: TransactionStatus enumeration -->
+      <xsd:simpleType name="TransactionStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="pending"/>
+          <xsd:enumeration value="completed"/>
+          <xsd:enumeration value="failed"/>
+          <xsd:enumeration value="reversed"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <!-- Complex type: MoneyAmount (nested in other types) -->
+      <xsd:complexType name="MoneyAmount">
+        <xsd:sequence>
+          <xsd:element name="amount" type="xsd:decimal"/>
+          <xsd:element name="currency" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Complex type: AccountInfo (6 fields) -->
+      <xsd:complexType name="AccountInfo">
+        <xsd:sequence>
+          <xsd:element name="id" type="xsd:string"/>
+          <xsd:element name="holderName" type="xsd:string"/>
+          <xsd:element name="accountType" type="xsd:string"/>
+          <xsd:element name="balance" type="xsd:decimal"/>
+          <xsd:element name="currency" type="xsd:string"/>
+          <xsd:element name="status" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Complex type: TransactionRecord (7 fields, references MoneyAmount and TransactionStatus) -->
+      <xsd:complexType name="TransactionRecord">
+        <xsd:sequence>
+          <xsd:element name="transactionId" type="xsd:string"/>
+          <xsd:element name="accountId" type="xsd:string"/>
+          <xsd:element name="amount" type="tns:MoneyAmount"/>
+          <xsd:element name="type" type="xsd:string"/>
+          <xsd:element name="status" type="tns:TransactionStatus"/>
+          <xsd:element name="timestamp" type="xsd:dateTime"/>
+          <xsd:element name="description" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- GetAccount operation types -->
+      <xsd:element name="GetAccountRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="accountId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetAccountResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="account" type="tns:AccountInfo"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateAccount operation types (4 fields in request) -->
+      <xsd:element name="CreateAccountRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="holderName" type="xsd:string"/>
+            <xsd:element name="accountType" type="xsd:string"/>
+            <xsd:element name="initialBalance" type="xsd:decimal"/>
+            <xsd:element name="currency" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateAccountResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="accountId" type="xsd:string"/>
+            <xsd:element name="status" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- GetTransactions operation types (cross-entity: accountId from GetAccountResponse) -->
+      <xsd:element name="GetTransactionsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="accountId" type="xsd:string"/>
+            <xsd:element name="fromDate" type="xsd:dateTime"/>
+            <xsd:element name="toDate" type="xsd:dateTime"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetTransactionsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="transactions" type="tns:TransactionRecord" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- TransferFunds operation types (4 fields, references MoneyAmount) -->
+      <xsd:element name="TransferFundsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="fromAccountId" type="xsd:string"/>
+            <xsd:element name="toAccountId" type="xsd:string"/>
+            <xsd:element name="amount" type="tns:MoneyAmount"/>
+            <xsd:element name="reference" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="TransferFundsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="transactionId" type="xsd:string"/>
+            <xsd:element name="status" type="tns:TransactionStatus"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- GetAccountBalance operation types -->
+      <xsd:element name="GetAccountBalanceRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="accountId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetAccountBalanceResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="accountId" type="xsd:string"/>
+            <xsd:element name="balance" type="tns:MoneyAmount"/>
+            <xsd:element name="lastUpdated" type="xsd:dateTime"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </wsdl:types>
+
+  <!-- Messages -->
+  <wsdl:message name="GetAccountRequestMsg"><wsdl:part name="parameters" element="tns:GetAccountRequest"/></wsdl:message>
+  <wsdl:message name="GetAccountResponseMsg"><wsdl:part name="parameters" element="tns:GetAccountResponse"/></wsdl:message>
+  <wsdl:message name="CreateAccountRequestMsg"><wsdl:part name="parameters" element="tns:CreateAccountRequest"/></wsdl:message>
+  <wsdl:message name="CreateAccountResponseMsg"><wsdl:part name="parameters" element="tns:CreateAccountResponse"/></wsdl:message>
+  <wsdl:message name="GetTransactionsRequestMsg"><wsdl:part name="parameters" element="tns:GetTransactionsRequest"/></wsdl:message>
+  <wsdl:message name="GetTransactionsResponseMsg"><wsdl:part name="parameters" element="tns:GetTransactionsResponse"/></wsdl:message>
+  <wsdl:message name="TransferFundsRequestMsg"><wsdl:part name="parameters" element="tns:TransferFundsRequest"/></wsdl:message>
+  <wsdl:message name="TransferFundsResponseMsg"><wsdl:part name="parameters" element="tns:TransferFundsResponse"/></wsdl:message>
+  <wsdl:message name="GetAccountBalanceRequestMsg"><wsdl:part name="parameters" element="tns:GetAccountBalanceRequest"/></wsdl:message>
+  <wsdl:message name="GetAccountBalanceResponseMsg"><wsdl:part name="parameters" element="tns:GetAccountBalanceResponse"/></wsdl:message>
+
+  <!-- Port Type -->
+  <wsdl:portType name="BankingPortType">
+    <wsdl:operation name="GetAccount">
+      <wsdl:input message="tns:GetAccountRequestMsg"/>
+      <wsdl:output message="tns:GetAccountResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="CreateAccount">
+      <wsdl:input message="tns:CreateAccountRequestMsg"/>
+      <wsdl:output message="tns:CreateAccountResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetTransactions">
+      <wsdl:input message="tns:GetTransactionsRequestMsg"/>
+      <wsdl:output message="tns:GetTransactionsResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="TransferFunds">
+      <wsdl:input message="tns:TransferFundsRequestMsg"/>
+      <wsdl:output message="tns:TransferFundsResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetAccountBalance">
+      <wsdl:input message="tns:GetAccountBalanceRequestMsg"/>
+      <wsdl:output message="tns:GetAccountBalanceResponseMsg"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <!-- Binding -->
+  <wsdl:binding name="BankingBinding" type="tns:BankingPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="GetAccount">
+      <soap12:operation soapAction="http://example.com/banking-service/GetAccount"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="CreateAccount">
+      <soap12:operation soapAction="http://example.com/banking-service/CreateAccount"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetTransactions">
+      <soap12:operation soapAction="http://example.com/banking-service/GetTransactions"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="TransferFunds">
+      <soap12:operation soapAction="http://example.com/banking-service/TransferFunds"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAccountBalance">
+      <soap12:operation soapAction="http://example.com/banking-service/GetAccountBalance"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <!-- Service -->
+  <wsdl:service name="BankingService">
+    <wsdl:port name="BankingPort" binding="tns:BankingBinding">
+      <soap12:address location="http://example.com/banking-service/v1"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

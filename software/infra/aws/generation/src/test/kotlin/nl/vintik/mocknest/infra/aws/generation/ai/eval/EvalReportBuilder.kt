@@ -20,12 +20,10 @@ class EvalReportBuilder {
         totalTokenUsage: TokenUsageRecord,
         totalEstimatedCost: Double
     ): String {
-        val successCount = results.count { it.success }
-        val semanticPassCount = results.count { it.semanticScore?.passed == true }
         val totalMocks = results.sumOf { it.mockCount }
 
-        val successRate = if (iterationCount > 0) successCount.toDouble() / iterationCount * 100.0 else 0.0
-        val semanticRate = if (iterationCount > 0) semanticPassCount.toDouble() / iterationCount * 100.0 else 0.0
+        val successRate = calculateSuccessRate(results)
+        val semanticRate = calculateSemanticSuccessRate(results)
 
         return buildString {
             appendLine(topBorder())
@@ -37,8 +35,8 @@ class EvalReportBuilder {
             appendLine(labeledLine("Iterations:", iterationCount.toString()))
             appendLine(labeledLine("Duration:", "$totalDurationMs ms"))
             appendLine(sectionBorder())
-            appendLine(labeledLine("Success Rate:", "$successCount/$iterationCount = ${"%.1f".format(successRate)}%"))
-            appendLine(labeledLine("Semantic Score:", "$semanticPassCount/$iterationCount = ${"%.1f".format(semanticRate)}%"))
+            appendLine(labeledLine("Success Rate:", "${"%.1f".format(successRate)}%"))
+            appendLine(labeledLine("Semantic Score:", "${"%.1f".format(semanticRate)}%"))
             appendLine(labeledLine("Total Mocks:", totalMocks.toString()))
             appendLine(sectionBorder())
             appendLine(labeledLine("Token Usage:", ""))
@@ -91,7 +89,7 @@ class EvalReportBuilder {
             val errorMsg = result.errorMessage ?: "Unknown error"
             " $num  ✗  error: $errorMsg"
         }
-        val truncated = if (content.length > CONTENT_WIDTH) content.take(CONTENT_WIDTH) else content
+        val truncated = if (content.length > CONTENT_WIDTH) content.take(CONTENT_WIDTH - 1) + "…" else content
         return "║${truncated.padEnd(CONTENT_WIDTH)}║"
     }
 }

@@ -13,13 +13,20 @@ package nl.vintik.mocknest.infra.aws.generation.ai.eval
  */
 object CostCalculator {
     // Amazon Nova Pro on-demand pricing (USD per token)
-    const val NOVA_PRO_INPUT_PRICE_PER_TOKEN = 0.0000008   // $0.0008 per 1K tokens
-    const val NOVA_PRO_OUTPUT_PRICE_PER_TOKEN = 0.0000032  // $0.0032 per 1K tokens
+    // Override via environment variables for different models/regions
+    val INPUT_PRICE_PER_TOKEN: Double = System.getenv("BEDROCK_EVAL_INPUT_PRICE_PER_TOKEN")
+        ?.toDoubleOrNull()
+        ?.takeIf { it.isFinite() && it >= 0.0 }
+        ?: 0.0000008   // $0.0008 per 1K tokens (Nova Pro default)
+    val OUTPUT_PRICE_PER_TOKEN: Double = System.getenv("BEDROCK_EVAL_OUTPUT_PRICE_PER_TOKEN")
+        ?.toDoubleOrNull()
+        ?.takeIf { it.isFinite() && it >= 0.0 }
+        ?: 0.0000032  // $0.0032 per 1K tokens (Nova Pro default)
 
     fun calculateCost(
         inputTokens: Int,
         outputTokens: Int,
-        inputPricePerToken: Double = NOVA_PRO_INPUT_PRICE_PER_TOKEN,
-        outputPricePerToken: Double = NOVA_PRO_OUTPUT_PRICE_PER_TOKEN
+        inputPricePerToken: Double = INPUT_PRICE_PER_TOKEN,
+        outputPricePerToken: Double = OUTPUT_PRICE_PER_TOKEN
     ): Double = inputTokens * inputPricePerToken + outputTokens * outputPricePerToken
 }

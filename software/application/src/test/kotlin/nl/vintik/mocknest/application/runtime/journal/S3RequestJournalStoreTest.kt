@@ -238,7 +238,7 @@ class S3RequestJournalStoreTest {
         }
 
         @Test
-        fun `Given S3 get throws for one key When getAll called Then other events are still returned`() {
+        fun `Given S3 get throws and remaining key is null When getAll called Then empty list is returned`() {
             val id1 = UUID.randomUUID()
             val id2 = UUID.randomUUID()
             coEvery { mockStorage.listPrefix("requests/") } returns flowOf("requests/$id1", "requests/$id2")

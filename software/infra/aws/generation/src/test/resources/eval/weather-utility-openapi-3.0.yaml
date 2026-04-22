@@ -1,0 +1,176 @@
+---
+openapi: "3.0.3"
+info:
+  title: Weather Utility API
+  description: A simple weather API providing current conditions and forecasts for a given city.
+  version: "1.0.0"
+servers:
+  - url: https://api.weather.example.com/v1
+tags:
+  - name: weather
+    description: Weather data operations
+paths:
+  /weather/current:
+    get:
+      tags:
+        - weather
+      summary: Get current weather.
+      description: Returns the current weather conditions for a specified city.
+      operationId: getCurrentWeather
+      parameters:
+        - name: city
+          in: query
+          description: Name of the city to get weather for
+          required: true
+          schema:
+            type: string
+        - name: units
+          in: query
+          description: Temperature units
+          required: false
+          schema:
+            type: string
+            enum:
+              - metric
+              - imperial
+            default: metric
+      responses:
+        "200":
+          description: Current weather conditions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentWeather"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: City not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /weather/forecast:
+    get:
+      tags:
+        - weather
+      summary: Get weather forecast.
+      description: Returns a multi-day weather forecast for a specified city.
+      operationId: getWeatherForecast
+      parameters:
+        - name: city
+          in: query
+          description: Name of the city to get the forecast for
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: query
+          description: Number of forecast days (1 to 7)
+          required: false
+          schema:
+            type: integer
+            default: 3
+        - name: units
+          in: query
+          description: Temperature units
+          required: false
+          schema:
+            type: string
+            enum:
+              - metric
+              - imperial
+            default: metric
+      responses:
+        "200":
+          description: Weather forecast
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Forecast"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: City not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    CurrentWeather:
+      type: object
+      properties:
+        city:
+          type: string
+          example: "Amsterdam"
+        temperature:
+          type: number
+          format: double
+          example: 18.5
+        feelsLike:
+          type: number
+          format: double
+          example: 17.2
+        humidity:
+          type: integer
+          example: 72
+        description:
+          type: string
+          example: "Partly cloudy"
+        windSpeed:
+          type: number
+          format: double
+          example: 12.3
+        units:
+          type: string
+          example: "metric"
+    Forecast:
+      type: object
+      properties:
+        city:
+          type: string
+          example: "Amsterdam"
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/ForecastDay"
+    ForecastDay:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2024-06-15"
+        highTemperature:
+          type: number
+          format: double
+          example: 22.0
+        lowTemperature:
+          type: number
+          format: double
+          example: 14.5
+        description:
+          type: string
+          example: "Sunny with occasional clouds"
+        precipitationChance:
+          type: integer
+          description: Chance of precipitation as a percentage
+          example: 20
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 400
+        message:
+          type: string
+          example: "Invalid request parameters"

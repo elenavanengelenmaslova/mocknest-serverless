@@ -179,7 +179,8 @@ class WsdlSpecificationParser(
             metadata = mapOf(
                 "targetNamespace" to compactWsdl.targetNamespace,
                 "soapVersion" to compactWsdl.soapVersion.name,
-                "operationCount" to compactWsdl.operations.size.toString()
+                "operationCount" to compactWsdl.operations.size.toString(),
+                "serviceAddress" to (compactWsdl.serviceAddress ?: "")
             ),
             rawContent = compactWsdl.prettyPrint()
         )

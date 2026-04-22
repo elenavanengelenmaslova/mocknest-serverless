@@ -1,6 +1,6 @@
 {
-  "name": "GraphQL + SOAP Eval (error analysis)",
-  "description": "Tests with detailed error logging for GraphQL and SOAP",
+  "name": "Multi-Protocol Eval (GraphQL + SOAP + REST) — 14 GraphQL scenarios across 4 introspection schemas",
+  "description": "Evaluation dataset covering GraphQL (4 introspection schemas: pokemon, books, ecommerce, taskmanagement — 14 scenarios), SOAP (4 WSDL specs: calculator, banking, inventory, notification), and REST scenarios across multiple API specifications and prompt complexity levels (Basic, Filtered, Consistency, Error, Realistic_Data, Edge_Case)",
   "examples": [
     {
       "input": "graphql-pokemon-pikachu",
@@ -25,6 +25,138 @@
       }
     },
     {
+      "input": "graphql-ecommerce-basic-queries",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate mocks for the products query returning a list of at least 2 products and the product query returning a single product by ID. Each product must include id, name, price, category, and inStock fields.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'products' and the response jsonBody must contain data.products as an array with at least 2 items. 2) There must be a stub with bodyPatterns matching operationName 'product' and the response jsonBody must contain data.product with fields id, name, and price. 3) Each product must have a category field with a valid ProductCategory enum value (one of ELECTRONICS, CLOTHING, FOOD, HOME, SPORTS) and an inStock boolean field. Score 0 if either the products or product operation stub is missing."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-basic-mutations",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate mocks for the createProduct mutation returning a newly created product with all fields, and the createOrder mutation returning a new order with id, status PENDING, totalAmount, and items array.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be at least one stub with bodyPatterns matching operationName 'createProduct' whose response jsonBody contains data.createProduct with at least fields id, name, price, and category. 2) There must be at least one stub with bodyPatterns matching operationName 'createOrder' whose response jsonBody contains data.createOrder with at least fields id, status, and totalAmount. 3) The createOrder response status field must be PENDING. Additional stubs (e.g., error variants for the same operations) and additional fields beyond those listed are acceptable and should not reduce the score. Score 0 only if neither a createProduct nor a createOrder success stub is present."
+      }
+    },
+    {
+      "input": "graphql-taskmanagement-basic-all",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/taskmanagement-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "taskmanagement-eval",
+        "description": "Generate mocks for the projects query returning at least 2 projects and the tasks query returning at least 3 tasks with different statuses. Each project must include id and name. Each task must include id, title, status, and priority fields.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'projects' and the response jsonBody must contain data.projects as an array with at least 2 items, each having id and name fields. 2) There must be a stub with bodyPatterns matching operationName 'tasks' and the response jsonBody must contain data.tasks as an array with at least 3 items, each having id, title, status, and priority fields. 3) Task status values must be valid TaskStatus enum values (TODO, IN_PROGRESS, IN_REVIEW, or DONE). 4) Task priority values must be valid TaskPriority enum values (LOW, MEDIUM, HIGH, or CRITICAL). Additional fields beyond those listed are acceptable. Score 0 if either the projects or tasks operation stub is missing."
+      }
+    },
+    {
+      "input": "graphql-pokemon-basic-list",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/pokemon-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "pokemon-eval",
+        "description": "Generate a mock for the pokemons query returning a list of 5 Pokemon with pagination arguments limit 5 and offset 0. The response must include count and results array where each result has a name field.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'pokemons' and the response jsonBody must contain data.pokemons with a results array containing exactly 5 items. 2) Each item in the results array must have a name field with a non-empty string value. 3) The response must include a count field with a numeric value. Score 0 if the pokemons operation stub is missing or if the results array does not contain 5 items."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-filtered-orders",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate mocks only for order-related operations: the orders query, createOrder mutation, and updateOrderStatus mutation. Do NOT generate mocks for products, product, customer, createProduct, or deleteProduct operations.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be stubs with bodyPatterns matching operationNames 'orders', 'createOrder', and 'updateOrderStatus'. 2) There must be NO stubs with bodyPatterns matching operationNames 'products', 'product', 'customer', 'createProduct', or 'deleteProduct'. Check all bodyPatterns matchesJsonPath expressions — none should reference those excluded operation names. 3) The orders response must contain data.orders as an array with at least one order having id, status, and totalAmount fields. 4) The updateOrderStatus response must contain data.updateOrderStatus with a status field containing a valid OrderStatus enum value (PENDING, SHIPPED, DELIVERED, or CANCELLED). Score 0 if any excluded operation stub is present or if any of the 3 order operations is missing."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-error-notfound",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate exactly 2 GraphQL error response mocks: one for the product query returning a 'product not found' error, and one for the orders query returning an 'order not found' error. Do NOT generate any success responses — only error responses using the GraphQL errors array format with a non-empty message field. Do NOT generate mocks for any other operations.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be at least one stub with bodyPatterns matching operationName 'product' whose response jsonBody contains an 'errors' array with at least one error object having a non-empty 'message' field. 2) There must be at least one stub with bodyPatterns matching operationName 'orders' whose response jsonBody contains an 'errors' array with at least one error object having a non-empty 'message' field. 3) The error responses must use the standard GraphQL error format with an 'errors' array at the top level of the jsonBody. Additional stubs beyond the 2 requested are acceptable and should not reduce the score. Score 0 only if both error stubs for product and orders are missing."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-realistic-data",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate mocks for the products query and customer query with realistic European data. Products must have realistic European product names (e.g., 'Braun Series 9 Shaver', 'Lavazza Qualita Rossa Coffee'), prices in EUR as realistic amounts (e.g., 49.99, 12.50), and valid ProductCategory enum values. The customer must have a realistic European name (e.g., 'Hans Mueller', 'Sophie Dubois') and a European address with city, country, and postalCode.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'products' whose response contains data.products as an array with at least 2 products, each having a name field with a realistic product name (not placeholder values like product1, test, or foo). 2) Each product must have a price field with a realistic positive numeric amount. 3) There must be a stub with bodyPatterns matching operationName 'customer' whose response contains data.customer with a name field containing a realistic full name (not placeholder like user1 or test). 4) The customer must have an address object with city and country fields containing realistic European values. Score 0 if product names or customer names are obviously placeholder values."
+      }
+    },
+    {
+      "input": "graphql-taskmanagement-realistic-data",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/taskmanagement-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "taskmanagement-eval",
+        "description": "Generate mocks for the projects query and tasks query with realistic project management data. Projects must have realistic names (e.g., 'Customer Portal Redesign', 'Payment Gateway Migration'). Tasks must have realistic titles (e.g., 'Implement user authentication flow', 'Fix database connection pooling'), valid TaskStatus enum values, and valid TaskPriority enum values. Users must have realistic developer names.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'projects' whose response contains data.projects as an array with at least 2 projects, each having a name field with a realistic project name (not placeholder values like project1 or test). 2) There must be a stub with bodyPatterns matching operationName 'tasks' whose response contains data.tasks as an array with at least 2 tasks, each having a title field with a realistic task description (not placeholder like task1 or test). 3) Each task must have a status field with a valid TaskStatus enum value (TODO, IN_PROGRESS, IN_REVIEW, or DONE) and a priority field with a valid TaskPriority enum value (LOW, MEDIUM, HIGH, or CRITICAL). Score 0 if project names or task titles are obviously placeholder values."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-consistency",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate mocks for the customer query, orders query, and products query where the data is cross-referenced and consistent. The order's customer.id must match the customer query response id. The order items must reference product ids that appear in the products query response. Use customerId 'C-100' and at least one product with id 'P-200'.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be stubs with bodyPatterns matching operationNames 'customer', 'orders', and 'products'. 2) The customer response must contain data.customer with an id field. 3) The orders response must contain data.orders as an array where at least one order has a customer object or customerId field whose value matches the customer id from the customer response. 4) At least one order item must reference a product id that appears in the products response data.products array. Score 0 if the customer id in the orders response does not match the customer query response id, or if any of the 3 operation stubs is missing."
+      }
+    },
+    {
+      "input": "graphql-taskmanagement-consistency",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/taskmanagement-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "taskmanagement-eval",
+        "description": "Generate mocks for the users query and tasks query where the data is consistent. The tasks query must return at least 2 tasks, each with an assignee object containing an id and name. The users query must return at least 2 users. At least one task's assignee id should reference a user from the users response.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be stubs with bodyPatterns matching operationNames 'users' and 'tasks'. 2) The users response must contain data.users as an array with at least 2 users, each having id and name fields. 3) The tasks response must contain data.tasks as an array with at least 2 tasks, each having id, title, status, and priority fields. 4) Task status values must be valid TaskStatus enum values (TODO, IN_PROGRESS, IN_REVIEW, or DONE). Additional fields beyond those listed are acceptable. Score 0 if either the users or tasks operation stub is missing."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-edge-mutation-input",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate a mock for the createProduct mutation that accepts a CreateProductInput INPUT_OBJECT argument with fields name, description, price, category (ProductCategory enum), and inStock. The response must return the created product with all fields including the generated id, and the category must be a valid ProductCategory enum value.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'createProduct' and the response jsonBody must contain data.createProduct with fields id, name, price, category, and inStock. 2) The category field must contain a valid ProductCategory enum value (one of ELECTRONICS, CLOTHING, FOOD, HOME, SPORTS). 3) The id field must be a non-empty value. 4) The price field must be a positive numeric value. 5) The inStock field must be a boolean value. Score 0 if the createProduct operation stub is missing or if the response does not include all required fields (id, name, price, category, inStock)."
+      }
+    },
+    {
+      "input": "graphql-taskmanagement-edge-enum-filter",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/taskmanagement-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "taskmanagement-eval",
+        "description": "Generate a mock for the tasks query filtered by TaskStatus enum value IN_PROGRESS, returning only tasks with status IN_PROGRESS. Each task must include id, title, status, and priority fields with valid enum values.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'tasks' and the response jsonBody must contain data.tasks as an array with at least 1 task. 2) Every task in the array must have a status field equal to IN_PROGRESS. 3) Every task must have id, title, and priority fields. 4) The priority field must be a valid TaskPriority enum value (LOW, MEDIUM, HIGH, or CRITICAL). Score 0 if the tasks operation stub is missing or if any task has a status other than IN_PROGRESS."
+      }
+    },
+    {
       "input": "soap-calculator-all-operations",
       "metadata": {
         "protocol": "SOAP",
@@ -33,6 +165,305 @@
         "namespace": "calculator-eval",
         "description": "Generate mocks for all 3 operations: Add(10, 5) returning 15, Subtract(10, 5) returning 5, and Multiply(10, 5) returning 50. Each operation must have the correct result.",
         "semanticCheck": "Strictly verify: 1) There must be exactly 3 mappings, one per operation. 2) Add result must be 15. 3) Subtract result must be 5. 4) Multiply result must be 50. Score 0 if any result is wrong or any operation is missing."
+      }
+    },
+
+    {
+      "input": "soap-banking-basic-all",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate mocks for all 5 banking operations: GetAccount, CreateAccount, GetTransactions, TransferFunds, and GetAccountBalance. Each operation must return a valid SOAP 1.2 response with realistic banking data.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be exactly 5 mappings, one for each operation: GetAccount (action http://example.com/banking-service/GetAccount), CreateAccount (action http://example.com/banking-service/CreateAccount), GetTransactions (action http://example.com/banking-service/GetTransactions), TransferFunds (action http://example.com/banking-service/TransferFunds), and GetAccountBalance (action http://example.com/banking-service/GetAccountBalance). 2) Each mapping must use method POST and have a Content-Type header matching with the corresponding soapAction. 3) Each response body must contain a valid SOAP 1.2 envelope with the namespace http://example.com/banking-service. 4) The GetAccount response must include an accountId and holderName element. 5) The GetTransactions response must include at least one transaction record element. Score 0 if any of the 5 operations is missing or if any response does not contain a SOAP envelope."
+      }
+    },
+    {
+      "input": "soap-inventory-basic-all",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/inventory-warehouse-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "inventory-eval",
+        "description": "Generate mocks for all 6 inventory operations: GetItem, ListItems, CreateItem, UpdateStock, CreateShipment, and GetShipment. Each operation must return a valid SOAP 1.2 response with realistic inventory data.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/inventory-warehouse. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be exactly 6 mappings, one for each operation: GetItem (action http://example.com/inventory-warehouse/GetItem), ListItems (action http://example.com/inventory-warehouse/ListItems), CreateItem (action http://example.com/inventory-warehouse/CreateItem), UpdateStock (action http://example.com/inventory-warehouse/UpdateStock), CreateShipment (action http://example.com/inventory-warehouse/CreateShipment), and GetShipment (action http://example.com/inventory-warehouse/GetShipment). 2) Each mapping must use method POST and have a Content-Type header matching with the corresponding soapAction. 3) Each response body must contain a valid SOAP 1.2 envelope with the namespace http://example.com/inventory-warehouse. 4) The GetItem response must include an itemId and name element. 5) The ListItems response must include at least one item element. Score 0 if any of the 6 operations is missing or if any response does not contain a SOAP envelope."
+      }
+    },
+    {
+      "input": "soap-notification-basic-all",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/notification-messaging-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "notification-eval",
+        "description": "Generate mocks for all 4 notification operations: SendNotification, GetNotificationStatus, ListNotifications, and UpdatePreferences. Each operation must return a valid SOAP 1.2 response with realistic notification data.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/notification-messaging. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be exactly 4 mappings, one for each operation: SendNotification (action http://example.com/notification-messaging/SendNotification), GetNotificationStatus (action http://example.com/notification-messaging/GetNotificationStatus), ListNotifications (action http://example.com/notification-messaging/ListNotifications), and UpdatePreferences (action http://example.com/notification-messaging/UpdatePreferences). 2) Each mapping must use method POST and have a Content-Type header matching with the corresponding soapAction. 3) Each response body must contain a valid SOAP 1.2 envelope with the namespace http://example.com/notification-messaging. 4) The SendNotification response must include a notificationId element. 5) The GetNotificationStatus response must include a status element. Score 0 if any of the 4 operations is missing or if any response does not contain a SOAP envelope."
+      }
+    },
+    {
+      "input": "soap-banking-filtered-account",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate mocks only for account-related operations: GetAccount, CreateAccount, and GetAccountBalance. Do NOT generate mocks for TransferFunds or GetTransactions.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be at least 3 mappings for account-related operations: GetAccount (action http://example.com/banking-service/GetAccount), CreateAccount (action http://example.com/banking-service/CreateAccount), and GetAccountBalance (action http://example.com/banking-service/GetAccountBalance). Additional mappings for the same operations (e.g., error/fault variants) are acceptable and should not reduce the score. 2) There must be NO mappings with action containing TransferFunds or GetTransactions. Check all Content-Type header matchers — none should reference http://example.com/banking-service/TransferFunds or http://example.com/banking-service/GetTransactions. 3) Each response body must contain a valid SOAP 1.2 envelope with the namespace http://example.com/banking-service. Score 0 if any TransferFunds or GetTransactions mapping is present, or if any of the 3 account operations is missing."
+      }
+    },
+    {
+      "input": "soap-banking-error-faults",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate SOAP fault responses for error scenarios: TransferFunds with insufficient funds (fault code soapenv:Sender, reason 'Insufficient funds') and GetAccount with account not found (fault code soapenv:Sender, reason 'Account not found'). Each fault must use a proper SOAP 1.2 Fault envelope.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for TransferFunds (action http://example.com/banking-service/TransferFunds) whose response body contains a SOAP 1.2 Fault element with a Code containing soapenv:Sender or env:Sender and a Reason element with text referencing insufficient funds. 2) There must be a mapping for GetAccount (action http://example.com/banking-service/GetAccount) whose response body contains a SOAP 1.2 Fault element with a Code containing soapenv:Sender or env:Sender and a Reason element with text referencing account not found. 3) Both fault responses must contain a properly structured soapenv:Fault or env:Fault element inside a SOAP 1.2 envelope. 4) The response status should be 500 (standard for SOAP faults). Score 0 if either fault response is missing or if the response body does not contain a Fault element."
+      }
+    },
+    {
+      "input": "soap-banking-realistic-data",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate mocks for GetAccount and GetTransactions with realistic European banking data. GetAccount must return an account with a realistic holder name (e.g., Hans Mueller, Sophie Dubois), an IBAN-format account number (e.g., DE89370400440532013000), currency EUR, and a realistic balance. GetTransactions must return at least 2 transaction records with realistic EUR amounts and meaningful descriptions (e.g., 'Grocery store purchase', 'Monthly salary').",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for GetAccount (action http://example.com/banking-service/GetAccount) whose response contains a holderName element with a realistic full name (not placeholder values like user1, test, Account Holder). 2) The GetAccount response must contain a currency element with value EUR and a balance element with a realistic positive numeric amount. 3) There must be a mapping for GetTransactions (action http://example.com/banking-service/GetTransactions) whose response contains at least 2 transaction record elements. 4) Each transaction must have an amount element with a realistic EUR value and a description element with meaningful text (not placeholder like desc1 or transaction1). Score 0 if holder names are obviously placeholder values or if currency is not EUR."
+      }
+    },
+    {
+      "input": "soap-banking-consistency",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate mocks for GetAccount and GetTransactions where the accountId returned in the GetAccount response is the same accountId that appears in the GetTransactions response records. The data must be cross-referenced and consistent between the two operations.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for GetAccount (action http://example.com/banking-service/GetAccount) whose response contains an accountId element with a non-empty value. 2) There must be a mapping for GetTransactions (action http://example.com/banking-service/GetTransactions) whose response contains at least one transaction record with an accountId element. 3) The accountId value in the GetAccount response must match the accountId value in the GetTransactions transaction records. 4) Both responses must contain valid SOAP 1.2 envelopes with the namespace http://example.com/banking-service. Score 0 if the accountId in GetTransactions does not match the accountId in GetAccount, or if either operation is missing."
+      }
+    },
+    {
+      "input": "soap-inventory-edge-xpath",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/inventory-warehouse-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "inventory-eval",
+        "description": "Generate mocks for GetItem and ListItems operations using XPath body matchers to disambiguate the two operations that share the same endpoint. GetItem should match when the request body contains a GetItemRequest element, and ListItems should match when the request body contains a ListItemsRequest element. Use bodyPatterns with matchesXPath to differentiate.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/inventory-warehouse. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for GetItem (action http://example.com/inventory-warehouse/GetItem) and a mapping for ListItems (action http://example.com/inventory-warehouse/ListItems). 2) At least one of the two mappings must use bodyPatterns with a matchesXPath expression to match on the request body content (e.g., matching on GetItemRequest or ListItemsRequest element). 3) The GetItem response must contain an itemId element. 4) The ListItems response must contain at least one item element. 5) Both responses must contain valid SOAP 1.2 envelopes with the namespace http://example.com/inventory-warehouse. Score 0 if neither mapping uses XPath body matching, or if either operation is missing."
+      }
+    },
+    {
+      "input": "soap-inventory-realistic-data",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/inventory-warehouse-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "inventory-eval",
+        "description": "Generate mocks for GetItem and ListItems with realistic warehouse data. GetItem must return an item with a realistic SKU code (e.g., SKU-ELC-001 or WH-FRN-042), a realistic product name (e.g., 'Wireless Bluetooth Headphones', 'Oak Standing Desk'), a realistic unit price, and a realistic stock quantity. ListItems must return at least 3 items with diverse product names and categories.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/inventory-warehouse. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for GetItem (action http://example.com/inventory-warehouse/GetItem) whose response contains a name element with a realistic product name (not placeholder values like item1, test, Product Name). 2) The GetItem response must contain a sku element with a code-like value and a unitPrice element with a realistic positive numeric amount. 3) There must be a mapping for ListItems (action http://example.com/inventory-warehouse/ListItems) whose response contains at least 3 item elements with diverse product names. 4) Each item must have a name element with a meaningful product name and a quantity element with a realistic positive integer. Score 0 if product names are obviously placeholder values (item1, test, foo) or if prices are zero or negative."
+      }
+    },
+    {
+      "input": "soap-notification-consistency",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/notification-messaging-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "notification-eval",
+        "description": "Generate mocks for SendNotification and GetNotificationStatus where the notificationId returned in the SendNotification response is the same notificationId used in the GetNotificationStatus response. The data must be cross-referenced and consistent between the two operations.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/notification-messaging. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for SendNotification (action http://example.com/notification-messaging/SendNotification) whose response contains a notificationId element with a non-empty value. 2) There must be a mapping for GetNotificationStatus (action http://example.com/notification-messaging/GetNotificationStatus) whose response contains a notificationId element with a non-empty value. 3) The GetNotificationStatus response must also contain a status element with a non-empty value. 4) Both responses must contain valid SOAP 1.2 envelopes with the namespace http://example.com/notification-messaging. Additional mappings for the same operations are acceptable. Score 0 if either SendNotification or GetNotificationStatus operation is missing."
+      }
+    },
+    {
+      "input": "soap-inventory-filtered-shipment",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/inventory-warehouse-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "inventory-eval",
+        "description": "Generate mocks only for shipment-related operations: CreateShipment and GetShipment. Do NOT generate mocks for GetItem, ListItems, CreateItem, or UpdateStock.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/inventory-warehouse. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be at least 2 mappings for shipment operations: CreateShipment (action http://example.com/inventory-warehouse/CreateShipment) and GetShipment (action http://example.com/inventory-warehouse/GetShipment). Additional mappings for the same operations (e.g., error/fault variants) are acceptable and should not reduce the score. 2) There must be NO mappings with action containing GetItem, ListItems, CreateItem, or UpdateStock. Check all Content-Type header matchers — none should reference those operations. 3) The CreateShipment response must contain a shipmentId element. 4) The GetShipment response must contain a shipmentId and status element. 5) Both responses must contain valid SOAP 1.2 envelopes with the namespace http://example.com/inventory-warehouse. Score 0 if any non-shipment operation mapping is present, or if either shipment operation is missing."
+      }
+    },
+    {
+      "input": "soap-notification-realistic-data",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/notification-messaging-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "notification-eval",
+        "description": "Generate mocks for SendNotification and GetNotificationStatus with realistic notification data. SendNotification must include a realistic recipientId (e.g., user-12345), channel set to 'email', a realistic subject line (e.g., 'Your order has shipped'), and a realistic body message. GetNotificationStatus must return a realistic status (e.g., 'delivered') with realistic sentAt and deliveredAt timestamps in ISO 8601 format.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/notification-messaging. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be a mapping for SendNotification (action http://example.com/notification-messaging/SendNotification) whose response contains a notificationId element with a non-empty value. 2) There must be a mapping for GetNotificationStatus (action http://example.com/notification-messaging/GetNotificationStatus) whose response contains a status element with a realistic value (not placeholder like status1 or test). 3) The GetNotificationStatus response must contain sentAt or deliveredAt elements with timestamp-like values. 4) Both responses must contain valid SOAP 1.2 envelopes with the namespace http://example.com/notification-messaging. Score 0 if either operation is missing or if status values are obviously placeholder."
+      }
+    },
+    {
+      "input": "soap-banking-multi-fault",
+      "metadata": {
+        "protocol": "SOAP",
+        "specFile": "eval/banking-service-soap12.wsdl",
+        "format": "WSDL",
+        "namespace": "banking-eval",
+        "description": "Generate mocks for GetAccount with two scenarios: a success response returning account details for an existing account, and a SOAP fault response for account not found. Use XPath body matchers to differentiate the two GetAccount stubs — the success stub should match when the request contains accountId 'ACC-001', and the fault stub should match when the request contains accountId 'ACC-INVALID'.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with urlPath, method POST, and headers containing Content-Type with action parameter) and 'response' (with body containing a SOAP 1.2 XML envelope). The response body uses namespace http://example.com/banking-service. All operations share the same urlPath endpoint and are differentiated by the action parameter in Content-Type.\n\nStrictly verify: 1) There must be at least 2 mappings for GetAccount (action http://example.com/banking-service/GetAccount). 2) One mapping must return a success response (status 200) with an account element containing an id or accountId. 3) One mapping must return a SOAP fault response containing a Fault element with a Code and Reason. 4) At least one of the two mappings must use bodyPatterns with matchesXPath to differentiate based on the accountId value in the request. 5) Both responses must be valid SOAP 1.2 envelopes. Score 0 if there is only one GetAccount mapping, or if neither a success nor a fault response is present."
+      }
+    },
+
+    {
+      "input": "rest-petstore-basic-get",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate mocks for all GET endpoints in the Petstore API.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with url/urlPath/urlPathPattern) and 'response' (with jsonBody or body). URLs are prefixed with a namespace like /petstore-eval/. Additional response fields beyond those listed are acceptable. Verify: 1) There must be mocks matching GET endpoints for /pet/findByStatus, /pet/findByTags, /pet/{petId}, /store/inventory, /store/order/{orderId}, /user/login, /user/logout, and /user/{username} (URLs may have a namespace prefix). 2) The pet response jsonBody must include at least: id (number), name (string), status (string). 3) The order response jsonBody must include at least: id, petId, quantity, status. 4) The user response jsonBody must include at least: id, username, firstName, lastName, email. 5) All mocks must return HTTP 200. Score 0 only if a GET endpoint is completely missing."
+      }
+    },
+    {
+      "input": "rest-bored-basic-all",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/bored-api-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "bored-eval",
+        "description": "Generate mocks for all 3 endpoints in the Bored API.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with url/urlPath/urlPathPattern) and 'response' (with jsonBody or body). URLs are prefixed with a namespace like /bored-eval/. Additional response fields beyond those listed are acceptable. Verify: 1) There must be mocks matching GET /random, GET /filter, and GET /activity/{key} (URLs may have a namespace prefix or use urlPathPattern with regex). 2) The GET /random response jsonBody must include at least: activity (string), type (string), participants (number), and key (string). Additional fields like price or accessibility are acceptable. 3) The GET /filter response jsonBody must be an array of objects each containing at least activity and type. 4) The GET /activity/{key} response must include at least: activity, type, participants, key. 5) All mocks must return HTTP 200. Score 0 only if an endpoint is completely missing."
+      }
+    },
+    {
+      "input": "rest-social-basic-get",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/social-content-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "social-eval",
+        "description": "Generate mocks for all GET endpoints in the Social Content API.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with url/urlPath/urlPathPattern) and 'response' (with jsonBody or body). URLs are prefixed with a namespace like /social-eval/. Additional response fields beyond those listed are acceptable. Verify: 1) There must be mocks matching GET /users, GET /users/{userId}, GET /posts, GET /posts/{postId}, and GET /posts/{postId}/comments (URLs may have a namespace prefix). 2) The user response jsonBody must include at least: id, username, displayName, email. 3) The post response jsonBody must include at least: id, title, body, authorId. 4) The comments response must be an array of objects each containing at least: id, postId, body. 5) All mocks must return HTTP 200. Score 0 only if a GET endpoint is completely missing."
+      }
+    },
+    {
+      "input": "rest-petstore-filtered-pets",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate mocks only for pet-related endpoints: GET /pet/findByStatus, GET /pet/findByTags, GET /pet/{petId}, PUT /pet, POST /pet, POST /pet/{petId}, DELETE /pet/{petId}, and POST /pet/{petId}/uploadImage.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /petstore-eval/. Verify: 1) There must be mocks for pet endpoints including at least GET /pet/findByStatus, GET /pet/{petId}, and one of PUT /pet or POST /pet (URLs will have namespace prefix). 2) There must be NO mocks for store endpoints (containing /store/) or user endpoints (containing /user/). Check the urlPath or urlPathPattern fields — none should contain '/store/' or '/user/'. 3) The GET /pet/{petId} response jsonBody must include at least: id, name, status. Additional fields are acceptable. Score 0 if any store or user endpoint mock is present, or if no pet endpoint mocks exist."
+      }
+    },
+    {
+      "input": "rest-social-filtered-users",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/social-content-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "social-eval",
+        "description": "Generate mocks only for user-related endpoints: GET /users, GET /users/{userId}, POST /users, and PUT /users/{userId}.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /social-eval/. The description explicitly requests GET /users, GET /users/{userId}, POST /users, and PUT /users/{userId} — all of these are expected. Verify: 1) There must be mocks for user endpoints including GET /users, GET /users/{userId}, POST /users, and PUT /users/{userId} (URLs will have namespace prefix). All four are explicitly requested and must be present. 2) There must be NO mocks for post endpoints (containing /posts) or comment endpoints (containing /comments). Check the urlPath or urlPathPattern fields — none should contain '/posts' or '/comments'. 3) The GET /users/{userId} response jsonBody must include at least: id, username, displayName, email. Additional fields are acceptable. Score 0 if any post or comment endpoint mock is present, or if no user endpoint mocks exist."
+      }
+    },
+    {
+      "input": "rest-petstore-consistency",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate mocks where GET /pet/1 returns a pet, GET /store/order/1 returns an order referencing that pet, and GET /user/john returns a user. The order's petId must match the pet's id, and all entities must use consistent, cross-referenced data.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /petstore-eval/. Verify: 1) There must be a mock for a pet endpoint (URL containing /pet/ with id 1), an order endpoint (URL containing /store/order/ with id 1), and a user endpoint (URL containing /user/ with username john). 2) The pet response jsonBody must contain an id field. 3) The order response jsonBody must contain a petId field whose value matches the pet's id. 4) The user response jsonBody must contain username with value 'john'. Score 0 if the petId in the order does not match the pet id, or if any of the 3 endpoint mocks is missing."
+      }
+    },
+    {
+      "input": "rest-social-consistency",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/social-content-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "social-eval",
+        "description": "Generate mocks where GET /posts/1 returns a post whose authorId matches the id from GET /users/1, and GET /posts/1/comments returns comments whose postId is 1 and whose authorId references a valid user id.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /social-eval/. Verify: 1) There must be mocks for a user endpoint (URL containing /users/ with id 1), a post endpoint (URL containing /posts/ with id 1), and a comments endpoint (URL containing /posts/1/comments or similar). 2) The post response jsonBody must contain authorId whose value equals the user's id (1). 3) Each comment in the comments response must contain postId with value 1. Score 0 if the post authorId does not reference the user, or if any comment postId is not 1."
+      }
+    },
+    {
+      "input": "rest-petstore-error",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate 404 and 500 error responses for pet endpoints. Include a 404 response for GET /pet/{petId} when the pet is not found, and a 500 internal server error response for GET /pet/{petId}.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /petstore-eval/. Verify: 1) There must be a mock for a pet endpoint (URL containing /pet/) with response status 404 and a non-empty response body indicating not found. 2) There must be a mock for a pet endpoint (URL containing /pet/) with response status 500 and a non-empty response body indicating server error. 3) Check the 'response.status' field in each mapping for values 404 and 500. 4) Both error responses must have a non-empty body or jsonBody. Score 0 if either the 404 or 500 error mock is missing or has an empty response body."
+      }
+    },
+    {
+      "input": "rest-payment-error",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/payment-financial-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "payment-eval",
+        "description": "Generate error responses for payment failures: a 402 Payment Required response for POST /payments when funds are insufficient, a 404 Not Found response for GET /payments/{paymentId} when the payment does not exist, and a 422 Validation Exception response for POST /payments with invalid input.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /payment-eval/. Note: if the API specification does not define a particular status code, the model may substitute a similar one (e.g., 400 instead of 422). Verify: 1) There must be a mock for POST /payments with response status 402 and a body containing an error message. 2) There must be a mock for GET /payments/{paymentId} with response status 404 and a body containing an error message. 3) There must be a mock for POST /payments with a client error response status (400, 422, or similar 4xx) and a body containing a validation error message. Accept 400 as equivalent to 422. 4) Each error mock must have a non-empty jsonBody or body with error information. Score 0 only if the 402 or 404 error mock is completely missing."
+      }
+    },
+    {
+      "input": "rest-social-realistic",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/social-content-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "social-eval",
+        "description": "Generate mocks with realistic European names and content. GET /users should return users with European names (e.g., Hans Mueller, Sophie Dubois, Giulia Rossi). GET /posts should return posts with realistic titles and body content. GET /posts/{postId}/comments should return comments with realistic text.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /social-eval/. Response data is inside 'response.jsonBody'. Verify: 1) There must be mocks for user, post, and comment endpoints (URLs containing /users, /posts, and /comments respectively). 2) User response data must contain displayName or name fields with realistic full names (not placeholder values like user1, test, foo). Names should look like real European names. 3) Post response data must contain title and body fields with meaningful content (not placeholder text like title1 or body1). 4) The data should feel realistic and domain-appropriate. Score 0 if names are obviously placeholder values (user1, test, foo, lorem ipsum) or if content is generic filler."
+      }
+    },
+    {
+      "input": "rest-payment-realistic",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/payment-financial-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "payment-eval",
+        "description": "Generate mocks with realistic payment amounts in EUR. GET /payments should return payments with realistic EUR amounts (e.g., 49.99, 150.00, 299.50). GET /invoices should return invoices with lineItems containing realistic descriptions, quantities, and unit prices that sum correctly. All currency fields must be EUR.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /payment-eval/. Response data is inside 'response.jsonBody'. Verify: 1) There must be mocks for payment and invoice endpoints (URLs containing /payments and /invoices). 2) Payment response data must have currency set to EUR (or eur). 3) Payment amounts must be realistic positive numbers (not 0, not negative). 4) Invoice response data must have currency set to EUR and contain a non-empty lineItems array. 5) Each lineItem must have at least a description and a numeric amount or unitPrice. Score 0 if currency is not EUR or if amounts are zero/negative."
+      }
+    },
+    {
+      "input": "rest-petstore-pagination",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate mocks for GET /pet/findByStatus with 3 pages of results. Each page should return a different set of pets with status=available. Use query parameter or response metadata to distinguish pages. Each page should contain at least 2 pet objects.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /petstore-eval/. Verify: 1) There must be at least 3 distinct mocks for a findByStatus endpoint (URL containing /pet/findByStatus). They may be distinguished by query parameters, priority, or different URL patterns. 2) Each mock response must contain an array of pet objects with at least 2 items. 3) Each pet object must include at least: id (number), name (string), and status with value 'available'. Additional fields are acceptable. 4) Pet ids should be unique across pages. Score 0 if fewer than 3 findByStatus mocks exist or if any page has fewer than 2 pets."
+      }
+    },
+    {
+      "input": "rest-weather-basic",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/weather-utility-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "weather-eval",
+        "description": "Generate mocks for all weather endpoints: GET /weather/current and GET /weather/forecast.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /weather-eval/. Response data is inside 'response.jsonBody'. Additional response fields beyond those listed are acceptable. Verify: 1) There must be mocks for GET /weather/current and GET /weather/forecast (URLs will contain /weather/current and /weather/forecast with namespace prefix). 2) The current weather response jsonBody must include at least a temperature-related numeric field (temperature, temp, or similar) and a city or location string field. Additional fields like humidity, windSpeed, description are acceptable but not required for passing. 3) The forecast response jsonBody must include a days or forecast array with at least one item containing temperature-related fields. 4) All mocks must return HTTP 200. Score 0 only if either the current or forecast endpoint mock is completely missing."
+      }
+    },
+    {
+      "input": "rest-payment-basic",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/payment-financial-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "payment-eval",
+        "description": "Generate mocks for all GET endpoints in the Payment Financial API.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /payment-eval/. Response data is inside 'response.jsonBody'. Additional response fields beyond those listed are acceptable. Verify: 1) There must be mocks for GET endpoints covering customers, payments, and invoices (URLs containing /customers, /payments, and /invoices with namespace prefix). 2) Customer response data must include at least: id, name or email. 3) Payment response data must include at least: id, amount (number), status (string). 4) Invoice response data must include at least: id, lineItems (array), and a total or totalAmount field. 5) All mocks must return HTTP 200. Score 0 only if an entire resource type (customers, payments, or invoices) has no GET mock."
       }
     }
   ]

@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/inventory-warehouse"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/inventory-warehouse"
+                  name="InventoryWarehouseService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/inventory-warehouse">
+
+      <!-- Simple type: ItemCategory enumeration -->
+      <xsd:simpleType name="ItemCategory">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="electronics"/>
+          <xsd:enumeration value="clothing"/>
+          <xsd:enumeration value="food"/>
+          <xsd:enumeration value="furniture"/>
+          <xsd:enumeration value="other"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <!-- Simple type: StockStatus enumeration -->
+      <xsd:simpleType name="StockStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="in_stock"/>
+          <xsd:enumeration value="low_stock"/>
+          <xsd:enumeration value="out_of_stock"/>
+          <xsd:enumeration value="discontinued"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <!-- Complex type: LineItem (nested in ShipmentOrder) -->
+      <xsd:complexType name="LineItem">
+        <xsd:sequence>
+          <xsd:element name="itemId" type="xsd:string"/>
+          <xsd:element name="quantity" type="xsd:int"/>
+          <xsd:element name="unitPrice" type="xsd:decimal"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Complex type: InventoryItem (8 fields, references ItemCategory and StockStatus) -->
+      <xsd:complexType name="InventoryItem">
+        <xsd:sequence>
+          <xsd:element name="itemId" type="xsd:string"/>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="sku" type="xsd:string"/>
+          <xsd:element name="category" type="tns:ItemCategory"/>
+          <xsd:element name="quantity" type="xsd:int"/>
+          <xsd:element name="unitPrice" type="xsd:decimal"/>
+          <xsd:element name="location" type="xsd:string"/>
+          <xsd:element name="status" type="tns:StockStatus"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Complex type: ShipmentOrder (5 fields, contains LineItem array) -->
+      <xsd:complexType name="ShipmentOrder">
+        <xsd:sequence>
+          <xsd:element name="shipmentId" type="xsd:string"/>
+          <xsd:element name="destinationAddress" type="xsd:string"/>
+          <xsd:element name="status" type="xsd:string"/>
+          <xsd:element name="items" type="tns:LineItem" maxOccurs="unbounded"/>
+          <xsd:element name="createdAt" type="xsd:dateTime"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Complex type: StockUpdate -->
+      <xsd:complexType name="StockUpdate">
+        <xsd:sequence>
+          <xsd:element name="itemId" type="xsd:string"/>
+          <xsd:element name="quantityChange" type="xsd:int"/>
+          <xsd:element name="reason" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- GetItem operation types -->
+      <xsd:element name="GetItemRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="itemId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetItemResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="item" type="tns:InventoryItem"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- ListItems operation types -->
+      <xsd:element name="ListItemsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="category" type="tns:ItemCategory"/>
+            <xsd:element name="status" type="tns:StockStatus"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="ListItemsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="items" type="tns:InventoryItem" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateItem operation types (6 fields in request) -->
+      <xsd:element name="CreateItemRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="name" type="xsd:string"/>
+            <xsd:element name="sku" type="xsd:string"/>
+            <xsd:element name="category" type="tns:ItemCategory"/>
+            <xsd:element name="quantity" type="xsd:int"/>
+            <xsd:element name="unitPrice" type="xsd:decimal"/>
+            <xsd:element name="location" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateItemResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="itemId" type="xsd:string"/>
+            <xsd:element name="status" type="tns:StockStatus"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- UpdateStock operation types -->
+      <xsd:element name="UpdateStockRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="itemId" type="xsd:string"/>
+            <xsd:element name="quantityChange" type="xsd:int"/>
+            <xsd:element name="reason" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="UpdateStockResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="itemId" type="xsd:string"/>
+            <xsd:element name="newQuantity" type="xsd:int"/>
+            <xsd:element name="status" type="tns:StockStatus"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateShipment operation types (contains LineItem array) -->
+      <xsd:element name="CreateShipmentRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="destinationAddress" type="xsd:string"/>
+            <xsd:element name="items" type="tns:LineItem" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateShipmentResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="shipmentId" type="xsd:string"/>
+            <xsd:element name="status" type="xsd:string"/>
+            <xsd:element name="estimatedDelivery" type="xsd:dateTime"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- GetShipment operation types -->
+      <xsd:element name="GetShipmentRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="shipmentId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetShipmentResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="shipment" type="tns:ShipmentOrder"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </wsdl:types>
+
+  <!-- Messages -->
+  <wsdl:message name="GetItemRequestMsg"><wsdl:part name="parameters" element="tns:GetItemRequest"/></wsdl:message>
+  <wsdl:message name="GetItemResponseMsg"><wsdl:part name="parameters" element="tns:GetItemResponse"/></wsdl:message>
+  <wsdl:message name="ListItemsRequestMsg"><wsdl:part name="parameters" element="tns:ListItemsRequest"/></wsdl:message>
+  <wsdl:message name="ListItemsResponseMsg"><wsdl:part name="parameters" element="tns:ListItemsResponse"/></wsdl:message>
+  <wsdl:message name="CreateItemRequestMsg"><wsdl:part name="parameters" element="tns:CreateItemRequest"/></wsdl:message>
+  <wsdl:message name="CreateItemResponseMsg"><wsdl:part name="parameters" element="tns:CreateItemResponse"/></wsdl:message>
+  <wsdl:message name="UpdateStockRequestMsg"><wsdl:part name="parameters" element="tns:UpdateStockRequest"/></wsdl:message>
+  <wsdl:message name="UpdateStockResponseMsg"><wsdl:part name="parameters" element="tns:UpdateStockResponse"/></wsdl:message>
+  <wsdl:message name="CreateShipmentRequestMsg"><wsdl:part name="parameters" element="tns:CreateShipmentRequest"/></wsdl:message>
+  <wsdl:message name="CreateShipmentResponseMsg"><wsdl:part name="parameters" element="tns:CreateShipmentResponse"/></wsdl:message>
+  <wsdl:message name="GetShipmentRequestMsg"><wsdl:part name="parameters" element="tns:GetShipmentRequest"/></wsdl:message>
+  <wsdl:message name="GetShipmentResponseMsg"><wsdl:part name="parameters" element="tns:GetShipmentResponse"/></wsdl:message>
+
+  <!-- Port Type -->
+  <wsdl:portType name="InventoryWarehousePortType">
+    <wsdl:operation name="GetItem">
+      <wsdl:input message="tns:GetItemRequestMsg"/>
+      <wsdl:output message="tns:GetItemResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="ListItems">
+      <wsdl:input message="tns:ListItemsRequestMsg"/>
+      <wsdl:output message="tns:ListItemsResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="CreateItem">
+      <wsdl:input message="tns:CreateItemRequestMsg"/>
+      <wsdl:output message="tns:CreateItemResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateStock">
+      <wsdl:input message="tns:UpdateStockRequestMsg"/>
+      <wsdl:output message="tns:UpdateStockResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="CreateShipment">
+      <wsdl:input message="tns:CreateShipmentRequestMsg"/>
+      <wsdl:output message="tns:CreateShipmentResponseMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetShipment">
+      <wsdl:input message="tns:GetShipmentRequestMsg"/>
+      <wsdl:output message="tns:GetShipmentResponseMsg"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <!-- Binding -->
+  <wsdl:binding name="InventoryWarehouseBinding" type="tns:InventoryWarehousePortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="GetItem">
+      <soap12:operation soapAction="http://example.com/inventory-warehouse/GetItem"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ListItems">
+      <soap12:operation soapAction="http://example.com/inventory-warehouse/ListItems"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="CreateItem">
+      <soap12:operation soapAction="http://example.com/inventory-warehouse/CreateItem"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateStock">
+      <soap12:operation soapAction="http://example.com/inventory-warehouse/UpdateStock"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="CreateShipment">
+      <soap12:operation soapAction="http://example.com/inventory-warehouse/CreateShipment"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetShipment">
+      <soap12:operation soapAction="http://example.com/inventory-warehouse/GetShipment"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <!-- Service -->
+  <wsdl:service name="InventoryWarehouseService">
+    <wsdl:port name="InventoryWarehousePort" binding="tns:InventoryWarehouseBinding">
+      <soap12:address location="http://example.com/inventory/ws"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

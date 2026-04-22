@@ -12,21 +12,41 @@ Namespace:
 Enhancement Description: {{DESCRIPTION}}
 
 Requirements:
+
+WHICH ENDPOINTS TO GENERATE (CRITICAL — read this before generating):
+- Generate mocks ONLY for endpoints explicitly mentioned or implied by the Enhancement Description.
+- If the description says "all GET endpoints", generate ONLY GET endpoints — do not include POST, PUT, DELETE, or other methods.
+- If the description mentions specific endpoints (e.g., "error responses for pet endpoints"), generate mocks ONLY for those endpoints — not success responses for every endpoint in the spec.
+- If the description does not restrict which endpoints to generate, generate mocks for ALL endpoints in the specification.
+- NEVER invent endpoints that are not in the Key endpoints list above. Use ONLY the exact method + path combinations listed. For example, if the list shows "PUT /pet" but not "PUT /pet/{petId}", do NOT generate a mock for PUT /pet/{petId}.
+- Count your mappings carefully. Generating too many mappings risks exceeding the output token limit and producing truncated, unparseable JSON.
+- One high-quality mapping per endpoint/scenario. Prefer fewer, correct mappings over many incomplete ones.
+
+RESPONSE TYPE RULES (CRITICAL):
+- The Key endpoints list shows the expected return type in parentheses, e.g., "(Returns: OBJECT)" or "(Returns: ARRAY)" or "(Returns: STRING)".
+- If an endpoint says "(Returns: OBJECT)", the response jsonBody MUST be a JSON object `{ ... }`, NEVER a string, number, or array.
+- If an endpoint says "(Returns: ARRAY)", the response jsonBody MUST be a JSON array `[ ... ]`.
+- If an endpoint says "(Returns: STRING)", the response body may be a plain string value.
+- This is the #1 validation failure for REST mocks — double-check every response body matches the declared return type.
+
 - Generate WireMock mappings that follow the API specification structure
 - IMPORTANT: All mock URLs must be prefixed with /{{NAMESPACE}} (e.g., if the spec has /users, the mock URL should be /{{NAMESPACE}}/users)
 - CRITICAL: Every mapping MUST include `"persistent": true` to ensure mocks survive Lambda cold starts and are stored in S3
 - Enhance the mappings based on the description (add error cases, specific data, behaviors, etc.)
 - Include realistic response data that matches both the spec and description
 - Handle appropriate HTTP status codes
+- CRITICAL: Only use HTTP status codes that are defined in the API specification for each endpoint. If the description asks for a 500 error but the spec only defines 400 for that endpoint, use 400 instead. If the spec defines no error codes for an endpoint, use the closest standard error code that IS defined somewhere in the spec. Do NOT generate a status code that appears nowhere in the specification.
 - Include relevant headers and proper content types
 - Ensure data consistency and correct response format (IMPORTANT):
   - If an endpoint filters by query parameters (e.g. `status=available`), the response MUST only contain items with that status.
   - If an endpoint uses path parameters (e.g. `/pet/1`), the response data MUST match that ID.
+  - CRITICAL: When a URL contains a path parameter value (e.g., `/user/john`), the response body MUST reflect that same value in the corresponding field (e.g., `"username": "john"`). The path parameter value and the response field value must be identical — do NOT use a different value like a numeric ID.
   - Ensure you use the correct response format (Object vs Array) as defined in the specification for each endpoint.
   - When the description defines specific entities with properties (e.g., a pet with a specific name, status, or image),
     those entities MUST appear consistently across ALL relevant endpoints — list endpoints, detail endpoints, and filtered endpoints.
     For example, if pet ID=1 is a bird with status "available", then GET /pet/1, GET /pets, and GET /pets?status=available must all return consistent data for that bird.
   - If entities have tags or other filterable properties, ensure that filter/search endpoints return exactly the correct subset of entities matching that filter.
+  - CRITICAL: Only use query parameters that are defined in the API specification for each endpoint. Do NOT invent query parameters like `page`, `limit`, `offset`, `username`, `password`, or any other parameter not listed in the spec. If the spec does not define pagination parameters, do not add them.
 - Generate comprehensive mappings that cover the described scenarios
 - Prefer `jsonBody` over `body` for JSON responses to ensure easy readability and structure
 - WireMock URL matching rules (IMPORTANT):
