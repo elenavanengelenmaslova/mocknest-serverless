@@ -1,6 +1,6 @@
 {
-  "name": "Multi-Protocol Eval (GraphQL + SOAP + REST)",
-  "description": "Evaluation dataset covering GraphQL, SOAP (4 WSDL specs: calculator, banking, inventory, notification), and REST scenarios across multiple API specifications and prompt complexity levels (Basic, Filtered, Consistency, Error, Realistic_Data, Edge_Case)",
+  "name": "Multi-Protocol Eval (GraphQL + SOAP + REST) — 14 GraphQL scenarios across 4 introspection schemas",
+  "description": "Evaluation dataset covering GraphQL (4 introspection schemas: pokemon, books, ecommerce, taskmanagement — 14 scenarios), SOAP (4 WSDL specs: calculator, banking, inventory, notification), and REST scenarios across multiple API specifications and prompt complexity levels (Basic, Filtered, Consistency, Error, Realistic_Data, Edge_Case)",
   "examples": [
     {
       "input": "graphql-pokemon-pikachu",
@@ -22,6 +22,138 @@
         "namespace": "books-eval",
         "description": "Generate a mock for the books query returning exactly 2 books. Book 1: id 1, title 'The Great Gatsby', author name 'F. Scott Fitzgerald', genre 'fiction'. Book 2: id 2, title '1984', author name 'George Orwell', genre 'dystopian'.",
         "semanticCheck": "Strictly verify: 1) There must be a books query mock. 2) The response data.books must be an array with exactly 2 items. 3) One book must have title 'The Great Gatsby' and the other '1984'. Score 0 if any book is missing or titles are wrong."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-basic-queries",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate mocks for the products query returning a list of at least 2 products and the product query returning a single product by ID. Each product must include id, name, price, category, and inStock fields.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'products' and the response jsonBody must contain data.products as an array with at least 2 items. 2) There must be a stub with bodyPatterns matching operationName 'product' and the response jsonBody must contain data.product with fields id, name, and price. 3) Each product must have a category field with a valid ProductCategory enum value (one of ELECTRONICS, CLOTHING, FOOD, HOME, SPORTS) and an inStock boolean field. Score 0 if either the products or product operation stub is missing."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-basic-mutations",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate mocks for the createProduct mutation returning a newly created product with all fields, and the createOrder mutation returning a new order with id, status PENDING, totalAmount, and items array.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'createProduct' and the response jsonBody must contain data.createProduct with at least fields id, name, price, and category. Additional fields beyond those listed are acceptable and should not reduce the score. 2) There must be a stub with bodyPatterns matching operationName 'createOrder' and the response jsonBody must contain data.createOrder with at least fields id, status, and totalAmount. Additional fields like customer, items, or createdAt are acceptable. 3) The createOrder response status field must be PENDING. Score 0 if either the createProduct or createOrder mutation stub is missing."
+      }
+    },
+    {
+      "input": "graphql-taskmanagement-basic-all",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/taskmanagement-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "taskmanagement-eval",
+        "description": "Generate mocks for the projects query returning at least 2 projects and the tasks query returning at least 3 tasks with different statuses. Each project must include id and name. Each task must include id, title, status, and priority fields.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'projects' and the response jsonBody must contain data.projects as an array with at least 2 items, each having id and name fields. 2) There must be a stub with bodyPatterns matching operationName 'tasks' and the response jsonBody must contain data.tasks as an array with at least 3 items, each having id, title, status, and priority fields. 3) Task status values must be valid TaskStatus enum values (TODO, IN_PROGRESS, IN_REVIEW, or DONE). 4) Task priority values must be valid TaskPriority enum values (LOW, MEDIUM, HIGH, or CRITICAL). Additional fields beyond those listed are acceptable. Score 0 if either the projects or tasks operation stub is missing."
+      }
+    },
+    {
+      "input": "graphql-pokemon-basic-list",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/pokemon-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "pokemon-eval",
+        "description": "Generate a mock for the pokemons query returning a list of 5 Pokemon with pagination arguments limit 5 and offset 0. The response must include count and results array where each result has a name field.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'pokemons' and the response jsonBody must contain data.pokemons with a results array containing exactly 5 items. 2) Each item in the results array must have a name field with a non-empty string value. 3) The response must include a count field with a numeric value. Score 0 if the pokemons operation stub is missing or if the results array does not contain 5 items."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-filtered-orders",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate mocks only for order-related operations: the orders query, createOrder mutation, and updateOrderStatus mutation. Do NOT generate mocks for products, product, customer, createProduct, or deleteProduct operations.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be stubs with bodyPatterns matching operationNames 'orders', 'createOrder', and 'updateOrderStatus'. 2) There must be NO stubs with bodyPatterns matching operationNames 'products', 'product', 'customer', 'createProduct', or 'deleteProduct'. Check all bodyPatterns matchesJsonPath expressions — none should reference those excluded operation names. 3) The orders response must contain data.orders as an array with at least one order having id, status, and totalAmount fields. 4) The updateOrderStatus response must contain data.updateOrderStatus with a status field containing a valid OrderStatus enum value (PENDING, SHIPPED, DELIVERED, or CANCELLED). Score 0 if any excluded operation stub is present or if any of the 3 order operations is missing."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-error-notfound",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate GraphQL error responses for product not found (product query with non-existent ID) and order not found (orders query with non-existent customerId). Each error response must use the GraphQL errors array format with a non-empty message field.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'product' whose response jsonBody contains an 'errors' array with at least one error object having a non-empty 'message' field referencing product not found. 2) There must be a stub with bodyPatterns matching operationName 'orders' whose response jsonBody contains an 'errors' array with at least one error object having a non-empty 'message' field. 3) The error responses must use the standard GraphQL error format with an 'errors' array at the top level of the jsonBody. 4) The data field in error responses should be null or absent. Score 0 if either error response is missing or if the response does not contain an errors array."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-realistic-data",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate mocks for the products query and customer query with realistic European data. Products must have realistic European product names (e.g., 'Braun Series 9 Shaver', 'Lavazza Qualita Rossa Coffee'), prices in EUR as realistic amounts (e.g., 49.99, 12.50), and valid ProductCategory enum values. The customer must have a realistic European name (e.g., 'Hans Mueller', 'Sophie Dubois') and a European address with city, country, and postalCode.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'products' whose response contains data.products as an array with at least 2 products, each having a name field with a realistic product name (not placeholder values like product1, test, or foo). 2) Each product must have a price field with a realistic positive numeric amount. 3) There must be a stub with bodyPatterns matching operationName 'customer' whose response contains data.customer with a name field containing a realistic full name (not placeholder like user1 or test). 4) The customer must have an address object with city and country fields containing realistic European values. Score 0 if product names or customer names are obviously placeholder values."
+      }
+    },
+    {
+      "input": "graphql-taskmanagement-realistic-data",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/taskmanagement-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "taskmanagement-eval",
+        "description": "Generate mocks for the projects query and tasks query with realistic project management data. Projects must have realistic names (e.g., 'Customer Portal Redesign', 'Payment Gateway Migration'). Tasks must have realistic titles (e.g., 'Implement user authentication flow', 'Fix database connection pooling'), valid TaskStatus enum values, and valid TaskPriority enum values. Users must have realistic developer names.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'projects' whose response contains data.projects as an array with at least 2 projects, each having a name field with a realistic project name (not placeholder values like project1 or test). 2) There must be a stub with bodyPatterns matching operationName 'tasks' whose response contains data.tasks as an array with at least 2 tasks, each having a title field with a realistic task description (not placeholder like task1 or test). 3) Each task must have a status field with a valid TaskStatus enum value (TODO, IN_PROGRESS, IN_REVIEW, or DONE) and a priority field with a valid TaskPriority enum value (LOW, MEDIUM, HIGH, or CRITICAL). Score 0 if project names or task titles are obviously placeholder values."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-consistency",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate mocks for the customer query, orders query, and products query where the data is cross-referenced and consistent. The order's customer.id must match the customer query response id. The order items must reference product ids that appear in the products query response. Use customerId 'C-100' and at least one product with id 'P-200'.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be stubs with bodyPatterns matching operationNames 'customer', 'orders', and 'products'. 2) The customer response must contain data.customer with an id field. 3) The orders response must contain data.orders as an array where at least one order has a customer object or customerId field whose value matches the customer id from the customer response. 4) At least one order item must reference a product id that appears in the products response data.products array. Score 0 if the customer id in the orders response does not match the customer query response id, or if any of the 3 operation stubs is missing."
+      }
+    },
+    {
+      "input": "graphql-taskmanagement-consistency",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/taskmanagement-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "taskmanagement-eval",
+        "description": "Generate mocks for the users query and tasks query where the data is consistent. The tasks query must return at least 2 tasks, each with an assignee object containing an id and name. The users query must return at least 2 users. At least one task's assignee id should reference a user from the users response.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be stubs with bodyPatterns matching operationNames 'users' and 'tasks'. 2) The users response must contain data.users as an array with at least 2 users, each having id and name fields. 3) The tasks response must contain data.tasks as an array with at least 2 tasks, each having id, title, status, and priority fields. 4) Task status values must be valid TaskStatus enum values (TODO, IN_PROGRESS, IN_REVIEW, or DONE). Additional fields beyond those listed are acceptable. Score 0 if either the users or tasks operation stub is missing."
+      }
+    },
+    {
+      "input": "graphql-ecommerce-edge-mutation-input",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/ecommerce-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "ecommerce-eval",
+        "description": "Generate a mock for the createProduct mutation that accepts a CreateProductInput INPUT_OBJECT argument with fields name, description, price, category (ProductCategory enum), and inStock. The response must return the created product with all fields including the generated id, and the category must be a valid ProductCategory enum value.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'createProduct' and the response jsonBody must contain data.createProduct with fields id, name, price, category, and inStock. 2) The category field must contain a valid ProductCategory enum value (one of ELECTRONICS, CLOTHING, FOOD, HOME, SPORTS). 3) The id field must be a non-empty value. 4) The price field must be a positive numeric value. 5) The inStock field must be a boolean value. Score 0 if the createProduct operation stub is missing or if the response does not include all required fields (id, name, price, category, inStock)."
+      }
+    },
+    {
+      "input": "graphql-taskmanagement-edge-enum-filter",
+      "metadata": {
+        "protocol": "GraphQL",
+        "specFile": "eval/taskmanagement-graphql-introspection.json",
+        "format": "GRAPHQL",
+        "namespace": "taskmanagement-eval",
+        "description": "Generate a mock for the tasks query filtered by TaskStatus enum value IN_PROGRESS, returning only tasks with status IN_PROGRESS. Each task must include id, title, status, and priority fields with valid enum values.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. Each mapping has 'request' (with method POST, urlPath to /namespace/graphql, and bodyPatterns with matchesJsonPath on operationName) and 'response' (with jsonBody containing a GraphQL response with 'data' wrapper for success or 'errors' array for errors). All operations share the same urlPath endpoint and are differentiated by operationName in bodyPatterns.\n\nStrictly verify: 1) There must be a stub with bodyPatterns matching operationName 'tasks' and the response jsonBody must contain data.tasks as an array with at least 1 task. 2) Every task in the array must have a status field equal to IN_PROGRESS. 3) Every task must have id, title, and priority fields. 4) The priority field must be a valid TaskPriority enum value (LOW, MEDIUM, HIGH, or CRITICAL). Score 0 if the tasks operation stub is missing or if any task has a status other than IN_PROGRESS."
       }
     },
     {

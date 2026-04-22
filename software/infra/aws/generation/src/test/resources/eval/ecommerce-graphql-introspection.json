@@ -1,0 +1,269 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": null,
+          "fields": [
+            {
+              "name": "products",
+              "description": "Get a list of products, optionally filtered by category",
+              "args": [
+                { "name": "category", "description": "Filter by product category", "type": { "kind": "ENUM", "name": "ProductCategory", "ofType": null } },
+                { "name": "limit", "description": "Maximum number of products to return", "type": { "kind": "SCALAR", "name": "Int", "ofType": null } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Product", "ofType": null } } } }
+            },
+            {
+              "name": "product",
+              "description": "Get a single product by ID",
+              "args": [
+                { "name": "id", "description": "Product ID", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "OBJECT", "name": "Product", "ofType": null }
+            },
+            {
+              "name": "orders",
+              "description": "Get a list of orders, optionally filtered by status or customer",
+              "args": [
+                { "name": "status", "description": "Filter by order status", "type": { "kind": "ENUM", "name": "OrderStatus", "ofType": null } },
+                { "name": "customerId", "description": "Filter by customer ID", "type": { "kind": "SCALAR", "name": "ID", "ofType": null } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Order", "ofType": null } } } }
+            },
+            {
+              "name": "customer",
+              "description": "Get a customer by ID",
+              "args": [
+                { "name": "id", "description": "Customer ID", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "OBJECT", "name": "Customer", "ofType": null }
+            }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": null,
+          "fields": [
+            {
+              "name": "createProduct",
+              "description": "Create a new product",
+              "args": [
+                { "name": "input", "description": "Product creation input", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CreateProductInput", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Product", "ofType": null } }
+            },
+            {
+              "name": "createOrder",
+              "description": "Create a new order",
+              "args": [
+                { "name": "input", "description": "Order creation input", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CreateOrderInput", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Order", "ofType": null } }
+            },
+            {
+              "name": "updateOrderStatus",
+              "description": "Update the status of an existing order",
+              "args": [
+                { "name": "orderId", "description": "Order ID", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+                { "name": "status", "description": "New order status", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "OrderStatus", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Order", "ofType": null } }
+            },
+            {
+              "name": "deleteProduct",
+              "description": "Delete a product by ID",
+              "args": [
+                { "name": "id", "description": "Product ID to delete", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Boolean", "ofType": null } }
+            }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Product",
+          "description": "A product in the e-commerce catalog",
+          "fields": [
+            { "name": "id", "description": "Unique product identifier", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": "Product name", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "description", "description": "Product description", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "price", "description": "Product price", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } },
+            { "name": "category", "description": "Product category", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "ProductCategory", "ofType": null } } },
+            { "name": "inStock", "description": "Whether the product is in stock", "args": [], "type": { "kind": "SCALAR", "name": "Boolean", "ofType": null } },
+            { "name": "imageUrl", "description": "URL to product image", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Order",
+          "description": "A customer order",
+          "fields": [
+            { "name": "id", "description": "Unique order identifier", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "customer", "description": "Customer who placed the order", "args": [], "type": { "kind": "OBJECT", "name": "Customer", "ofType": null } },
+            { "name": "items", "description": "Order line items", "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "OrderItem", "ofType": null } } } },
+            { "name": "totalAmount", "description": "Total order amount", "args": [], "type": { "kind": "SCALAR", "name": "Float", "ofType": null } },
+            { "name": "status", "description": "Current order status", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "OrderStatus", "ofType": null } } },
+            { "name": "createdAt", "description": "Order creation timestamp", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "shippingAddress", "description": "Shipping address for the order", "args": [], "type": { "kind": "OBJECT", "name": "Address", "ofType": null } }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "OBJECT",
+          "name": "OrderItem",
+          "description": "A line item in an order",
+          "fields": [
+            { "name": "product", "description": "The product ordered", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Product", "ofType": null } } },
+            { "name": "quantity", "description": "Quantity ordered", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "unitPrice", "description": "Price per unit at time of order", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Customer",
+          "description": "A customer account",
+          "fields": [
+            { "name": "id", "description": "Unique customer identifier", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": "Customer full name", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "email", "description": "Customer email address", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "address", "description": "Customer address", "args": [], "type": { "kind": "OBJECT", "name": "Address", "ofType": null } },
+            { "name": "orders", "description": "Orders placed by this customer", "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Order", "ofType": null } } } }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Address",
+          "description": "A physical address",
+          "fields": [
+            { "name": "street", "description": "Street address", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "city", "description": "City name", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "country", "description": "Country name", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "postalCode", "description": "Postal code", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "ENUM",
+          "name": "OrderStatus",
+          "description": "Status of an order",
+          "fields": null,
+          "inputFields": null,
+          "interfaces": null,
+          "enumValues": [
+            { "name": "PENDING", "description": "Order has been placed but not yet processed" },
+            { "name": "SHIPPED", "description": "Order has been shipped" },
+            { "name": "DELIVERED", "description": "Order has been delivered" },
+            { "name": "CANCELLED", "description": "Order has been cancelled" }
+          ],
+          "possibleTypes": null
+        },
+        {
+          "kind": "ENUM",
+          "name": "ProductCategory",
+          "description": "Category of a product",
+          "fields": null,
+          "inputFields": null,
+          "interfaces": null,
+          "enumValues": [
+            { "name": "ELECTRONICS", "description": "Electronic devices and accessories" },
+            { "name": "CLOTHING", "description": "Apparel and fashion items" },
+            { "name": "FOOD", "description": "Food and beverages" },
+            { "name": "HOME", "description": "Home and garden products" },
+            { "name": "SPORTS", "description": "Sports and outdoor equipment" }
+          ],
+          "possibleTypes": null
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "CreateProductInput",
+          "description": "Input for creating a new product",
+          "fields": null,
+          "inputFields": [
+            { "name": "name", "description": "Product name", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "description", "description": "Product description", "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "price", "description": "Product price", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } },
+            { "name": "category", "description": "Product category", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "ProductCategory", "ofType": null } } },
+            { "name": "inStock", "description": "Whether the product is in stock", "type": { "kind": "SCALAR", "name": "Boolean", "ofType": null } }
+          ],
+          "interfaces": null,
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "CreateOrderInput",
+          "description": "Input for creating a new order",
+          "fields": null,
+          "inputFields": [
+            { "name": "customerId", "description": "ID of the customer placing the order", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "items", "description": "Order line items", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "OrderItemInput", "ofType": null } } } } },
+            { "name": "shippingAddress", "description": "Shipping address", "type": { "kind": "INPUT_OBJECT", "name": "AddressInput", "ofType": null } }
+          ],
+          "interfaces": null,
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "OrderItemInput",
+          "description": "Input for an order line item",
+          "fields": null,
+          "inputFields": [
+            { "name": "productId", "description": "ID of the product to order", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "quantity", "description": "Quantity to order", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } }
+          ],
+          "interfaces": null,
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "AddressInput",
+          "description": "Input for a physical address",
+          "fields": null,
+          "inputFields": [
+            { "name": "street", "description": "Street address", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "city", "description": "City name", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "country", "description": "Country name", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "postalCode", "description": "Postal code", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ],
+          "interfaces": null,
+          "enumValues": null,
+          "possibleTypes": null
+        }
+      ]
+    }
+  }
+}

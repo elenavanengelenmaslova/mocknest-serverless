@@ -63,6 +63,7 @@ GraphQL response format rules (IMPORTANT):
 - NEVER return a bare JSON object or array as the response body — always wrap in `data` or `errors`.
 - Response HTTP status code is always 200 for GraphQL (even for errors — errors go in the `errors` field).
 - Always include `Content-Type: application/json` header in all responses.
+- ERROR RESPONSE GENERATION: When the Enhancement Description asks for error responses (e.g., "not found", "error", "invalid"), generate stubs whose jsonBody uses the `errors` array format, NOT the `data` wrapper. The error stub must use a different request matcher than any success stub for the same operation (e.g., match on a specific variable value like `$[?(@.variables.id == '999')]`). Do NOT generate success stubs when errors are requested.
 
 Schema-based field validation rules (IMPORTANT):
 - Response data MUST include all required fields as defined in the schema for the return type.
@@ -73,11 +74,16 @@ EXAMPLE of correct jsonBody with proper scalar types (STUDY THIS):
   Correct:   "jsonBody": {"data":{"pokemon":{"id":25,"name":"pikachu","height":4,"weight":60,"types":[{"slot":1,"type":{"name":"electric"}}]}}}
   WRONG:     "jsonBody": {"data":{"pokemon":{"id":"25","name":"pikachu","height":"4","weight":"60"}}}
   Notice: id (25), height (4), weight (60), slot (1) are bare JSON numbers inside the jsonBody object. name ("pikachu") is a quoted string because it is a String type. Do NOT quote integers — this is the #1 validation failure.
-  IMPORTANT: The GraphQL ID type maps to a JSON STRING, not a number. If the schema says `id: ID!`, use "id": "1" (quoted). If the schema says `id: Int!`, use "id": 1 (bare number). Check the schema type carefully for each id field.
-- Enum values in responses MUST be one of the valid values defined in the schema.
+  IMPORTANT: The GraphQL ID type maps to a JSON STRING, not a number. If the schema says `id: ID!`, use "id": "1" (quoted string). If the schema says `id: Int!`, use "id": 1 (bare number). Check the schema type carefully for each id field. This is the most common ID-related failure — ALWAYS quote ID values as strings.
+- ENUM VALUE CASING (CRITICAL — #2 validation failure): Enum values MUST be written in EXACT UPPER_CASE as defined in the schema. For example, if the schema defines `ProductCategory` with values `ELECTRONICS, CLOTHING, FOOD, HOME, SPORTS`, you MUST use `"ELECTRONICS"` — NEVER `"Electronics"`, `"electronics"`, or `"Electronic"`. Copy enum values character-for-character from the schema definition. This applies to ALL enum fields in the response.
 - List fields must return arrays; object fields must return objects.
 - Nested types must include their required fields recursively.
-- NESTED REQUIRED FIELDS: When a type has required list fields (e.g., types: [PokemonType!]!, moves: [PokemonMove!]!), you MUST include them with at least one item each. Do NOT omit required list fields — an empty array [] is acceptable but omitting the field entirely will fail validation. Walk through every non-null (!) field in the return type and ensure it exists in your response.
+- NESTED REQUIRED FIELDS (CRITICAL — #3 validation failure): When a return type contains object-type fields (e.g., Order has `customer: Customer!`, Task has `project: Project!`), you MUST include those nested objects with ALL of their own required fields. Walk through the FULL type chain:
+  1. Look at the return type's fields — include every non-null (!) field
+  2. For each field that is an object type, look up THAT type's fields and include every non-null (!) field recursively
+  3. For required list fields (e.g., `tasks: [Task!]!`, `orders: [Order!]!`), include at least one item with all its required fields
+  Example: If `Order` has `customer: Customer!` and `Customer` has `name: String!`, `email: String!`, then the order response MUST include `"customer": {"name": "...", "email": "..."}`. Do NOT omit nested required objects — this is the most common structural failure.
+  COMMON OMISSIONS TO AVOID: Fields like `createdAt: String!`, `owner: User!`, `project: Project!`, `tasks: [Task!]!`, `role: String!`, and `orders: [Order!]!` are frequently missed. Before returning, scan EVERY type in the schema and confirm that ALL non-null (!) fields appear in your response data. If a type has 6+ required fields, count them one by one.
 - If the description defines specific entities (e.g., a user with a specific name or ID), those entities MUST appear consistently across ALL relevant operations.
 
 - Return only a JSON array of valid WireMock mappings.
@@ -95,5 +101,8 @@ EXAMPLE of correct jsonBody with proper scalar types (STUDY THIS):
 
 {{WIREMOCK_SCHEMA}}
 
-- Before returning, verify: (1) JSON is valid and parseable, (2) operation count matches requirements (5 by default), (3) JSONPath uses `$[?(...)]` not `$..[?(...)]`, (4) comparison operators have proper spacing
+PRE-GENERATION CHECKLIST (complete this mentally before writing JSON):
+For each operation you will generate, identify its return type, then list ALL non-null (!) fields of that type. For each field that is an object type or list of objects, recursively list THAT type's non-null fields too. Every field ending with ! in the schema MUST appear in your response. Common fields that are easy to miss: createdAt, owner, project, tasks, orders, role, shippingAddress when marked !.
+
+- Before returning, verify: (1) JSON is valid and parseable, (2) operation count matches requirements (5 by default), (3) JSONPath uses `$[?(...)]` not `$..[?(...)]`, (4) comparison operators have proper spacing, (5) ALL enum values are EXACT UPPER_CASE from the schema, (6) every non-null (!) field is present — scan each type definition in the schema above and confirm every ! field appears in your response data, including nested objects and their own ! fields
 - Do not include any explanatory text, only the JSON array.

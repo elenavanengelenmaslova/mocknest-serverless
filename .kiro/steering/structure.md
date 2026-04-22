@@ -330,7 +330,7 @@ mocknest-serverless/
 
 # Security Architecture
 
-- Access to the MockNest Serverless service itself (both the mock admin API and mocked endpoints) is protected in the same way as any other API, with a default configuration using API key–based access control at the edge (e.g., AWS API Gateway)
+- Access to the MockNest Serverless service itself (both the mock admin API and mocked endpoints) is protected at the edge (e.g., AWS API Gateway) with a configurable authentication mode: API key (default) or AWS IAM SigV4
 - When mocked services normally require authentication flows (such as OAuth-style token acquisition), those identity endpoints can also be mocked. This allows the system under test to keep its authentication logic enabled and follow the usual token request flow, while the token endpoint returns predictable mock tokens for testing purposes
 
 # Scalability Considerations
@@ -393,7 +393,7 @@ flowchart TB
 MockNest Serverless core runtime is built around these essential AWS services:
 
 - **AWS Lambda** - Serverless compute runtime for the WireMock engine
-- **Amazon API Gateway** - HTTP ingress and API key-based access control for both admin API and mocked endpoints  
+- **Amazon API Gateway** - HTTP ingress and access control for both admin API and mocked endpoints (API key or IAM SigV4, configurable via AuthMode parameter)
 - **Amazon S3** - Persistent storage for WireMock mappings and response payloads (always deployed)
 
 When AI features are enabled, additional services are used:
@@ -424,7 +424,7 @@ When AI features are enabled, additional services are used:
 
 - **Amazon API Gateway** - HTTP ingress and request routing
   - Handles both admin API calls and mocked endpoint requests
-  - Provides API key-based authentication and rate limiting
+  - Provides authentication via API key or IAM SigV4 (configurable), plus rate limiting
   - Integrates with Lambda for serverless request processing
 
 ## Security Services
@@ -432,7 +432,7 @@ When AI features are enabled, additional services are used:
 - **AWS IAM** - Service-to-service authentication and authorization
   - Lambda execution roles for S3 and Bedrock access
   - API Gateway integration roles
-- **API Gateway API Keys** - Default access control mechanism for MockNest Serverless endpoints
+- **API Gateway Authentication** - Configurable access control for MockNest Serverless endpoints (API key mode by default, IAM SigV4 as alternative)
 - **AWS Secrets Manager** (future) - Secure storage for API keys and configuration
 
 ## Monitoring & Logging

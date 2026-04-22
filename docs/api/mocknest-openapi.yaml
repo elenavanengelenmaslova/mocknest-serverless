@@ -21,7 +21,9 @@ info:
     - **Persistent**: Data stored in S3, survives Lambda cold starts
     - **Experimental**: Available but not fully tested in serverless environment
     
-    All endpoints require API key authentication via the `x-api-key` header.
+    All endpoints require authentication. A single mode is chosen at deployment time via the `AuthMode` parameter (the two modes are mutually exclusive):
+    - **API_KEY** (default): callers supply an `x-api-key` header. An API key and usage plan are created automatically.
+    - **IAM**: callers sign requests with AWS Signature Version 4 (SigV4). No API key is created.
   contact:
     name: MockNest Serverless
     url: https://github.com/elenavanengelenmaslova/mocknest-serverless
@@ -39,6 +41,7 @@ servers:
 
 security:
   - ApiKeyAuth: []
+  - IamAuth: []
 
 paths:
   # AI-Powered Mock Generation
@@ -933,7 +936,11 @@ components:
       type: apiKey
       in: header
       name: x-api-key
-      description: API key for authentication. Obtain from CloudFormation stack outputs.
+      description: API key for authentication. Obtain from CloudFormation stack outputs. Active when AuthMode=API_KEY (default). Mutually exclusive with IamAuth.
+    IamAuth:
+      type: http
+      scheme: AWS4-HMAC-SHA256
+      description: AWS IAM Signature Version 4 authentication. Callers sign requests with SigV4. Active when AuthMode=IAM. Mutually exclusive with ApiKeyAuth.
 
   schemas:
     # Health Check Schemas

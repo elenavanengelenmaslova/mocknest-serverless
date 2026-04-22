@@ -94,13 +94,13 @@ Each scenario in the eval dataset goes through:
 
 ## Protocol Breakdown
 
-The eval suite covers 17 scenarios across 3 protocols and 5 API specifications:
+The eval suite covers 42 scenarios across 3 protocols and 12 API specifications:
 
 | Protocol | Scenarios | API Specifications |
 |----------|-----------|-------------------|
 | REST | 14 | Petstore (20+ endpoints), Bored API (3 endpoints), Social Content (8-10 endpoints), Payment Financial (6-8 endpoints), Weather Utility (2-3 endpoints) |
-| GraphQL | 2 | Pokemon, Books |
-| SOAP | 1 | Calculator |
+| GraphQL | 14 | Pokemon (2 queries), Books (3 queries), E-commerce (4 queries + 4 mutations), Task Management (4 queries + 3 mutations) |
+| SOAP | 14 | Calculator (3 operations), Banking Service (5 operations), Inventory Warehouse (6 operations), Notification Messaging (4 operations) |
 
 ### REST Scenario Complexity Levels
 
@@ -114,6 +114,32 @@ REST scenarios are distributed across 6 prompt complexity levels to measure qual
 | Error | 2 | Error response generation (404, 500, 402, 422) |
 | Realistic Data | 2 | Domain-specific realistic values (European names, EUR amounts) |
 | Edge Case | 1 | Pagination with multiple pages of results |
+
+### GraphQL Scenario Complexity Levels
+
+GraphQL scenarios are distributed across 6 prompt complexity levels to measure quality at different difficulty tiers:
+
+| Complexity Level | Scenarios | Description |
+|-----------------|-----------|-------------|
+| Basic | 6 | Generate mocks for queries, mutations, or all operations in a schema |
+| Filtered | 1 | Generate mocks for a subset of operations only (e.g., order-related only) |
+| Consistency | 2 | Cross-entity data coherence (e.g., order.customerId matches customer.id) |
+| Error | 1 | GraphQL error responses with errors array and message fields |
+| Realistic Data | 2 | Domain-specific realistic values (European product names, EUR prices) |
+| Edge Case | 2 | Mutations with INPUT_OBJECT arguments, enum-filtered queries |
+
+### SOAP Scenario Complexity Levels
+
+SOAP scenarios are distributed across 6 prompt complexity levels to measure quality at different difficulty tiers:
+
+| Complexity Level | Scenarios | Description |
+|-----------------|-----------|-------------|
+| Basic | 4 | Generate mocks for all operations in a WSDL |
+| Filtered | 2 | Generate mocks for a subset of operations only (e.g., account-related) |
+| Consistency | 2 | Cross-entity data coherence (e.g., accountId in transactions matches account) |
+| Error | 2 | SOAP fault responses for error scenarios (insufficient funds, multi-fault) |
+| Realistic Data | 3 | Domain-specific realistic values (European banking data, warehouse data) |
+| Edge Case | 1 | XPath body matchers for operation-specific request matching |
 
 ## Summary Table
 
@@ -129,10 +155,10 @@ After all scenarios complete, a summary table is printed to the test output show
 ║ Protocol  │ Runs │ 1st-pass valid │ After retry valid │ Scenario pass │ Gen cost │ Judge cost │ Avg cost/run │ Avg latency ║
 ╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
 ║ REST      │ 14   │ 77%            │ 98%               │ 85%           │ $0.0420  │ $0.0210    │ $0.0045      │ 3.8s        ║
-║ GraphQL   │ 2    │ 50%            │ 100%              │ 100%          │ $0.0070  │ $0.0036    │ $0.0053      │ 2.6s        ║
-║ SOAP      │ 1    │ 100%           │ 100%              │ 100%          │ $0.0032  │ $0.0014    │ $0.0046      │ 3.2s        ║
+║ GraphQL   │ 14   │ 50%            │ 100%              │ 100%          │ $0.0700  │ $0.0360    │ $0.0053      │ 2.6s        ║
+║ SOAP      │ 14   │ 100%           │ 100%              │ 100%          │ $0.0448  │ $0.0196    │ $0.0046      │ 3.2s        ║
 ╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ TOTAL     │ 17   │                │                   │               │ $0.0522  │ $0.0260    │ $0.0046      │             ║
+║ TOTAL     │ 42   │                │                   │               │ $0.1568  │ $0.0766    │ $0.0048      │             ║
 ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 ```
 
@@ -191,9 +217,14 @@ Each scenario specifies:
 | `social-content-openapi-3.0.yaml` | REST | Social/Content | 8-10 |
 | `payment-financial-openapi-3.0.yaml` | REST | Payment/Financial | 6-8 |
 | `weather-utility-openapi-3.0.yaml` | REST | Weather/Utility | 2-3 |
-| `pokemon-graphql-introspection.json` | GraphQL | Pokemon | — |
-| `books-graphql-introspection.json` | GraphQL | Books | — |
+| `pokemon-graphql-introspection.json` | GraphQL | Pokemon | 2 queries |
+| `books-graphql-introspection.json` | GraphQL | Books | 3 queries |
+| `ecommerce-graphql-introspection.json` | GraphQL | E-commerce | 4 queries + 4 mutations, ENUMs (OrderStatus, ProductCategory), INPUT_OBJECTs, nested types, multi-field types |
+| `taskmanagement-graphql-introspection.json` | GraphQL | Task Management | 4 queries + 3 mutations, ENUMs (TaskStatus, TaskPriority), INPUT_OBJECT, nested types, cross-entity relationships |
 | `calculator-soap12.wsdl` | SOAP | Calculator | 3 operations |
+| `banking-service-soap12.wsdl` | SOAP | Banking | 5 operations, nested types, enumerated TransactionStatus, cross-entity relationships |
+| `inventory-warehouse-soap12.wsdl` | SOAP | Inventory/Warehouse | 6 operations, nested types, enumerated fields (ItemCategory, StockStatus), multi-field types |
+| `notification-messaging-soap12.wsdl` | SOAP | Notification/Messaging | 4 operations, cross-entity relationships, multiple message types |
 
 ### Adding New Scenarios
 
@@ -246,10 +277,10 @@ Each eval run makes multiple Bedrock API calls per scenario:
 
 | Suite | Scenarios | Estimated cost (1 iteration) | Estimated cost (3 iterations) |
 |-------|-----------|------------------------------|-------------------------------|
-| Full suite (all protocols) | 17 | $0.07–$0.12 | $0.21–$0.36 |
+| Full suite (all protocols) | 42 | $0.17–$0.29 | $0.50–$0.88 |
 | REST only | 14 | $0.06–$0.10 | $0.18–$0.30 |
-| GraphQL only | 2 | $0.008–$0.014 | $0.024–$0.042 |
-| SOAP only | 1 | $0.004–$0.007 | $0.012–$0.021 |
+| GraphQL only | 14 | $0.06–$0.10 | $0.18–$0.30 |
+| SOAP only | 14 | $0.06–$0.10 | $0.18–$0.30 |
 
 Use `BEDROCK_EVAL_FILTER` to run subsets and reduce cost during iterative prompt tuning.
 

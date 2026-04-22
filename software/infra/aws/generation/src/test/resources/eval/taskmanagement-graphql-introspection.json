@@ -1,0 +1,187 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": null,
+          "fields": [
+            {
+              "name": "projects",
+              "description": "Get all projects",
+              "args": [],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Project", "ofType": null } } } }
+            },
+            {
+              "name": "project",
+              "description": "Get a project by ID",
+              "args": [
+                { "name": "id", "description": "Project ID", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "OBJECT", "name": "Project", "ofType": null }
+            },
+            {
+              "name": "tasks",
+              "description": "Get tasks, optionally filtered by project, status, or assignee",
+              "args": [
+                { "name": "projectId", "description": "Filter by project ID", "type": { "kind": "SCALAR", "name": "ID", "ofType": null } },
+                { "name": "status", "description": "Filter by task status", "type": { "kind": "ENUM", "name": "TaskStatus", "ofType": null } },
+                { "name": "assigneeId", "description": "Filter by assignee user ID", "type": { "kind": "SCALAR", "name": "ID", "ofType": null } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Task", "ofType": null } } } }
+            },
+            {
+              "name": "users",
+              "description": "Get all users",
+              "args": [],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } } } }
+            }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": null,
+          "fields": [
+            {
+              "name": "createTask",
+              "description": "Create a new task",
+              "args": [
+                { "name": "input", "description": "Task creation input", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CreateTaskInput", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Task", "ofType": null } }
+            },
+            {
+              "name": "updateTaskStatus",
+              "description": "Update the status of a task",
+              "args": [
+                { "name": "taskId", "description": "Task ID", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+                { "name": "status", "description": "New task status", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "TaskStatus", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Task", "ofType": null } }
+            },
+            {
+              "name": "assignTask",
+              "description": "Assign a task to a user",
+              "args": [
+                { "name": "taskId", "description": "Task ID", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+                { "name": "assigneeId", "description": "User ID to assign the task to", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Task", "ofType": null } }
+            }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Project",
+          "description": "A project containing tasks",
+          "fields": [
+            { "name": "id", "description": "Unique project identifier", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": "Project name", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "description", "description": "Project description", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "tasks", "description": "Tasks in this project", "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Task", "ofType": null } } } },
+            { "name": "owner", "description": "Project owner", "args": [], "type": { "kind": "OBJECT", "name": "User", "ofType": null } },
+            { "name": "createdAt", "description": "Project creation timestamp", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Task",
+          "description": "A task within a project",
+          "fields": [
+            { "name": "id", "description": "Unique task identifier", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "title", "description": "Task title", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "description", "description": "Task description", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "status", "description": "Current task status", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "TaskStatus", "ofType": null } } },
+            { "name": "priority", "description": "Task priority level", "args": [], "type": { "kind": "ENUM", "name": "TaskPriority", "ofType": null } },
+            { "name": "assignee", "description": "User assigned to this task", "args": [], "type": { "kind": "OBJECT", "name": "User", "ofType": null } },
+            { "name": "project", "description": "Project this task belongs to", "args": [], "type": { "kind": "OBJECT", "name": "Project", "ofType": null } },
+            { "name": "createdAt", "description": "Task creation timestamp", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "dueDate", "description": "Task due date", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "OBJECT",
+          "name": "User",
+          "description": "A user in the system",
+          "fields": [
+            { "name": "id", "description": "Unique user identifier", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": "User full name", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "email", "description": "User email address", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "role", "description": "User role", "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "tasks", "description": "Tasks assigned to this user", "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Task", "ofType": null } } } }
+          ],
+          "inputFields": null,
+          "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "ENUM",
+          "name": "TaskStatus",
+          "description": "Status of a task",
+          "fields": null,
+          "inputFields": null,
+          "interfaces": null,
+          "enumValues": [
+            { "name": "TODO", "description": "Task has not been started" },
+            { "name": "IN_PROGRESS", "description": "Task is being worked on" },
+            { "name": "IN_REVIEW", "description": "Task is under review" },
+            { "name": "DONE", "description": "Task is completed" }
+          ],
+          "possibleTypes": null
+        },
+        {
+          "kind": "ENUM",
+          "name": "TaskPriority",
+          "description": "Priority level of a task",
+          "fields": null,
+          "inputFields": null,
+          "interfaces": null,
+          "enumValues": [
+            { "name": "LOW", "description": "Low priority" },
+            { "name": "MEDIUM", "description": "Medium priority" },
+            { "name": "HIGH", "description": "High priority" },
+            { "name": "CRITICAL", "description": "Critical priority" }
+          ],
+          "possibleTypes": null
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "CreateTaskInput",
+          "description": "Input for creating a new task",
+          "fields": null,
+          "inputFields": [
+            { "name": "title", "description": "Task title", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "description", "description": "Task description", "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "projectId", "description": "ID of the project this task belongs to", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "priority", "description": "Task priority level", "type": { "kind": "ENUM", "name": "TaskPriority", "ofType": null } },
+            { "name": "assigneeId", "description": "ID of the user to assign the task to", "type": { "kind": "SCALAR", "name": "ID", "ofType": null } }
+          ],
+          "interfaces": null,
+          "enumValues": null,
+          "possibleTypes": null
+        }
+      ]
+    }
+  }
+}
