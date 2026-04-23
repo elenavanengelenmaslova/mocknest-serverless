@@ -1297,16 +1297,19 @@ test_mock_management_unmatched() {
   echo "[mock-management] ✓ Unmatched mappings passed"
 }
 
-# Cleanup all mappings created during mock-management tests
-test_mock_management_cleanup() {
-  echo "[mock-management] Cleaning up test data..."
+# Cleanup all data created during extensive tests (mappings, requests, files)
+test_extensive_cleanup() {
+  echo "[extensive-cleanup] Cleaning up all extensive test data..."
   curl "${CURL_OPTS[@]}" \
     --request DELETE \
     "$API_URL/__admin/mappings" 2>/dev/null || true
   curl "${CURL_OPTS[@]}" \
     --request DELETE \
     "$API_URL/__admin/requests" 2>/dev/null || true
-  echo "[mock-management] ✓ Cleanup complete"
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/files/extensive-test-file.json" 2>/dev/null || true
+  echo "[extensive-cleanup] ✓ Cleanup complete"
 }
 
 # =============================================================================
@@ -1691,18 +1694,6 @@ test_request_verification_clear_reset() {
   echo "[request-verification] ✓ Clear and reset passed"
 }
 
-# Cleanup request verification test data
-test_request_verification_cleanup() {
-  echo "[request-verification] Cleaning up test data..."
-  curl "${CURL_OPTS[@]}" \
-    --request DELETE \
-    "$API_URL/__admin/mappings" 2>/dev/null || true
-  curl "${CURL_OPTS[@]}" \
-    --request DELETE \
-    "$API_URL/__admin/requests" 2>/dev/null || true
-  echo "[request-verification] ✓ Cleanup complete"
-}
-
 # =============================================================================
 # Extensive Test Functions — Near-Miss Analysis
 # =============================================================================
@@ -1845,18 +1836,6 @@ test_near_miss_for_request_pattern() {
   echo "[near-miss] ✓ Near-misses for request pattern passed"
 }
 
-# Cleanup near-miss test data
-test_near_miss_cleanup() {
-  echo "[near-miss] Cleaning up test data..."
-  curl "${CURL_OPTS[@]}" \
-    --request DELETE \
-    "$API_URL/__admin/mappings" 2>/dev/null || true
-  curl "${CURL_OPTS[@]}" \
-    --request DELETE \
-    "$API_URL/__admin/requests" 2>/dev/null || true
-  echo "[near-miss] ✓ Cleanup complete"
-}
-
 # =============================================================================
 # Extensive Test Functions — File Management
 # =============================================================================
@@ -1973,15 +1952,6 @@ test_file_management_crud() {
   echo "[files] ✓ File CRUD lifecycle passed"
 }
 
-# Cleanup file management test data
-test_file_management_cleanup() {
-  echo "[files] Cleaning up test data..."
-  curl "${CURL_OPTS[@]}" \
-    --request DELETE \
-    "$API_URL/__admin/files/extensive-test-file.json" 2>/dev/null || true
-  echo "[files] ✓ Cleanup complete"
-}
-
 # Main test execution
 main() {
   echo "=== MockNest Serverless Post-Deployment Integration Tests ==="
@@ -2020,7 +1990,6 @@ main() {
       test_mock_management_save_reset
       test_mock_management_metadata
       test_mock_management_unmatched
-      test_mock_management_cleanup
       ;;
     request-verification)
       echo "Running request verification extensive tests..."
@@ -2032,7 +2001,6 @@ main() {
       test_request_verification_remove
       test_request_verification_metadata
       test_request_verification_clear_reset
-      test_request_verification_cleanup
       ;;
     near-miss)
       echo "Running near-miss extensive tests..."
@@ -2040,20 +2008,17 @@ main() {
       test_near_miss_unmatched
       test_near_miss_for_request
       test_near_miss_for_request_pattern
-      test_near_miss_cleanup
       ;;
     files)
       echo "Running file management extensive tests..."
       test_file_management_crud
-      test_file_management_cleanup
       ;;
     extensive)
-      echo "Running all extensive tests..."
+      echo "Running all extensive tests sequentially..."
       test_mock_management_crud
       test_mock_management_save_reset
       test_mock_management_metadata
       test_mock_management_unmatched
-      test_mock_management_cleanup
       test_request_verification_setup
       test_request_verification_list_find_count
       test_request_verification_get_by_id
@@ -2062,14 +2027,15 @@ main() {
       test_request_verification_remove
       test_request_verification_metadata
       test_request_verification_clear_reset
-      test_request_verification_cleanup
       test_near_miss_setup
       test_near_miss_unmatched
       test_near_miss_for_request
       test_near_miss_for_request_pattern
-      test_near_miss_cleanup
       test_file_management_crud
-      test_file_management_cleanup
+      ;;
+    extensive-cleanup)
+      echo "Running extensive test cleanup..."
+      test_extensive_cleanup
       ;;
     all)
       echo "Running all tests..."
@@ -2086,7 +2052,7 @@ main() {
       ;;
     *)
       echo "ERROR: Unknown test suite: $TEST_SUITE"
-      echo "Valid options: setup, rest, graphql, soap, webhook, mock-management, request-verification, near-miss, files, extensive, all"
+      echo "Valid options: setup, rest, graphql, soap, webhook, mock-management, request-verification, near-miss, files, extensive, extensive-cleanup, all"
       exit 2
       ;;
   esac
