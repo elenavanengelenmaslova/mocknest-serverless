@@ -74,6 +74,8 @@ class BedrockPromptEvalTest {
 
     private val region: String = System.getenv("AWS_REGION") ?: "eu-west-1"
 
+    private val maxRetries: Int = System.getenv("BEDROCK_EVAL_MAX_RETRIES")?.toIntOrNull()?.coerceIn(0, 2) ?: 1
+
     private val tokenUsageStore = TokenUsageStore()
 
     private val bedrockClient: BedrockRuntimeClient = TokenUsageCapturingClient(
@@ -182,7 +184,7 @@ class BedrockPromptEvalTest {
         logger.info {
             "Starting multi-protocol Bedrock prompt eval: ${scenarios.size} scenario(s), " +
                 "$iterationCount iteration(s) each, " +
-                "model=${modelConfiguration.getModelName()}, region=$region"
+                "model=${modelConfiguration.getModelName()}, region=$region, maxRetries=$maxRetries"
         }
 
         for (scenario in scenarios) {
@@ -388,7 +390,8 @@ class BedrockPromptEvalTest {
                 aiModelService = aiModelService,
                 specificationParser = OpenAPISpecificationParser(),
                 mockValidator = OpenAPIMockValidator(),
-                promptBuilder = promptBuilder
+                promptBuilder = promptBuilder,
+                maxRetries = maxRetries
             )
             "GRAPHQL" -> MockGenerationFunctionalAgent(
                 aiModelService = aiModelService,
@@ -397,7 +400,8 @@ class BedrockPromptEvalTest {
                     GraphQLSchemaReducer()
                 ),
                 mockValidator = GraphQLMockValidator(),
-                promptBuilder = promptBuilder
+                promptBuilder = promptBuilder,
+                maxRetries = maxRetries
             )
             "SOAP" -> MockGenerationFunctionalAgent(
                 aiModelService = aiModelService,
@@ -407,7 +411,8 @@ class BedrockPromptEvalTest {
                     WsdlSchemaReducer()
                 ),
                 mockValidator = SoapMockValidator(),
-                promptBuilder = promptBuilder
+                promptBuilder = promptBuilder,
+                maxRetries = maxRetries
             )
             else -> error("Unsupported protocol: $protocol")
         }

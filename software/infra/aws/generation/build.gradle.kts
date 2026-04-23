@@ -139,7 +139,7 @@ tasks.register<Test>("bedrockEval") {
     }
     failFast = false
     // Forward eval-related environment variables to the forked test JVM
-    listOf("BEDROCK_EVAL_ENABLED", "BEDROCK_EVAL_ITERATIONS", "BEDROCK_EVAL_FILTER", "AWS_REGION").forEach { key ->
+    listOf("BEDROCK_EVAL_ENABLED", "BEDROCK_EVAL_ITERATIONS", "BEDROCK_EVAL_FILTER", "BEDROCK_EVAL_MAX_RETRIES", "AWS_REGION").forEach { key ->
         System.getenv(key)?.let { environment(key, it) }
     }
 }
