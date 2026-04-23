@@ -55,7 +55,7 @@ paths:
         - OpenAPI 3.x (fully tested)
         - Swagger 2.0 (experimental - supported but not extensively tested)
         - GraphQL (via introspection endpoint URL or pre-fetched introspection JSON)
-        - WSDL/SOAP 1.1 and SOAP 1.2 (via inline XML content or remote URL)
+        - WSDL/SOAP 1.2 only (via inline XML content or remote URL; SOAP 1.1 bindings are not supported for AI generation)
       tags:
         - AI Generation
       requestBody:
@@ -88,7 +88,7 @@ paths:
                   options:
                     enableValidation: true
               soap-generation-url:
-                summary: Generate mocks from WSDL URL (SOAP 1.1)
+                summary: Generate mocks from WSDL URL (SOAP 1.2 only)
                 value:
                   namespace:
                     apiName: calculator
@@ -99,7 +99,7 @@ paths:
                   options:
                     enableValidation: true
               soap-generation-inline:
-                summary: Generate mocks from inline WSDL XML content (SOAP 1.1)
+                summary: Generate mocks from inline WSDL XML content (SOAP 1.2 only)
                 value:
                   namespace:
                     apiName: calculator
@@ -260,7 +260,7 @@ paths:
                         photoUrls:
                           - "https://cdn-fastly.petguide.com/media/2022/02/16/8235403/top-10-funniest-dog-breeds.jpg"
               soap-generation-response:
-                summary: Generated SOAP WireMock mappings (SOAP 1.1 calculator)
+                summary: Generated SOAP WireMock mappings (SOAP 1.2 calculator)
                 value:
                   mappings:
                     - priority: 1

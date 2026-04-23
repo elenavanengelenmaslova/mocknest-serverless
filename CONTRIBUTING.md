@@ -26,7 +26,7 @@ Before creating a bug report, please check existing issues to avoid duplicates. 
 
 Feature requests are welcome! Please:
 
-- Check if the feature aligns with our [project scope](.kiro/steering/01-scope-and-non-goals.md)
+- Check if the feature aligns with our [project scope](.kiro/steering/product.md#scope-and-non-goals)
 - Provide a clear description of the feature and its use case
 - Explain why this feature would be useful to MockNest Serverless users
 
@@ -34,11 +34,11 @@ Feature requests are welcome! Please:
 
 1. **Fork the repository** and create your branch from `main`
 2. **Follow our development setup** in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-3. **Make your changes** following our [coding standards](.kiro/steering/05-kiro-usage.md#code-generation-standards) and [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
+3. **Make your changes** following our [coding standards](.kiro/steering/tech.md#code-generation-standards) and [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
 4. **Add tests** for any new functionality
-5. **Ensure all tests pass** and coverage remains at 90%+
+5. **Ensure all tests pass** and coverage meets threshold (90% minimum enforced via koverVerify)
 6. **If you changed prompt templates** under `software/application/src/main/resources/prompts/`, run the [Bedrock Prompt Eval Tests](docs/PROMPT_EVAL.md) before and after your change to measure impact on generation quality
-7. **Update documentation** if needed following our [documentation practices](.kiro/steering/05-kiro-usage.md#documentation-practices)
+7. **Update documentation** if needed following our [documentation practices](.kiro/steering/tech.md#documentation-practices)
 8. **Submit a pull request**
 
 #### Pull Request Guidelines
@@ -73,7 +73,7 @@ These workflows are called by the main pipelines above:
 
 | Workflow | Purpose | Used By |
 |----------|---------|---------|
-| **workflow-build.yml** | Build and test all modules, verify 90% coverage, upload to Codecov | Feature and Main branch pipelines |
+| **workflow-build.yml** | Build and test all modules, verify 90% coverage (enforced via koverVerify), upload to Codecov | Feature and Main branch pipelines |
 | **workflow-deploy-aws.yml** | Deploy to AWS using SAM | Feature and Main branch pipelines |
 | **workflow-sar-publish.yml** | Package and publish to AWS Serverless Application Repository | SAR Publish pipeline |
 
@@ -106,7 +106,7 @@ See [SAR Publishing Guide](docs/SAR_PUBLISHING.md) for detailed instructions.
 
 All pipelines use:
 - **Java 25** (Temurin distribution)
-- **Gradle 9.0.0** (via wrapper)
+- **Gradle 9.4.1** (via wrapper)
 - **AWS OIDC authentication** (no long-lived credentials)
 - **Kover** for code coverage reporting
 
@@ -147,8 +147,8 @@ For detailed MockNest Serverless guidelines, see our steering documentation:
 - **Code Quality & Standards**: [Code Generation Standards](.kiro/steering/tech.md#code-generation-standards)
 - **Testing Strategy**: [Testing Strategy](.kiro/steering/tech.md#testing-strategy)
 - **Prompt Evaluation**: [Bedrock Prompt Eval Tests](docs/PROMPT_EVAL.md) — run before and after any prompt template change
-- **Development Workflow**: [Development Workflow](.kiro/steering/05-kiro-usage.md#development-workflow)
-- **Project Structure**: [Project Structure](.kiro/steering/05-kiro-usage.md#project-structure)
+- **Development Workflow**: [Development Workflow](.kiro/steering/tech.md#development-workflow)
+- **Project Structure**: [Project Structure](.kiro/steering/structure.md#project-structure)
 
 ## Commit Messages
 

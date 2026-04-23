@@ -87,7 +87,7 @@ open software/infra/aws/runtime/build/reports/kover/html/index.html
 
 #### Coverage Verification
 ```bash
-# Verify 80% coverage threshold (fails build if under 80%)
+# Verify 90% coverage threshold (fails build if under 90%)
 ./gradlew koverVerify
 ```
 
@@ -118,12 +118,12 @@ sam local invoke MockNestRuntimeFunction --event events/test-event.json
 
 ### Feature Branches
 - Build and test all modules
-- Verify 80% code coverage
+- Verify 90% code coverage
 - No deployment
 
 ### Main Branch
 - Build and test all modules
-- Verify 80% code coverage
+- Verify 90% code coverage
 - Upload coverage to Codecov
 - Deploy to AWS
 
