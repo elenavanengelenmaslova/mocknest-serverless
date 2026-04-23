@@ -151,7 +151,7 @@ sdk use java 25.0.1-open
 
 **Coverage Failures**
 ```bash
-# Check which modules are under 80%
+# Check which modules are under 90%
 ./gradlew koverVerify
 
 # Generate detailed coverage report
