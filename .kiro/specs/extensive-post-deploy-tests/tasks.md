@@ -1,0 +1,228 @@
+# Implementation Plan: Extensive Post-Deploy Tests
+
+## Overview
+
+This plan implements the `run-extensive-tests` parameter across the deploy-on-demand and integration test workflows, adds four parallel extensive test jobs to the integration test workflow, and implements all extensive test functions in the post-deploy test script. The implementation is organized to build incrementally: workflow parameters first, then helper functions, then each test group, and finally wiring the new case branches and workflow jobs together.
+
+## Tasks
+
+- [x] 1. Add `run-extensive-tests` parameter to deploy-on-demand workflow
+  - [x] 1.1 Add `run-extensive-tests` boolean input to `deploy-on-demand.yml`
+    - Add a new `workflow_dispatch` input named `run-extensive-tests` with `type: boolean`, `default: false`, `required: false`
+    - Include a descriptive label: `'Run extensive API tests after standard tests pass (covers all remaining MockNest APIs)'`
+    - _Requirements: 1.1, 1.4_
+  - [x] 1.2 Pass `run-extensive-tests` to the integration test workflow call
+    - In the `integration-tests` job `with:` block, add `run-extensive-tests: ${{ inputs.run-extensive-tests }}`
+    - _Requirements: 1.2, 1.3_
+
+- [x] 2. Add `run-extensive-tests` parameter to integration test workflow
+  - [x] 2.1 Add `run-extensive-tests` input to `workflow_call` trigger in `workflow-integration-test.yml`
+    - Add `run-extensive-tests` with `required: false`, `type: boolean`, `default: false`, `description: 'Run extensive API tests after standard tests pass'`
+    - _Requirements: 2.1_
+  - [x] 2.2 Add `run-extensive-tests` input to `workflow_dispatch` trigger in `workflow-integration-test.yml`
+    - Add `run-extensive-tests` with `required: false`, `type: boolean`, `default: false`, `description: 'Run extensive API tests after standard tests pass'`
+    - _Requirements: 2.2_
+
+- [x] 3. Add shared helper functions to `scripts/post-deploy-test.sh`
+  - [x] 3.1 Add `assert_http_code` helper function
+    - Implement function that accepts group name, HTTP method, endpoint, response string, and expected HTTP code
+    - Call `parse_response` internally, compare `HTTP_CODE` to expected, and on mismatch print `[group] ERROR: METHOD /endpoint — expected HTTP X, got HTTP Y` plus the response body, then `exit 1`
+    - Place the function after the existing `parse_response` function
+    - _Requirements: 14.1, 14.2, 14.3_
+  - [x] 3.2 Add `json_field` helper function
+    - Implement function that extracts a top-level JSON field using `python3 -c "import sys,json; print(json.load(sys.stdin)['$1'])"`
+    - Place after `assert_http_code`
+    - _Requirements: 5.1 (ID extraction), 9.5 (request ID extraction)_
+  - [x] 3.3 Add `curl_no_fail` helper function
+    - Implement function that builds a copy of `CURL_OPTS` with `--fail` removed, then calls `curl` with the modified options plus any additional arguments
+    - This is needed for tests that expect non-2xx responses (404 tests)
+    - Place after `json_field`
+    - _Requirements: 5.7, 12.7_
+
+- [x] 4. Implement mock management test functions in `scripts/post-deploy-test.sh`
+  - [x] 4.1 Implement `test_mock_management_crud` function
+    - Step 1: `POST /__admin/mappings` with a test mapping (`urlPath: /extensive-test/mock-mgmt`), assert HTTP 201, extract `MAPPING_ID` using `json_field`
+    - Step 2: `GET /__admin/mappings/{MAPPING_ID}`, assert HTTP 200, verify response contains `urlPath`
+    - Step 3: `PUT /__admin/mappings/{MAPPING_ID}` with updated mapping (`urlPath: /extensive-test/mock-mgmt-updated`), assert HTTP 200
+    - Step 4: `GET /__admin/mappings/{MAPPING_ID}`, assert HTTP 200, verify updated `urlPath`
+    - Step 5: `GET /__admin/mappings`, assert HTTP 200, verify response contains `MAPPING_ID`
+    - Step 6: `DELETE /__admin/mappings/{MAPPING_ID}`, assert HTTP 200
+    - Step 7: `GET /__admin/mappings/{MAPPING_ID}` using `curl_no_fail`, assert HTTP 404
+    - Prefix all output with `[mock-management]`
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 14.3, 15.3_
+  - [x] 4.2 Implement `test_mock_management_save_reset` function
+    - Step 1: `POST /__admin/mappings` with a persistent mapping, assert HTTP 201
+    - Step 2: `POST /__admin/mappings/save`, assert HTTP 200
+    - Step 3: `POST /__admin/mappings` with a second mapping, assert HTTP 201
+    - Step 4: `POST /__admin/reset`, assert HTTP 200
+    - Step 5: `GET /__admin/mappings`, assert HTTP 200, verify zero mappings
+    - Prefix all output with `[mock-management]`
+    - _Requirements: 6.1, 6.2, 6.3, 14.3_
+  - [x] 4.3 Implement `test_mock_management_metadata` function
+    - Step 1: `POST /__admin/mappings` with metadata `{ "testGroup": "extensive", "testId": "metadata-1" }`, assert HTTP 201, extract `METADATA_MAPPING_ID`
+    - Step 2: `POST /__admin/mappings/find-by-metadata` with matching pattern, assert HTTP 200, verify mapping is returned
+    - Step 3: `POST /__admin/mappings/remove-by-metadata` with matching pattern, assert HTTP 200
+    - Step 4: `GET /__admin/mappings`, verify mapping is no longer present
+    - Prefix all output with `[mock-management]`
+    - _Requirements: 7.1, 7.2, 7.3, 14.3_
+  - [x] 4.4 Implement `test_mock_management_unmatched` function
+    - Step 1: `POST /__admin/mappings` with a mapping that won't be invoked, assert HTTP 201
+    - Step 2: `GET /__admin/mappings/unmatched`, assert HTTP 200, verify response contains a mappings array
+    - Step 3: `DELETE /__admin/mappings/unmatched`, assert HTTP 200
+    - Prefix all output with `[mock-management]`
+    - _Requirements: 8.1, 8.2, 14.3_
+  - [x] 4.5 Implement `test_mock_management_cleanup` function
+    - Call `DELETE /__admin/mappings` to clean up all mappings created during mock-management tests
+    - Use `|| true` to avoid masking original test failures
+    - Prefix output with `[mock-management]`
+    - _Requirements: 13.1_
+
+- [x] 5. Checkpoint
+  - Run `bash -n scripts/post-deploy-test.sh` to verify no syntax errors after adding helper functions and mock management tests. Ensure all tests pass, ask the user if questions arise.
+
+- [x] 6. Implement request verification test functions in `scripts/post-deploy-test.sh`
+  - [x] 6.1 Implement `test_request_verification_setup` function
+    - Step 1: `POST /__admin/mappings` with a mapping for `POST /extensive-test/req-verify`, assert HTTP 201, extract `REQ_VERIFY_MAPPING_ID`
+    - Step 2: `POST /mocknest/extensive-test/req-verify` with test body, assert HTTP 200
+    - Sleep 2s to allow journal persistence
+    - Prefix all output with `[request-verification]`
+    - _Requirements: 9.1, 14.3_
+  - [x] 6.2 Implement `test_request_verification_list_find_count` function
+    - Step 1: `GET /__admin/requests`, assert HTTP 200, verify response contains requests array, extract `REQUEST_ID` from a matching request
+    - Step 2: `POST /__admin/requests/find` with `{ method: "POST", urlPath: "/extensive-test/req-verify" }`, assert HTTP 200
+    - Step 3: `POST /__admin/requests/count` with same criteria, assert HTTP 200, verify count >= 1
+    - Prefix all output with `[request-verification]`
+    - _Requirements: 9.2, 9.3, 9.4, 14.3_
+  - [x] 6.3 Implement `test_request_verification_get_by_id` function
+    - `GET /__admin/requests/{REQUEST_ID}`, assert HTTP 200, verify response contains `req-verify`
+    - Prefix all output with `[request-verification]`
+    - _Requirements: 9.5, 14.3_
+  - [x] 6.4 Implement `test_request_verification_unmatched` function
+    - `GET /__admin/requests/unmatched`, assert HTTP 200, verify response contains requests array
+    - Prefix all output with `[request-verification]`
+    - _Requirements: 9.6, 14.3_
+  - [x] 6.5 Implement `test_request_verification_delete_by_id` function
+    - Step 1: `POST /mocknest/extensive-test/req-verify` to generate a new journal entry, assert HTTP 200, sleep 2s
+    - Step 2: `GET /__admin/requests` to find the new request ID, extract `DELETE_REQUEST_ID`
+    - Step 3: `DELETE /__admin/requests/{DELETE_REQUEST_ID}`, assert HTTP 200
+    - Prefix all output with `[request-verification]`
+    - _Requirements: 9.10, 14.3_
+  - [x] 6.6 Implement `test_request_verification_remove` function
+    - Step 1: `POST /mocknest/extensive-test/req-verify` to generate another journal entry, assert HTTP 200, sleep 2s
+    - Step 2: `POST /__admin/requests/remove` with `{ method: "POST", urlPath: "/extensive-test/req-verify" }`, assert HTTP 200
+    - Prefix all output with `[request-verification]`
+    - _Requirements: 9.7, 14.3_
+  - [x] 6.7 Implement `test_request_verification_metadata` function
+    - `POST /__admin/requests/remove-by-metadata` with metadata criteria, assert HTTP 200
+    - Prefix all output with `[request-verification]`
+    - _Requirements: 10.1, 14.3_
+  - [x] 6.8 Implement `test_request_verification_clear_reset` function
+    - Step 1: `DELETE /__admin/requests`, assert HTTP 200
+    - Step 2: `POST /__admin/requests/reset`, assert HTTP 200
+    - Prefix all output with `[request-verification]`
+    - _Requirements: 9.8, 9.9, 14.3_
+  - [x] 6.9 Implement `test_request_verification_cleanup` function
+    - Delete the mapping created during setup (`DELETE /__admin/mappings/{REQ_VERIFY_MAPPING_ID}`)
+    - Call `DELETE /__admin/requests` to clear the request journal
+    - Use `|| true` to avoid masking original test failures
+    - Prefix output with `[request-verification]`
+    - _Requirements: 13.2_
+
+- [x] 7. Implement near-miss test functions in `scripts/post-deploy-test.sh`
+  - [x] 7.1 Implement `test_near_miss_setup` function
+    - Step 1: `POST /__admin/mappings` with a mapping requiring header `X-Custom: expected-value` on `GET /extensive-test/near-miss-target`, assert HTTP 201, extract `NEAR_MISS_MAPPING_ID`
+    - Step 2: Send `GET /mocknest/extensive-test/near-miss-target` with `X-Custom: wrong-value` using `curl_no_fail`, assert HTTP 404
+    - Sleep 2s for journal persistence
+    - Prefix all output with `[near-miss]`
+    - _Requirements: 11.1, 14.3_
+  - [x] 7.2 Implement `test_near_miss_unmatched` function
+    - `GET /__admin/requests/unmatched/near-misses`, assert HTTP 200, verify response contains `nearMisses` array
+    - Prefix all output with `[near-miss]`
+    - _Requirements: 11.2, 14.3_
+  - [x] 7.3 Implement `test_near_miss_for_request` function
+    - `POST /__admin/near-misses/request` with logged request body, assert HTTP 200
+    - Prefix all output with `[near-miss]`
+    - _Requirements: 11.3, 14.3_
+  - [x] 7.4 Implement `test_near_miss_for_request_pattern` function
+    - `POST /__admin/near-misses/request-pattern` with request pattern, assert HTTP 200
+    - Prefix all output with `[near-miss]`
+    - _Requirements: 11.4, 14.3_
+  - [x] 7.5 Implement `test_near_miss_cleanup` function
+    - Delete the mapping created during setup (`DELETE /__admin/mappings/{NEAR_MISS_MAPPING_ID}`)
+    - Call `DELETE /__admin/requests` to clear requests
+    - Use `|| true` to avoid masking original test failures
+    - Prefix output with `[near-miss]`
+    - _Requirements: 13.4_
+
+- [x] 8. Implement file management test functions in `scripts/post-deploy-test.sh`
+  - [x] 8.1 Implement `test_file_management_crud` function
+    - Use `FILE_ID="extensive-test-file.json"`
+    - Step 1: `PUT /__admin/files/{FILE_ID}` with `Content-Type: application/octet-stream` and test content, assert HTTP 200
+    - Step 2: `GET /__admin/files/{FILE_ID}`, assert HTTP 200, verify content contains `"created"`
+    - Step 3: `GET /__admin/files`, assert HTTP 200, verify response contains `FILE_ID`
+    - Step 4: `PUT /__admin/files/{FILE_ID}` with updated content, assert HTTP 200
+    - Step 5: `GET /__admin/files/{FILE_ID}`, assert HTTP 200, verify content contains `"updated"`
+    - Step 6: `DELETE /__admin/files/{FILE_ID}`, assert HTTP 200
+    - Step 7: `GET /__admin/files/{FILE_ID}` using `curl_no_fail`, assert HTTP 404
+    - Prefix all output with `[files]`
+    - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7, 14.3_
+  - [x] 8.2 Implement `test_file_management_cleanup` function
+    - Best-effort delete of `extensive-test-file.json` via `DELETE /__admin/files/{FILE_ID}`
+    - Use `|| true` to avoid masking original test failures
+    - Prefix output with `[files]`
+    - _Requirements: 13.3_
+
+- [x] 9. Checkpoint
+  - Run `bash -n scripts/post-deploy-test.sh` to verify no syntax errors after adding all test functions. Ensure all tests pass, ask the user if questions arise.
+
+- [x] 10. Wire new test suites into the test script's `main` function
+  - [x] 10.1 Add `mock-management` case branch
+    - Call `test_mock_management_crud`, `test_mock_management_save_reset`, `test_mock_management_metadata`, `test_mock_management_unmatched`, `test_mock_management_cleanup` in sequence
+    - _Requirements: 4.1_
+  - [x] 10.2 Add `request-verification` case branch
+    - Call `test_request_verification_setup`, `test_request_verification_list_find_count`, `test_request_verification_get_by_id`, `test_request_verification_unmatched`, `test_request_verification_delete_by_id`, `test_request_verification_remove`, `test_request_verification_metadata`, `test_request_verification_clear_reset`, `test_request_verification_cleanup` in sequence
+    - _Requirements: 4.2_
+  - [x] 10.3 Add `near-miss` case branch
+    - Call `test_near_miss_setup`, `test_near_miss_unmatched`, `test_near_miss_for_request`, `test_near_miss_for_request_pattern`, `test_near_miss_cleanup` in sequence
+    - _Requirements: 4.3_
+  - [x] 10.4 Add `files` case branch
+    - Call `test_file_management_crud`, `test_file_management_cleanup` in sequence
+    - _Requirements: 4.4_
+  - [x] 10.5 Add `extensive` case branch
+    - Run all four extensive test groups sequentially: mock-management, request-verification, near-miss, files
+    - _Requirements: 4.5_
+  - [x] 10.6 Update usage help text and header comments
+    - Add `mock-management`, `request-verification`, `near-miss`, `files`, and `extensive` to the usage documentation at the top of the script and in the error message for unknown test suites
+    - _Requirements: 4.6_
+
+- [x] 11. Add four extensive test jobs to `workflow-integration-test.yml`
+  - [x] 11.1 Add `test-extensive-mock-management` job
+    - `name: Extensive - Mock Management`
+    - `runs-on: ubuntu-latest`
+    - `needs: [setup, test-rest, test-graphql, test-soap, test-webhook]`
+    - `if: ${{ inputs.run-extensive-tests == true && !cancelled() && !failure() }}`
+    - Steps: checkout, configure AWS credentials, resolve stack credentials (same pattern as existing jobs), run `./scripts/post-deploy-test.sh mock-management`
+    - _Requirements: 2.3, 3.1, 3.2, 3.3, 3.4_
+  - [x] 11.2 Add `test-extensive-request-verification` job
+    - Same structure as 11.1 but runs `./scripts/post-deploy-test.sh request-verification`
+    - _Requirements: 2.3, 3.1, 3.2, 3.3, 3.4_
+  - [x] 11.3 Add `test-extensive-near-miss` job
+    - Same structure as 11.1 but runs `./scripts/post-deploy-test.sh near-miss`
+    - _Requirements: 2.3, 3.1, 3.2, 3.3, 3.4_
+  - [x] 11.4 Add `test-extensive-files` job
+    - Same structure as 11.1 but runs `./scripts/post-deploy-test.sh files`
+    - _Requirements: 2.3, 3.1, 3.2, 3.3, 3.4_
+
+- [x] 12. Final checkpoint
+  - Run `bash -n scripts/post-deploy-test.sh` to verify no syntax errors in the complete script
+  - Verify `deploy-on-demand.yml` and `workflow-integration-test.yml` are valid YAML
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- No property-based tests are included — the design explicitly explains why PBT does not apply to this feature (bash scripts + GitHub Actions YAML with no pure functions or data transformations)
+- No Kotlin/Gradle tasks are included — this feature only modifies bash scripts and GitHub Actions workflow YAML files
+- Each extensive test group uses unique URL path prefixes (`/extensive-test/mock-mgmt*`, `/extensive-test/req-verify`, etc.) to avoid conflicts when running in parallel
+- All extensive test functions reuse the existing `CURL_OPTS` array for authentication, ensuring compatibility with both API_KEY and IAM auth modes (Requirement 15)
+- Cleanup functions use `|| true` to avoid masking original test failures
+- Checkpoints use `bash -n` for syntax validation since this is a shell script feature

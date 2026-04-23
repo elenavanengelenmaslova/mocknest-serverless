@@ -37,6 +37,11 @@ on:
           - '1536'
           - '2048'
           - '3072'
+      run-extensive-tests:
+        description: 'Run extensive API tests after standard tests pass (covers all remaining MockNest APIs)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   id-token: write
@@ -69,5 +74,6 @@ jobs:
       # API_KEY mode: run all existing tests (rest, graphql, soap)
       # IAM mode: run only the webhook test
       test-suite: ${{ inputs.auth-mode == 'IAM' && 'webhook' || 'all' }}
+      run-extensive-tests: ${{ inputs.run-extensive-tests }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

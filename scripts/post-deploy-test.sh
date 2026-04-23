@@ -12,12 +12,17 @@ set -o pipefail
 #   $0 [TEST_SUITE]  # if API_URL and API_KEY are set as environment variables
 #
 # TEST_SUITE options:
-#   setup    - Run health checks and cleanup only
-#   rest     - Run REST/OpenAPI generation and import tests
-#   graphql  - Run GraphQL generation and import tests (future)
-#   soap     - Run SOAP/WSDL generation and import tests (future)
-#   webhook  - Run webhook delivery and redaction tests
-#   all      - Run all tests sequentially (default)
+#   setup                - Run health checks and cleanup only
+#   rest                 - Run REST/OpenAPI generation and import tests
+#   graphql              - Run GraphQL generation and import tests (future)
+#   soap                 - Run SOAP/WSDL generation and import tests (future)
+#   webhook              - Run webhook delivery and redaction tests
+#   mock-management      - Run extensive mock management CRUD tests
+#   request-verification - Run extensive request verification tests
+#   near-miss            - Run extensive near-miss analysis tests
+#   files                - Run extensive file management CRUD tests
+#   extensive            - Run all four extensive test groups sequentially
+#   all                  - Run all standard tests sequentially (default)
 #
 # Examples:
 #   $0 setup https://api.example.com abc123key
@@ -48,7 +53,7 @@ if [ -z "$API_URL" ]; then
   echo "Usage: $0 [TEST_SUITE] <API_URL> [API_KEY]"
   echo "   or: $0 [TEST_SUITE]  # if API_URL (and API_KEY for API_KEY mode) are set as environment variables"
   echo ""
-  echo "TEST_SUITE options: setup, rest, graphql, soap, webhook, all (default: all)"
+  echo "TEST_SUITE options: setup, rest, graphql, soap, webhook, mock-management, request-verification, near-miss, files, extensive, all (default: all)"
   echo ""
   echo "Examples:"
   echo "  $0 setup https://api.example.com abc123key"
@@ -101,6 +106,36 @@ parse_response() {
   local response="$1"
   HTTP_CODE=$(echo "$response" | tail -n1)
   BODY=$(echo "$response" | sed '$d')
+}
+
+# Assert expected HTTP status code, with detailed error reporting
+# Usage: assert_http_code "GROUP" "METHOD" "/endpoint" "$RESPONSE" "EXPECTED_CODE"
+assert_http_code() {
+  local group="$1" method="$2" endpoint="$3" response="$4" expected="$5"
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "$expected" ]; then
+    echo "[$group] ERROR: $method $endpoint — expected HTTP $expected, got HTTP $HTTP_CODE"
+    echo "[$group] Response body: $BODY"
+    exit 1
+  fi
+}
+
+# Extract a top-level JSON field from stdin using python3
+# Usage: VALUE=$(echo "$JSON" | json_field "fieldName")
+json_field() {
+  python3 -c "import sys,json; print(json.load(sys.stdin)['$1'])"
+}
+
+# curl without --fail flag, for testing expected error responses (e.g. 404)
+# Usage: curl_no_fail --write-out "\n%{http_code}" --request GET "$URL"
+curl_no_fail() {
+  local curl_opts_no_fail=()
+  for opt in "${CURL_OPTS[@]}"; do
+    if [ "$opt" != "--fail" ]; then
+      curl_opts_no_fail+=("$opt")
+    fi
+  done
+  curl "${curl_opts_no_fail[@]}" "$@"
 }
 
 # Test Functions
@@ -816,6 +851,1111 @@ find_header(data, '$sensitive_header')
   echo "✓ Webhook delivery test passed"
 }
 
+# =============================================================================
+# Extensive Test Functions — Mock Management
+# =============================================================================
+
+# Test mock management CRUD lifecycle
+# Creates, reads, updates, lists, deletes a mapping, then verifies 404
+test_mock_management_crud() {
+  echo "[mock-management] Testing CRUD lifecycle..."
+
+  # Step 1: POST /__admin/mappings — create mapping
+  echo "[mock-management]   Creating mapping..."
+  local create_body
+  create_body='{
+    "request": {
+      "method": "GET",
+      "urlPath": "/extensive-test/mock-mgmt"
+    },
+    "response": {
+      "status": 200,
+      "jsonBody": { "test": "mock-management" },
+      "headers": { "Content-Type": "application/json" }
+    }
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$create_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[mock-management] ERROR: POST /__admin/mappings request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "POST" "/__admin/mappings" "$response" "201"
+
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[mock-management]   ✓ Created mapping: $MAPPING_ID"
+
+  # Step 2: GET /__admin/mappings/{id} — read mapping
+  echo "[mock-management]   Reading mapping by ID..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>&1) || {
+    echo "[mock-management] ERROR: GET /__admin/mappings/$MAPPING_ID request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "GET" "/__admin/mappings/$MAPPING_ID" "$response" "200"
+
+  if ! echo "$BODY" | grep -q '/extensive-test/mock-mgmt'; then
+    echo "[mock-management] ERROR: GET response missing expected urlPath"
+    echo "[mock-management] Response: $BODY"
+    exit 1
+  fi
+  echo "[mock-management]   ✓ Read mapping passed"
+
+  # Step 3: PUT /__admin/mappings/{id} — update mapping
+  echo "[mock-management]   Updating mapping..."
+  local update_body
+  update_body="{
+    \"id\": \"$MAPPING_ID\",
+    \"request\": {
+      \"method\": \"GET\",
+      \"urlPath\": \"/extensive-test/mock-mgmt-updated\"
+    },
+    \"response\": {
+      \"status\": 200,
+      \"jsonBody\": { \"test\": \"updated\" },
+      \"headers\": { \"Content-Type\": \"application/json\" }
+    }
+  }"
+
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request PUT \
+    --data "$update_body" \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>&1) || {
+    echo "[mock-management] ERROR: PUT /__admin/mappings/$MAPPING_ID request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "PUT" "/__admin/mappings/$MAPPING_ID" "$response" "200"
+  echo "[mock-management]   ✓ Update mapping passed"
+
+  # Step 4: GET /__admin/mappings/{id} — verify update
+  echo "[mock-management]   Verifying update..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>&1) || {
+    echo "[mock-management] ERROR: GET /__admin/mappings/$MAPPING_ID request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "GET" "/__admin/mappings/$MAPPING_ID" "$response" "200"
+
+  if ! echo "$BODY" | grep -q '/extensive-test/mock-mgmt-updated'; then
+    echo "[mock-management] ERROR: GET response missing updated urlPath"
+    echo "[mock-management] Response: $BODY"
+    exit 1
+  fi
+  echo "[mock-management]   ✓ Verify update passed"
+
+  # Step 5: GET /__admin/mappings — list all, verify contains our mapping
+  echo "[mock-management]   Listing all mappings..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[mock-management] ERROR: GET /__admin/mappings request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "GET" "/__admin/mappings" "$response" "200"
+
+  if ! echo "$BODY" | grep -q "$MAPPING_ID"; then
+    echo "[mock-management] ERROR: Mapping list does not contain $MAPPING_ID"
+    echo "[mock-management] Response: $BODY"
+    exit 1
+  fi
+  echo "[mock-management]   ✓ List mappings passed"
+
+  # Step 6: DELETE /__admin/mappings/{id}
+  echo "[mock-management]   Deleting mapping..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>&1) || {
+    echo "[mock-management] ERROR: DELETE /__admin/mappings/$MAPPING_ID request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "DELETE" "/__admin/mappings/$MAPPING_ID" "$response" "200"
+  echo "[mock-management]   ✓ Delete mapping passed"
+
+  # Step 7: GET /__admin/mappings/{id} — verify 404
+  echo "[mock-management]   Verifying 404 after delete..."
+  response=$(curl_no_fail \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>&1) || true
+  assert_http_code "mock-management" "GET" "/__admin/mappings/$MAPPING_ID" "$response" "404"
+  echo "[mock-management]   ✓ 404 after delete passed"
+
+  echo "[mock-management] ✓ CRUD lifecycle passed"
+}
+
+# Test mock management save and reset
+# Creates a mapping, saves, creates another, resets, verifies zero mappings
+test_mock_management_save_reset() {
+  echo "[mock-management] Testing save and reset..."
+
+  # Step 1: POST /__admin/mappings — create persistent mapping
+  echo "[mock-management]   Creating persistent mapping..."
+  local create_body
+  create_body='{
+    "request": {
+      "method": "GET",
+      "urlPath": "/extensive-test/save-reset"
+    },
+    "response": {
+      "status": 200,
+      "body": "save-reset-test"
+    },
+    "persistent": true
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$create_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[mock-management] ERROR: POST /__admin/mappings request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "POST" "/__admin/mappings" "$response" "201"
+  echo "[mock-management]   ✓ Created persistent mapping"
+
+  # Step 2: POST /__admin/mappings/save
+  echo "[mock-management]   Saving mappings..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    "$API_URL/__admin/mappings/save" 2>&1) || {
+    echo "[mock-management] ERROR: POST /__admin/mappings/save request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "POST" "/__admin/mappings/save" "$response" "200"
+  echo "[mock-management]   ✓ Save mappings passed"
+
+  # Step 3: POST /__admin/mappings — create second mapping
+  echo "[mock-management]   Creating second mapping..."
+  local second_body
+  second_body='{
+    "request": {
+      "method": "GET",
+      "urlPath": "/extensive-test/reset-target"
+    },
+    "response": {
+      "status": 200,
+      "body": "reset-target"
+    }
+  }'
+
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$second_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[mock-management] ERROR: POST /__admin/mappings request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "POST" "/__admin/mappings" "$response" "201"
+  echo "[mock-management]   ✓ Created second mapping"
+
+  # Step 4: POST /__admin/reset
+  echo "[mock-management]   Resetting server..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    "$API_URL/__admin/reset" 2>&1) || {
+    echo "[mock-management] ERROR: POST /__admin/reset request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "POST" "/__admin/reset" "$response" "200"
+  echo "[mock-management]   ✓ Reset passed"
+
+  # Step 5: GET /__admin/mappings — verify zero mappings
+  echo "[mock-management]   Verifying zero mappings after reset..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[mock-management] ERROR: GET /__admin/mappings request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "GET" "/__admin/mappings" "$response" "200"
+
+  # Check that mappings array is empty (no mapping IDs present)
+  local mapping_count
+  mapping_count=$(echo "$BODY" | grep -o '"id"' | wc -l || echo "0")
+  mapping_count=$(echo "$mapping_count" | tr -d ' ')
+  if [ "$mapping_count" != "0" ]; then
+    echo "[mock-management] ERROR: Expected 0 mappings after reset, found $mapping_count"
+    echo "[mock-management] Response: $BODY"
+    exit 1
+  fi
+  echo "[mock-management]   ✓ Zero mappings after reset"
+
+  echo "[mock-management] ✓ Save and reset passed"
+}
+
+# Test mock management metadata operations
+# Creates mapping with metadata, finds by metadata, removes by metadata, verifies gone
+test_mock_management_metadata() {
+  echo "[mock-management] Testing metadata operations..."
+
+  # Step 1: POST /__admin/mappings — create mapping with metadata
+  echo "[mock-management]   Creating mapping with metadata..."
+  local create_body
+  create_body='{
+    "request": {
+      "method": "GET",
+      "urlPath": "/extensive-test/metadata"
+    },
+    "response": {
+      "status": 200,
+      "body": "metadata-test"
+    },
+    "metadata": {
+      "testGroup": "extensive",
+      "testId": "metadata-1"
+    }
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$create_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[mock-management] ERROR: POST /__admin/mappings request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "POST" "/__admin/mappings" "$response" "201"
+
+  METADATA_MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[mock-management]   ✓ Created mapping with metadata: $METADATA_MAPPING_ID"
+
+  # Step 2: POST /__admin/mappings/find-by-metadata
+  echo "[mock-management]   Finding by metadata..."
+  local find_body
+  find_body='{
+    "matchesJsonPath": {
+      "expression": "$.testGroup",
+      "equalTo": "extensive"
+    }
+  }'
+
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$find_body" \
+    "$API_URL/__admin/mappings/find-by-metadata" 2>&1) || {
+    echo "[mock-management] ERROR: POST /__admin/mappings/find-by-metadata request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "POST" "/__admin/mappings/find-by-metadata" "$response" "200"
+
+  if ! echo "$BODY" | grep -q "$METADATA_MAPPING_ID"; then
+    echo "[mock-management] ERROR: find-by-metadata response does not contain $METADATA_MAPPING_ID"
+    echo "[mock-management] Response: $BODY"
+    exit 1
+  fi
+  echo "[mock-management]   ✓ Find by metadata passed"
+
+  # Step 3: POST /__admin/mappings/remove-by-metadata
+  echo "[mock-management]   Removing by metadata..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$find_body" \
+    "$API_URL/__admin/mappings/remove-by-metadata" 2>&1) || {
+    echo "[mock-management] ERROR: POST /__admin/mappings/remove-by-metadata request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "POST" "/__admin/mappings/remove-by-metadata" "$response" "200"
+  echo "[mock-management]   ✓ Remove by metadata passed"
+
+  # Step 4: GET /__admin/mappings — verify mapping is gone
+  echo "[mock-management]   Verifying mapping removed..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[mock-management] ERROR: GET /__admin/mappings request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "GET" "/__admin/mappings" "$response" "200"
+
+  if echo "$BODY" | grep -q "$METADATA_MAPPING_ID"; then
+    echo "[mock-management] ERROR: Mapping $METADATA_MAPPING_ID still present after remove-by-metadata"
+    echo "[mock-management] Response: $BODY"
+    exit 1
+  fi
+  echo "[mock-management]   ✓ Mapping removed after remove-by-metadata"
+
+  echo "[mock-management] ✓ Metadata operations passed"
+}
+
+# Test mock management unmatched mappings
+# Creates a mapping that won't be invoked, lists unmatched, deletes unmatched
+test_mock_management_unmatched() {
+  echo "[mock-management] Testing unmatched mappings..."
+
+  # Step 1: POST /__admin/mappings — create mapping that won't be invoked
+  echo "[mock-management]   Creating unmatched mapping..."
+  local create_body
+  create_body='{
+    "request": {
+      "method": "GET",
+      "urlPath": "/extensive-test/unmatched-mapping"
+    },
+    "response": {
+      "status": 200,
+      "body": "unmatched"
+    }
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$create_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[mock-management] ERROR: POST /__admin/mappings request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "POST" "/__admin/mappings" "$response" "201"
+  echo "[mock-management]   ✓ Created unmatched mapping"
+
+  # Step 2: GET /__admin/mappings/unmatched
+  echo "[mock-management]   Listing unmatched mappings..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/mappings/unmatched" 2>&1) || {
+    echo "[mock-management] ERROR: GET /__admin/mappings/unmatched request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "GET" "/__admin/mappings/unmatched" "$response" "200"
+
+  if ! echo "$BODY" | grep -q '"mappings"'; then
+    echo "[mock-management] ERROR: Unmatched response missing mappings array"
+    echo "[mock-management] Response: $BODY"
+    exit 1
+  fi
+  echo "[mock-management]   ✓ List unmatched passed"
+
+  # Step 3: DELETE /__admin/mappings/unmatched
+  echo "[mock-management]   Deleting unmatched mappings..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/unmatched" 2>&1) || {
+    echo "[mock-management] ERROR: DELETE /__admin/mappings/unmatched request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "DELETE" "/__admin/mappings/unmatched" "$response" "200"
+  echo "[mock-management]   ✓ Delete unmatched passed"
+
+  echo "[mock-management] ✓ Unmatched mappings passed"
+}
+
+# Cleanup all mappings created during mock-management tests
+test_mock_management_cleanup() {
+  echo "[mock-management] Cleaning up test data..."
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings" 2>/dev/null || true
+  echo "[mock-management] ✓ Cleanup complete"
+}
+
+# =============================================================================
+# Extensive Test Functions — Request Verification
+# =============================================================================
+
+# Shared state for request verification tests
+REQ_VERIFY_MAPPING_ID=""
+REQUEST_ID=""
+
+# Setup: create mapping and invoke it to generate a journal entry
+test_request_verification_setup() {
+  echo "[request-verification] Setting up request verification tests..."
+
+  # Step 1: POST /__admin/mappings — create mapping for POST /extensive-test/req-verify
+  echo "[request-verification]   Creating mapping..."
+  local create_body
+  create_body='{
+    "request": {
+      "method": "POST",
+      "urlPath": "/extensive-test/req-verify"
+    },
+    "response": {
+      "status": 200,
+      "jsonBody": { "received": true },
+      "headers": { "Content-Type": "application/json" }
+    }
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$create_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[request-verification] ERROR: POST /__admin/mappings request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "POST" "/__admin/mappings" "$response" "201"
+
+  REQ_VERIFY_MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[request-verification]   ✓ Created mapping: $REQ_VERIFY_MAPPING_ID"
+
+  # Step 2: POST /mocknest/extensive-test/req-verify — invoke mock to generate journal entry
+  echo "[request-verification]   Invoking mock to generate journal entry..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data '{"testData": "request-verification"}' \
+    "$API_URL/mocknest/extensive-test/req-verify" 2>&1) || {
+    echo "[request-verification] ERROR: POST /mocknest/extensive-test/req-verify request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "POST" "/mocknest/extensive-test/req-verify" "$response" "200"
+  echo "[request-verification]   ✓ Mock invoked"
+
+  # Sleep to allow journal persistence
+  sleep 2
+
+  echo "[request-verification] ✓ Setup complete"
+}
+
+# Test list requests, find requests, and count requests
+test_request_verification_list_find_count() {
+  echo "[request-verification] Testing list, find, and count..."
+
+  # Step 1: GET /__admin/requests — list all requests, extract REQUEST_ID
+  echo "[request-verification]   Listing requests..."
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/requests" 2>&1) || {
+    echo "[request-verification] ERROR: GET /__admin/requests request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "GET" "/__admin/requests" "$response" "200"
+
+  # Extract REQUEST_ID from a matching request using python3
+  REQUEST_ID=$(echo "$BODY" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for req in data.get('requests', []):
+    url = req.get('request', {}).get('url', '') if 'request' in req else req.get('url', '')
+    if 'req-verify' in url:
+        print(req['id'])
+        break
+" 2>/dev/null || echo "")
+
+  if [ -z "$REQUEST_ID" ]; then
+    echo "[request-verification] ERROR: Could not find a matching request with 'req-verify' in URL"
+    echo "[request-verification] Response: $BODY"
+    exit 1
+  fi
+  echo "[request-verification]   ✓ List requests passed, found REQUEST_ID: $REQUEST_ID"
+
+  # Step 2: POST /__admin/requests/find
+  echo "[request-verification]   Finding requests..."
+  local find_body
+  find_body='{ "method": "POST", "urlPath": "/extensive-test/req-verify" }'
+
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$find_body" \
+    "$API_URL/__admin/requests/find" 2>&1) || {
+    echo "[request-verification] ERROR: POST /__admin/requests/find request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "POST" "/__admin/requests/find" "$response" "200"
+  echo "[request-verification]   ✓ Find requests passed"
+
+  # Step 3: POST /__admin/requests/count
+  echo "[request-verification]   Counting requests..."
+  local count_body
+  count_body='{ "method": "POST", "urlPath": "/extensive-test/req-verify" }'
+
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$count_body" \
+    "$API_URL/__admin/requests/count" 2>&1) || {
+    echo "[request-verification] ERROR: POST /__admin/requests/count request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "POST" "/__admin/requests/count" "$response" "200"
+
+  # Verify count >= 1
+  local count
+  count=$(echo "$BODY" | json_field "count" 2>/dev/null || echo "0")
+  if [ "$count" -lt 1 ] 2>/dev/null; then
+    echo "[request-verification] ERROR: Expected count >= 1, got $count"
+    echo "[request-verification] Response: $BODY"
+    exit 1
+  fi
+  echo "[request-verification]   ✓ Count requests passed (count=$count)"
+
+  echo "[request-verification] ✓ List, find, and count passed"
+}
+
+# Test get request by ID
+test_request_verification_get_by_id() {
+  echo "[request-verification] Testing get request by ID..."
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/requests/$REQUEST_ID" 2>&1) || {
+    echo "[request-verification] ERROR: GET /__admin/requests/$REQUEST_ID request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "GET" "/__admin/requests/$REQUEST_ID" "$response" "200"
+
+  if ! echo "$BODY" | grep -q 'req-verify'; then
+    echo "[request-verification] ERROR: GET response does not contain 'req-verify'"
+    echo "[request-verification] Response: $BODY"
+    exit 1
+  fi
+  echo "[request-verification]   ✓ Get by ID passed"
+
+  echo "[request-verification] ✓ Get request by ID passed"
+}
+
+# Test unmatched requests
+test_request_verification_unmatched() {
+  echo "[request-verification] Testing unmatched requests..."
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/requests/unmatched" 2>&1) || {
+    echo "[request-verification] ERROR: GET /__admin/requests/unmatched request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "GET" "/__admin/requests/unmatched" "$response" "200"
+
+  if ! echo "$BODY" | grep -q '"requests"'; then
+    echo "[request-verification] ERROR: Unmatched response missing requests array"
+    echo "[request-verification] Response: $BODY"
+    exit 1
+  fi
+  echo "[request-verification]   ✓ Unmatched requests passed"
+
+  echo "[request-verification] ✓ Unmatched requests passed"
+}
+
+# Test delete request by ID
+test_request_verification_delete_by_id() {
+  echo "[request-verification] Testing delete request by ID..."
+
+  # Step 1: POST /mocknest/extensive-test/req-verify — generate a new journal entry
+  echo "[request-verification]   Invoking mock to generate new journal entry..."
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data '{"testData": "delete-by-id-test"}' \
+    "$API_URL/mocknest/extensive-test/req-verify" 2>&1) || {
+    echo "[request-verification] ERROR: POST /mocknest/extensive-test/req-verify request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "POST" "/mocknest/extensive-test/req-verify" "$response" "200"
+  echo "[request-verification]   ✓ Mock invoked"
+
+  sleep 2
+
+  # Step 2: GET /__admin/requests — find the new request ID
+  echo "[request-verification]   Finding new request ID..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/requests" 2>&1) || {
+    echo "[request-verification] ERROR: GET /__admin/requests request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "GET" "/__admin/requests" "$response" "200"
+
+  local DELETE_REQUEST_ID
+  DELETE_REQUEST_ID=$(echo "$BODY" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for req in data.get('requests', []):
+    url = req.get('request', {}).get('url', '') if 'request' in req else req.get('url', '')
+    if 'req-verify' in url:
+        print(req['id'])
+        break
+" 2>/dev/null || echo "")
+
+  if [ -z "$DELETE_REQUEST_ID" ]; then
+    echo "[request-verification] ERROR: Could not find a matching request for deletion"
+    echo "[request-verification] Response: $BODY"
+    exit 1
+  fi
+  echo "[request-verification]   ✓ Found request to delete: $DELETE_REQUEST_ID"
+
+  # Step 3: DELETE /__admin/requests/{id}
+  echo "[request-verification]   Deleting request by ID..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request DELETE \
+    "$API_URL/__admin/requests/$DELETE_REQUEST_ID" 2>&1) || {
+    echo "[request-verification] ERROR: DELETE /__admin/requests/$DELETE_REQUEST_ID request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "DELETE" "/__admin/requests/$DELETE_REQUEST_ID" "$response" "200"
+  echo "[request-verification]   ✓ Delete by ID passed"
+
+  echo "[request-verification] ✓ Delete request by ID passed"
+}
+
+# Test remove requests by criteria
+test_request_verification_remove() {
+  echo "[request-verification] Testing remove requests..."
+
+  # Step 1: POST /mocknest/extensive-test/req-verify — generate another journal entry
+  echo "[request-verification]   Invoking mock to generate journal entry..."
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data '{"testData": "remove-test"}' \
+    "$API_URL/mocknest/extensive-test/req-verify" 2>&1) || {
+    echo "[request-verification] ERROR: POST /mocknest/extensive-test/req-verify request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "POST" "/mocknest/extensive-test/req-verify" "$response" "200"
+  echo "[request-verification]   ✓ Mock invoked"
+
+  sleep 2
+
+  # Step 2: POST /__admin/requests/remove
+  echo "[request-verification]   Removing requests by criteria..."
+  local remove_body
+  remove_body='{ "method": "POST", "urlPath": "/extensive-test/req-verify" }'
+
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$remove_body" \
+    "$API_URL/__admin/requests/remove" 2>&1) || {
+    echo "[request-verification] ERROR: POST /__admin/requests/remove request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "POST" "/__admin/requests/remove" "$response" "200"
+  echo "[request-verification]   ✓ Remove requests passed"
+
+  echo "[request-verification] ✓ Remove requests passed"
+}
+
+# Test remove requests by metadata
+test_request_verification_metadata() {
+  echo "[request-verification] Testing remove by metadata..."
+
+  local metadata_body
+  metadata_body='{
+    "matchesJsonPath": {
+      "expression": "$.testGroup",
+      "equalTo": "extensive"
+    }
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$metadata_body" \
+    "$API_URL/__admin/requests/remove-by-metadata" 2>&1) || {
+    echo "[request-verification] ERROR: POST /__admin/requests/remove-by-metadata request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "POST" "/__admin/requests/remove-by-metadata" "$response" "200"
+  echo "[request-verification]   ✓ Remove by metadata passed"
+
+  echo "[request-verification] ✓ Remove by metadata passed"
+}
+
+# Test clear and reset request journal
+test_request_verification_clear_reset() {
+  echo "[request-verification] Testing clear and reset..."
+
+  # Step 1: DELETE /__admin/requests
+  echo "[request-verification]   Clearing all requests..."
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request DELETE \
+    "$API_URL/__admin/requests" 2>&1) || {
+    echo "[request-verification] ERROR: DELETE /__admin/requests request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "DELETE" "/__admin/requests" "$response" "200"
+  echo "[request-verification]   ✓ Clear requests passed"
+
+  # Step 2: POST /__admin/requests/reset
+  echo "[request-verification]   Resetting request journal..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    "$API_URL/__admin/requests/reset" 2>&1) || {
+    echo "[request-verification] ERROR: POST /__admin/requests/reset request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
+  assert_http_code "request-verification" "POST" "/__admin/requests/reset" "$response" "200"
+  echo "[request-verification]   ✓ Reset request journal passed"
+
+  echo "[request-verification] ✓ Clear and reset passed"
+}
+
+# Cleanup request verification test data
+test_request_verification_cleanup() {
+  echo "[request-verification] Cleaning up test data..."
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$REQ_VERIFY_MAPPING_ID" 2>/dev/null || true
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/requests" 2>/dev/null || true
+  echo "[request-verification] ✓ Cleanup complete"
+}
+
+# =============================================================================
+# Extensive Test Functions — Near-Miss Analysis
+# =============================================================================
+
+# Shared state for near-miss tests
+NEAR_MISS_MAPPING_ID=""
+
+# Setup: create mapping with header requirement and send a near-miss request
+test_near_miss_setup() {
+  echo "[near-miss] Setting up near-miss tests..."
+
+  # Step 1: POST /__admin/mappings — create mapping requiring X-Custom: expected-value
+  echo "[near-miss]   Creating mapping with header requirement..."
+  local create_body
+  create_body='{
+    "request": {
+      "method": "GET",
+      "urlPath": "/extensive-test/near-miss-target",
+      "headers": {
+        "X-Custom": {
+          "equalTo": "expected-value"
+        }
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": "near-miss-target"
+    }
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$create_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[near-miss] ERROR: POST /__admin/mappings request failed"
+    echo "[near-miss] Response: $response"
+    exit 1
+  }
+  assert_http_code "near-miss" "POST" "/__admin/mappings" "$response" "201"
+
+  NEAR_MISS_MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[near-miss]   ✓ Created mapping: $NEAR_MISS_MAPPING_ID"
+
+  # Step 2: Send near-miss request (wrong header value, correct path)
+  echo "[near-miss]   Sending near-miss request with wrong header value..."
+  response=$(curl_no_fail \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    --header "X-Custom: wrong-value" \
+    "$API_URL/mocknest/extensive-test/near-miss-target" 2>&1) || true
+  assert_http_code "near-miss" "GET" "/mocknest/extensive-test/near-miss-target" "$response" "404"
+  echo "[near-miss]   ✓ Near-miss request returned 404 as expected"
+
+  # Sleep to allow journal persistence
+  sleep 2
+
+  echo "[near-miss] ✓ Setup complete"
+}
+
+# Test unmatched near-misses
+test_near_miss_unmatched() {
+  echo "[near-miss] Testing unmatched near-misses..."
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/requests/unmatched/near-misses" 2>&1) || {
+    echo "[near-miss] ERROR: GET /__admin/requests/unmatched/near-misses request failed"
+    echo "[near-miss] Response: $response"
+    exit 1
+  }
+  assert_http_code "near-miss" "GET" "/__admin/requests/unmatched/near-misses" "$response" "200"
+
+  if ! echo "$BODY" | grep -q '"nearMisses"'; then
+    echo "[near-miss] ERROR: Response missing nearMisses array"
+    echo "[near-miss] Response: $BODY"
+    exit 1
+  fi
+  echo "[near-miss]   ✓ Unmatched near-misses passed"
+
+  echo "[near-miss] ✓ Unmatched near-misses passed"
+}
+
+# Test near-misses for a specific request
+test_near_miss_for_request() {
+  echo "[near-miss] Testing near-misses for request..."
+
+  local request_body
+  request_body='{
+    "url": "/extensive-test/near-miss-target",
+    "method": "GET",
+    "headers": {
+      "X-Custom": "wrong-value"
+    }
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$request_body" \
+    "$API_URL/__admin/near-misses/request" 2>&1) || {
+    echo "[near-miss] ERROR: POST /__admin/near-misses/request request failed"
+    echo "[near-miss] Response: $response"
+    exit 1
+  }
+  assert_http_code "near-miss" "POST" "/__admin/near-misses/request" "$response" "200"
+  echo "[near-miss]   ✓ Near-misses for request passed"
+
+  echo "[near-miss] ✓ Near-misses for request passed"
+}
+
+# Test near-misses for a request pattern
+test_near_miss_for_request_pattern() {
+  echo "[near-miss] Testing near-misses for request pattern..."
+
+  local pattern_body
+  pattern_body='{
+    "urlPath": "/extensive-test/near-miss-target",
+    "method": "GET"
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$pattern_body" \
+    "$API_URL/__admin/near-misses/request-pattern" 2>&1) || {
+    echo "[near-miss] ERROR: POST /__admin/near-misses/request-pattern request failed"
+    echo "[near-miss] Response: $response"
+    exit 1
+  }
+  assert_http_code "near-miss" "POST" "/__admin/near-misses/request-pattern" "$response" "200"
+  echo "[near-miss]   ✓ Near-misses for request pattern passed"
+
+  echo "[near-miss] ✓ Near-misses for request pattern passed"
+}
+
+# Cleanup near-miss test data
+test_near_miss_cleanup() {
+  echo "[near-miss] Cleaning up test data..."
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$NEAR_MISS_MAPPING_ID" 2>/dev/null || true
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/requests" 2>/dev/null || true
+  echo "[near-miss] ✓ Cleanup complete"
+}
+
+# =============================================================================
+# Extensive Test Functions — File Management
+# =============================================================================
+
+# Test file management CRUD lifecycle
+# Creates, reads, lists, updates, re-reads, deletes a file, then verifies 404
+test_file_management_crud() {
+  echo "[files] Testing file CRUD lifecycle..."
+
+  local FILE_ID="extensive-test-file.json"
+
+  # Step 1: PUT /__admin/files/{FILE_ID} — create file
+  echo "[files]   Creating file..."
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request PUT \
+    --header "Content-Type: application/octet-stream" \
+    --data '{"test": "file-management", "created": true}' \
+    "$API_URL/__admin/files/$FILE_ID" 2>&1) || {
+    echo "[files] ERROR: PUT /__admin/files/$FILE_ID request failed"
+    echo "[files] Response: $response"
+    exit 1
+  }
+  assert_http_code "files" "PUT" "/__admin/files/$FILE_ID" "$response" "200"
+  echo "[files]   ✓ Create file passed"
+
+  # Step 2: GET /__admin/files/{FILE_ID} — read file (no JSON content-type requirement)
+  echo "[files]   Reading file..."
+  local curl_opts_no_json=()
+  for opt in "${CURL_OPTS[@]}"; do
+    if [[ "$opt" != "Content-Type: application/json" ]]; then
+      curl_opts_no_json+=("$opt")
+    fi
+  done
+  response=$(curl "${curl_opts_no_json[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/files/$FILE_ID" 2>&1) || {
+    echo "[files] ERROR: GET /__admin/files/$FILE_ID request failed"
+    echo "[files] Response: $response"
+    exit 1
+  }
+  assert_http_code "files" "GET" "/__admin/files/$FILE_ID" "$response" "200"
+
+  if ! echo "$BODY" | grep -q 'created'; then
+    echo "[files] ERROR: File content does not contain 'created'"
+    echo "[files] Response: $BODY"
+    exit 1
+  fi
+  echo "[files]   ✓ Read file passed"
+
+  # Step 3: GET /__admin/files — list files
+  echo "[files]   Listing files..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/files" 2>&1) || {
+    echo "[files] ERROR: GET /__admin/files request failed"
+    echo "[files] Response: $response"
+    exit 1
+  }
+  assert_http_code "files" "GET" "/__admin/files" "$response" "200"
+
+  if ! echo "$BODY" | grep -q "$FILE_ID"; then
+    echo "[files] ERROR: File list does not contain $FILE_ID"
+    echo "[files] Response: $BODY"
+    exit 1
+  fi
+  echo "[files]   ✓ List files passed"
+
+  # Step 4: PUT /__admin/files/{FILE_ID} — update file
+  echo "[files]   Updating file..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request PUT \
+    --header "Content-Type: application/octet-stream" \
+    --data '{"test": "file-management", "updated": true}' \
+    "$API_URL/__admin/files/$FILE_ID" 2>&1) || {
+    echo "[files] ERROR: PUT /__admin/files/$FILE_ID request failed"
+    echo "[files] Response: $response"
+    exit 1
+  }
+  assert_http_code "files" "PUT" "/__admin/files/$FILE_ID" "$response" "200"
+  echo "[files]   ✓ Update file passed"
+
+  # Step 5: GET /__admin/files/{FILE_ID} — verify updated content
+  echo "[files]   Verifying updated file..."
+  response=$(curl "${curl_opts_no_json[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/files/$FILE_ID" 2>&1) || {
+    echo "[files] ERROR: GET /__admin/files/$FILE_ID request failed"
+    echo "[files] Response: $response"
+    exit 1
+  }
+  assert_http_code "files" "GET" "/__admin/files/$FILE_ID" "$response" "200"
+
+  if ! echo "$BODY" | grep -q 'updated'; then
+    echo "[files] ERROR: File content does not contain 'updated'"
+    echo "[files] Response: $BODY"
+    exit 1
+  fi
+  echo "[files]   ✓ Verify updated file passed"
+
+  # Step 6: DELETE /__admin/files/{FILE_ID}
+  echo "[files]   Deleting file..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request DELETE \
+    "$API_URL/__admin/files/$FILE_ID" 2>&1) || {
+    echo "[files] ERROR: DELETE /__admin/files/$FILE_ID request failed"
+    echo "[files] Response: $response"
+    exit 1
+  }
+  assert_http_code "files" "DELETE" "/__admin/files/$FILE_ID" "$response" "200"
+  echo "[files]   ✓ Delete file passed"
+
+  # Step 7: GET /__admin/files/{FILE_ID} — verify 404
+  echo "[files]   Verifying 404 after delete..."
+  response=$(curl_no_fail \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/__admin/files/$FILE_ID" 2>&1) || true
+  assert_http_code "files" "GET" "/__admin/files/$FILE_ID" "$response" "404"
+  echo "[files]   ✓ 404 after delete passed"
+
+  echo "[files] ✓ File CRUD lifecycle passed"
+}
+
+# Cleanup file management test data
+test_file_management_cleanup() {
+  echo "[files] Cleaning up test data..."
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/files/extensive-test-file.json" 2>/dev/null || true
+  echo "[files] ✓ Cleanup complete"
+}
+
 # Main test execution
 main() {
   echo "=== MockNest Serverless Post-Deployment Integration Tests ==="
@@ -848,6 +1988,63 @@ main() {
       echo "Running webhook tests..."
       test_webhook_delivery
       ;;
+    mock-management)
+      echo "Running mock management extensive tests..."
+      test_mock_management_crud
+      test_mock_management_save_reset
+      test_mock_management_metadata
+      test_mock_management_unmatched
+      test_mock_management_cleanup
+      ;;
+    request-verification)
+      echo "Running request verification extensive tests..."
+      test_request_verification_setup
+      test_request_verification_list_find_count
+      test_request_verification_get_by_id
+      test_request_verification_unmatched
+      test_request_verification_delete_by_id
+      test_request_verification_remove
+      test_request_verification_metadata
+      test_request_verification_clear_reset
+      test_request_verification_cleanup
+      ;;
+    near-miss)
+      echo "Running near-miss extensive tests..."
+      test_near_miss_setup
+      test_near_miss_unmatched
+      test_near_miss_for_request
+      test_near_miss_for_request_pattern
+      test_near_miss_cleanup
+      ;;
+    files)
+      echo "Running file management extensive tests..."
+      test_file_management_crud
+      test_file_management_cleanup
+      ;;
+    extensive)
+      echo "Running all extensive tests..."
+      test_mock_management_crud
+      test_mock_management_save_reset
+      test_mock_management_metadata
+      test_mock_management_unmatched
+      test_mock_management_cleanup
+      test_request_verification_setup
+      test_request_verification_list_find_count
+      test_request_verification_get_by_id
+      test_request_verification_unmatched
+      test_request_verification_delete_by_id
+      test_request_verification_remove
+      test_request_verification_metadata
+      test_request_verification_clear_reset
+      test_request_verification_cleanup
+      test_near_miss_setup
+      test_near_miss_unmatched
+      test_near_miss_for_request
+      test_near_miss_for_request_pattern
+      test_near_miss_cleanup
+      test_file_management_crud
+      test_file_management_cleanup
+      ;;
     all)
       echo "Running all tests..."
       test_runtime_health
@@ -863,7 +2060,7 @@ main() {
       ;;
     *)
       echo "ERROR: Unknown test suite: $TEST_SUITE"
-      echo "Valid options: setup, rest, graphql, soap, webhook, all"
+      echo "Valid options: setup, rest, graphql, soap, webhook, mock-management, request-verification, near-miss, files, extensive, all"
       exit 2
       ;;
   esac
