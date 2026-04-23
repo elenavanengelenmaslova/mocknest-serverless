@@ -1422,7 +1422,7 @@ for req in data.get('requests', []):
   # Step 2: POST /__admin/requests/find
   echo "[request-verification]   Finding requests..."
   local find_body
-  find_body='{ "method": "POST", "urlPath": "/extensive-test/req-verify" }'
+  find_body='{ "method": "POST", "urlPathPattern": ".*extensive-test/req-verify.*" }'
 
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
@@ -1439,7 +1439,7 @@ for req in data.get('requests', []):
   # Step 3: POST /__admin/requests/count
   echo "[request-verification]   Counting requests..."
   local count_body
-  count_body='{ "method": "POST", "urlPath": "/extensive-test/req-verify" }'
+  count_body='{ "method": "POST", "urlPathPattern": ".*extensive-test/req-verify.*" }'
 
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
@@ -1615,7 +1615,7 @@ test_request_verification_remove() {
   # Step 2: POST /__admin/requests/remove
   echo "[request-verification]   Removing requests by criteria..."
   local remove_body
-  remove_body='{ "method": "POST", "urlPath": "/extensive-test/req-verify" }'
+  remove_body='{ "method": "POST", "urlPathPattern": ".*extensive-test/req-verify.*" }'
 
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
