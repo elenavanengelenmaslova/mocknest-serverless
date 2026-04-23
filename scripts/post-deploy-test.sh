@@ -872,7 +872,8 @@ test_mock_management_crud() {
       "status": 200,
       "jsonBody": { "test": "mock-management" },
       "headers": { "Content-Type": "application/json" }
-    }
+    },
+    "persistent": true
   }'
 
   local response
@@ -1057,7 +1058,8 @@ test_mock_management_save_reset() {
     "response": {
       "status": 200,
       "body": "reset-target"
-    }
+    },
+    "persistent": true
   }'
 
   response=$(curl "${CURL_OPTS[@]}" \
@@ -1144,7 +1146,8 @@ test_mock_management_metadata() {
     "metadata": {
       "testGroup": "extensive",
       "testId": "metadata-1"
-    }
+    },
+    "persistent": true
   }'
 
   local response
@@ -1242,7 +1245,8 @@ test_mock_management_unmatched() {
     "response": {
       "status": 200,
       "body": "unmatched"
-    }
+    },
+    "persistent": true
   }'
 
   local response
@@ -1299,6 +1303,9 @@ test_mock_management_cleanup() {
   curl "${CURL_OPTS[@]}" \
     --request DELETE \
     "$API_URL/__admin/mappings" 2>/dev/null || true
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/requests" 2>/dev/null || true
   echo "[mock-management] ✓ Cleanup complete"
 }
 
@@ -1326,7 +1333,8 @@ test_request_verification_setup() {
       "status": 200,
       "jsonBody": { "received": true },
       "headers": { "Content-Type": "application/json" }
-    }
+    },
+    "persistent": true
   }'
 
   local response
@@ -1344,28 +1352,17 @@ test_request_verification_setup() {
   REQ_VERIFY_MAPPING_ID=$(echo "$BODY" | json_field "id")
   echo "[request-verification]   ✓ Created mapping: $REQ_VERIFY_MAPPING_ID"
 
-  # Brief pause to allow mapping propagation
-  sleep 1
-
   # Step 2: POST /mocknest/extensive-test/req-verify — invoke mock to generate journal entry
-  # Retry up to 3 times to tolerate mapping propagation delay
   echo "[request-verification]   Invoking mock to generate journal entry..."
-  local invoke_http_code=""
-  local invoke_attempt=0
-  while [ "$invoke_attempt" -lt 3 ]; do
-    invoke_attempt=$((invoke_attempt + 1))
-    response=$(curl "${CURL_OPTS[@]}" \
-      --write-out "\n%{http_code}" \
-      --request POST \
-      --data '{"testData": "request-verification"}' \
-      "$API_URL/mocknest/extensive-test/req-verify" 2>&1) || true
-    invoke_http_code=$(echo "$response" | tail -n1)
-    if [ "$invoke_http_code" != "404" ]; then
-      break
-    fi
-    echo "[request-verification]   Mock returned 404 (attempt $invoke_attempt/3) — waiting 1s for mapping propagation..."
-    sleep 1
-  done
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data '{"testData": "request-verification"}' \
+    "$API_URL/mocknest/extensive-test/req-verify" 2>&1) || {
+    echo "[request-verification] ERROR: POST /mocknest/extensive-test/req-verify request failed"
+    echo "[request-verification] Response: $response"
+    exit 1
+  }
   assert_http_code "request-verification" "POST" "/mocknest/extensive-test/req-verify" "$response" "200"
   echo "[request-verification]   ✓ Mock invoked"
 
@@ -1699,7 +1696,7 @@ test_request_verification_cleanup() {
   echo "[request-verification] Cleaning up test data..."
   curl "${CURL_OPTS[@]}" \
     --request DELETE \
-    "$API_URL/__admin/mappings/$REQ_VERIFY_MAPPING_ID" 2>/dev/null || true
+    "$API_URL/__admin/mappings" 2>/dev/null || true
   curl "${CURL_OPTS[@]}" \
     --request DELETE \
     "$API_URL/__admin/requests" 2>/dev/null || true
@@ -1733,7 +1730,8 @@ test_near_miss_setup() {
     "response": {
       "status": 200,
       "body": "near-miss-target"
-    }
+    },
+    "persistent": true
   }'
 
   local response
@@ -1852,7 +1850,7 @@ test_near_miss_cleanup() {
   echo "[near-miss] Cleaning up test data..."
   curl "${CURL_OPTS[@]}" \
     --request DELETE \
-    "$API_URL/__admin/mappings/$NEAR_MISS_MAPPING_ID" 2>/dev/null || true
+    "$API_URL/__admin/mappings" 2>/dev/null || true
   curl "${CURL_OPTS[@]}" \
     --request DELETE \
     "$API_URL/__admin/requests" 2>/dev/null || true
