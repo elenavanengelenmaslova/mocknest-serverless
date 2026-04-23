@@ -75,13 +75,13 @@ See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslov
 
 Generation quality is measured using a 46-scenario eval suite across 12 API specifications, with automated structural validation and LLM-as-a-judge semantic checks.
 
-| Protocol | Scenarios | 1st-pass valid | After retry | Scenario pass | Avg cost/run | Avg latency |
-|----------|-----------|----------------|-------------|---------------|--------------|-------------|
-| REST     | 16        | 98%            | 100%        | 94%           | $0.005       | 2.7s        |
-| GraphQL  | 15        | 84%            | 93%         | 87%           | $0.007       | 2.5s        |
-| SOAP     | 15        | 100%           | —            | 93%           | $0.006       | 3.6s        |
+| Protocol | Scenarios | Valid (no retries) | Valid (1 retry) | Semantic pass | Avg cost | Avg latency |
+|----------|-----------|-------------------|-----------------|---------------|----------|-------------|
+| REST     | 16        | 98%               | 100%            | 94%           | $0.005   | 2.7s        |
+| GraphQL  | 15        | 84%               | 93%             | 87%           | $0.007   | 2.5s        |
+| SOAP     | 15        | 100%              | 100%            | 93%           | $0.006   | 3.6s        |
 
-*Tested with Amazon Nova Pro (`eu-west-1`). "After retry" reflects the built-in self-correction mechanism. For methodology, scenario details, and how to run the eval suite yourself, see the [Prompt Eval Guide](docs/PROMPT_EVAL.md).*
+*Tested with Amazon Nova Pro (`eu-west-1`). Self-correction retries are configurable (0–2 via `BedrockGenerationMaxRetries`, default 1). Invalid mocks are filtered out — only valid mocks are returned. For full methodology see the [Prompt Eval Guide](docs/PROMPT_EVAL.md).*
 
 ## Getting Started
 
