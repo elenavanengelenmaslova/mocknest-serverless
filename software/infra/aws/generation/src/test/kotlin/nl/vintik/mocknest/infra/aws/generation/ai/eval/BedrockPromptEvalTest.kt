@@ -52,9 +52,9 @@ private val logger = KotlinLogging.logger {}
  *
  * Exercises the real Koog + Bedrock generation prompt path against REST (OpenAPI),
  * GraphQL, and SOAP (WSDL) specifications. Reads scenarios from a dataset JSON,
- * runs each scenario with retry 0 (generation-only) and retry 1 (generation +
- * validation/correction), captures token usage, and produces a per-protocol
- * summary table.
+ * runs each scenario with configurable self-correction retries (controlled by
+ * `BEDROCK_EVAL_MAX_RETRIES`, default 1, range 0–2), captures token usage, and
+ * produces a per-protocol summary table.
  *
  * This test is excluded from normal `./gradlew test` runs via the `bedrock-eval`
  * JUnit tag and the `BEDROCK_EVAL_ENABLED` environment variable gate.
@@ -73,6 +73,8 @@ class BedrockPromptEvalTest {
     // --- Manual wiring (no Spring context) ---
 
     private val region: String = System.getenv("AWS_REGION") ?: "eu-west-1"
+
+    private val maxRetries: Int = System.getenv("BEDROCK_EVAL_MAX_RETRIES")?.toIntOrNull()?.coerceIn(0, 2) ?: 1
 
     private val tokenUsageStore = TokenUsageStore()
 
@@ -182,7 +184,7 @@ class BedrockPromptEvalTest {
         logger.info {
             "Starting multi-protocol Bedrock prompt eval: ${scenarios.size} scenario(s), " +
                 "$iterationCount iteration(s) each, " +
-                "model=${modelConfiguration.getModelName()}, region=$region"
+                "model=${modelConfiguration.getModelName()}, region=$region, maxRetries=$maxRetries"
         }
 
         for (scenario in scenarios) {
@@ -191,7 +193,7 @@ class BedrockPromptEvalTest {
             for (iter in 1..iterationCount) {
                 logger.info { "--- Iteration $iter/$iterationCount ---" }
 
-                // Single run with enableValidation=true (retry budget = 1)
+                // Single run with enableValidation=true (maxRetries controlled by BEDROCK_EVAL_MAX_RETRIES)
                 val result = runScenario(scenario)
                 results.add(result)
                 logScenarioResult(result)
@@ -388,7 +390,8 @@ class BedrockPromptEvalTest {
                 aiModelService = aiModelService,
                 specificationParser = OpenAPISpecificationParser(),
                 mockValidator = OpenAPIMockValidator(),
-                promptBuilder = promptBuilder
+                promptBuilder = promptBuilder,
+                maxRetries = maxRetries
             )
             "GRAPHQL" -> MockGenerationFunctionalAgent(
                 aiModelService = aiModelService,
@@ -397,7 +400,8 @@ class BedrockPromptEvalTest {
                     GraphQLSchemaReducer()
                 ),
                 mockValidator = GraphQLMockValidator(),
-                promptBuilder = promptBuilder
+                promptBuilder = promptBuilder,
+                maxRetries = maxRetries
             )
             "SOAP" -> MockGenerationFunctionalAgent(
                 aiModelService = aiModelService,
@@ -407,7 +411,8 @@ class BedrockPromptEvalTest {
                     WsdlSchemaReducer()
                 ),
                 mockValidator = SoapMockValidator(),
-                promptBuilder = promptBuilder
+                promptBuilder = promptBuilder,
+                maxRetries = maxRetries
             )
             else -> error("Unsupported protocol: $protocol")
         }

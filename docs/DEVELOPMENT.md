@@ -10,21 +10,21 @@ This guide covers the development workflow and practices for MockNest Serverless
 
 ## Development Workflow
 
-For detailed development workflow including module development order, multi-module Gradle workflow, and WireMock integration, see our [Development Workflow](../.kiro/steering/05-kiro-usage.md#development-workflow) in the steering documentation.
+For detailed development workflow including module development order, multi-module Gradle workflow, and WireMock integration, see our [Development Workflow](../.kiro/steering/tech.md#development-workflow) in the steering documentation.
 
 ## Code Quality Standards
 
 All coding standards, testing requirements, and quality guidelines are documented in our steering files:
 
-- **Code Standards**: [Code Generation Standards](../.kiro/steering/05-kiro-usage.md#code-generation-standards)
-- **Testing Strategy**: [Testing Strategy](../.kiro/steering/05-kiro-usage.md#testing-strategy)
-- **Code Review Process**: [Code Review Process](../.kiro/steering/05-kiro-usage.md#code-review-process)
+- **Code Standards**: [Code Generation Standards](../.kiro/steering/tech.md#code-generation-standards)
+- **Testing Strategy**: [Testing Strategy](../.kiro/steering/tech.md#testing-strategy)
+- **Code Review Process**: [Code Review Process](../.kiro/steering/tech.md#code-review-process)
 
 ## Key Development Practices
 
 ### Before Submitting a PR
 1. Ensure all tests pass: `./gradlew test`
-2. Verify coverage meets 90%: `./gradlew koverVerify`
+2. Verify coverage meets threshold: `./gradlew koverVerify` (90% minimum enforced)
 3. Run full build: `./gradlew build`
 4. If you changed prompt templates, run the [Bedrock Prompt Eval Tests](PROMPT_EVAL.md) before and after your change
 5. Follow the commit message guidelines in [CONTRIBUTING.md](../CONTRIBUTING.md)
@@ -32,7 +32,7 @@ All coding standards, testing requirements, and quality guidelines are documente
 ### Documentation Updates
 When making changes that affect architecture or behavior:
 - Update relevant steering documents in `.kiro/steering/`
-- Follow our [Documentation Practices](../.kiro/steering/05-kiro-usage.md#documentation-practices)
+- Follow our [Documentation Practices](../.kiro/steering/tech.md#documentation-practices)
 - Keep documentation aligned with actual implementation
 
 ## Reference Documentation

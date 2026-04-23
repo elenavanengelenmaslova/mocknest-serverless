@@ -517,9 +517,9 @@ AI assistance for test creation, execution, and maintenance:
 
 - Add JUnit 6/Kotlin test coverage alongside new features, following the unit testing standards defined in the Code Generation Standards section above
 - **Use Kover for code coverage** - Apply `org.jetbrains.kotlinx.kover` plugin for Kotlin-optimized coverage reporting with better support for inline functions and coroutines
-- **Target 80% minimum aggregated code coverage** (enforced) across the entire project, aiming for 90%+ - run `./gradlew koverHtmlReport` to generate coverage reports and `./gradlew koverVerify` to enforce the 80% threshold
+- **Target 90% minimum aggregated code coverage** (enforced) across the entire project - run `./gradlew koverHtmlReport` to generate coverage reports and `./gradlew koverVerify` to enforce the 90% threshold
 - **Emphasize integration tests over unit tests** - Focus on comprehensive end-to-end testing that validates actual system behavior rather than artificial per-module coverage targets
-- **Aggregated coverage enforcement** - The 80% coverage minimum is enforced at the project level (aggregated across all modules) rather than per-module, allowing flexibility in test strategy while ensuring overall system quality
+- **Aggregated coverage enforcement** - The 90% coverage minimum is enforced at the project level (aggregated across all modules) rather than per-module, allowing flexibility in test strategy while ensuring overall system quality
 
 - **Property-based testing with @ParameterizedTest** - Use JUnit 6's `@ParameterizedTest` to validate universal properties across multiple examples:
   - Create comprehensive test data files covering edge cases (simple, complex, large, nested, etc.)
@@ -653,7 +653,7 @@ When generating implementation tasks (tasks.md), the following testing requireme
    - Every new class, function, or component MUST have corresponding unit tests
    - Unit tests MUST follow Given-When-Then naming convention
    - Unit tests MUST use MockK for mocking dependencies
-   - Unit tests MUST achieve minimum 80% code coverage for new code (matching the enforced project threshold)
+   - Unit tests MUST achieve minimum 90% code coverage for new code (matching the enforced project threshold)
    - Task example: "Write unit tests for [ComponentName] covering success and failure paths"
 
 2. **Property-Based Tests (MANDATORY)**
@@ -693,7 +693,7 @@ When generating implementation tasks (tasks.md), the following testing requireme
 Every task list MUST include a final verification task:
 ```markdown
 - [ ] N. Verify test coverage and quality
-  - [ ] N.1 Run `./gradlew koverHtmlReport` and verify 80%+ coverage for new code (enforced threshold; aim for 90%+ as a goal)
+  - [ ] N.1 Run `./gradlew koverHtmlReport` and verify 90%+ coverage for new code (enforced threshold)
   - [ ] N.2 Run `./gradlew koverVerify` to enforce coverage threshold
   - [ ] N.3 Review test quality: Given-When-Then naming, proper assertions, edge case coverage
 ```

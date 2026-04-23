@@ -4,7 +4,7 @@ MockNest Serverless consists of three main capabilities:
 
 1) **AI-Powered Mock Intelligence**: A comprehensive mock maintenance engine that analyzes traffic patterns, generates mocks from API specifications, detects specification changes, and provides intelligent mock suggestions and optimization recommendations to keep mock suites current and comprehensive
 2) **Core Mock Runtime**: A serverless WireMock runtime that serves mocked HTTP endpoints and exposes the WireMock admin API
-3) **Persistent Storage**: Stores mock definitions and response payloads outside the runtime so they remain available across executions (traffic logs and analysis results storage planned for future phases)
+3) **Persistent Storage**: Stores mock definitions, response payloads, and request journal entries outside the runtime so they remain available across executions (traffic analysis results storage planned for future phases)
 
 ## AI-Powered Mock Intelligence Flow
 The AI intelligence system provides intelligent mock generation and maintenance through dedicated admin endpoints:
@@ -88,7 +88,8 @@ flowchart TB
 
     subgraph Storage["Persistent Storage"]
         MOCKSTORE[(Mock Definitions)]
-        TRAFFICSTORE[(Traffic Logs - Future)]
+        REQUESTJOURNAL[(Request Journal - S3)]
+        TRAFFICSTORE[(Traffic Analysis - Future)]
         ANALYSISSTORE[(Analysis Results - Future)]
         SPECSTORE[(API Specifications - Future)]
     end
@@ -100,7 +101,7 @@ flowchart TB
     AIUSER -->|Enhancement requests| AIGENERATOR
 
     WM <--> MOCKSTORE
-    TRAFFIC --> TRAFFICSTORE
+    TRAFFIC --> REQUESTJOURNAL
     ANALYZER <--> TRAFFICSTORE
     SUGGESTER --> MOCKSTORE
     COVERAGE --> ANALYSISSTORE
@@ -274,6 +275,7 @@ mocknest-serverless/
 │       └── aws/          // AWS-specific code, including AWS Lambda
 │           ├── core/             // Shared AWS infrastructure
 │           ├── runtime/          // Runtime Lambda handler
+│           ├── runtime-async/    // RuntimeAsync Lambda handler (webhook/callback dispatch via SQS)
 │           ├── generation/       // Generation Lambda handler
 │           └── mocknest/         // MockNest WireMock integration
 │
@@ -351,7 +353,7 @@ mocknest-serverless/
 
 Infrastructure-as-code packaging and deployment using AWS SAM:
 - CI/CD via GitHub Actions
-- The goal is publication as an AWS Serverless Application Repository (SAR) application
+- Published as an [AWS Serverless Application Repository (SAR) application](https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless)
 
 # AWS Services
 
@@ -368,7 +370,9 @@ flowchart TB
     subgraph AWS["AWS MockNest Serverless System"]
         APIGW[Amazon API Gateway]
         LAMBDA[AWS Lambda - MockNest Serverless Runtime]
-        S3[(Amazon S3 - Mappings & Payloads)]
+        LAMBDAASYNC[AWS Lambda - RuntimeAsync - Webhook Dispatch]
+        SQS[Amazon SQS - Webhook Queue]
+        S3[(Amazon S3 - Mappings, Payloads & Request Journal)]
 
         subgraph AI["AI-assisted Mock Generation (Optional)"]
             AIADMIN[AI Admin API]
@@ -385,6 +389,9 @@ flowchart TB
     AIUSER -->|AI Requests| AIADMIN
     APIGW --> LAMBDA
     LAMBDA <--> S3
+    LAMBDA -->|Webhook events| SQS
+    SQS --> LAMBDAASYNC
+    LAMBDAASYNC -->|Dispatches webhooks| S3
     KOOG -->|Writes generated mappings| S3
 ```
 
@@ -394,7 +401,8 @@ MockNest Serverless core runtime is built around these essential AWS services:
 
 - **AWS Lambda** - Serverless compute runtime for the WireMock engine
 - **Amazon API Gateway** - HTTP ingress and access control for both admin API and mocked endpoints (API key or IAM SigV4, configurable via AuthMode parameter)
-- **Amazon S3** - Persistent storage for WireMock mappings and response payloads (always deployed)
+- **Amazon S3** - Persistent storage for WireMock mappings, response payloads, and request journal (always deployed)
+- **Amazon SQS** - Asynchronous webhook/callback dispatch queue, consumed by the RuntimeAsync Lambda
 
 When AI features are enabled, additional services are used:
 - **Amazon Bedrock** - AI model access for the Koog-based mock generation agent (using Amazon Nova Pro as the officially supported model)
@@ -405,12 +413,22 @@ When AI features are enabled, additional services are used:
   - Cold start optimization is critical due to mapping loading at startup
   - Concurrency settings control horizontal scaling
   - Memory allocation impacts performance with large mock sets
+- **AWS Lambda - RuntimeAsync** - Handles asynchronous webhook/callback dispatch from SQS
+  - Triggered by SQS messages when mocks include webhook/callback definitions
+  - Supports AWS IAM SigV4 signing on outbound webhook requests
+
+## Messaging Services
+
+- **Amazon SQS** - Asynchronous message queue for webhook/callback dispatch
+  - Runtime Lambda enqueues webhook events; RuntimeAsync Lambda processes them
+  - Visibility timeout derived from webhook timeout configuration (per AWS best practice)
 
 ## Storage Services
 
 - **Amazon S3** - Primary storage for all persistent data
   - Mock definitions (WireMock mappings) stored as JSON files
   - Response payloads stored separately to reduce memory usage
+  - Request journal entries stored under `requests/` prefix with configurable retention
   - Bucket organization supports efficient loading and caching strategies
 
 ## AI/ML Services
@@ -449,7 +467,7 @@ When AI features are enabled, additional services are used:
   - Supports conditional deployment parameters for AI features
   - Default deployment excludes AI components (Free Tier compliant)
   - Users can opt-in to AI generation during SAR deployment
-- **AWS Serverless Application Repository (SAR)** - Target publication platform
+- **AWS Serverless Application Repository (SAR)** - [Published application](https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless) for one-click deployment
 - **AWS CloudFormation** - Underlying infrastructure provisioning (via SAM)
 
 ## Cost Optimization
