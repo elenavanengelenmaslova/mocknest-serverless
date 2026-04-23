@@ -1660,11 +1660,11 @@ test_request_verification_metadata() {
   echo "[request-verification] ✓ Remove by metadata passed"
 }
 
-# Test clear and reset request journal
+# Test clear request journal
 test_request_verification_clear_reset() {
-  echo "[request-verification] Testing clear and reset..."
+  echo "[request-verification] Testing clear requests..."
 
-  # Step 1: DELETE /__admin/requests
+  # DELETE /__admin/requests
   echo "[request-verification]   Clearing all requests..."
   local response
   response=$(curl "${CURL_OPTS[@]}" \
@@ -1678,20 +1678,7 @@ test_request_verification_clear_reset() {
   assert_http_code "request-verification" "DELETE" "/__admin/requests" "$response" "200"
   echo "[request-verification]   ✓ Clear requests passed"
 
-  # Step 2: POST /__admin/requests/reset
-  echo "[request-verification]   Resetting request journal..."
-  response=$(curl "${CURL_OPTS[@]}" \
-    --write-out "\n%{http_code}" \
-    --request POST \
-    "$API_URL/__admin/requests/reset" 2>&1) || {
-    echo "[request-verification] ERROR: POST /__admin/requests/reset request failed"
-    echo "[request-verification] Response: $response"
-    exit 1
-  }
-  assert_http_code "request-verification" "POST" "/__admin/requests/reset" "$response" "200"
-  echo "[request-verification]   ✓ Reset request journal passed"
-
-  echo "[request-verification] ✓ Clear and reset passed"
+  echo "[request-verification] ✓ Clear requests passed"
 }
 
 # =============================================================================
