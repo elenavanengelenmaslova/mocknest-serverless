@@ -1113,9 +1113,8 @@ test_mock_management_save_reset() {
 
   # Check that mappings array is empty (no mapping IDs present)
   local mapping_count
-  mapping_count=$(echo "$BODY" | grep -o '"id"' | wc -l || echo "0")
-  mapping_count=$(echo "$mapping_count" | tr -d ' ')
-  if [ "$mapping_count" != "0" ]; then
+  mapping_count=$(echo "$BODY" | grep -o '"id"' | wc -l | tr -d ' ' || echo "0")
+  if [ "$mapping_count" -ne 0 ] 2>/dev/null; then
     echo "[mock-management] ERROR: Expected 0 mappings after reset, found $mapping_count"
     echo "[mock-management] Response: $BODY"
     exit 1
@@ -1370,9 +1369,6 @@ test_request_verification_setup() {
   assert_http_code "request-verification" "POST" "/mocknest/extensive-test/req-verify" "$response" "200"
   echo "[request-verification]   ✓ Mock invoked"
 
-  # Sleep to allow journal persistence
-  sleep 2
-
   echo "[request-verification] ✓ Setup complete"
 }
 
@@ -1380,21 +1376,26 @@ test_request_verification_setup() {
 test_request_verification_list_find_count() {
   echo "[request-verification] Testing list, find, and count..."
 
-  # Step 1: GET /__admin/requests — list all requests, extract REQUEST_ID
-  echo "[request-verification]   Listing requests..."
+  # Step 1: GET /__admin/requests — poll until journal entry appears (S3 persistence delay)
+  echo "[request-verification]   Listing requests (polling for journal entry)..."
   local response
-  response=$(curl "${CURL_OPTS[@]}" \
-    --write-out "\n%{http_code}" \
-    --request GET \
-    "$API_URL/__admin/requests" 2>&1) || {
-    echo "[request-verification] ERROR: GET /__admin/requests request failed"
-    echo "[request-verification] Response: $response"
-    exit 1
-  }
-  assert_http_code "request-verification" "GET" "/__admin/requests" "$response" "200"
+  local poll_attempt=0
+  local max_poll=10
+  REQUEST_ID=""
+  while [ "$poll_attempt" -lt "$max_poll" ]; do
+    poll_attempt=$((poll_attempt + 1))
+    response=$(curl "${CURL_OPTS[@]}" \
+      --write-out "\n%{http_code}" \
+      --request GET \
+      "$API_URL/__admin/requests" 2>&1) || {
+      echo "[request-verification] ERROR: GET /__admin/requests request failed"
+      echo "[request-verification] Response: $response"
+      exit 1
+    }
+    assert_http_code "request-verification" "GET" "/__admin/requests" "$response" "200"
 
-  # Extract REQUEST_ID from a matching request using python3
-  REQUEST_ID=$(echo "$BODY" | python3 -c "
+    # Extract REQUEST_ID from a matching request using python3
+    REQUEST_ID=$(echo "$BODY" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 for req in data.get('requests', []):
@@ -1404,8 +1405,15 @@ for req in data.get('requests', []):
         break
 " 2>/dev/null || echo "")
 
+    if [ -n "$REQUEST_ID" ]; then
+      break
+    fi
+    echo "[request-verification]   Journal empty (attempt $poll_attempt/$max_poll) — waiting 3s for S3 persistence..."
+    sleep 3
+  done
+
   if [ -z "$REQUEST_ID" ]; then
-    echo "[request-verification] ERROR: Could not find a matching request with 'req-verify' in URL"
+    echo "[request-verification] ERROR: Could not find a matching request with 'req-verify' in URL after ${max_poll} attempts"
     echo "[request-verification] Response: $BODY"
     exit 1
   fi
@@ -1526,22 +1534,23 @@ test_request_verification_delete_by_id() {
   assert_http_code "request-verification" "POST" "/mocknest/extensive-test/req-verify" "$response" "200"
   echo "[request-verification]   ✓ Mock invoked"
 
-  sleep 2
+  # Step 2: GET /__admin/requests — poll for the new request ID
+  echo "[request-verification]   Finding new request ID (polling)..."
+  local DELETE_REQUEST_ID=""
+  local del_poll=0
+  while [ "$del_poll" -lt 10 ]; do
+    del_poll=$((del_poll + 1))
+    response=$(curl "${CURL_OPTS[@]}" \
+      --write-out "\n%{http_code}" \
+      --request GET \
+      "$API_URL/__admin/requests" 2>&1) || {
+      echo "[request-verification] ERROR: GET /__admin/requests request failed"
+      echo "[request-verification] Response: $response"
+      exit 1
+    }
+    assert_http_code "request-verification" "GET" "/__admin/requests" "$response" "200"
 
-  # Step 2: GET /__admin/requests — find the new request ID
-  echo "[request-verification]   Finding new request ID..."
-  response=$(curl "${CURL_OPTS[@]}" \
-    --write-out "\n%{http_code}" \
-    --request GET \
-    "$API_URL/__admin/requests" 2>&1) || {
-    echo "[request-verification] ERROR: GET /__admin/requests request failed"
-    echo "[request-verification] Response: $response"
-    exit 1
-  }
-  assert_http_code "request-verification" "GET" "/__admin/requests" "$response" "200"
-
-  local DELETE_REQUEST_ID
-  DELETE_REQUEST_ID=$(echo "$BODY" | python3 -c "
+    DELETE_REQUEST_ID=$(echo "$BODY" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 for req in data.get('requests', []):
@@ -1550,6 +1559,13 @@ for req in data.get('requests', []):
         print(req['id'])
         break
 " 2>/dev/null || echo "")
+
+    if [ -n "$DELETE_REQUEST_ID" ]; then
+      break
+    fi
+    echo "[request-verification]   Journal empty (attempt $del_poll/10) — waiting 3s..."
+    sleep 3
+  done
 
   if [ -z "$DELETE_REQUEST_ID" ]; then
     echo "[request-verification] ERROR: Could not find a matching request for deletion"
@@ -1593,7 +1609,8 @@ test_request_verification_remove() {
   assert_http_code "request-verification" "POST" "/mocknest/extensive-test/req-verify" "$response" "200"
   echo "[request-verification]   ✓ Mock invoked"
 
-  sleep 2
+  # Wait for S3 journal persistence
+  sleep 5
 
   # Step 2: POST /__admin/requests/remove
   echo "[request-verification]   Removing requests by criteria..."
