@@ -52,9 +52,9 @@ private val logger = KotlinLogging.logger {}
  *
  * Exercises the real Koog + Bedrock generation prompt path against REST (OpenAPI),
  * GraphQL, and SOAP (WSDL) specifications. Reads scenarios from a dataset JSON,
- * runs each scenario with retry 0 (generation-only) and retry 1 (generation +
- * validation/correction), captures token usage, and produces a per-protocol
- * summary table.
+ * runs each scenario with configurable self-correction retries (controlled by
+ * `BEDROCK_EVAL_MAX_RETRIES`, default 1, range 0–2), captures token usage, and
+ * produces a per-protocol summary table.
  *
  * This test is excluded from normal `./gradlew test` runs via the `bedrock-eval`
  * JUnit tag and the `BEDROCK_EVAL_ENABLED` environment variable gate.
@@ -193,7 +193,7 @@ class BedrockPromptEvalTest {
             for (iter in 1..iterationCount) {
                 logger.info { "--- Iteration $iter/$iterationCount ---" }
 
-                // Single run with enableValidation=true (retry budget = 1)
+                // Single run with enableValidation=true (maxRetries controlled by BEDROCK_EVAL_MAX_RETRIES)
                 val result = runScenario(scenario)
                 results.add(result)
                 logScenarioResult(result)
