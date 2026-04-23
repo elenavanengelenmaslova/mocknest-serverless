@@ -94,13 +94,13 @@ Each scenario in the eval dataset goes through:
 
 ## Protocol Breakdown
 
-The eval suite covers 42 scenarios across 3 protocols and 12 API specifications:
+The eval suite covers 46 scenarios across 3 protocols and 12 API specifications:
 
 | Protocol | Scenarios | API Specifications |
 |----------|-----------|-------------------|
-| REST | 14 | Petstore (20+ endpoints), Bored API (3 endpoints), Social Content (8-10 endpoints), Payment Financial (6-8 endpoints), Weather Utility (2-3 endpoints) |
-| GraphQL | 14 | Pokemon (2 queries), Books (3 queries), E-commerce (4 queries + 4 mutations), Task Management (4 queries + 3 mutations) |
-| SOAP | 14 | Calculator (3 operations), Banking Service (5 operations), Inventory Warehouse (6 operations), Notification Messaging (4 operations) |
+| REST | 16 | Petstore (20+ endpoints), Bored API (3 endpoints), Social Content (8-10 endpoints), Payment Financial (6-8 endpoints), Weather Utility (2-3 endpoints) |
+| GraphQL | 15 | Pokemon (2 queries), Books (3 queries), E-commerce (4 queries + 4 mutations), Task Management (4 queries + 3 mutations) |
+| SOAP | 15 | Calculator (3 operations), Banking Service (5 operations), Inventory Warehouse (6 operations), Notification Messaging (4 operations) |
 
 ### REST Scenario Complexity Levels
 
@@ -112,8 +112,8 @@ REST scenarios are distributed across 6 prompt complexity levels to measure qual
 | Filtered | 2 | Generate mocks for a subset of endpoints only |
 | Consistency | 2 | Cross-entity data coherence (e.g., order.petId matches pet.id) |
 | Error | 2 | Error response generation (404, 500, 402, 422) |
-| Realistic Data | 2 | Domain-specific realistic values (European names, EUR amounts) |
-| Edge Case | 1 | Pagination with multiple pages of results |
+| Realistic Data | 3 | Domain-specific realistic values (European names, EUR amounts) |
+| Edge Case | 2 | Pagination with multiple pages of results, tag-based filtering |
 
 ### GraphQL Scenario Complexity Levels
 
@@ -121,7 +121,7 @@ GraphQL scenarios are distributed across 6 prompt complexity levels to measure q
 
 | Complexity Level | Scenarios | Description |
 |-----------------|-----------|-------------|
-| Basic | 6 | Generate mocks for queries, mutations, or all operations in a schema |
+| Basic | 7 | Generate mocks for queries, mutations, or all operations in a schema |
 | Filtered | 1 | Generate mocks for a subset of operations only (e.g., order-related only) |
 | Consistency | 2 | Cross-entity data coherence (e.g., order.customerId matches customer.id) |
 | Error | 1 | GraphQL error responses with errors array and message fields |
@@ -135,7 +135,7 @@ SOAP scenarios are distributed across 6 prompt complexity levels to measure qual
 | Complexity Level | Scenarios | Description |
 |-----------------|-----------|-------------|
 | Basic | 4 | Generate mocks for all operations in a WSDL |
-| Filtered | 2 | Generate mocks for a subset of operations only (e.g., account-related) |
+| Filtered | 3 | Generate mocks for a subset of operations only (e.g., account-related, shipment-related) |
 | Consistency | 2 | Cross-entity data coherence (e.g., accountId in transactions matches account) |
 | Error | 2 | SOAP fault responses for error scenarios (insufficient funds, multi-fault) |
 | Realistic Data | 3 | Domain-specific realistic values (European banking data, warehouse data) |
@@ -148,20 +148,20 @@ After all scenarios complete, a summary table is printed to the test output show
 Example output format:
 
 ```
-╔════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
-║                              MULTI-PROTOCOL BEDROCK PROMPT EVAL SUMMARY                                                  ║
-╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ Model: AmazonNovaPro                                                                                                     ║
-║ Region: eu-west-1                                                                                                        ║
-╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ Protocol  │ Runs │ 1st-pass valid │ After retry valid │ Scenario pass │ Gen cost │ Judge cost │ Avg cost/run │ Avg latency ║
-╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ REST      │ 14   │ 77%            │ 98%               │ 85%           │ $0.0420  │ $0.0210    │ $0.0045      │ 3.8s        ║
-║ GraphQL   │ 14   │ 50%            │ 100%              │ 100%          │ $0.0700  │ $0.0360    │ $0.0053      │ 2.6s        ║
-║ SOAP      │ 14   │ 100%           │ 100%              │ 100%          │ $0.0448  │ $0.0196    │ $0.0046      │ 3.2s        ║
-╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ TOTAL     │ 42   │                │                   │               │ $0.1568  │ $0.0766    │ $0.0048      │             ║
-╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                             MULTI-PROTOCOL BEDROCK PROMPT EVAL SUMMARY                                               ║
+╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+║ Model: AmazonNovaPro                                                                                                 ║
+║ Region: eu-west-1                                                                                                    ║
+╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+║ Protocol  │ Runs │ 1st-pass valid │ After retry valid │ Scenario pass │ Gen cost │ Judge cost │ Avg cost/run │ Avg lat║
+╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+║ REST      │ 16   │ 77%            │ 98%               │ 85%           │ $0.0480  │ $0.0240    │ $0.0045      │ 3.8s   ║
+║ GraphQL   │ 15   │ 50%            │ 100%              │ 100%          │ $0.0750  │ $0.0390    │ $0.0053      │ 2.6s   ║
+║ SOAP      │ 15   │ 100%           │ 100%              │ 100%          │ $0.0480  │ $0.0210    │ $0.0046      │ 3.2s   ║
+╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+║ TOTAL     │ 46   │                │                   │               │ $0.1710  │ $0.0840    │ $0.0048      │        ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 ```
 
 The summary table includes:
@@ -173,24 +173,24 @@ The summary table includes:
 A per-scenario breakdown table is also printed, grouped by API specification name:
 
 ```
-╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
-║                                                    SCENARIO DETAIL TABLE                                                                                   ║
-╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ Scenario                           │ 1st-pass    │ After-retry │ Pass  │ Gen cost  │ Judge cost│ Total     │ Latency  │ Failure reason                ║
-╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ [petstore]                                                                                                                                                ║
-╠──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╣
-║ rest-petstore-basic-get             │ 100%        │ 100%        │ ✓     │ 0.0035    │ 0.0015    │ 0.0050    │ 3.2s     │                              ║
-║ rest-petstore-filtered-pets         │ 80%         │ 100%        │ ✓     │ 0.0038    │ 0.0016    │ 0.0054    │ 4.1s     │                              ║
-║ rest-petstore-consistency           │ 67%         │ 100%        │ ✓     │ 0.0042    │ 0.0018    │ 0.0060    │ 4.5s     │                              ║
-║ rest-petstore-error                 │ 50%         │ 100%        │ ✗     │ 0.0030    │ 0.0014    │ 0.0044    │ 3.0s     │ Semantic check failed        ║
-║ rest-petstore-pagination            │ 33%         │ 67%         │ ✗     │ 0.0045    │ 0.0020    │ 0.0065    │ 5.2s     │ Validation failed            ║
-╠──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╣
-║ [social-content]                                                                                                                                          ║
-╠──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╣
-║ rest-social-basic-get               │ 100%        │ 100%        │ ✓     │ 0.0033    │ 0.0015    │ 0.0048    │ 3.0s     │                              ║
-║ ...                                                                                                                                                       ║
-╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+╔════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                                    SCENARIO DETAIL TABLE                                                                           ║
+╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+║ Scenario                           │ 1st-pass │ After-retry │ Pass │ Gen cost │ Judge cost │ Total  │ Latency │ Failure reason                     ║
+╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+║ [petstore]                                                                                                                                         ║
+╠────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╣
+║ rest-petstore-basic-get            │ 100%     │ 100%        │ ✓    │ 0.0035   │ 0.0015     │ 0.0050 │ 3.2s    │                                    ║
+║ rest-petstore-filtered-pets        │ 80%      │ 100%        │ ✓    │ 0.0038   │ 0.0016     │ 0.0054 │ 4.1s    │                                    ║
+║ rest-petstore-consistency          │ 67%      │ 100%        │ ✓    │ 0.0042   │ 0.0018     │ 0.0060 │ 4.5s    │                                    ║
+║ rest-petstore-error                │ 50%      │ 100%        │ ✗    │ 0.0030   │ 0.0014     │ 0.0044 │ 3.0s    │ Semantic check failed              ║
+║ rest-petstore-pagination           │ 33%      │ 67%         │ ✗    │ 0.0045   │ 0.0020     │ 0.0065 │ 5.2s    │ Validation failed                  ║
+╠────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╣
+║ [social-content]                                                                                                                                   ║
+╠────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╣
+║ rest-social-basic-get              │ 100%     │ 100%        │ ✓    │ 0.0033   │ 0.0015     │ 0.0048 │ 3.0s    │                                    ║
+║ ...                                                                                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 ```
 
 The detail table shows per-scenario: input name, first-pass valid rate, after-retry valid rate, pass/fail status, generation cost, judge cost, total cost, latency, and failure reason for failed scenarios.
@@ -279,10 +279,10 @@ Each eval run makes multiple Bedrock API calls per scenario:
 
 | Suite | Scenarios | Estimated cost (1 iteration) | Estimated cost (3 iterations) |
 |-------|-----------|------------------------------|-------------------------------|
-| Full suite (all protocols) | 42 | $0.17–$0.29 | $0.50–$0.88 |
-| REST only | 14 | $0.06–$0.10 | $0.18–$0.30 |
-| GraphQL only | 14 | $0.06–$0.10 | $0.18–$0.30 |
-| SOAP only | 14 | $0.06–$0.10 | $0.18–$0.30 |
+| Full suite (all protocols) | 46 | $0.18–$0.32 | $0.55–$0.97 |
+| REST only | 16 | $0.06–$0.11 | $0.19–$0.34 |
+| GraphQL only | 15 | $0.06–$0.11 | $0.18–$0.32 |
+| SOAP only | 15 | $0.06–$0.11 | $0.18–$0.32 |
 
 Use `BEDROCK_EVAL_FILTER` to run subsets and reduce cost during iterative prompt tuning.
 

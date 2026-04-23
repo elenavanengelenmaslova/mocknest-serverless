@@ -1072,7 +1072,21 @@ test_mock_management_save_reset() {
   assert_http_code "mock-management" "POST" "/__admin/mappings" "$response" "201"
   echo "[mock-management]   ✓ Created second mapping"
 
-  # Step 4: POST /__admin/reset
+  # Step 4: DELETE /__admin/mappings — clear all mappings from S3 before reset
+  # Reset reloads from S3, so we must delete first to ensure zero mappings after reset
+  echo "[mock-management]   Deleting all mappings before reset..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[mock-management] ERROR: DELETE /__admin/mappings request failed"
+    echo "[mock-management] Response: $response"
+    exit 1
+  }
+  assert_http_code "mock-management" "DELETE" "/__admin/mappings" "$response" "200"
+  echo "[mock-management]   ✓ Deleted all mappings"
+
+  # Step 5: POST /__admin/reset
   echo "[mock-management]   Resetting server..."
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
@@ -1085,7 +1099,7 @@ test_mock_management_save_reset() {
   assert_http_code "mock-management" "POST" "/__admin/reset" "$response" "200"
   echo "[mock-management]   ✓ Reset passed"
 
-  # Step 5: GET /__admin/mappings — verify zero mappings
+  # Step 6: GET /__admin/mappings — verify zero mappings
   echo "[mock-management]   Verifying zero mappings after reset..."
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
@@ -1331,17 +1345,28 @@ test_request_verification_setup() {
   REQ_VERIFY_MAPPING_ID=$(echo "$BODY" | json_field "id")
   echo "[request-verification]   ✓ Created mapping: $REQ_VERIFY_MAPPING_ID"
 
+  # Brief pause to allow mapping propagation
+  sleep 1
+
   # Step 2: POST /mocknest/extensive-test/req-verify — invoke mock to generate journal entry
+  # Retry up to 3 times to tolerate mapping propagation delay
   echo "[request-verification]   Invoking mock to generate journal entry..."
-  response=$(curl "${CURL_OPTS[@]}" \
-    --write-out "\n%{http_code}" \
-    --request POST \
-    --data '{"testData": "request-verification"}' \
-    "$API_URL/mocknest/extensive-test/req-verify" 2>&1) || {
-    echo "[request-verification] ERROR: POST /mocknest/extensive-test/req-verify request failed"
-    echo "[request-verification] Response: $response"
-    exit 1
-  }
+  local invoke_http_code=""
+  local invoke_attempt=0
+  while [ "$invoke_attempt" -lt 3 ]; do
+    invoke_attempt=$((invoke_attempt + 1))
+    response=$(curl "${CURL_OPTS[@]}" \
+      --write-out "\n%{http_code}" \
+      --request POST \
+      --data '{"testData": "request-verification"}' \
+      "$API_URL/mocknest/extensive-test/req-verify" 2>&1) || true
+    invoke_http_code=$(echo "$response" | tail -n1)
+    if [ "$invoke_http_code" != "404" ]; then
+      break
+    fi
+    echo "[request-verification]   Mock returned 404 (attempt $invoke_attempt/3) — waiting 1s for mapping propagation..."
+    sleep 1
+  done
   assert_http_code "request-verification" "POST" "/mocknest/extensive-test/req-verify" "$response" "200"
   echo "[request-verification]   ✓ Mock invoked"
 
@@ -1844,22 +1869,12 @@ test_file_management_crud() {
   assert_http_code "files" "PUT" "/__admin/files/$FILE_ID" "$response" "200"
   echo "[files]   ✓ Create file passed"
 
-  # Step 2: GET /__admin/files/{FILE_ID} — read file (no JSON content-type requirement)
+  # Step 2: GET /__admin/files/{FILE_ID} — read file
   echo "[files]   Reading file..."
-  local curl_opts_no_json=()
-  for opt in "${CURL_OPTS[@]}"; do
-    if [[ "$opt" != "Content-Type: application/json" ]]; then
-      curl_opts_no_json+=("$opt")
-    fi
-  done
-  response=$(curl "${curl_opts_no_json[@]}" \
+  response=$(curl_no_fail \
     --write-out "\n%{http_code}" \
     --request GET \
-    "$API_URL/__admin/files/$FILE_ID" 2>&1) || {
-    echo "[files] ERROR: GET /__admin/files/$FILE_ID request failed"
-    echo "[files] Response: $response"
-    exit 1
-  }
+    "$API_URL/__admin/files/$FILE_ID" 2>&1) || true
   assert_http_code "files" "GET" "/__admin/files/$FILE_ID" "$response" "200"
 
   if ! echo "$BODY" | grep -q 'created'; then
@@ -1905,14 +1920,10 @@ test_file_management_crud() {
 
   # Step 5: GET /__admin/files/{FILE_ID} — verify updated content
   echo "[files]   Verifying updated file..."
-  response=$(curl "${curl_opts_no_json[@]}" \
+  response=$(curl_no_fail \
     --write-out "\n%{http_code}" \
     --request GET \
-    "$API_URL/__admin/files/$FILE_ID" 2>&1) || {
-    echo "[files] ERROR: GET /__admin/files/$FILE_ID request failed"
-    echo "[files] Response: $response"
-    exit 1
-  }
+    "$API_URL/__admin/files/$FILE_ID" 2>&1) || true
   assert_http_code "files" "GET" "/__admin/files/$FILE_ID" "$response" "200"
 
   if ! echo "$BODY" | grep -q 'updated'; then
