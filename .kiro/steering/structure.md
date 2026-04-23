@@ -274,8 +274,7 @@ mocknest-serverless/
 │   └── infra/            // Infrastructure specific code
 │       └── aws/          // AWS-specific code, including AWS Lambda
 │           ├── core/             // Shared AWS infrastructure
-│           ├── runtime/          // Runtime Lambda handler
-│           ├── runtime-async/    // RuntimeAsync Lambda handler (webhook/callback dispatch via SQS)
+│           ├── runtime/          // Runtime Lambda handler (includes RuntimeAsync webhook/callback dispatch via SQS)
 │           ├── generation/       // Generation Lambda handler
 │           └── mocknest/         // MockNest WireMock integration
 │
