@@ -79,7 +79,7 @@ subprojects {
             // Kotlinx Serialization for JSON
             dependency("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
             // TestContainers
-            val testContainersVersion = "2.0.4"
+            val testContainersVersion = "2.0.5"
             val testContainersExtensions = "1.21.4"
             dependency("org.testcontainers:testcontainers:$testContainersVersion")
             dependency("org.testcontainers:junit-jupiter:$testContainersExtensions")
