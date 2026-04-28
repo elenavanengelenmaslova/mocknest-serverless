@@ -97,9 +97,9 @@ subprojects {
             implementation("ai.koog:koog-agents:$koogVersion")
             implementation("ai.koog:agents-test:$koogVersion")
 
-            // Kotlin AWS SDK
-            val awsSdkKotlinVersion = "1.6.59"
-            val smithyKotlinVersion = "1.6.11"
+            // Kotlin AWS SDK (versions from main)
+            val awsSdkKotlinVersion = "1.6.64"
+            val smithyKotlinVersion = "1.6.12"
             implementation("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
@@ -122,8 +122,8 @@ subprojects {
             // Kotlinx Serialization for JSON
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
-            // TestContainers
-            val testContainersVersion = "2.0.4"
+            // TestContainers (version from main)
+            val testContainersVersion = "2.0.5"
             val testContainersExtensions = "1.21.4"
             testImplementation("org.testcontainers:testcontainers:$testContainersVersion")
             testImplementation("org.testcontainers:junit-jupiter:$testContainersExtensions")

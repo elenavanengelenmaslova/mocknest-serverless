@@ -20,7 +20,7 @@ dependencies {
     api("aws.sdk.kotlin:sqs")
     
     // HTTP client for AWS SDK
-    val smithyKotlinVersion = "1.6.11"
+    val smithyKotlinVersion = "1.6.12"
     api("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
     api("aws.smithy.kotlin:aws-signing-default:${smithyKotlinVersion}")
     api("com.squareup.okhttp3:okhttp:5.3.2")
