@@ -1,7 +1,6 @@
 package nl.vintik.mocknest.application.runtime.usecases
 
 import nl.vintik.mocknest.domain.core.HttpResponse
-import org.springframework.http.HttpStatus
 
 /**
  * Use case for retrieving runtime health status.

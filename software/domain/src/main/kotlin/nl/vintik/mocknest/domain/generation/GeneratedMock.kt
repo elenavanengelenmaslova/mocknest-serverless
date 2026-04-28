@@ -1,6 +1,6 @@
 package nl.vintik.mocknest.domain.generation
 
-import org.springframework.http.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 
 /**

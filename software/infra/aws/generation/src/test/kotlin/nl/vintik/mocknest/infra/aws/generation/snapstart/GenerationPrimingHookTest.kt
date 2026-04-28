@@ -20,7 +20,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.parallel.Isolated
-import org.springframework.http.HttpStatus
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 
 @Isolated
 class GenerationPrimingHookTest {
@@ -65,7 +65,7 @@ class GenerationPrimingHookTest {
         @Test
         fun `Given SnapStart environment When priming executes Then should initialize all components`() = runTest {
             // Given
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -86,7 +86,7 @@ class GenerationPrimingHookTest {
         fun `Given SnapStart environment When priming executes Then should complete without throwing exceptions`() =
             runTest {
                 // Given
-                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
                 every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
                 every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -121,7 +121,7 @@ class GenerationPrimingHookTest {
         fun `Given health check returns error status When priming executes Then should continue with other initializations`() =
             runTest {
                 // Given
-                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.SERVICE_UNAVAILABLE)
+                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode(503))
                 coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
                 every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
                 every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -158,7 +158,7 @@ class GenerationPrimingHookTest {
         fun `Given S3 client initialization fails When priming executes Then should log warning and continue`() =
             runTest {
                 // Given
-                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } throws RuntimeException("S3 connection failed")
                 every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
                 every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -176,7 +176,7 @@ class GenerationPrimingHookTest {
         fun `Given S3 client throws exception When priming executes Then should not fail snapshot creation`() =
             runTest {
                 // Given
-                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } throws IllegalArgumentException("Invalid bucket configuration")
                 every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
                 every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -189,7 +189,7 @@ class GenerationPrimingHookTest {
         @Test
         fun `Given S3 client timeout When priming executes Then should handle gracefully`() = runTest {
             // Given
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } throws RuntimeException("S3 timeout")
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -207,7 +207,7 @@ class GenerationPrimingHookTest {
         fun `Given model config validation fails When priming executes Then should log warning and continue`() =
             runTest {
                 // Given
-                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
                 every { mockModelConfig.getModelName() } throws RuntimeException("Model config unavailable")
 
@@ -222,7 +222,7 @@ class GenerationPrimingHookTest {
         @Test
         fun `Given model config returns null prefix When priming executes Then should handle gracefully`() = runTest {
             // Given
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns null
@@ -286,7 +286,7 @@ class GenerationPrimingHookTest {
                 // Given
                 val primingHookSpy = spyk(primingHook, recordPrivateCalls = true)
                 every { primingHookSpy["isSnapStartEnvironment"]() as Boolean } returns true
-                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+                every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
                 every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
                 every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -321,7 +321,7 @@ class GenerationPrimingHookTest {
         @Test
         fun `Given SnapStart environment When priming executes Then should warm up SOAP WSDL components`() = runTest {
             // Given
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -340,7 +340,7 @@ class GenerationPrimingHookTest {
         @Test
         fun `Given WSDL parser fails When priming executes Then should log warning and continue`() = runTest {
             // Given
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -358,7 +358,7 @@ class GenerationPrimingHookTest {
         @Test
         fun `Given WSDL schema reducer fails When priming executes Then should handle gracefully`() = runTest {
             // Given
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -380,7 +380,7 @@ class GenerationPrimingHookTest {
         @Test
         fun `Given SnapStart environment When priming executes Then should warm up GraphQL components`() = runTest {
             // Given
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -399,7 +399,7 @@ class GenerationPrimingHookTest {
         @Test
         fun `Given GraphQL schema reducer fails When priming executes Then should log warning and continue`() = runTest {
             // Given
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -419,7 +419,7 @@ class GenerationPrimingHookTest {
         @Test
         fun `Given GraphQL priming fails When priming executes Then should not fail snapshot creation`() = runTest {
             // Given
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"

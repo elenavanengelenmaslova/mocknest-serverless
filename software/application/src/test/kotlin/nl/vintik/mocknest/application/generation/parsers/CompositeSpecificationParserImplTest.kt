@@ -26,7 +26,7 @@ class CompositeSpecificationParserImplTest {
             endpoints = listOf(
                 nl.vintik.mocknest.domain.generation.EndpointDefinition(
                     path = "/test",
-                    method = org.springframework.http.HttpMethod.GET,
+                    method = nl.vintik.mocknest.domain.core.HttpMethod.GET,
                     operationId = null,
                     summary = null,
                     parameters = emptyList(),
@@ -166,7 +166,7 @@ class CompositeSpecificationParserImplTest {
             endpoints = listOf(
                 nl.vintik.mocknest.domain.generation.EndpointDefinition(
                     path = "/test1",
-                    method = org.springframework.http.HttpMethod.GET,
+                    method = nl.vintik.mocknest.domain.core.HttpMethod.GET,
                     operationId = null,
                     summary = null,
                     parameters = emptyList(),
@@ -201,7 +201,7 @@ class CompositeSpecificationParserImplTest {
             endpoints = listOf(
                 nl.vintik.mocknest.domain.generation.EndpointDefinition(
                     path = "/test2",
-                    method = org.springframework.http.HttpMethod.GET,
+                    method = nl.vintik.mocknest.domain.core.HttpMethod.GET,
                     operationId = null,
                     summary = null,
                     parameters = emptyList(),

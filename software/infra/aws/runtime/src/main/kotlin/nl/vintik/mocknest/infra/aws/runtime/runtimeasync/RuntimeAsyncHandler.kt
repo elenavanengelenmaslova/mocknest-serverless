@@ -19,8 +19,6 @@ import nl.vintik.mocknest.application.runtime.extensions.AsyncEvent
 import nl.vintik.mocknest.application.runtime.extensions.WebhookHttpClientInterface
 import nl.vintik.mocknest.application.runtime.extensions.WebhookRequest
 import nl.vintik.mocknest.application.runtime.extensions.WebhookResult
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Component
 
 private val logger = KotlinLogging.logger {}
 
@@ -36,11 +34,10 @@ private val logger = KotlinLogging.logger {}
  *
  * Requirements: 2.4–2.8, 3.1–3.5
  */
-@Component
 class RuntimeAsyncHandler(
     private val webhookHttpClient: WebhookHttpClientInterface,
     private val webhookConfig: WebhookConfig,
-    @Value("\${AWS_DEFAULT_REGION:eu-west-1}") private val defaultRegion: String,
+    private val defaultRegion: String = System.getenv("AWS_DEFAULT_REGION") ?: "eu-west-1",
 ) {
 
     fun handle(sqsEvent: SQSEvent) {

@@ -278,7 +278,7 @@ class GraphQLSpecificationParserDualInputPropertyTest {
         // Verify all endpoints are POST to /graphql
         result.endpoints.forEach { endpoint ->
             assertEquals("/graphql", endpoint.path, "All GraphQL endpoints should use /graphql path")
-            assertEquals(org.springframework.http.HttpMethod.POST, endpoint.method, "All GraphQL endpoints should use POST method")
+            assertEquals(nl.vintik.mocknest.domain.core.HttpMethod.POST, endpoint.method, "All GraphQL endpoints should use POST method")
             assertNotNull(endpoint.requestBody, "All GraphQL endpoints should have request body")
             assertTrue(endpoint.requestBody?.required == true, "Request body should be required")
         }
@@ -339,7 +339,7 @@ class GraphQLSpecificationParserDualInputPropertyTest {
         // Verify all endpoints follow GraphQL-over-HTTP pattern
         result.endpoints.forEach { endpoint ->
             assertEquals("/graphql", endpoint.path, "All GraphQL endpoints should use /graphql path")
-            assertEquals(org.springframework.http.HttpMethod.POST, endpoint.method, "All GraphQL endpoints should use POST method")
+            assertEquals(nl.vintik.mocknest.domain.core.HttpMethod.POST, endpoint.method, "All GraphQL endpoints should use POST method")
         }
 
         // Verify introspection client was called with correct URL

@@ -2,14 +2,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     kotlin("jvm")
-    kotlin("plugin.spring")
-    id("org.springframework.boot")
-    id("io.spring.dependency-management")
     id("com.gradleup.shadow")
-}
-
-springBoot {
-    mainClass.set("nl.vintik.mocknest.infra.aws.MockNestApplicationKt")
 }
 
 dependencies {
@@ -17,19 +10,18 @@ dependencies {
     implementation(project(":software:infra:aws:runtime"))
     implementation(project(":software:infra:aws:generation"))
 
-    // Spring Cloud Function for AWS Lambda
-    implementation("org.springframework.cloud:spring-cloud-function-adapter-aws")
-    implementation("org.springframework.cloud:spring-cloud-function-kotlin")
+    // Koin DI
+    implementation("io.insert-koin:koin-core")
 
     // AWS Lambda runtime
     implementation("com.amazonaws:aws-lambda-java-core")
     implementation("com.amazonaws:aws-lambda-java-events")
 
     // Testing
+    testImplementation("io.insert-koin:koin-test-junit5")
     testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:localstack")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
 configurations {
@@ -65,14 +57,6 @@ configurations {
 }
 
 tasks {
-    bootJar {
-        enabled = false
-    }
-
-    bootRun {
-        enabled = false
-    }
-
     val shadowJar by getting(ShadowJar::class) {
         archiveFileName.set("mocknest-serverless.jar")
         destinationDirectory.set(file("${project.rootDir}/build/dist"))
@@ -81,19 +65,6 @@ tasks {
         configurations = listOf(project.configurations.runtimeClasspath.get())
         
         isZip64 = true
-        
-        manifest {
-            attributes["Main-Class"] = "nl.vintik.mocknest.infra.aws.MockNestApplicationKt"
-        }
-        
-        // CRITICAL: These make Spring Boot work in fat JAR
-        mergeServiceFiles()
-        append("META-INF/spring.handlers")
-        append("META-INF/spring.schemas")
-        append("META-INF/spring.tooling")
-        append("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
-        append("META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports")
-        append("META-INF/spring.factories")
         
         // Exclude unnecessary files
         exclude("META-INF/*.SF")
@@ -105,9 +76,6 @@ tasks {
         exclude("module-info.class")
         
         // Size optimization exclusions
-        exclude("org/springframework/boot/devtools/**")
-        exclude("org/springframework/boot/test/**")
-        exclude("org/springframework/test/**")
         exclude("assets/swagger-ui/**")
         exclude("samples/**")
         exclude("mozilla/public-suffix-list.txt")

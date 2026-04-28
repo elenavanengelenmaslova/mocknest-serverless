@@ -33,7 +33,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import org.springframework.http.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 import java.util.stream.Stream
 import kotlin.test.assertEquals
@@ -193,7 +193,7 @@ class S3GenerationStorageAdapterPreservationTest {
         id = id,
         name = name,
         namespace = namespace,
-        wireMockMapping = """{"request":{"method":"${method.name()}","url":"$path"},"response":{"status":$statusCode}}""",
+        wireMockMapping = """{"request":{"method":"${method.name}","url":"$path"},"response":{"status":$statusCode}}""",
         metadata = MockMetadata(
             sourceType = SourceType.SPEC_WITH_DESCRIPTION,
             sourceReference = "test-spec",

@@ -9,11 +9,9 @@ import nl.vintik.mocknest.application.generation.wsdl.WsdlParserInterface
 import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducer
 import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducerInterface
 import nl.vintik.mocknest.infra.generation.wsdl.WsdlContentFetcher
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Configuration
 
 /**
- * Spring configuration for SOAP/WSDL-specific mock generation components.
+ * Factory functions for SOAP/WSDL-specific mock generation components.
  * Registers all SOAP infrastructure beans following clean architecture boundaries.
  *
  * [WsdlSpecificationParser] is automatically registered in [nl.vintik.mocknest.application.generation.parsers.CompositeSpecificationParserImpl]
@@ -23,14 +21,12 @@ import org.springframework.context.annotation.Configuration
  * by passing it as a constructor parameter to [nl.vintik.mocknest.application.generation.validators.CompositeMockValidator].
  * This explicit composition pattern avoids circular dependencies with `List<MockValidatorInterface>` injection.
  */
-@Configuration
-class SoapGenerationConfig {
+object SoapGenerationConfig {
 
     /**
      * WSDL content fetcher — infrastructure layer implementation using OkHttp.
      * Validates URL safety before any network call (SSRF protection).
      */
-    @Bean
     fun wsdlContentFetcher(): WsdlContentFetcherInterface {
         return WsdlContentFetcher()
     }
@@ -38,7 +34,6 @@ class SoapGenerationConfig {
     /**
      * WSDL parser — application layer, uses JDK DocumentBuilder (no new XML deps).
      */
-    @Bean
     fun wsdlParser(): WsdlParserInterface {
         return WsdlParser()
     }
@@ -46,7 +41,6 @@ class SoapGenerationConfig {
     /**
      * WSDL schema reducer — application layer, converts ParsedWsdl to CompactWsdl.
      */
-    @Bean
     fun wsdlSchemaReducer(): WsdlSchemaReducerInterface {
         return WsdlSchemaReducer()
     }
@@ -54,7 +48,6 @@ class SoapGenerationConfig {
     /**
      * WSDL specification parser — auto-registered via List<SpecificationParserInterface> injection.
      */
-    @Bean
     fun wsdlSpecificationParser(
         contentFetcher: WsdlContentFetcherInterface,
         wsdlParser: WsdlParserInterface,
@@ -66,7 +59,6 @@ class SoapGenerationConfig {
     /**
      * SOAP mock validator — explicitly composed in AIGenerationConfiguration.compositeMockValidator.
      */
-    @Bean
     fun soapMockValidator(): SoapMockValidator {
         return SoapMockValidator()
     }

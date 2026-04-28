@@ -1,21 +1,17 @@
 plugins {
     kotlin("jvm")
-    kotlin("plugin.spring")
-    id("io.spring.dependency-management")
 }
 
 dependencies {
     // Clean architecture dependencies
     api(project(":software:domain"))
     api(project(":software:application"))
+    api(project(":software:infra:aws:core"))
 
-    // Spring Boot - exclude embedded servers (no web starter, just core)
-    api("org.springframework.boot:spring-boot-starter") {
-        exclude(group = "org.springframework.boot", module = "spring-boot-starter-tomcat")
-        exclude(group = "org.apache.tomcat.embed")
-    }
-    api("org.springframework.boot:spring-boot-starter-validation")
     api("com.fasterxml.jackson.module:jackson-module-kotlin")
+
+    // Koin DI
+    implementation("io.insert-koin:koin-core")
 
     // Kotlin AWS SDK - S3 for storage
     api("aws.sdk.kotlin:s3")
@@ -32,10 +28,6 @@ dependencies {
     // Coroutines
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core")
 
-    // Spring Cloud Function for AWS Lambda
-    implementation("org.springframework.cloud:spring-cloud-function-adapter-aws")
-    implementation("org.springframework.cloud:spring-cloud-function-kotlin")
-
     // AWS Lambda runtime
     implementation("com.amazonaws:aws-lambda-java-core")
     implementation("com.amazonaws:aws-lambda-java-events")
@@ -47,7 +39,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:localstack")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("io.insert-koin:koin-test-junit5")
     testImplementation(project(":software:infra:aws:mocknest"))
     // OkHttp MockWebServer for prototype test
     testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")

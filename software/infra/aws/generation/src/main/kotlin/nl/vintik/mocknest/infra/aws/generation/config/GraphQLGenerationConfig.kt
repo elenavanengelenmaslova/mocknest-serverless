@@ -7,21 +7,17 @@ import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserI
 import nl.vintik.mocknest.application.generation.parsers.GraphQLSpecificationParser
 import nl.vintik.mocknest.application.generation.validators.GraphQLMockValidator
 import nl.vintik.mocknest.infra.aws.generation.graphql.GraphQLIntrospectionClient
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Configuration
 
 /**
- * Spring configuration for GraphQL-specific mock generation components.
+ * Factory functions for GraphQL-specific mock generation components.
  * Registers all GraphQL infrastructure beans following clean architecture boundaries.
  */
-@Configuration
-class GraphQLGenerationConfig {
+object GraphQLGenerationConfig {
 
     /**
      * GraphQL introspection client for fetching schemas from live endpoints.
      * Infrastructure layer implementation of the application-layer interface.
      */
-    @Bean
     fun graphQLIntrospectionClient(): GraphQLIntrospectionClientInterface {
         return GraphQLIntrospectionClient()
     }
@@ -29,7 +25,6 @@ class GraphQLGenerationConfig {
     /**
      * GraphQL schema reducer for converting raw introspection JSON to compact schema.
      */
-    @Bean
     fun graphQLSchemaReducer(): GraphQLSchemaReducerInterface {
         return GraphQLSchemaReducer()
     }
@@ -37,7 +32,6 @@ class GraphQLGenerationConfig {
     /**
      * GraphQL specification parser supporting both URL-based introspection and pre-fetched schemas.
      */
-    @Bean
     fun graphQLSpecificationParser(
         introspectionClient: GraphQLIntrospectionClientInterface,
         schemaReducer: GraphQLSchemaReducerInterface
@@ -48,7 +42,6 @@ class GraphQLGenerationConfig {
     /**
      * GraphQL mock validator for validating generated mocks against the introspected schema.
      */
-    @Bean
     fun graphQLMockValidator(): GraphQLMockValidator {
         return GraphQLMockValidator()
     }

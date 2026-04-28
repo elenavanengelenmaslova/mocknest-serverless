@@ -6,18 +6,16 @@ import kotlin.test.assertNotNull
 
 class AIGenerationConfigurationTest {
 
-    private val config = AIGenerationConfiguration()
-
     @Test
     fun `Should create all beans`() {
-        assertNotNull(config.openApiSpecificationParser())
-        assertNotNull(config.compositeSpecificationParser(emptyList()))
-        assertNotNull(config.bedrockServiceAdapter(mockk(), mockk(), mockk()))
-        assertNotNull(config.mockGenerationAgent(1, mockk(), mockk(), mockk(), mockk()))
-        
+        assertNotNull(AIGenerationConfiguration.openApiSpecificationParser())
+        assertNotNull(AIGenerationConfiguration.compositeSpecificationParser(emptyList()))
+        assertNotNull(AIGenerationConfiguration.bedrockServiceAdapter(mockk(), mockk(), mockk()))
+        assertNotNull(AIGenerationConfiguration.mockGenerationAgent(1, mockk(), mockk(), mockk(), mockk()))
+
         val agent = mockk<nl.vintik.mocknest.application.generation.agent.MockGenerationFunctionalAgent>()
-        val useCase = config.generateMocksFromSpecWithDescriptionUseCase(agent)
+        val useCase = AIGenerationConfiguration.generateMocksFromSpecWithDescriptionUseCase(agent)
         assertNotNull(useCase)
-        assertNotNull(config.aiGenerationRequestUseCase(useCase))
+        assertNotNull(AIGenerationConfiguration.aiGenerationRequestUseCase(useCase))
     }
 }

@@ -13,7 +13,7 @@ import com.github.tomakehurst.wiremock.stubbing.ServeEvent
 import io.mockk.every
 import io.mockk.mockk
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.application.runtime.config.MockNestConfig
+import nl.vintik.mocknest.application.runtime.config.createWireMockServer
 import nl.vintik.mocknest.application.runtime.config.WebhookConfig
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -61,15 +61,18 @@ class BugConditionExplorationTest {
             }
         }
         logAppender.start()
-        // Attach to the root logger to capture all log output from the package
-        val root = LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) as? Logger
-        root?.addAppender(logAppender)
+        // Attach to the application package logger — NOT the root logger.
+        // The root logger also captures MockK's internal DEBUG messages which
+        // include raw mock arguments (e.g. URLs with query strings), causing
+        // false positives in PII-leak assertions.
+        val appLogger = LoggerFactory.getLogger("nl.vintik.mocknest") as? Logger
+        appLogger?.addAppender(logAppender)
     }
 
     @AfterEach
     fun detachLogAppender() {
-        val root = LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) as? Logger
-        root?.detachAppender(logAppender)
+        val appLogger = LoggerFactory.getLogger("nl.vintik.mocknest") as? Logger
+        appLogger?.detachAppender(logAppender)
         logAppender.stop()
     }
 
@@ -294,12 +297,11 @@ class BugConditionExplorationTest {
             }
         }
 
-        val config = MockNestConfig()
-        val factory = config.directCallHttpServerFactory()
-        val redactFilter = config.redactSensitiveHeadersFilter(webhookConfig)
-        val journalStore = config.s3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
+        val factory = com.github.tomakehurst.wiremock.direct.DirectCallHttpServerFactory()
+        val redactFilter = RedactSensitiveHeadersFilter(webhookConfig)
+        val journalStore = nl.vintik.mocknest.application.runtime.journal.S3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
 
-        val server = config.wireMockServer(
+        val server = createWireMockServer(
             factory,
             mockStorage,
             webhookConfig,
@@ -325,7 +327,7 @@ class BugConditionExplorationTest {
                     .build()
             )
 
-            val directServer = config.directCallHttpServer(factory)
+            val directServer = factory.httpServer
             val wireMockRequest = ImmutableRequest.create()
                 .withAbsoluteUrl("http://mocknest.internal/test-webhook-blank-url")
                 .withMethod(RequestMethod.POST)

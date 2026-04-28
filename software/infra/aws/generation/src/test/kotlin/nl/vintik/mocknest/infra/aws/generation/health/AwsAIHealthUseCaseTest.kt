@@ -1,16 +1,16 @@
 package nl.vintik.mocknest.infra.aws.generation.health
 
-import io.mockk.clearAllMocks
+import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
 import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import nl.vintik.mocknest.domain.generation.AIHealth
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpStatus
 
 class AwsAIHealthUseCaseTest {
 
@@ -19,7 +19,7 @@ class AwsAIHealthUseCaseTest {
 
     @AfterEach
     fun tearDown() {
-        clearAllMocks()
+        clearMocks(mockAIModelService)
     }
 
     @Test
@@ -32,13 +32,13 @@ class AwsAIHealthUseCaseTest {
         val response = useCase.invoke()
 
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
-        assertEquals("application/json", response.headers?.getFirst("Content-Type"))
+        assertEquals(HttpStatusCode.OK, response.statusCode)
+        assertEquals("application/json", response.headers?.get("Content-Type")?.first())
         assertNotNull(response.body)
 
         val health = mapper.readValue(response.body, AIHealth::class.java)
         assertEquals("healthy", health.status)
-        assertNotNull(health.version) // Version should be present but don't assert specific value
+        assertNotNull(health.version)
         assertEquals("AmazonNovaPro", health.ai.modelName)
         assertEquals("eu", health.ai.inferencePrefix)
         assertEquals("AUTO", health.ai.inferenceMode)
@@ -54,8 +54,8 @@ class AwsAIHealthUseCaseTest {
         val response = useCase.invoke()
 
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(HttpStatusCode.OK, response.statusCode)
         val health = mapper.readValue(response.body, AIHealth::class.java)
-        assertNotNull(health.region) // Should be "unknown" or actual AWS region
+        assertNotNull(health.region)
     }
 }

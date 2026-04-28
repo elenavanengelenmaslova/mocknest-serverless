@@ -1,11 +1,6 @@
-import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
-
 plugins {
     kotlin("jvm") version "2.3.0" apply false
-    kotlin("plugin.spring") version "2.3.0" apply false
     kotlin("plugin.serialization") version "2.3.0" apply false
-    id("org.springframework.boot") version "4.0.5" apply false
-    id("io.spring.dependency-management") version "1.1.7" apply false
     id("com.gradleup.shadow") version "8.3.10" apply false
     id("org.jetbrains.kotlinx.kover") version "0.9.8"
 }
@@ -28,66 +23,10 @@ allprojects {
 subprojects {
     apply(plugin = "kotlin")
     apply(plugin = "org.jetbrains.kotlinx.kover")
-    apply(plugin = "io.spring.dependency-management")
 
     configure<JavaPluginExtension> {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(25))
-        }
-    }
-
-    // Global dependency management for all modules
-    configure<DependencyManagementExtension> {
-        imports {
-            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.5")
-            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.1.1")
-        }
-        dependencies {
-            dependency("org.wiremock:wiremock:3.13.2")
-            
-            // Security: Override vulnerable Rhino version from swagger-parser transitive dependency
-            dependency("org.mozilla:rhino:1.9.1")
-            
-            // Koog Framework for AI Agents
-            val koogVersion = "0.8.0"
-            dependency("ai.koog:koog-agents:$koogVersion")
-            dependency("ai.koog:agents-test:$koogVersion")
-            
-            // Kotlin AWS SDK
-            val awsSdkKotlinVersion = "1.6.59"
-            val smithyKotlinVersion = "1.6.11"
-            dependency("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
-            dependency("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
-            dependency("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
-            dependency("aws.sdk.kotlin:bedrock:$awsSdkKotlinVersion")
-            dependency("aws.sdk.kotlin:bedrockruntime:$awsSdkKotlinVersion")
-            dependency("aws.sdk.kotlin:sqs:$awsSdkKotlinVersion")
-            dependency("aws.smithy.kotlin:http-client-engine-okhttp:$smithyKotlinVersion")
-            dependency("aws.smithy.kotlin:http-client-engine-crt:$smithyKotlinVersion")
-            dependency("aws.smithy.kotlin:aws-signing-default:$smithyKotlinVersion")
-            
-            val okhttpVersion = "5.3.2"
-            ext["okhttp.version"] = okhttpVersion
-            dependency("com.squareup.okhttp3:okhttp:$okhttpVersion")
-            dependency("com.squareup.okhttp3:okhttp-coroutines:$okhttpVersion")
-            dependency("com.squareup.okhttp3:mockwebserver:$okhttpVersion")
-            
-            // AWS Lambda Java
-            dependency("com.amazonaws:aws-lambda-java-core:1.4.0")
-            dependency("com.amazonaws:aws-lambda-java-events:3.16.1")
-            
-            // Kotlinx Serialization for JSON
-            dependency("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
-            // TestContainers
-            val testContainersVersion = "2.0.4"
-            val testContainersExtensions = "1.21.4"
-            dependency("org.testcontainers:testcontainers:$testContainersVersion")
-            dependency("org.testcontainers:junit-jupiter:$testContainersExtensions")
-            dependency("org.testcontainers:localstack:$testContainersExtensions")
-
-            // Awaitility for async test assertions
-            dependency("org.awaitility:awaitility-kotlin:4.3.0")
-
         }
     }
 
@@ -102,7 +41,7 @@ subprojects {
                 because("Fixes multiple Tomcat CVEs: authentication bypass, HTTP request smuggling, weak crypto, certificate validation, open redirect, improper encoding")
             }
             // CWE-770: Allocation of Resources Without Limits or Throttling in tools.jackson.core:jackson-core
-            // Fixed in 3.1.1 (Spring Boot 4.0.5 ships 3.1.0)
+            // Fixed in 3.1.1
             if (requested.group == "tools.jackson.core") {
                 useVersion("3.1.1")
                 because("Fixes CWE-770: Allocation of Resources Without Limits or Throttling")
@@ -121,9 +60,11 @@ subprojects {
         val testImplementation by configurations
         val runtimeOnly by configurations
 
+        // Koin BOM for consistent Koin versions
+        implementation(platform("io.insert-koin:koin-bom:4.2.0"))
+
         // Kotlin standard library
         implementation("org.jetbrains.kotlin:kotlin-stdlib")
-        implementation("org.jetbrains.kotlin:kotlin-reflect")
 
         // Logging
         implementation("io.github.oshai:kotlin-logging-jvm:8.0.01")
@@ -136,6 +77,67 @@ subprojects {
         testImplementation("org.jetbrains.kotlin:kotlin-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.8")
+
+        // Jackson 2.x BOM for consistent Jackson versions (previously managed by Spring BOM)
+        implementation(platform("com.fasterxml.jackson:jackson-bom:2.21.1"))
+
+        // Explicit version constraints for dependencies previously managed by Spring BOM
+        constraints {
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+
+            // WireMock
+            implementation("org.wiremock:wiremock:3.13.2")
+            implementation("org.wiremock:wiremock-standalone:3.13.2")
+
+            // Security: Override vulnerable Rhino version from swagger-parser transitive dependency
+            implementation("org.mozilla:rhino:1.9.1")
+
+            // Koog Framework for AI Agents
+            val koogVersion = "0.8.0"
+            implementation("ai.koog:koog-agents:$koogVersion")
+            implementation("ai.koog:agents-test:$koogVersion")
+
+            // Kotlin AWS SDK
+            val awsSdkKotlinVersion = "1.6.59"
+            val smithyKotlinVersion = "1.6.11"
+            implementation("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
+            implementation("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
+            implementation("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
+            implementation("aws.sdk.kotlin:bedrock:$awsSdkKotlinVersion")
+            implementation("aws.sdk.kotlin:bedrockruntime:$awsSdkKotlinVersion")
+            implementation("aws.sdk.kotlin:sqs:$awsSdkKotlinVersion")
+            implementation("aws.smithy.kotlin:http-client-engine-okhttp:$smithyKotlinVersion")
+            implementation("aws.smithy.kotlin:http-client-engine-crt:$smithyKotlinVersion")
+            implementation("aws.smithy.kotlin:aws-signing-default:$smithyKotlinVersion")
+
+            val okhttpVersion = "5.3.2"
+            implementation("com.squareup.okhttp3:okhttp:$okhttpVersion")
+            implementation("com.squareup.okhttp3:okhttp-coroutines:$okhttpVersion")
+            implementation("com.squareup.okhttp3:mockwebserver:$okhttpVersion")
+
+            // AWS Lambda Java
+            implementation("com.amazonaws:aws-lambda-java-core:1.4.0")
+            implementation("com.amazonaws:aws-lambda-java-events:3.16.1")
+
+            // Kotlinx Serialization for JSON
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+
+            // TestContainers
+            val testContainersVersion = "2.0.4"
+            val testContainersExtensions = "1.21.4"
+            testImplementation("org.testcontainers:testcontainers:$testContainersVersion")
+            testImplementation("org.testcontainers:junit-jupiter:$testContainersExtensions")
+            testImplementation("org.testcontainers:localstack:$testContainersExtensions")
+
+            // Awaitility for async test assertions
+            testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
+
+            // Koin DI Framework
+            val koinVersion = "4.2.0"
+            implementation("io.insert-koin:koin-core:$koinVersion")
+            implementation("io.insert-koin:koin-test:$koinVersion")
+            implementation("io.insert-koin:koin-test-junit5:$koinVersion")
+        }
     }
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
@@ -156,6 +158,7 @@ dependencies {
     kover(project(":software:domain"))
     kover(project(":software:application"))
     kover(project(":software:infra:generation-core"))
+    kover(project(":software:infra:aws:core"))
     kover(project(":software:infra:aws:runtime"))
     kover(project(":software:infra:aws:mocknest"))
     kover(project(":software:infra:aws:generation"))

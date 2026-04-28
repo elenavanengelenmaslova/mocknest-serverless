@@ -2,15 +2,13 @@ package nl.vintik.mocknest.application.runtime.usecases
 
 import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import com.github.tomakehurst.wiremock.http.HttpHeader
 import com.github.tomakehurst.wiremock.http.HttpHeaders as WireMockHttpHeaders
 import com.github.tomakehurst.wiremock.http.ImmutableRequest
 import com.github.tomakehurst.wiremock.http.RequestMethod
 import com.github.tomakehurst.wiremock.http.Response
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatusCode
-import org.springframework.util.LinkedMultiValueMap
 import wiremock.org.apache.hc.core5.http.ContentType
 import java.net.URLEncoder
 import kotlin.text.Charsets.UTF_8
@@ -57,7 +55,7 @@ fun forwardToDirectCallHttpServer(
             .withAbsoluteUrl("$BASE_URL/$path$queryString")
             .withMethod(
                 RequestMethod.fromString(
-                    httpRequest.method.name()
+                    httpRequest.method.name
                 )
             )
             .withHeaders(
@@ -79,16 +77,16 @@ fun forwardToDirectCallHttpServer(
         if (response.headers.contentTypeHeader.isPresent) response.headers.contentTypeHeader.firstValue()
         else ContentType.APPLICATION_JSON.toString()
     // Convert the WireMock Response to an HttpResponse
-    val responseHeaders = LinkedMultiValueMap<String, String>()
+    val responseHeaders = mutableMapOf<String, List<String>>()
 
     val headers = response.headers.all().filter { !it.key.equals("Matched-Stub-Id", ignoreCase = true) }
     headers.forEach { header ->
-        responseHeaders.add(header.key(), header.firstValue())
+        responseHeaders[header.key()] = header.values()
     }
-    responseHeaders.add(HttpHeaders.CONTENT_TYPE, contentType)
+    responseHeaders["Content-Type"] = listOf(contentType)
 
     return HttpResponse(
-        HttpStatusCode.valueOf(response.status),
+        HttpStatusCode(response.status),
         responseHeaders,
         response.bodyAsString
     )

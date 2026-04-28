@@ -22,12 +22,7 @@ import nl.vintik.mocknest.domain.generation.MockNamespace
 import nl.vintik.mocknest.domain.generation.SourceType
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
 import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.context.event.ApplicationReadyEvent
-import org.springframework.context.annotation.Profile
-import org.springframework.context.event.EventListener
-import org.springframework.http.HttpMethod
-import org.springframework.stereotype.Component
+import nl.vintik.mocknest.domain.core.HttpMethod
 import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
@@ -36,12 +31,10 @@ private val logger = KotlinLogging.logger {}
  * Priming hook for Generation function SnapStart optimization.
  * Excluded from the `async` profile — the async Lambda has its own lightweight priming.
  */
-@Component
-@Profile("generation")
-open class GenerationPrimingHook(
+class GenerationPrimingHook(
     private val aiHealthUseCase: GetAIHealth,
     private val s3Client: S3Client,
-    @param:Value($$"${storage.bucket.name}") private val bucketName: String,
+    private val bucketName: String,
     private val bedrockClient: BedrockRuntimeClient,
     private val modelConfig: ModelConfiguration,
     private val specificationParser: OpenAPISpecificationParser,
@@ -55,10 +48,9 @@ open class GenerationPrimingHook(
 ) {
     
     /**
-     * Triggered when Spring application context is fully initialized.
+     * Called explicitly from the Lambda handler init block after Koin initialization.
      * Only executes priming logic in SnapStart environments.
      */
-    @EventListener(ApplicationReadyEvent::class)
     fun onApplicationReady() {
         if (isSnapStartEnvironment()) {
             logger.info { "SnapStart detected - executing generation priming hook" }
@@ -280,7 +272,7 @@ open class GenerationPrimingHook(
      * 
      * @return true if running in SnapStart environment, false otherwise
      */
-    protected open fun isSnapStartEnvironment(): Boolean {
+    protected fun isSnapStartEnvironment(): Boolean {
         val initType = System.getenv("AWS_LAMBDA_INITIALIZATION_TYPE")
         logger.debug { "AWS_LAMBDA_INITIALIZATION_TYPE: $initType" }
         return initType == "snap-start"

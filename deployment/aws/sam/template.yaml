@@ -543,7 +543,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
-      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Handler: nl.vintik.mocknest.infra.aws.runtime.function.RuntimeLambdaHandler
       Role: !GetAtt MockNestLambdaRole.Arn
       Timeout: !Ref RuntimeLambdaTimeout
       MemorySize: !Ref RuntimeLambdaMemorySize
@@ -552,11 +552,7 @@ Resources:
         ApplyOn: PublishedVersions
       Environment:
         Variables:
-          SPRING_PROFILES_ACTIVE: runtime
-          MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
-          SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
-          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           MOCKNEST_SENSITIVE_HEADERS: !Ref SensitiveHeaders
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl
@@ -588,7 +584,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
-      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Handler: nl.vintik.mocknest.infra.aws.runtime.function.RuntimeLambdaHandler
       Role: !GetAtt MockNestLambdaRole.Arn
       Timeout: !Ref RuntimeLambdaTimeout
       MemorySize: !Ref RuntimeLambdaMemorySize
@@ -597,11 +593,7 @@ Resources:
         ApplyOn: PublishedVersions
       Environment:
         Variables:
-          SPRING_PROFILES_ACTIVE: runtime
-          MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
-          SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeRouter"
-          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           MOCKNEST_SENSITIVE_HEADERS: !Ref SensitiveHeaders
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl
@@ -633,7 +625,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-generation"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
-      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Handler: nl.vintik.mocknest.infra.aws.generation.function.GenerationLambdaHandler
       Role: !GetAtt MockNestGenerationLambdaRole.Arn
       Timeout: !Ref GenerationLambdaTimeout
       MemorySize: !Ref GenerationLambdaMemorySize
@@ -642,11 +634,7 @@ Resources:
         ApplyOn: PublishedVersions
       Environment:
         Variables:
-          SPRING_PROFILES_ACTIVE: generation
-          MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
-          SPRING_CLOUD_FUNCTION_DEFINITION: "generationRouter"
-          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           BEDROCK_MODEL_NAME: !Ref BedrockModelName
           BEDROCK_INFERENCE_MODE: !Ref BedrockInferenceMode
@@ -672,7 +660,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-generation"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
-      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Handler: nl.vintik.mocknest.infra.aws.generation.function.GenerationLambdaHandler
       Role: !GetAtt MockNestGenerationLambdaRole.Arn
       Timeout: !Ref GenerationLambdaTimeout
       MemorySize: !Ref GenerationLambdaMemorySize
@@ -681,11 +669,7 @@ Resources:
         ApplyOn: PublishedVersions
       Environment:
         Variables:
-          SPRING_PROFILES_ACTIVE: generation
-          MOCK_STORAGE_BUCKET: !Ref MockStorage
           MOCKNEST_S3_BUCKET_NAME: !Ref MockStorage
-          SPRING_CLOUD_FUNCTION_DEFINITION: "generationRouter"
-          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           BEDROCK_MODEL_NAME: !Ref BedrockModelName
           BEDROCK_INFERENCE_MODE: !Ref BedrockInferenceMode
@@ -711,7 +695,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime-async"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
-      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Handler: nl.vintik.mocknest.infra.aws.runtime.runtimeasync.RuntimeAsyncLambdaHandler
       Role: !GetAtt MockNestRuntimeAsyncRole.Arn
       Timeout: !FindInMap [WebhookTimeoutConfig, !Ref WebhookTimeoutSeconds, AsyncTimeoutSeconds]
       MemorySize: !Ref RuntimeAsyncLambdaMemorySize
@@ -720,9 +704,6 @@ Resources:
         ApplyOn: PublishedVersions
       Environment:
         Variables:
-          SPRING_PROFILES_ACTIVE: "core,async"
-          SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeAsyncRouter"
-          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           MOCKNEST_WEBHOOK_TIMEOUT_MS: !FindInMap [WebhookTimeoutConfig, !Ref WebhookTimeoutSeconds, WebhookTimeoutMillis]
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl
@@ -744,7 +725,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime-async"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
-      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Handler: nl.vintik.mocknest.infra.aws.runtime.runtimeasync.RuntimeAsyncLambdaHandler
       Role: !GetAtt MockNestRuntimeAsyncRole.Arn
       Timeout: !FindInMap [WebhookTimeoutConfig, !Ref WebhookTimeoutSeconds, AsyncTimeoutSeconds]
       MemorySize: !Ref RuntimeAsyncLambdaMemorySize
@@ -753,9 +734,6 @@ Resources:
         ApplyOn: PublishedVersions
       Environment:
         Variables:
-          SPRING_PROFILES_ACTIVE: "core,async"
-          SPRING_CLOUD_FUNCTION_DEFINITION: "runtimeAsyncRouter"
-          MAIN_CLASS: "nl.vintik.mocknest.infra.aws.MockNestApplication"
           JAVA_TOOL_OPTIONS: "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
           MOCKNEST_WEBHOOK_TIMEOUT_MS: !FindInMap [WebhookTimeoutConfig, !Ref WebhookTimeoutSeconds, WebhookTimeoutMillis]
           MOCKNEST_WEBHOOK_QUEUE_URL: !GetAtt MockNestWebhookQueue.QueueUrl

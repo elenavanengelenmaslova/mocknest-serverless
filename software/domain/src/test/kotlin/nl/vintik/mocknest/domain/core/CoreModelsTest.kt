@@ -1,9 +1,6 @@
 package nl.vintik.mocknest.domain.core
 
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpMethod
-import org.springframework.http.HttpStatus
-import org.springframework.util.LinkedMultiValueMap
 import kotlin.test.assertEquals
 
 class CoreModelsTest {
@@ -24,15 +21,14 @@ class CoreModelsTest {
 
     @Test
     fun `Should create valid HttpResponse`() {
-        val headers = LinkedMultiValueMap<String, String>()
-        headers.add("Content-Type", "application/json")
+        val headers = mapOf("Content-Type" to listOf("application/json"))
         val response = HttpResponse(
-            statusCode = HttpStatus.OK,
+            statusCode = HttpStatusCode.OK,
             headers = headers,
             body = "{}"
         )
-        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(HttpStatusCode.OK, response.statusCode)
         assertEquals("{}", response.body)
-        assertEquals("application/json", response.headers?.getFirst("Content-Type"))
+        assertEquals("application/json", response.headers?.get("Content-Type")?.first())
     }
 }

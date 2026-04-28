@@ -7,7 +7,7 @@ import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpStatus
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -32,8 +32,8 @@ class AIHealthUseCaseTest {
         val response = useCase.invoke()
 
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
-        assertEquals("application/json", response.headers?.getFirst("Content-Type"))
+        assertEquals(HttpStatusCode.OK, response.statusCode)
+        assertEquals("application/json", response.headers?.get("Content-Type")?.firstOrNull())
         assertNotNull(response.body)
         assertTrue(response.body?.contains("\"status\":\"healthy\"") == true)
         assertTrue(response.body?.contains("\"region\":\"us-east-1\"") == true)
@@ -52,7 +52,7 @@ class AIHealthUseCaseTest {
         val response = useCase.invoke()
 
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(HttpStatusCode.OK, response.statusCode)
         assertTrue(response.body?.contains("\"modelName\":\"amazon.nova-micro-v1:0\"") == true)
         assertTrue(response.body?.contains("\"inferencePrefix\":null") == true)
         assertTrue(response.body?.contains("\"inferenceMode\":\"BEDROCK\"") == true)
@@ -69,7 +69,7 @@ class AIHealthUseCaseTest {
         val response = useCase.invoke()
 
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(HttpStatusCode.OK, response.statusCode)
         assertTrue(response.body?.contains("\"region\":\"eu-west-1\"") == true)
         assertTrue(response.body?.contains("\"inferenceMode\":\"CUSTOM\"") == true)
     }
@@ -84,7 +84,7 @@ class AIHealthUseCaseTest {
         val response = useCase.invoke()
 
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(HttpStatusCode.OK, response.statusCode)
         assertTrue(response.body?.contains("\"timestamp\":") == true)
         assertTrue(response.body?.contains("\"version\":") == true)
         // Version should not be "unknown"

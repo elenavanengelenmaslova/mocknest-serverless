@@ -2,8 +2,6 @@ import org.gradle.api.tasks.testing.Test
 
 plugins {
     kotlin("jvm")
-    kotlin("plugin.spring")
-    id("io.spring.dependency-management")
 }
 
 dependencies {
@@ -13,6 +11,9 @@ dependencies {
 
     // Generic infra (non-AWS) generation utilities — includes WsdlContentFetcher
     implementation(project(":software:infra:generation-core"))
+
+    // Shared Koin bootstrap and core module
+    implementation(project(":software:infra:aws:core"))
 
     // Security: Force patched Netty version to fix HTTP Request Smuggling vulnerability
     // CVE-2025-58056 / GHSA-fghv-69vj-qj49: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding
@@ -29,12 +30,9 @@ dependencies {
         }
     }
 
-    // Spring Boot - exclude embedded servers (no web starter, just core)
-    api("org.springframework.boot:spring-boot-starter") {
-        exclude(group = "org.springframework.boot", module = "spring-boot-starter-tomcat")
-        exclude(group = "org.apache.tomcat.embed")
-    }
-    api("org.springframework.boot:spring-boot-starter-validation")
+    // Koin DI
+    implementation("io.insert-koin:koin-core")
+
     api("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     // Kotlin AWS SDK - S3 for storage and Bedrock for AI
@@ -55,25 +53,15 @@ dependencies {
     // Koog Framework for AI Agent orchestration
     implementation("ai.koog:koog-agents")
 
-    // Spring Cloud Function for AWS Lambda
-    implementation("org.springframework.cloud:spring-cloud-function-adapter-aws")
-    implementation("org.springframework.cloud:spring-cloud-function-kotlin")
-
-    // Kotlin AWS SDK - Bedrock for AI features
-    implementation("aws.sdk.kotlin:bedrockruntime")
-    
-    // Koog Framework for AI Agent orchestration
-    implementation("ai.koog:koog-agents")
-
     // AWS Lambda runtime
     implementation("com.amazonaws:aws-lambda-java-core")
     implementation("com.amazonaws:aws-lambda-java-events")
 
-    // Testing with LocalStack
+    // Testing
+    testImplementation("io.insert-koin:koin-test-junit5")
     testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:localstack")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(project(":software:infra:aws:mocknest"))
 
     // Dokimos LLM evaluation framework (test-scope only)

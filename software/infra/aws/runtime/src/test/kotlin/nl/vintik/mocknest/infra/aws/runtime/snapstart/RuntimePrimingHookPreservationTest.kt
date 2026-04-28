@@ -20,7 +20,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import org.springframework.http.HttpStatus
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import java.util.UUID
 
 /**
@@ -57,7 +57,7 @@ class RuntimePrimingHookPreservationTest {
     @Test
     fun `Given prime called When WireMock engine exercised Then stub is created before request is sent`() = runTest {
         // Given
-        every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+        every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
         coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
         every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
@@ -75,7 +75,7 @@ class RuntimePrimingHookPreservationTest {
     @Test
     fun `Given prime called When WireMock engine exercised Then journal writes are suppressed during request`() = runTest {
         // Given
-        every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+        every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
         coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
         every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
@@ -90,7 +90,7 @@ class RuntimePrimingHookPreservationTest {
     @Test
     fun `Given prime called When WireMock engine exercised Then journal writes are re-enabled even on failure`() = runTest {
         // Given — stubRequest throws to simulate failure
-        every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+        every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
         coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
         every { mockDirectCallHttpServer.stubRequest(any()) } throws RuntimeException("Request failed")
 
@@ -109,7 +109,7 @@ class RuntimePrimingHookPreservationTest {
         verifier: (RuntimePrimingHookPreservationTest) -> Unit,
     ) = runTest {
         // Given — all steps succeed
-        every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+        every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
         coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
         every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 

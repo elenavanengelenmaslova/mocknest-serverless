@@ -12,7 +12,7 @@ import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 import java.util.*
 import kotlin.test.assertNotNull

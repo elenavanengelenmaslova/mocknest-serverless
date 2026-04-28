@@ -4,8 +4,6 @@ import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInter
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.application.runtime.usecases.RuntimeHealthUseCase
 import nl.vintik.mocknest.domain.core.HttpResponse
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Component
 
 /**
  * AWS-specific adapter for runtime health check.
@@ -13,10 +11,9 @@ import org.springframework.stereotype.Component
  * Handles AWS-specific configuration and environment variables,
  * then delegates to the application layer use case.
  */
-@Component
 class AwsRuntimeHealthUseCase(
     private val storage: ObjectStorageInterface,
-    @param:Value("\${storage.bucket.name}") private val bucketName: String
+    private val bucketName: String = System.getenv("MOCKNEST_S3_BUCKET_NAME") ?: "",
 ) : GetRuntimeHealth {
     
     override fun invoke(): HttpResponse {

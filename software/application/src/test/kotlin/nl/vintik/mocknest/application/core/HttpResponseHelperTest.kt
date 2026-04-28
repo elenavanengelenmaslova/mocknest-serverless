@@ -1,7 +1,7 @@
 package nl.vintik.mocknest.application.core
 
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpStatus
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -16,8 +16,8 @@ class HttpResponseHelperTest {
         val response = HttpResponseHelper.ok(testData)
         
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
-        assertEquals("application/json", response.headers?.getFirst("Content-Type"))
+        assertEquals(HttpStatusCode.OK, response.statusCode)
+        assertEquals("application/json", response.headers?.get("Content-Type")?.firstOrNull())
         assertTrue(response.body?.contains("\"message\":\"test\"") == true)
         assertTrue(response.body?.contains("\"status\":\"success\"") == true)
     }
@@ -31,8 +31,8 @@ class HttpResponseHelperTest {
         val response = HttpResponseHelper.ok(testData)
         
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
-        assertEquals("application/json", response.headers?.getFirst("Content-Type"))
+        assertEquals(HttpStatusCode.OK, response.statusCode)
+        assertEquals("application/json", response.headers?.get("Content-Type")?.firstOrNull())
         assertEquals("\"simple string\"", response.body)
     }
 
@@ -46,8 +46,8 @@ class HttpResponseHelperTest {
         val response = HttpResponseHelper.ok(testData)
         
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
-        assertEquals("application/json", response.headers?.getFirst("Content-Type"))
+        assertEquals(HttpStatusCode.OK, response.statusCode)
+        assertEquals("application/json", response.headers?.get("Content-Type")?.firstOrNull())
         assertTrue(response.body?.contains("\"id\":1") == true)
         assertTrue(response.body?.contains("\"name\":\"test-object\"") == true)
         assertTrue(response.body?.contains("\"active\":true") == true)
@@ -62,8 +62,8 @@ class HttpResponseHelperTest {
         val response = HttpResponseHelper.ok(testData)
         
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
-        assertEquals("application/json", response.headers?.getFirst("Content-Type"))
+        assertEquals(HttpStatusCode.OK, response.statusCode)
+        assertEquals("application/json", response.headers?.get("Content-Type")?.firstOrNull())
         assertTrue(response.body?.startsWith("[") == true)
         assertTrue(response.body?.endsWith("]") == true)
         assertTrue(response.body?.contains("\"item1\"") == true)

@@ -6,8 +6,8 @@ import nl.vintik.mocknest.application.generation.util.SafeUrlResolver
 import nl.vintik.mocknest.application.generation.wsdl.WsdlContentFetcherInterface
 import nl.vintik.mocknest.application.generation.wsdl.WsdlParserInterface
 import nl.vintik.mocknest.application.generation.wsdl.WsdlSchemaReducerInterface
+import nl.vintik.mocknest.domain.core.HttpMethod
 import nl.vintik.mocknest.domain.generation.*
-import org.springframework.http.HttpMethod
 import java.net.URI
 
 private val logger = KotlinLogging.logger {}

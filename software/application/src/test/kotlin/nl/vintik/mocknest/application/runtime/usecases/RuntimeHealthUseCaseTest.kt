@@ -8,7 +8,7 @@ import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpStatus
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -32,8 +32,8 @@ class RuntimeHealthUseCaseTest {
         val response = useCase.invoke()
 
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
-        assertEquals("application/json", response.headers?.getFirst("Content-Type"))
+        assertEquals(HttpStatusCode.OK, response.statusCode)
+        assertEquals("application/json", response.headers?.get("Content-Type")?.firstOrNull())
         assertNotNull(response.body)
         assertTrue(response.body?.contains("\"status\":\"healthy\"") == true)
         assertTrue(response.body?.contains("\"region\":\"us-east-1\"") == true)
@@ -50,7 +50,7 @@ class RuntimeHealthUseCaseTest {
         val response = useCase.invoke()
 
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(HttpStatusCode.OK, response.statusCode)
         assertTrue(response.body?.contains("\"status\":\"degraded\"") == true)
         assertTrue(response.body?.contains("\"region\":\"us-east-1\"") == true)
         assertTrue(response.body?.contains("\"bucket\":\"test-bucket\"") == true)
@@ -67,7 +67,7 @@ class RuntimeHealthUseCaseTest {
         val response = useCase.invoke()
 
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(HttpStatusCode.OK, response.statusCode)
         assertTrue(response.body?.contains("\"region\":\"eu-west-1\"") == true)
         assertTrue(response.body?.contains("\"bucket\":\"production-bucket\"") == true)
         assertTrue(response.body?.contains("\"status\":\"healthy\"") == true)
@@ -82,7 +82,7 @@ class RuntimeHealthUseCaseTest {
         val response = useCase.invoke()
 
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(HttpStatusCode.OK, response.statusCode)
         assertTrue(response.body?.contains("\"timestamp\":") == true)
         assertTrue(response.body?.contains("\"version\":") == true)
         // Version should not be "unknown"
@@ -98,7 +98,7 @@ class RuntimeHealthUseCaseTest {
         val response = useCase.invoke()
 
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(HttpStatusCode.OK, response.statusCode)
         assertTrue(response.body?.contains("\"status\":\"degraded\"") == true)
         assertTrue(response.body?.contains("\"connectivity\":\"error\"") == true)
     }

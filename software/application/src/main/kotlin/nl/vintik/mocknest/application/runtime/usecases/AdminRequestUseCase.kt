@@ -4,13 +4,9 @@ import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
 import com.github.tomakehurst.wiremock.direct.DirectCallHttpServer
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.springframework.context.annotation.Profile
-import org.springframework.stereotype.Component
 
 private val logger = KotlinLogging.logger {}
 
-@Component
-@Profile("runtime")
 class AdminRequestUseCase(
     private val directCallHttpServer: DirectCallHttpServer,
 ) : HandleAdminRequest {

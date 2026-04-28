@@ -5,7 +5,6 @@ import nl.vintik.mocknest.domain.generation.APISpecification
 import nl.vintik.mocknest.domain.generation.GeneratedMock
 import nl.vintik.mocknest.domain.generation.MockNamespace
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
-import org.springframework.stereotype.Service
 
 private val logger = KotlinLogging.logger {}
 
@@ -13,7 +12,6 @@ private val logger = KotlinLogging.logger {}
  * Service responsible for building AI prompts from templates.
  * Loads prompt templates from classpath resources and injects parameters.
  */
-@Service
 class PromptBuilderService {
 
     /**

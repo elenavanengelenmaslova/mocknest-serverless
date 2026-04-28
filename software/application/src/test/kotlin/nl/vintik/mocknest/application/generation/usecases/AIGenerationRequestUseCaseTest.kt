@@ -8,8 +8,8 @@ import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpMethod
-import org.springframework.http.HttpStatus
+import nl.vintik.mocknest.domain.core.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import kotlin.test.assertEquals
 
 class AIGenerationRequestUseCaseTest {
@@ -60,7 +60,7 @@ class AIGenerationRequestUseCaseTest {
             val response = useCase.invoke("/from-spec", httpRequest)
 
             // Then
-            assertEquals(HttpStatus.OK, response.statusCode)
+            assertEquals(HttpStatusCode.OK, response.statusCode)
             assertEquals(true, response.body?.contains("mappings"))
         }
     }
@@ -77,7 +77,7 @@ class AIGenerationRequestUseCaseTest {
             val response = useCase.invoke("/unknown", httpRequest)
 
             // Then
-            assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
+            assertEquals(HttpStatusCode.NOT_FOUND, response.statusCode)
         }
 
         @Test
@@ -89,7 +89,7 @@ class AIGenerationRequestUseCaseTest {
             val response = useCase.invoke("/from-spec", httpRequest)
 
             // Then
-            assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
+            assertEquals(HttpStatusCode.NOT_FOUND, response.statusCode)
         }
     }
 
@@ -105,7 +105,7 @@ class AIGenerationRequestUseCaseTest {
             val response = useCase.invoke("/from-spec", httpRequest)
 
             // Then
-            assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+            assertEquals(HttpStatusCode.BAD_REQUEST, response.statusCode)
         }
 
         @Test
@@ -117,7 +117,7 @@ class AIGenerationRequestUseCaseTest {
             val response = useCase.invoke("/from-spec", httpRequest)
 
             // Then
-            assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+            assertEquals(HttpStatusCode.BAD_REQUEST, response.statusCode)
         }
 
         @Test
@@ -137,7 +137,7 @@ class AIGenerationRequestUseCaseTest {
             val response = useCase.invoke("/from-spec", httpRequest)
 
             // Then
-            assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+            assertEquals(HttpStatusCode.BAD_REQUEST, response.statusCode)
             assertEquals(true, response.body?.contains("error"))
         }
 
@@ -158,7 +158,7 @@ class AIGenerationRequestUseCaseTest {
             val response = useCase.invoke("/from-spec", httpRequest)
 
             // Then
-            assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+            assertEquals(HttpStatusCode.BAD_REQUEST, response.statusCode)
             assertEquals(true, response.body?.contains("error"))
         }
     }
@@ -188,7 +188,7 @@ class AIGenerationRequestUseCaseTest {
             val response = useCase.invoke("/from-spec", httpRequest)
 
             // Then
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+            assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.statusCode)
             assertEquals(true, response.body?.contains("FAILED"))
             assertEquals(true, response.body?.contains("Generation failed"))
         }
@@ -212,7 +212,7 @@ class AIGenerationRequestUseCaseTest {
             val response = useCase.invoke("/from-spec", httpRequest)
 
             // Then
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+            assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.statusCode)
             assertEquals(true, response.body?.contains("Internal Server Error"))
             assertEquals(false, response.body?.contains("secret internal detail"))
         }
@@ -236,7 +236,7 @@ class AIGenerationRequestUseCaseTest {
             val response = useCase.invoke("/from-spec", httpRequest)
 
             // Then - should be 500 because this is not a request validation error
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+            assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.statusCode)
         }
 
         @Test
@@ -273,7 +273,7 @@ class AIGenerationRequestUseCaseTest {
             val response = useCase.invoke("/from-spec", httpRequest)
 
             // Then - invalid AI output JSON should be 500, not 400
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.statusCode)
+            assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.statusCode)
         }
     }
 }

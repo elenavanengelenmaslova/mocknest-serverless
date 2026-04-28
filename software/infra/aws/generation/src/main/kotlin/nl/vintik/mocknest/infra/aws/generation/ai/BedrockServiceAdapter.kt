@@ -21,7 +21,7 @@ import nl.vintik.mocknest.domain.generation.MockNamespace
 import nl.vintik.mocknest.domain.generation.ModelResponseParsingException
 import nl.vintik.mocknest.domain.generation.SourceType
 import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
-import org.springframework.http.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 
 private val logger = KotlinLogging.logger {}
@@ -178,7 +178,7 @@ class BedrockServiceAdapter(
                 sourceType = sourceType,
                 sourceReference = sourceReference,
                 endpoint = EndpointInfo(
-                    method = HttpMethod.valueOf(method.uppercase()),
+                    method = HttpMethod.resolve(method.uppercase()),
                     path = path,
                     statusCode = statusCode,
                     contentType = contentType
