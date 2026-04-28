@@ -51,7 +51,7 @@ class GenerationLambdaHandler :
         context: Context,
     ): APIGatewayProxyResponseEvent {
         with(event) {
-            logger.info { "Generation Lambda request: $httpMethod $path $headers" }
+            logger.info { "Generation Lambda request: $httpMethod $path" }
             val response = when {
                 path == "${AI_PREFIX}health" -> {
                     logger.debug { "Processing AI health check request" }
@@ -73,7 +73,7 @@ class GenerationLambdaHandler :
 
             return APIGatewayProxyResponseEvent()
                 .withStatusCode(response.statusCode.value())
-                .withHeaders(response.headers?.mapValues { it.value.first() })
+                .withHeaders(response.headers?.mapValues { it.value.firstOrNull() }?.filterValues { it != null }?.mapValues { it.value!! })
                 .withBody(response.body.orEmpty())
         }
     }

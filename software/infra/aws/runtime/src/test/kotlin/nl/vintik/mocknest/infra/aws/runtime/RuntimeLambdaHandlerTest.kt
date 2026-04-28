@@ -25,6 +25,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -107,7 +108,7 @@ class RuntimeLambdaHandlerTest : KoinTest {
             verify(exactly = 0) { mockHandleClientRequest.invoke(any()) }
             assertEquals(200, response.statusCode)
             assertNotNull(response.body)
-            assert(response.body.contains("\"status\": \"healthy\""))
+            assertTrue(response.body.contains("\"status\": \"healthy\""))
         }
 
         @Test
@@ -319,8 +320,8 @@ class RuntimeLambdaHandlerTest : KoinTest {
             verify(exactly = 0) { mockHandleAdminRequest.invoke(any(), any()) }
             assertEquals(404, response.statusCode)
             assertNotNull(response.body)
-            assert(response.body.contains("/unknown/path"))
-            assert(response.body.contains("not found"))
+            assertTrue(response.body.contains("/unknown/path"))
+            assertTrue(response.body.contains("not found"))
         }
 
         @Test

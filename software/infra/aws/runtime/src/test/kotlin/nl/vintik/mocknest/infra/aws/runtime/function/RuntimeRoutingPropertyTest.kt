@@ -21,6 +21,7 @@ import org.crac.Resource
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.parallel.Isolated
@@ -165,7 +166,7 @@ class RuntimeRoutingPropertyTest : KoinTest {
         verify(exactly = 0) { mockHandleAdminRequest.invoke(any(), any()) }
         verify(exactly = 0) { mockHandleClientRequest.invoke(any()) }
         assertEquals(404, response.statusCode)
-        assert(response.body?.contains("not found") == true) { "Expected 404 body to contain 'not found'" }
+        assertTrue(response.body?.contains("not found") == true, "Expected 404 body to contain 'not found'")
     }
 
     private fun createEvent(path: String, httpMethod: String): APIGatewayProxyRequestEvent =

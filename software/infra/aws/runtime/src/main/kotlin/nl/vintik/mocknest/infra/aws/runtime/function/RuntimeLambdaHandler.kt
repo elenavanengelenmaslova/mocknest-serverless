@@ -57,7 +57,7 @@ class RuntimeLambdaHandler :
         context: Context,
     ): APIGatewayProxyResponseEvent {
         with(event) {
-            logger.info { "Runtime Lambda request: $httpMethod $path $headers" }
+            logger.info { "Runtime Lambda request: $httpMethod $path" }
             val response = when {
                 path == "${ADMIN_PREFIX}health" -> {
                     logger.debug { "Processing health check request" }
@@ -83,7 +83,7 @@ class RuntimeLambdaHandler :
 
             return APIGatewayProxyResponseEvent()
                 .withStatusCode(response.statusCode.value())
-                .withHeaders(response.headers?.mapValues { it.value.first() })
+                .withHeaders(response.headers?.mapValues { it.value.firstOrNull() }?.filterValues { it != null }?.mapValues { it.value!! })
                 .withBody(response.body.orEmpty())
         }
     }
