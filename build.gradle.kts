@@ -1,7 +1,7 @@
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
 plugins {
-    kotlin("jvm") version "2.3.0" apply false
+    kotlin("jvm") version "2.3.21" apply false
     kotlin("plugin.spring") version "2.3.0" apply false
     kotlin("plugin.serialization") version "2.3.0" apply false
     id("org.springframework.boot") version "4.0.6" apply false
