@@ -193,7 +193,8 @@ To use MockNest with your application:
 1. Create mocks for the third-party APIs your app depends on (using manual creation or AI generation)
 2. Update your app's configuration to point at MockNest instead of the real API:
    - Change the API base URL to `${MOCKNEST_URL}/mocknest` (plus any path prefix like `/petstore`)
-   - Add the API key header to your requests: `x-api-key: ${API_KEY}`
+   - **API key mode** (default): Add the API key header to your requests: `x-api-key: ${API_KEY}`
+   - **IAM mode**: Sign requests with AWS SigV4 (using your AWS SDK or `--aws-sigv4` in curl)
 3. Your app will now call mocks instead of real services
 
 **Learn More**
@@ -237,6 +238,7 @@ MockNest Serverless provides multiple ways to interact with the API:
 - Comprehensive examples in [docs/USAGE.md](docs/USAGE.md)
 - Suitable for scripts and automated testing
 - Works in any terminal or shell script
+- Examples cover both API key and IAM (SigV4) auth modes
 
 **Direct HTTP Clients**
 - Use any HTTP client library in your preferred language
