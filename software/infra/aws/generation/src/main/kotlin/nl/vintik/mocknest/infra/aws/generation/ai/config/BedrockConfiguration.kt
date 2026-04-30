@@ -24,7 +24,7 @@ object BedrockConfiguration {
 
             // Support custom endpoint for LocalStack testing
             if (!customEndpoint.isNullOrBlank()) {
-                logger.info { "Using custom Bedrock endpoint: $customEndpoint." }
+                logger.debug { "Using custom Bedrock endpoint." }
                 endpointUrl = Url.parse(customEndpoint)
             }
         }

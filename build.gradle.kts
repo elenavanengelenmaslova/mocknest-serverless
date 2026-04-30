@@ -35,7 +35,7 @@ subprojects {
         resolutionStrategy.eachDependency {
             // CVE-2026-29145, CVE-2026-24880, CVE-2026-29129, CVE-2026-32990, CVE-2026-25854,
             // CVE-2026-34500, CVE-2026-34483: Multiple Tomcat vulnerabilities
-            // Fixed in tomcat-embed-core 11.0.21 (Spring Boot 4.0.5 ships 11.0.20)
+            // Fixed in tomcat-embed-core 11.0.21 (transitive via WireMock)
             if (requested.group == "org.apache.tomcat.embed") {
                 useVersion("11.0.21")
                 because("Fixes multiple Tomcat CVEs: authentication bypass, HTTP request smuggling, weak crypto, certificate validation, open redirect, improper encoding")
@@ -78,10 +78,10 @@ subprojects {
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.8")
 
-        // Jackson 2.x BOM for consistent Jackson versions (previously managed by Spring BOM)
+        // Jackson 2.x BOM for consistent Jackson versions
         implementation(platform("com.fasterxml.jackson:jackson-bom:2.21.1"))
 
-        // Explicit version constraints for dependencies previously managed by Spring BOM
+        // Explicit version constraints for managed dependencies
         constraints {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 

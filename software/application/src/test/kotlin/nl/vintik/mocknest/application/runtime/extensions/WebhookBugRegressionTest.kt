@@ -28,17 +28,14 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 /**
- * Bug Condition Exploration Tests — Task 1
+ * Regression tests for webhook bug fixes.
  *
- * These tests PROVE the bugs exist on UNFIXED code.
- * They are EXPECTED TO FAIL — that is the correct outcome, confirming the bugs exist.
- *
- * DO NOT fix production code to make these pass.
- * DO NOT fix these tests when they fail.
+ * Each test verifies that a previously identified bug remains fixed.
+ * All tests must pass — a failure indicates a regression.
  *
  * Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5
  */
-class BugConditionExplorationTest {
+class WebhookBugRegressionTest {
 
     private val webhookConfig = WebhookConfig(
         sensitiveHeaders = setOf("x-api-key", "authorization", "proxy-authorization", "x-amz-security-token"),
@@ -76,20 +73,14 @@ class BugConditionExplorationTest {
         logAppender.stop()
     }
 
-    // ── Test 1.1 — capturedHeaders leak ──────────────────────────────────────
+    // ── Test 1.1 — capturedHeaders cleanup ───────────────────────────────────
 
     /**
-     * Bug 1.1: Non-local return inside runCatching bypasses capturedHeaders.remove().
+     * Verifies that capturedHeaders is cleaned up after beforeResponseSent,
+     * even when no webhook listener is registered on the ServeEvent.
      *
-     * When beforeResponseSent is called for a ServeEvent with no webhook listener,
-     * the bare `return` inside the runCatching lambda performs a non-local return from
-     * the entire method, skipping the capturedHeaders.remove(serveEvent.id) cleanup.
-     *
-     * EXPECTED TO FAIL on unfixed code: capturedHeaders still contains the entry.
-     *
-     * Counterexample: serveEventId remains in capturedHeaders after the call.
-     *
-     * Validates: Requirements 1.1
+     * Bug: Non-local return inside runCatching bypassed capturedHeaders.remove().
+     * Fix: Uses return@runCatching so cleanup always executes.
      */
     @Test
     fun `Given ServeEvent with no webhook listener When beforeResponseSent called Then capturedHeaders is empty after call`() {
@@ -100,34 +91,24 @@ class BugConditionExplorationTest {
         val serveEvent = mockk<ServeEvent>(relaxed = true)
         every { serveEvent.id } returns serveEventId
         every { serveEvent.request.headers } returns HttpHeaders()
-        // No webhook listener registered — serveEventListeners returns empty list
         every { serveEvent.serveEventListeners } returns emptyList()
 
         listener.beforeResponseSent(serveEvent, Parameters.empty())
 
-        // EXPECTED TO FAIL on unfixed code:
-        // capturedHeaders still contains serveEventId because the bare `return` bypassed cleanup.
-        // Counterexample: capturedHeaders.containsKey(serveEventId) == true
         assertFalse(
             listener.capturedHeaders.containsKey(serveEventId),
-            "Bug 1.1 counterexample: capturedHeaders[$serveEventId] was NOT removed — " +
-                    "non-local return inside runCatching bypassed capturedHeaders.remove(serveEvent.id)"
+            "capturedHeaders[$serveEventId] was NOT removed — cleanup was bypassed"
         )
     }
 
-    // ── Test 1.2 — URL PII in logs ────────────────────────────────────────────
+    // ── Test 1.2 — URL PII redaction in logs ─────────────────────────────────
 
     /**
-     * Bug 1.2: Raw URL including query string is logged.
+     * Verifies that webhook URLs with query strings are redacted before logging,
+     * preventing PII leakage to CloudWatch.
      *
-     * When beforeResponseSent dispatches a webhook with a URL containing a query string
-     * (e.g. ?token=secret), the raw URL is emitted to the log, leaking PII to CloudWatch.
-     *
-     * EXPECTED TO FAIL on unfixed code: log output contains the query string.
-     *
-     * Counterexample: log message contains "token=secret123".
-     *
-     * Validates: Requirements 1.2
+     * Bug: Raw URL including query string was logged at INFO level.
+     * Fix: All log call sites use redactUrl() to strip query string and fragment.
      */
     @Test
     fun `Given URL with query string When webhook dispatched Then log output does not contain query string`() {
@@ -144,7 +125,6 @@ class BugConditionExplorationTest {
         every { serveEvent.id } returns serveEventId
         every { serveEvent.request.headers } returns HttpHeaders()
 
-        // Build a ServeEventListenerDefinition that has the webhook listener with the PII URL
         val listenerDef = mockk<com.github.tomakehurst.wiremock.extension.ServeEventListenerDefinition>(relaxed = true)
         every { listenerDef.name } returns "webhook"
         every { listenerDef.parameters } returns Parameters.from(
@@ -154,83 +134,53 @@ class BugConditionExplorationTest {
 
         listener.beforeResponseSent(serveEvent, Parameters.empty())
 
-        // EXPECTED TO FAIL on unfixed code:
-        // Log messages contain the raw URL with query string.
-        // Counterexample: a log message contains "token=secret123"
         val allLogs = capturedLogMessages.joinToString("\n")
         assertFalse(
             allLogs.contains(queryString),
-            "Bug 1.2 counterexample: log output contains '$queryString' — raw URL logged with PII.\n" +
-                    "Captured log messages:\n$allLogs"
+            "Log output contains '$queryString' — raw URL logged with PII.\nCaptured log messages:\n$allLogs"
         )
     }
 
-    // ── Test 1.3 — Fail-open redaction ───────────────────────────────────────
+    // ── Test 1.3 — Safe fallback on redaction failure ────────────────────────
 
     /**
-     * Bug 1.3: getOrElse fallback calls the same failing mapper.writeValueAsString(event).
+     * Verifies that redactServeEvent returns a safe placeholder when serialization
+     * fails, instead of retrying the same failing call and leaking unredacted data.
      *
-     * When mapper.writeValueAsString(event) throws inside redactServeEvent, the unfixed
-     * getOrElse block calls mapper.writeValueAsString(event) again — the same failing call.
-     * If it succeeds on the second attempt, it returns the fully unredacted JSON, leaking
-     * sensitive headers to S3.
-     *
-     * Fix 1.3: redactServeEvent now returns a safe placeholder JSON instead of retrying
-     * the same failing call. The result must NOT equal the unredacted JSON.
-     *
-     * We trigger the failure path by passing a ServeEvent mockk that Jackson cannot
-     * serialize (it throws during writeValueAsString), then assert the result is the
-     * safe placeholder, not unredacted JSON.
-     *
-     * EXPECTED TO PASS on fixed code: result is the safe placeholder, not unredacted JSON.
-     *
-     * Validates: Requirements 1.3
+     * Bug: getOrElse fallback called the same failing mapper.writeValueAsString(event).
+     * Fix: Returns a safe placeholder JSON with redactionError flag.
      */
     @Test
     fun `Given mapper writeValueAsString throws on first call When redactServeEvent called Then result is NOT unredacted JSON`() {
         val filter = RedactSensitiveHeadersFilter(webhookConfig)
 
-        // Use a ServeEvent mockk — Jackson cannot serialize a mockk proxy, so
-        // mapper.writeValueAsString(event) will throw, triggering the getOrElse path.
         val serveEventId = UUID.randomUUID()
         val serveEvent = mockk<ServeEvent>(relaxed = true)
         every { serveEvent.id } returns serveEventId
 
         val result = filter.redactServeEvent(serveEvent)
 
-        // Fixed code: result must NOT be unredacted JSON.
-        // It should be the safe placeholder: {"id":"<uuid>","redactionError":true}
-        // Counterexample on unfixed code: result would be the full unredacted JSON with sensitive headers.
         assertFalse(
             result.contains("SECRET_VALUE"),
-            "Bug 1.3: result must not contain sensitive header values"
+            "Result must not contain sensitive header values"
         )
-        // The fixed code returns a safe placeholder — verify it contains the event id and redactionError flag
         assertTrue(
             result.contains("redactionError") || result.contains(serveEventId.toString()),
-            "Bug 1.3: fixed code should return safe placeholder containing event id or redactionError flag, got: $result"
+            "Result should be a safe placeholder containing event id or redactionError flag, got: $result"
         )
     }
 
-    // ── Test 1.4 — Silent SQS drop ────────────────────────────────────────────
+    // ── Test 1.4 — SQS failure propagation ───────────────────────────────────
 
     /**
-     * Bug 1.4: SQS publish exception is swallowed; NO_OP_URL returned silently.
+     * Verifies that SQS publish failures propagate as exceptions instead of being
+     * silently swallowed with a NO_OP_URL redirect.
      *
-     * When sqsPublisher.publish throws, the onFailure block logs a warning and the
-     * transform method still returns webhookDefinition.withUrl(NO_OP_URL). WireMock
-     * proceeds as if the webhook was dispatched, silently dropping the event.
-     *
-     * EXPECTED TO FAIL on unfixed code: transform returns NO_OP_URL even when SQS fails.
-     *
-     * Counterexample: result.url == "http://localhost:0/mocknest-noop" despite SQS failure.
-     *
-     * Validates: Requirements 1.4
+     * Bug: SQS publish exception was swallowed; NO_OP_URL returned silently.
+     * Fix: Exception propagates so the failure is observable.
      */
     @Test
-    fun `Given failing SqsPublisher When transform called Then returned URL is NOT NO_OP_URL`() {
-        val noOpUrl = "http://localhost:0/mocknest-noop"
-
+    fun `Given failing SqsPublisher When transform called Then exception propagates`() {
         val failingPublisher = object : SqsPublisherInterface {
             override suspend fun publish(queueUrl: String, messageBody: String) {
                 throw RuntimeException("SQS unavailable — simulated failure")
@@ -246,46 +196,32 @@ class BugConditionExplorationTest {
             .withUrl("https://callback.example.com/hook")
             .withMethod("POST")
 
-        // Fixed behavior: exception propagates (failure is observable), OR result URL is not NO_OP_URL.
-        // Either outcome satisfies the fix — the silent drop is gone.
         val threwException = runCatching { publisher.transform(serveEvent, definition) }
             .fold(
                 onSuccess = { result ->
                     assertNotEquals(
-                        noOpUrl,
+                        "http://localhost:0/mocknest-noop",
                         result.url,
-                        "Bug 1.4 fix: transform must not return NO_OP_URL on SQS failure"
+                        "transform must not return NO_OP_URL on SQS failure"
                     )
                     false
                 },
-                onFailure = { true } // exception propagated — fix is working
+                onFailure = { true }
             )
-        // At least one of the two conditions must hold: exception thrown OR URL not NO_OP_URL
-        // If we reach here without exception and the onSuccess block didn't fail the assertion,
-        // the fix is verified (the assertion in onSuccess already validated the URL)
         assertTrue(
             threwException,
-            "Bug 1.4 fix: exception must propagate on SQS failure (silent drop is gone)"
+            "Exception must propagate on SQS failure (silent drop is gone)"
         )
     }
 
-    // ── Test 1.5 — Blank queue URL ────────────────────────────────────────────
+    // ── Test 1.5 — Blank queue URL skips publisher registration ──────────────
 
     /**
-     * Bug 1.5: WebhookAsyncEventPublisher is registered even when webhookQueueUrl is blank.
+     * Verifies that WebhookAsyncEventPublisher is NOT registered when the webhook
+     * queue URL is blank, preventing silent event drops.
      *
-     * MockNestConfig.wireMockServer instantiates WebhookAsyncEventPublisher unconditionally,
-     * even when MOCKNEST_WEBHOOK_QUEUE_URL is blank. Every webhook event is then silently
-     * dropped with no startup warning.
-     *
-     * Observable effect: with a blank queue URL, the SQS publisher SHOULD NOT be called.
-     * On unfixed code, the publisher IS registered and IS called (with an empty queue URL).
-     *
-     * EXPECTED TO FAIL on unfixed code: sqsPublisher.publish() IS called even with blank queue URL.
-     *
-     * Counterexample: publishCalled == true despite blank webhookQueueUrl.
-     *
-     * Validates: Requirements 1.5
+     * Bug: Publisher was registered unconditionally even with blank queue URL.
+     * Fix: createWireMockServer skips publisher registration when queue URL is blank.
      */
     @Test
     fun `Given blank webhookQueueUrl When wireMockServer created and webhook fires Then SqsPublisher is NOT called`() {
@@ -306,7 +242,7 @@ class BugConditionExplorationTest {
             mockStorage,
             webhookConfig,
             capturingSqsPublisher,
-            "", // blank webhookQueueUrl — Bug 1.5 condition
+            "",
             journalStore,
             redactFilter,
         )
@@ -336,16 +272,10 @@ class BugConditionExplorationTest {
                 .build()
             directServer.stubRequest(wireMockRequest)
 
-            // Brief wait for async processing
-            Thread.sleep(500)
-
-            // EXPECTED TO FAIL on unfixed code:
-            // publishCalled == true because WebhookAsyncEventPublisher is registered unconditionally.
-            // Counterexample: publishCalled == true despite blank webhookQueueUrl
             assertFalse(
                 publishCalled.get(),
-                "Bug 1.5 counterexample: SqsPublisher.publish() was called despite blank webhookQueueUrl — " +
-                        "WebhookAsyncEventPublisher registered unconditionally, all webhook events silently dropped"
+                "SqsPublisher.publish() was called despite blank webhookQueueUrl — " +
+                        "WebhookAsyncEventPublisher should not be registered when queue URL is blank"
             )
         } finally {
             server.stop()

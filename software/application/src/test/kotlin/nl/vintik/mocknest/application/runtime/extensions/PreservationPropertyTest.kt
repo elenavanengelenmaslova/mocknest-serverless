@@ -37,7 +37,7 @@ import kotlin.test.assertTrue
  *
  * Property 7: For all X where none of the six bug conditions hold,
  *   F(X) = F'(X) — same SQS publish behavior, same redaction output,
- *   same HTTP dispatch outcome, same Spring context wiring.
+ *   same HTTP dispatch outcome, same Koin module wiring.
  *
  * Validates: Requirements 3.1, 3.2, 3.3, 3.6, 3.7
  */

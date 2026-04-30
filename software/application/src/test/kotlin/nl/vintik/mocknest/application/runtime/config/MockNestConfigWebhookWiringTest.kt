@@ -31,7 +31,7 @@ class MockNestConfigWebhookWiringTest {
     private val mockStorage: ObjectStorageInterface = mockk(relaxed = true)
 
     @Test
-    fun `Given Spring context loads When wireMockServer bean created Then WebhookAsyncEventPublisher is registered with name webhook`() {
+    fun `Given wireMockServer created When WebhookAsyncEventPublisher registered Then publish is called on webhook fire`() {
         val webhookConfig = WebhookConfig(
             sensitiveHeaders = setOf("x-api-key", "authorization", "proxy-authorization", "x-amz-security-token"),
             webhookTimeoutMs = 10_000L,

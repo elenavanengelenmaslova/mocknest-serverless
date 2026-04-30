@@ -112,20 +112,18 @@ When adding a new Lambda function, verify all five of the above are present befo
 
 Guidelines for AI-assisted code generation and review:
 
-- Generate Kotlin 2.3.0/Spring Boot 4.0 code targeting JVM 25, using Gradle 9.4.1, relying on the shared Gradle settings for dependency management and Kotlin logging; keep new tasks compatible with the existing toolchain
+- Generate Kotlin 2.3.0 code targeting JVM 25, using Gradle 9.4.1 with Koin for dependency injection, relying on the shared Gradle settings for dependency management and Kotlin logging; keep new tasks compatible with the existing toolchain
 - **Use Kotlin AWS SDK** (not Java SDK) for all AWS cloud infrastructure interactions - these must always be kept in the `software/infra/aws/` module to maintain clean architecture boundaries
 - **Use proper imports** instead of fully qualified class names in code:
 
  ```kotlin
   // Good: Use proper imports
-  import org.springframework.beans.factory.annotation.Autowired
+  import nl.vintik.mocknest.domain.core.HttpMethod
   
-  @Autowired
-  private lateinit var lambdaHandler: MockNestLambdaHandler
+  val method = HttpMethod.GET
   
   // Bad: Fully qualified class names
-  @org.springframework.beans.factory.annotation.Autowired
-  private lateinit var lambdaHandler: MockNestLambdaHandler
+  val method = nl.vintik.mocknest.domain.core.HttpMethod.GET
   ```
 
   Instead of this:
@@ -155,7 +153,7 @@ Guidelines for AI-assisted code generation and review:
 - If a constructor dependency is stored and used only inside the class, declare it as `private val`.
 - Use `protected val` only when subclasses need access.
 - Never generate explicit `public` visibility for constructor properties unless there is a clear API reason.
-- In Spring Boot constructor injection, default to `private val` for dependencies unless they must be visible outside the class.
+- In constructor injection (Koin or direct), default to `private val` for dependencies unless they must be visible outside the class.
 
 ### Examples
 
@@ -208,7 +206,7 @@ class AwsMockHandler(
 - Prefer `require` and `requireNotNull` instead of throwing `IllegalArgumentException`. These functions are to be used only for detecting bugs in the code, and not for user input validation or test assertions
 - Prefer latest language features, such as `enum.entries` over `enum.values()` for looping through enumerations
 - When escaping the `$` sign, use multi-dollar string interpolation: instead of `"\${file}"`, use `$$"${file}"`
-- When annotating a constructor or method parameter with `@Qualifier` in Spring Boot, use the `param:` use-site target: `@param:Qualifier("serviceName")`
+- When using Koin named qualifiers, use `named("qualifierName")` in module definitions and `get(named("qualifierName"))` for resolution
 
 ## Logging Standards
 

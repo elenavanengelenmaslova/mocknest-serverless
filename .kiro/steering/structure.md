@@ -197,7 +197,7 @@ This capability-based organization makes it clear which code belongs to which fu
 - `application.core` - Shared application logic and generic interfaces
 
 **Infrastructure Layer** (`nl.vintik.mocknest.infra.aws.*`):
-- `infra.aws.runtime` - Runtime AWS adapters (Lambda handlers, Spring config)
+- `infra.aws.runtime` - Runtime AWS adapters (Lambda handlers, Koin modules)
 - `infra.aws.runtime.storage` - Runtime-specific S3 adapters (mappings, files)
 - `infra.aws.generation` - Generation AWS adapters
 - `infra.aws.generation.storage` - Generation-specific S3 adapters (specs)
@@ -303,6 +303,12 @@ mocknest-serverless/
   - **Dependency management** - Robust handling of Java/Kotlin ecosystem libraries
 
 - **Java runtime** for AWS Lambda
+
+- **Koin** - Lightweight Kotlin-native dependency injection framework:
+  - **Kotlin DSL** - Module definitions use idiomatic Kotlin, no annotation processing
+  - **Minimal footprint** - ~1 MB, no reflection-heavy startup
+  - **Lambda-friendly** - Idempotent startup via `KoinBootstrap`, compatible with SnapStart
+  - **Test utilities** - `verify()`, `koinApplication { }` for isolated module testing
 
 - **WireMock** - Mocking engine selected for:
   - **Comprehensive feature set** - Supports all required mocking patterns (REST, SOAP, GraphQL, callbacks, proxying)
