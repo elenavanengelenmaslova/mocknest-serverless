@@ -14,6 +14,8 @@
 [![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+🏆 **Creative Track Award** — [AWS 10,000 AIdeas 2026 Competition](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners)
+
 *AI-powered API mocking for cloud-native testing on AWS*
 
 MockNest Serverless is a serverless WireMock-compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
@@ -563,3 +565,5 @@ This project is open source and available under the [MIT License](LICENSE).
 A detailed explanation of the problem and approach: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)  
 
 For additional context and background: [AIdeas Finalist: MockNest Serverless](https://builder.aws.com/content/3BzM2TZzM7RnsPFR7bzO7qlORUv/aideas-finalist-mocknest-serverless)
+
+🏆 [AWS 10,000 AIdeas 2026 Competition — Meet the Winners](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners)
