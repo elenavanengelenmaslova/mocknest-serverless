@@ -3,7 +3,7 @@ package nl.vintik.mocknest.application.core
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 import kotlin.test.assertEquals
 

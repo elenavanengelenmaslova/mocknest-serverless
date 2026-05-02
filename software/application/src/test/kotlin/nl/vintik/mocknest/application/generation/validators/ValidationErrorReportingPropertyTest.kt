@@ -6,7 +6,7 @@ import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
-import org.springframework.http.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

@@ -7,7 +7,7 @@ import com.github.tomakehurst.wiremock.http.HttpHeaders as WireMockHttpHeaders
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpMethod
 import kotlin.test.assertEquals
 
 class AdminClientRequestUseCasesTest {

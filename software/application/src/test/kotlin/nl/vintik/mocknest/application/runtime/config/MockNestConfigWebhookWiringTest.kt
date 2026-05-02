@@ -3,6 +3,7 @@ package nl.vintik.mocknest.application.runtime.config
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import com.github.tomakehurst.wiremock.direct.DirectCallHttpServerFactory
 import com.github.tomakehurst.wiremock.extension.Parameters
 import com.github.tomakehurst.wiremock.http.HttpHeader
 import com.github.tomakehurst.wiremock.http.HttpHeaders
@@ -10,13 +11,15 @@ import com.github.tomakehurst.wiremock.http.ImmutableRequest
 import com.github.tomakehurst.wiremock.http.RequestMethod
 import io.mockk.mockk
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.application.runtime.extensions.RedactSensitiveHeadersFilter
 import nl.vintik.mocknest.application.runtime.extensions.SqsPublisherInterface
+import nl.vintik.mocknest.application.runtime.journal.S3RequestJournalStore
 import org.junit.jupiter.api.Test
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.test.assertTrue
 
 /**
- * Unit tests for MockNestConfig webhook wiring.
+ * Unit tests for createWireMockServer webhook wiring.
  *
  * Validates that WebhookAsyncEventPublisher is registered and active in the WireMock server
  * by verifying behavioral evidence: a stub with serveEventListeners triggers sqsPublisher.publish().
@@ -26,10 +29,9 @@ import kotlin.test.assertTrue
 class MockNestConfigWebhookWiringTest {
 
     private val mockStorage: ObjectStorageInterface = mockk(relaxed = true)
-    private val config = MockNestConfig()
 
     @Test
-    fun `Given Spring context loads When wireMockServer bean created Then WebhookAsyncEventPublisher is registered with name webhook`() {
+    fun `Given wireMockServer created When WebhookAsyncEventPublisher registered Then publish is called on webhook fire`() {
         val webhookConfig = WebhookConfig(
             sensitiveHeaders = setOf("x-api-key", "authorization", "proxy-authorization", "x-amz-security-token"),
             webhookTimeoutMs = 10_000L,
@@ -43,10 +45,10 @@ class MockNestConfigWebhookWiringTest {
             }
         }
 
-        val factory = config.directCallHttpServerFactory()
-        val redactFilter = config.redactSensitiveHeadersFilter(webhookConfig)
-        val journalStore = config.s3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
-        val server = config.wireMockServer(factory, mockStorage, webhookConfig, capturingSqsPublisher, "test-queue-url", journalStore, redactFilter)
+        val factory = DirectCallHttpServerFactory()
+        val redactFilter = RedactSensitiveHeadersFilter(webhookConfig)
+        val journalStore = S3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
+        val server = createWireMockServer(factory, mockStorage, webhookConfig, capturingSqsPublisher, "test-queue-url", journalStore, redactFilter)
 
         try {
             server.addStubMapping(
@@ -63,7 +65,7 @@ class MockNestConfigWebhookWiringTest {
                     .build()
             )
 
-            val directServer = config.directCallHttpServer(factory)
+            val directServer = factory.httpServer
             val wireMockRequest = ImmutableRequest.create()
                 .withAbsoluteUrl("http://mocknest.internal/test-webhook")
                 .withMethod(RequestMethod.POST)

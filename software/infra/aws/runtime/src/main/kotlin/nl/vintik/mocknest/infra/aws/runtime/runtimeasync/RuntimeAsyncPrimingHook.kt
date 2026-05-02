@@ -6,21 +6,15 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import nl.vintik.mocknest.application.runtime.extensions.AsyncEvent
-import nl.vintik.mocknest.application.runtime.extensions.AsyncEventAuth
 import nl.vintik.mocknest.application.runtime.extensions.WebhookHttpClientInterface
 import nl.vintik.mocknest.application.runtime.extensions.WebhookRequest
-import org.springframework.boot.context.event.ApplicationReadyEvent
-import org.springframework.context.annotation.Profile
-import org.springframework.context.event.EventListener
-import org.springframework.stereotype.Component
 
 private val logger = KotlinLogging.logger {}
 
 /**
  * Lightweight SnapStart priming hook for the RuntimeAsync Lambda.
  *
- * Only active in the `async` Spring profile. Exercises the three components
- * that are lazily initialized on first use:
+ * Exercises the three components that are lazily initialized on first use:
  *
  * 1. **Kotlinx Serialization** — deserializes a minimal [AsyncEvent] to warm up
  *    class loading and the serialization descriptor cache.
@@ -38,13 +32,14 @@ private val logger = KotlinLogging.logger {}
  * All operations are wrapped in `runCatching` so a priming failure never
  * prevents snapshot creation.
  */
-@Component
-@Profile("async")
 open class RuntimeAsyncPrimingHook(
     private val webhookHttpClient: WebhookHttpClientInterface,
 ) {
 
-    @EventListener(ApplicationReadyEvent::class)
+    /**
+     * Called explicitly from the Lambda handler init block after Koin initialization.
+     * Only executes priming logic in SnapStart environments.
+     */
     fun onApplicationReady() {
         if (isSnapStartEnvironment()) {
             logger.info { "SnapStart detected — executing RuntimeAsync priming hook" }

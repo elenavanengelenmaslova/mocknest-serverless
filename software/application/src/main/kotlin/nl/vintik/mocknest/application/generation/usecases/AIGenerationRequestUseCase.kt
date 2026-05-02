@@ -7,9 +7,8 @@ import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
 import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import nl.vintik.mocknest.domain.generation.*
-import org.springframework.http.HttpStatusCode
-import org.springframework.util.LinkedMultiValueMap
 
 private val logger = KotlinLogging.logger {}
 
@@ -22,11 +21,11 @@ class AIGenerationRequestUseCase(
 
         runCatching {
             when {
-                path == "/from-spec" && httpRequest.method.name() == "POST" -> generateFromSpecWithDescription(
+                path == "/from-spec" && httpRequest.method.name == "POST" -> generateFromSpecWithDescription(
                     httpRequest
                 )
 
-                else -> HttpResponse(HttpStatusCode.valueOf(404), body = "Path $path not found for AI generation")
+                else -> HttpResponse(HttpStatusCode.NOT_FOUND, body = "Path $path not found for AI generation")
             }
         }.onFailure { exception ->
             logger.error(exception) { "Unexpected error processing AI generation request: $path" }
@@ -83,7 +82,7 @@ class AIGenerationRequestUseCase(
         } else {
             logger.info { "Generation failed: ${result.error}." }
             HttpResponse(
-                HttpStatusCode.valueOf(500),
+                HttpStatusCode.INTERNAL_SERVER_ERROR,
                 jsonHeaders(),
                 mapper.writeValueAsString(
                     GenerationResponse(
@@ -98,24 +97,24 @@ class AIGenerationRequestUseCase(
     }
 
     private fun ok(body: Any): HttpResponse = HttpResponse(
-        HttpStatusCode.valueOf(200),
+        HttpStatusCode.OK,
         jsonHeaders(),
         mapper.writeValueAsString(body)
     )
 
     private fun badRequest(message: String): HttpResponse = HttpResponse(
-        HttpStatusCode.valueOf(400),
+        HttpStatusCode.BAD_REQUEST,
         jsonHeaders(),
         mapper.writeValueAsString(mapOf("error" to message))
     )
 
     private fun serverError(): HttpResponse = HttpResponse(
-        HttpStatusCode.valueOf(500),
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
         jsonHeaders(),
         mapper.writeValueAsString(mapOf("error" to "Internal Server Error"))
     )
 
-    private fun jsonHeaders() = LinkedMultiValueMap<String, String>().apply {
-        add("Content-Type", "application/json")
-    }
+    private fun jsonHeaders(): Map<String, List<String>> = mapOf(
+        "Content-Type" to listOf("application/json")
+    )
 }

@@ -1840,7 +1840,6 @@ test_file_management_crud() {
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request PUT \
-    --header "Content-Type: application/octet-stream" \
     --data '{"test": "file-management", "created": true}' \
     "$API_URL/__admin/files/$FILE_ID" 2>&1) || {
     echo "[files] ERROR: PUT /__admin/files/$FILE_ID request failed"
@@ -1889,7 +1888,6 @@ test_file_management_crud() {
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request PUT \
-    --header "Content-Type: application/octet-stream" \
     --data '{"test": "file-management", "updated": true}' \
     "$API_URL/__admin/files/$FILE_ID" 2>&1) || {
     echo "[files] ERROR: PUT /__admin/files/$FILE_ID request failed"

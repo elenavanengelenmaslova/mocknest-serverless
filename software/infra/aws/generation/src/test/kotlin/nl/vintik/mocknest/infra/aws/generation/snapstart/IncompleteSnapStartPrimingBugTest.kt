@@ -20,7 +20,7 @@ import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.parallel.Isolated
-import org.springframework.http.HttpStatus
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import kotlin.system.measureTimeMillis
 import kotlin.test.assertTrue
 
@@ -91,7 +91,7 @@ class IncompleteSnapStartPrimingBugTest {
     fun `Given fixed GenerationPrimingHook When priming executes Then all protocol components should be warmed up`() =
         runTest {
             // Given - Setup mocks for successful priming
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -180,7 +180,7 @@ class IncompleteSnapStartPrimingBugTest {
     fun `Given fixed GenerationPrimingHook When checking primed components Then SOAP and GraphQL components should be initialized`() =
         runTest {
             // Given
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"

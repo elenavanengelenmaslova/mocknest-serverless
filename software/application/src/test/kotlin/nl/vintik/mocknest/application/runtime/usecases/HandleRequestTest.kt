@@ -6,8 +6,8 @@ import io.mockk.every
 import io.mockk.mockk
 import nl.vintik.mocknest.domain.core.HttpRequest
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpMethod
-import org.springframework.http.HttpStatus
+import nl.vintik.mocknest.domain.core.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import com.github.tomakehurst.wiremock.http.HttpHeaders as WireMockHttpHeaders
@@ -41,13 +41,13 @@ class HandleRequestTest {
             mockResponse
         }
 
-        assertEquals(HttpStatus.CREATED, result.statusCode)
+        assertEquals(HttpStatusCode.CREATED, result.statusCode)
         assertEquals("{\"result\":\"ok\"}", result.body)
-        assertEquals("RespValue", result.headers?.getFirst("X-Response"))
+        assertEquals("RespValue", result.headers?.get("X-Response")?.firstOrNull())
         // Matched-Stub-Id should be filtered out
         assertTrue(result.headers?.containsKey("Matched-Stub-Id") == false)
         // Default content type should be added if missing
-        assertTrue(result.headers?.getFirst("Content-Type")?.contains("application/json") == true)
+        assertTrue(result.headers?.get("Content-Type")?.firstOrNull()?.contains("application/json") == true)
     }
 
     @Test
@@ -62,6 +62,6 @@ class HandleRequestTest {
 
         val result = forwardToDirectCallHttpServer("test", httpRequest) { mockResponse }
 
-        assertEquals("text/plain", result.headers?.getFirst("Content-Type"))
+        assertEquals("text/plain", result.headers?.get("Content-Type")?.firstOrNull())
     }
 }

@@ -3,7 +3,7 @@ package nl.vintik.mocknest.infra.aws.generation.ai
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 
 /**

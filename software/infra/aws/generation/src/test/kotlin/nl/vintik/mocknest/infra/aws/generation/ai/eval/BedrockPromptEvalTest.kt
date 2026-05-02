@@ -70,7 +70,7 @@ private val logger = KotlinLogging.logger {}
 @OptIn(kotlin.time.ExperimentalTime::class)
 class BedrockPromptEvalTest {
 
-    // --- Manual wiring (no Spring context) ---
+    // --- Manual wiring (no Koin context) ---
 
     private val region: String = System.getenv("AWS_REGION") ?: "eu-west-1"
 

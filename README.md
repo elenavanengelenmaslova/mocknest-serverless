@@ -14,6 +14,8 @@
 [![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+🏆 **Creative Track Award** — [AWS 10,000 AIdeas 2026 Competition](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners)
+
 *AI-powered API mocking for cloud-native testing on AWS*
 
 MockNest Serverless is a serverless WireMock-compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
@@ -193,7 +195,8 @@ To use MockNest with your application:
 1. Create mocks for the third-party APIs your app depends on (using manual creation or AI generation)
 2. Update your app's configuration to point at MockNest instead of the real API:
    - Change the API base URL to `${MOCKNEST_URL}/mocknest` (plus any path prefix like `/petstore`)
-   - Add the API key header to your requests: `x-api-key: ${API_KEY}`
+   - **API key mode** (default): Add the API key header to your requests: `x-api-key: ${API_KEY}`
+   - **IAM mode**: Sign requests with AWS SigV4 (using your AWS SDK or `--aws-sigv4` in curl)
 3. Your app will now call mocks instead of real services
 
 **Learn More**
@@ -237,6 +240,7 @@ MockNest Serverless provides multiple ways to interact with the API:
 - Comprehensive examples in [docs/USAGE.md](docs/USAGE.md)
 - Suitable for scripts and automated testing
 - Works in any terminal or shell script
+- Examples cover both API key and IAM (SigV4) auth modes
 
 **Direct HTTP Clients**
 - Use any HTTP client library in your preferred language
@@ -561,3 +565,5 @@ This project is open source and available under the [MIT License](LICENSE).
 A detailed explanation of the problem and approach: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)  
 
 For additional context and background: [AIdeas Finalist: MockNest Serverless](https://builder.aws.com/content/3BzM2TZzM7RnsPFR7bzO7qlORUv/aideas-finalist-mocknest-serverless)
+
+🏆 [AWS 10,000 AIdeas 2026 Competition — Meet the Winners](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners)

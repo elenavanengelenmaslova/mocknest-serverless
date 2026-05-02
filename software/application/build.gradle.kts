@@ -1,6 +1,5 @@
 plugins {
     kotlin("jvm")
-    kotlin("plugin.spring")
     kotlin("plugin.serialization")
 }
 
@@ -15,13 +14,8 @@ dependencies {
     // Domain dependency
     implementation(project(":software:domain"))
 
-    // Spring Boot (but not as executable)
-    implementation("org.springframework.boot:spring-boot-starter")
-    implementation("org.springframework.boot:spring-boot-starter-web")
-
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
     // WireMock - use shaded Guava, exclude external Guava
     implementation("org.wiremock:wiremock-standalone") {
@@ -40,7 +34,9 @@ dependencies {
     // OpenAPI specification parsing
     implementation("io.swagger.parser.v3:swagger-parser:2.1.40")
 
-    // Testing
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    // Koog testing support for agent tests
     testImplementation("ai.koog:agents-test")
+
+    // Logback for tests that capture log output
+    testImplementation("ch.qos.logback:logback-classic:1.5.18")
 }

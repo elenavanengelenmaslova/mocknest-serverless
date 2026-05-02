@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 /**
  * Integration test for AI mock generation domain models.
- * Tests domain model behavior without requiring Spring context or AWS resources.
+ * Tests domain model behavior without requiring AWS resources.
  */
 class AIGenerationIntegrationTest {
     

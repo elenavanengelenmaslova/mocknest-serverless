@@ -5,8 +5,8 @@ import nl.vintik.mocknest.application.generation.graphql.GraphQLIntrospectionCli
 import nl.vintik.mocknest.application.generation.graphql.GraphQLSchemaReducerInterface
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import nl.vintik.mocknest.application.generation.util.SafeUrlResolver
+import nl.vintik.mocknest.domain.core.HttpMethod
 import nl.vintik.mocknest.domain.generation.*
-import org.springframework.http.HttpMethod
 
 private val logger = KotlinLogging.logger {}
 

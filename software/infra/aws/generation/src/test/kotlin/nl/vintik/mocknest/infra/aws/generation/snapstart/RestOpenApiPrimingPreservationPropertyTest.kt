@@ -20,7 +20,7 @@ import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.parallel.Isolated
-import org.springframework.http.HttpStatus
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import kotlin.system.measureTimeMillis
 import kotlin.test.assertTrue
 
@@ -89,7 +89,7 @@ class RestOpenApiPrimingPreservationPropertyTest {
     fun `Given unfixed GenerationPrimingHook When priming executes Then REST and OpenAPI components should be warmed up successfully`() =
         runTest {
             // Given - Setup mocks for successful priming
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -185,7 +185,7 @@ class RestOpenApiPrimingPreservationPropertyTest {
     fun `Given unfixed GenerationPrimingHook When measuring REST cold start latency Then should have low latency due to priming`() =
         runTest {
             // Given - Setup mocks for successful priming
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"
@@ -345,7 +345,7 @@ class RestOpenApiPrimingPreservationPropertyTest {
     fun `Given unfixed GenerationPrimingHook When all REST and OpenAPI components succeed Then priming should complete successfully`() =
         runTest {
             // Given - Setup all mocks for successful execution
-            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockAIHealthUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockModelConfig.getModelName() } returns "AmazonNovaPro"
             every { mockModelConfig.getConfiguredPrefix() } returns "eu"

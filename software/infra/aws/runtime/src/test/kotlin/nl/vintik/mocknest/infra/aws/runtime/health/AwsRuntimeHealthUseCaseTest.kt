@@ -10,7 +10,7 @@ import nl.vintik.mocknest.domain.runtime.RuntimeHealth
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpStatus
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 
 class AwsRuntimeHealthUseCaseTest {
     
@@ -32,8 +32,8 @@ class AwsRuntimeHealthUseCaseTest {
         val response = useCase.invoke()
         
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
-        assertEquals("application/json", response.headers?.getFirst("Content-Type"))
+        assertEquals(HttpStatusCode.OK, response.statusCode)
+        assertEquals("application/json", response.headers?.get("Content-Type")?.first())
         assertNotNull(response.body)
         
         val health = mapper.readValue(response.body, RuntimeHealth::class.java)
@@ -52,7 +52,7 @@ class AwsRuntimeHealthUseCaseTest {
         val response = useCase.invoke()
         
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(HttpStatusCode.OK, response.statusCode)
         val health = mapper.readValue(response.body, RuntimeHealth::class.java)
         assertEquals("degraded", health.status)
         assertEquals("error", health.storage.connectivity)
@@ -68,7 +68,7 @@ class AwsRuntimeHealthUseCaseTest {
         val response = useCase.invoke()
         
         // Then
-        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(HttpStatusCode.OK, response.statusCode)
         val health = mapper.readValue(response.body, RuntimeHealth::class.java)
         assertNotNull(health.region) // Should be "unknown" or actual AWS region
     }

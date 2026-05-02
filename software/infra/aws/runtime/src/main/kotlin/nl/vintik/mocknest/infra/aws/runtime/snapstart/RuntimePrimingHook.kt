@@ -12,11 +12,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import nl.vintik.mocknest.application.runtime.journal.S3RequestJournalStore
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.context.event.ApplicationReadyEvent
-import org.springframework.context.annotation.Profile
-import org.springframework.context.event.EventListener
-import org.springframework.stereotype.Component
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -36,22 +31,19 @@ private val logger = KotlinLogging.logger {}
  * - Suppresses S3 journal writes during priming to avoid creating versioned objects
  * - Uses graceful degradation for non-critical failures
  */
-@Component
-@Profile("runtime")
 class RuntimePrimingHook(
     private val healthCheckUseCase: GetRuntimeHealth,
     private val s3Client: S3Client,
-    @param:Value($$"${storage.bucket.name}") private val bucketName: String,
+    private val bucketName: String,
     private val wireMockServer: WireMockServer,
     private val directCallHttpServer: DirectCallHttpServer,
     private val journalStore: S3RequestJournalStore,
 ) {
 
     /**
-     * Triggered when Spring application context is fully initialized.
+     * Called explicitly from the Lambda handler init block after Koin initialization.
      * Only executes priming logic in SnapStart environments.
      */
-    @EventListener(ApplicationReadyEvent::class)
     fun onApplicationReady() {
         if (isSnapStartEnvironment()) {
             logger.info { "SnapStart detected - executing runtime priming hook" }

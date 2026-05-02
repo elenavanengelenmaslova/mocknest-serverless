@@ -1,8 +1,7 @@
 package nl.vintik.mocknest.application.core
 
 import nl.vintik.mocknest.domain.core.HttpResponse
-import org.springframework.http.HttpStatus
-import org.springframework.util.LinkedMultiValueMap
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 
 /**
  * Helper functions for creating HTTP responses.
@@ -11,11 +10,11 @@ object HttpResponseHelper {
     
     fun ok(data: Any): HttpResponse {
         val jsonBody = mapper.writeValueAsString(data)
-        val headers = LinkedMultiValueMap<String, String>()
-        headers.add("Content-Type", "application/json")
+        val headers = mutableMapOf<String, List<String>>()
+        headers["Content-Type"] = listOf("application/json")
         
         return HttpResponse(
-            statusCode = HttpStatus.OK,
+            statusCode = HttpStatusCode.OK,
             headers = headers,
             body = jsonBody
         )

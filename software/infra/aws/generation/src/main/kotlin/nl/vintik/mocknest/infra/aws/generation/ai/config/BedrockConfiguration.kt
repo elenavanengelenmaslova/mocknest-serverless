@@ -3,33 +3,28 @@ package nl.vintik.mocknest.infra.aws.generation.ai.config
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import aws.smithy.kotlin.runtime.net.url.Url
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Configuration
+
+private val logger = KotlinLogging.logger {}
 
 /**
- * Configuration for AWS Bedrock Runtime client
- * 
- * Provides BedrockRuntimeClient bean for AI model invocation
+ * Factory for AWS Bedrock Runtime client.
+ *
+ * Provides BedrockRuntimeClient for AI model invocation.
  */
-@Configuration
-class BedrockConfiguration {
-    
-    private val logger = KotlinLogging.logger {}
-    
-    @Bean
+object BedrockConfiguration {
+
     fun bedrockRuntimeClient(
-        @Value("\${AWS_REGION:eu-west-1}") region: String,
-        @Value($$"${aws.bedrock.endpoint:}") customEndpoint: String?
+        region: String,
+        customEndpoint: String?
     ): BedrockRuntimeClient {
         logger.info { "Initializing Bedrock Runtime client for region: $region" }
-        
+
         return BedrockRuntimeClient {
             this.region = region
-            
+
             // Support custom endpoint for LocalStack testing
             if (!customEndpoint.isNullOrBlank()) {
-                logger.info { "Using custom Bedrock endpoint: $customEndpoint." }
+                logger.debug { "Using custom Bedrock endpoint." }
                 endpointUrl = Url.parse(customEndpoint)
             }
         }

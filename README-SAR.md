@@ -1,5 +1,7 @@
 # MockNest Serverless
 
+🏆 **Creative Track Award** — [AWS 10,000 AIdeas 2026 Competition](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners)
+
 Deploy WireMock into your own AWS account and mock external APIs without depending on live services.  
 MockNest Serverless is a serverless WireMock runtime for REST/OpenAPI, GraphQL, and SOAP APIs, with persistent mocks, AI-assisted mock generation, and webhook/callback support.
 
@@ -314,6 +316,7 @@ For detailed security information and vulnerability reporting, see [SECURITY.md]
 
 - **Article**: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)
 - **AWS Builder**: [AIdeas Finalist: MockNest Serverless](https://builder.aws.com/content/3BzM2TZzM7RnsPFR7bzO7qlORUv/aideas-finalist-mocknest-serverless)
+- 🏆 **Award**: [AWS 10,000 AIdeas 2026 Competition — Creative Track Winner](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners)
 
 ---
 

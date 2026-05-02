@@ -24,7 +24,7 @@ import org.junit.jupiter.api.parallel.Isolated
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.springframework.http.HttpStatus
+import nl.vintik.mocknest.domain.core.HttpStatusCode
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables
 import uk.org.webcompere.systemstubs.jupiter.SystemStub
 import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension
@@ -64,7 +64,7 @@ class RuntimePrimingHookTest {
         @Test
         fun `Given SnapStart environment When priming executes Then should initialize all components`() = runTest {
             // Given
-            every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
@@ -85,7 +85,7 @@ class RuntimePrimingHookTest {
         fun `Given SnapStart environment When priming executes Then should complete without throwing exceptions`() =
             runTest {
                 // Given
-                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
                 every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
@@ -114,7 +114,7 @@ class RuntimePrimingHookTest {
         fun `Given health check returns error status When priming executes Then should continue with S3 initialization`() =
             runTest {
                 // Given
-                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.SERVICE_UNAVAILABLE)
+                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode(503))
                 coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
 
                 // When
@@ -144,7 +144,7 @@ class RuntimePrimingHookTest {
         fun `Given S3 client initialization fails When priming executes Then should log warning and continue`() =
             runTest {
                 // Given
-                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } throws RuntimeException("S3 connection failed")
                 every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
@@ -160,7 +160,7 @@ class RuntimePrimingHookTest {
         fun `Given S3 client throws exception When priming executes Then should not fail snapshot creation`() =
             runTest {
                 // Given
-                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } throws IllegalArgumentException("Invalid bucket configuration")
                 every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
@@ -171,7 +171,7 @@ class RuntimePrimingHookTest {
         @Test
         fun `Given S3 client timeout When priming executes Then should handle gracefully`() = runTest {
             // Given
-            every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } throws RuntimeException("S3 timeout")
             every { mockWireMockServer.removeStubMapping(any<UUID>()) } just Runs
 
@@ -186,7 +186,7 @@ class RuntimePrimingHookTest {
         @Test
         fun `Given WireMock stubFor fails When priming executes Then should log warning and continue`() = runTest {
             // Given
-            every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
             every { mockWireMockServer.stubFor(any()) } throws RuntimeException("WireMock unavailable")
 
@@ -202,7 +202,7 @@ class RuntimePrimingHookTest {
         fun `Given WireMock removeStubMapping fails When priming executes Then should log warning and continue`() =
             runTest {
                 // Given
-                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+                every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
                 coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
                 every { mockWireMockServer.removeStubMapping(any<UUID>()) } throws RuntimeException("Failed to remove mapping")
 
@@ -263,7 +263,7 @@ class RuntimePrimingHookTest {
         ) {
             // Given
             environmentVariables.set(envVarName, initType)
-            every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatus.OK, body = "healthy")
+            every { mockHealthCheckUseCase.invoke() } returns HttpResponse(HttpStatusCode.OK, body = "healthy")
             coEvery { mockS3Client.headBucket(any()) } returns HeadBucketResponse { }
 
             // When

@@ -180,7 +180,7 @@ The project follows clean architecture with strict dependency rules:
 software/infra/aws → software/application → software/domain
 ```
 
-- **Domain**: Minimal dependencies (spring-web for HTTP types, wiremock-standalone, kotlinx-serialization)
+- **Domain**: Minimal dependencies (custom Kotlin HTTP types, wiremock-standalone, kotlinx-serialization)
 - **Application**: Depends on domain, defines interfaces
 - **Infrastructure**: Depends on application and domain, implements interfaces, cloud-specific dependencies
 

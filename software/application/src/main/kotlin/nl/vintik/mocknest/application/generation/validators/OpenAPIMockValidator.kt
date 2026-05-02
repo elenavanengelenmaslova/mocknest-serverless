@@ -5,12 +5,10 @@ import kotlinx.serialization.json.*
 import nl.vintik.mocknest.application.generation.interfaces.MockValidationResult
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.domain.generation.*
-import org.springframework.stereotype.Component
 
 /**
  * Validates generated mocks against OpenAPI specifications.
  */
-@Component
 class OpenAPIMockValidator : MockValidatorInterface {
     
     private val logger = KotlinLogging.logger {}

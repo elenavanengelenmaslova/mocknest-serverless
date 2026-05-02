@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpMethod
 
 class BedrockServiceAdapterTest {
 
@@ -117,7 +117,7 @@ class BedrockServiceAdapterTest {
 
             // Then
             assertEquals(1, mocks.size, "Should extract exactly one mock despite chatty text")
-            assertEquals("GET", mocks[0].metadata.endpoint.method.name(), "Mock method should be GET")
+            assertEquals("GET", mocks[0].metadata.endpoint.method.name, "Mock method should be GET")
             assertEquals("/pet/1", mocks[0].metadata.endpoint.path, "Mock path should be /pet/1")
         }
 

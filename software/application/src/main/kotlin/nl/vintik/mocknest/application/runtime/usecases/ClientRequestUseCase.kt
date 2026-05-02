@@ -3,11 +3,7 @@ package nl.vintik.mocknest.application.runtime.usecases
 import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
 import com.github.tomakehurst.wiremock.direct.DirectCallHttpServer
-import org.springframework.context.annotation.Profile
-import org.springframework.stereotype.Component
 
-@Component
-@Profile("runtime")
 class ClientRequestUseCase(private val directCallHttpServer: DirectCallHttpServer) :
     HandleClientRequest {
     override fun invoke(httpRequest: HttpRequest): HttpResponse {

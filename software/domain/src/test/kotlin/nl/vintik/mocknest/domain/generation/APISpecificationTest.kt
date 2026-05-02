@@ -2,7 +2,7 @@ package nl.vintik.mocknest.domain.generation
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.springframework.http.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpMethod
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 

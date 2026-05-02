@@ -10,15 +10,12 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Repository
 import java.nio.charset.StandardCharsets
 
 private val logger = KotlinLogging.logger {}
 
-@Repository
 class S3ObjectStorageAdapter(
-    @param:Value("\${storage.bucket.name}") private val bucketName: String,
+    private val bucketName: String,
     private val s3Client: S3Client,
 ) : ObjectStorageInterface {
 

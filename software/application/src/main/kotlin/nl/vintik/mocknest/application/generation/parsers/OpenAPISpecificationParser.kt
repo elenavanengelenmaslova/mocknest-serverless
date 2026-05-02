@@ -3,7 +3,7 @@ package nl.vintik.mocknest.application.generation.parsers
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import nl.vintik.mocknest.application.generation.util.SafeUrlResolver
 import nl.vintik.mocknest.application.generation.util.UrlResolutionException
-import org.springframework.http.HttpMethod
+import nl.vintik.mocknest.domain.core.HttpMethod
 import nl.vintik.mocknest.domain.generation.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.swagger.v3.oas.models.OpenAPI

@@ -14,7 +14,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
-import nl.vintik.mocknest.application.runtime.config.MockNestConfig
+import nl.vintik.mocknest.application.runtime.config.createWireMockServer
 import nl.vintik.mocknest.application.runtime.config.WebhookConfig
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
@@ -37,7 +37,7 @@ import kotlin.test.assertTrue
  *
  * Property 7: For all X where none of the six bug conditions hold,
  *   F(X) = F'(X) — same SQS publish behavior, same redaction output,
- *   same HTTP dispatch outcome, same Spring context wiring.
+ *   same HTTP dispatch outcome, same Koin module wiring.
  *
  * Validates: Requirements 3.1, 3.2, 3.3, 3.6, 3.7
  */
@@ -241,7 +241,6 @@ class PreservationPropertyTest {
     inner class MockNestConfigPreservation {
 
         private val mockStorage: ObjectStorageInterface = mockk(relaxed = true)
-        private val config = MockNestConfig()
 
         @Test
         fun `Given non-blank webhookQueueUrl When wireMockServer created and webhook fires Then SqsPublisher is called`() {
@@ -252,10 +251,10 @@ class PreservationPropertyTest {
                 }
             }
 
-            val factory = config.directCallHttpServerFactory()
-            val redactFilter = config.redactSensitiveHeadersFilter(webhookConfig)
-            val journalStore = config.s3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
-            val server = config.wireMockServer(
+            val factory = com.github.tomakehurst.wiremock.direct.DirectCallHttpServerFactory()
+            val redactFilter = RedactSensitiveHeadersFilter(webhookConfig)
+            val journalStore = nl.vintik.mocknest.application.runtime.journal.S3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
+            val server = createWireMockServer(
                 factory,
                 mockStorage,
                 webhookConfig,
@@ -281,7 +280,7 @@ class PreservationPropertyTest {
                         .build()
                 )
 
-                val directServer = config.directCallHttpServer(factory)
+                val directServer = factory.httpServer
                 val wireMockRequest = ImmutableRequest.create()
                     .withAbsoluteUrl("http://mocknest.internal/preservation-test-webhook")
                     .withMethod(RequestMethod.POST)
@@ -307,10 +306,10 @@ class PreservationPropertyTest {
                 override suspend fun publish(queueUrl: String, messageBody: String) {}
             }
 
-            val factory = config.directCallHttpServerFactory()
-            val redactFilter = config.redactSensitiveHeadersFilter(webhookConfig)
-            val journalStore = config.s3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
-            val server = config.wireMockServer(
+            val factory = com.github.tomakehurst.wiremock.direct.DirectCallHttpServerFactory()
+            val redactFilter = RedactSensitiveHeadersFilter(webhookConfig)
+            val journalStore = nl.vintik.mocknest.application.runtime.journal.S3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
+            val server = createWireMockServer(
                 factory,
                 mockStorage,
                 webhookConfig,
@@ -345,16 +344,15 @@ class PreservationPropertyTest {
     inner class MockNestConfigWiringPreservation {
 
         private val mockStorage: ObjectStorageInterface = mockk(relaxed = true)
-        private val config = MockNestConfig()
 
         private fun createServer(): WireMockServer {
             val noopSqsPublisher = object : SqsPublisherInterface {
                 override suspend fun publish(queueUrl: String, messageBody: String) {}
             }
-            val factory = config.directCallHttpServerFactory()
-            val redactFilter = config.redactSensitiveHeadersFilter(webhookConfig)
-            val journalStore = config.s3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
-            return config.wireMockServer(
+            val factory = com.github.tomakehurst.wiremock.direct.DirectCallHttpServerFactory()
+            val redactFilter = RedactSensitiveHeadersFilter(webhookConfig)
+            val journalStore = nl.vintik.mocknest.application.runtime.journal.S3RequestJournalStore(mockStorage, webhookConfig, redactFilter)
+            return createWireMockServer(
                 factory,
                 mockStorage,
                 webhookConfig,
