@@ -171,6 +171,63 @@ When considering new security tools or badges:
 - **Dependabot**: Review and merge PRs weekly
 - **CodeRabbit**: Review suggestions during PR process
 
+## IAM Permissions Reference
+
+MockNest Serverless follows the principle of least privilege. Each Lambda function has a dedicated IAM role scoped to only the resources it needs. All roles are defined in the [SAM template](deployment/aws/sam/template.yaml).
+
+### Runtime Lambda (`MockNestLambdaRole`)
+
+| Permission | Resource | Purpose |
+|---|---|---|
+| `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, `s3:ListBucket` | `MockStorage` bucket and objects | Read/write mock definitions, response payloads, and request journal |
+| `sqs:SendMessage` | Webhook queue, DLQ | Enqueue webhook events and failed invocations |
+| `AWSLambdaBasicExecutionRole` (managed policy) | CloudWatch Logs | Write function logs |
+
+### Generation Lambda (`MockNestGenerationLambdaRole`)
+
+| Permission | Resource | Purpose |
+|---|---|---|
+| `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, `s3:ListBucket` | `MockStorage` bucket and objects | Read/write generated mock definitions |
+| `sqs:SendMessage` | DLQ | Failed invocations |
+| `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream` | `arn:aws:bedrock:*:*:*` | Invoke AI models (see [Restricting Bedrock Permissions](#restricting-bedrock-permissions)) |
+| `AWSLambdaBasicExecutionRole` (managed policy) | CloudWatch Logs | Write function logs |
+
+### RuntimeAsync Lambda (`MockNestRuntimeAsyncRole`)
+
+| Permission | Resource | Purpose |
+|---|---|---|
+| `sqs:ReceiveMessage`, `sqs:DeleteMessage`, `sqs:GetQueueAttributes`, `sqs:ChangeMessageVisibility` | Webhook queue | Consume and process webhook dispatch events |
+| `execute-api:Invoke` | MockNest API Gateway (this stack only) | Call back into MockNest endpoints for webhook delivery |
+| `AWSLambdaBasicExecutionRole` (managed policy) | CloudWatch Logs | Write function logs |
+
+> **Note**: All S3 permissions are scoped to the `MockStorage` bucket created by the template. The RuntimeAsync Lambda has no S3 access — it only dispatches outbound HTTP calls.
+
+### Restricting Bedrock Permissions
+
+By default, the Generation Lambda's Bedrock permissions use `arn:aws:bedrock:*:*:*` as the resource. This is intentional — cross-region inference profiles (e.g., `eu.amazon-nova-pro-v1:0`) route requests to models in different regions, so the IAM policy must allow access across regions.
+
+However, if you know your exact deployment region and use `BedrockInferenceMode=GEO_ONLY` (which restricts inference to the deployment region only), you can tighten the Bedrock resource ARN:
+
+| Inference Mode | Recommended Bedrock Resource | Rationale |
+|---|---|---|
+| `AUTO` (default) | `arn:aws:bedrock:*:*:*` | Cross-region routing needs access to all regions |
+| `GLOBAL_ONLY` | `arn:aws:bedrock:*:*:*` | Global routing needs access to all regions |
+| `GEO_ONLY` | `arn:aws:bedrock:YOUR_REGION:*:*` | Inference stays in deployment region |
+
+To restrict after deployment, update the `MockNestBedrockAccess` policy in the SAM template:
+
+```yaml
+# Default (supports cross-region inference — AUTO and GLOBAL_ONLY modes)
+Resource: "arn:aws:bedrock:*:*:*"
+
+# Strict (GEO_ONLY mode — scoped to deployment region and specific resource types)
+Resource:
+  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/*"
+  - !Sub "arn:aws:bedrock:${AWS::Region}::inference-profile/*"
+```
+
+> **Data residency**: Combining `BedrockInferenceMode=GEO_ONLY` with region-scoped Bedrock IAM policies ensures that API specification data sent to Bedrock for mock generation never leaves your deployment region. This is recommended for compliance-sensitive environments. The strict example above also limits access to only foundation models and inference profiles, excluding other Bedrock resource types like custom models or provisioned throughput.
+
 ## Important Security Guidance
 
 - **Mock Data Best Practice**: **Do not use real PII or sensitive production data in your mocks.** Always use realistic but synthetic test data. MockNest is designed for testing, not for handling production data.

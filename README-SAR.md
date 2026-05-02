@@ -1,9 +1,9 @@
 # MockNest Serverless
 
-🏆 **Creative Track Award** — [AWS 10,000 AIdeas 2026 Competition](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners)
-
 Deploy WireMock into your own AWS account and mock external APIs without depending on live services.  
 MockNest Serverless is a serverless WireMock runtime for REST/OpenAPI, GraphQL, and SOAP APIs, with persistent mocks, AI-assisted mock generation, and webhook/callback support.
+
+Received the 🏆 **Creative Track Award** at the [AWS 10,000 AIdeas 2026 Competition](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners).
 
 ## Deployment
 
@@ -300,6 +300,8 @@ For a detailed cost breakdown, see the [Cost Guide](https://github.com/elenavane
 - When using `AuthMode=IAM`: ensure callers have only the `execute-api:Invoke` permission scoped to the specific API, and use IAM policies to restrict access by identity
 
 **AWS Security**: Least-privilege IAM permissions, encryption in transit (HTTPS) and at rest (S3), isolated S3 buckets per deployment.
+
+For detailed IAM permissions per Lambda role and Bedrock data residency guidance, see [SECURITY.md](SECURITY.md#iam-permissions-reference).
 
 For detailed security information and vulnerability reporting, see [SECURITY.md](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/SECURITY.md).
 

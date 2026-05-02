@@ -14,11 +14,11 @@
 [![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-🏆 **Creative Track Award** — [AWS 10,000 AIdeas 2026 Competition](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners)
-
 *AI-powered API mocking for cloud-native testing on AWS*
 
 MockNest Serverless is a serverless WireMock-compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
+
+Received the 🏆 **Creative Track Award** at the [AWS 10,000 AIdeas 2026 Competition](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners).
 - [Concept article](https://builder.aws.com/content/3BzM2TZzM7RnsPFR7bzO7qlORUv/aideas-finalist-mocknest-serverless)
 - [Demo](https://youtu.be/NjzcsuE1gqA)
 
@@ -510,7 +510,7 @@ For a detailed cost breakdown and monitoring tips, see the [Cost Guide](docs/COS
 ### Common Issues
 
 1. **Region Mismatch**: Ensure all AWS resources are in the same region
-2. **Permissions**: Verify IAM roles have necessary S3 and Lambda permissions
+2. **Permissions**: Verify IAM roles have necessary S3 and Lambda permissions. See [SECURITY.md](SECURITY.md#iam-permissions-reference) for the full permission breakdown per role and guidance on restricting Bedrock permissions by region.
 3. **Cold Starts**: First requests may be slower due to Lambda cold starts
 
 ### Logs
