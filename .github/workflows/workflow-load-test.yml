@@ -205,10 +205,7 @@ jobs:
           echo "  Start time: $START_TIME"
           echo "  End time:   $END_TIME"
 
-          QUERY='filter @type = "REPORT"
-          | parse @message /Duration: (?<billed_duration_ms>[\d.]+) ms/
-          | parse @message /Restore Duration: (?<restore_duration_ms>[\d.]+) ms/
-          | fields billed_duration_ms, restore_duration_ms, ispresent(restore_duration_ms) as is_cold_start'
+          QUERY='filter @type = "REPORT" | fields @duration, @message'
 
           # Start the query
           QUERY_ID=$(aws logs start-query \
@@ -266,6 +263,7 @@ jobs:
           import json
           import statistics
           import os
+          import re
 
           def percentiles(data):
               if not data:
@@ -311,17 +309,18 @@ jobs:
 
                   for row in cw_data.get("results", []):
                       fields = {item["field"]: item["value"] for item in row}
-                      duration_str = fields.get("billed_duration_ms", "")
-                      restore_str = fields.get("restore_duration_ms", "")
-                      is_cold = fields.get("is_cold_start", "0")
+                      duration_str = fields.get("@duration", "")
+                      message = fields.get("@message", "")
 
                       if not duration_str:
                           continue
 
                       duration = float(duration_str)
 
-                      if is_cold == "1" and restore_str:
-                          restore_duration = float(restore_str)
+                      # Parse Restore Duration from @message (SnapStart cold starts)
+                      restore_match = re.search(r"Restore Duration:\s+([\d.]+)\s+ms", message)
+                      if restore_match:
+                          restore_duration = float(restore_match.group(1))
                           cold_durations.append(duration + restore_duration)
                       else:
                           warm_durations.append(duration)
