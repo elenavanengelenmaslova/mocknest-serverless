@@ -206,9 +206,9 @@ jobs:
           echo "  End time:   $END_TIME"
 
           QUERY='filter @type = "REPORT"
-          | parse @message /Duration: (?<duration>[\d.]+) ms/
-          | parse @message /Restore Duration: (?<restore_duration>[\d.]+) ms/
-          | fields duration, restore_duration, ispresent(restore_duration) as is_cold_start'
+          | parse @message /Duration: (?<billed_duration_ms>[\d.]+) ms/
+          | parse @message /Restore Duration: (?<restore_duration_ms>[\d.]+) ms/
+          | fields billed_duration_ms, restore_duration_ms, ispresent(restore_duration_ms) as is_cold_start'
 
           # Start the query
           QUERY_ID=$(aws logs start-query \
@@ -311,8 +311,8 @@ jobs:
 
                   for row in cw_data.get("results", []):
                       fields = {item["field"]: item["value"] for item in row}
-                      duration_str = fields.get("duration", "")
-                      restore_str = fields.get("restore_duration", "")
+                      duration_str = fields.get("billed_duration_ms", "")
+                      restore_str = fields.get("restore_duration_ms", "")
                       is_cold = fields.get("is_cold_start", "0")
 
                       if not duration_str:
