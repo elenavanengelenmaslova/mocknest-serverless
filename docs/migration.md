@@ -42,7 +42,8 @@ Before touching any code, we recorded the starting point.
 | Spring Cloud classes in JAR | ~0.4 MB | **0** ✅ |
 | Total test count | 2503 | **3066** (+22%) ✅ |
 | Test coverage (Kover) | 90%+ (koverVerify passed) | **91.83%** (koverVerify passed) ✅ |
-| Runtime cold start (SnapStart) | See [PERFORMANCE.md](PERFORMANCE.md) | TBD (post-deploy) |
+| Runtime cold start (SnapStart) | See [PERFORMANCE.md](PERFORMANCE.md) | **755 ms** (2.8x faster) ✅ |
+| Runtime warm start (Lambda-side p50) | See [PERFORMANCE.md](PERFORMANCE.md) | **1.4 ms** (39% faster) ✅ |
 | Generation cold start (SnapStart) | See [PERFORMANCE.md](PERFORMANCE.md) | TBD (post-deploy) |
 | RuntimeAsync cold start (SnapStart) | See [PERFORMANCE.md](PERFORMANCE.md) | TBD (post-deploy) |
 
@@ -53,6 +54,48 @@ Before touching any code, we recorded the starting point.
 | Runtime (1024 MB) | 118.89 ms / $0.000001632 | TBD (post-deploy) |
 | Generation (512 MB) | 3.21 ms | TBD (post-deploy) |
 | RuntimeAsync (256 MB) | 107.05 ms | TBD (post-deploy) |
+
+### Load Test Benchmark Results
+
+We built a [load test pipeline](PERFORMANCE.md#load-test-benchmarking) that sends 3000 sequential requests at 5 req/s over 10 minutes to `GET /__admin/health` via API Gateway, then collects server-side metrics from CloudWatch Logs Insights. This measures pure Lambda overhead — no S3 access, no mock matching — isolating the DI framework's impact on cold and warm start performance.
+
+> **Note**: The health check endpoint does not access S3 or perform WireMock mock matching. These results reflect the baseline Lambda + DI framework overhead only. Real-world latency for mock-serving requests will be higher.
+
+#### Warm Invocations (Lambda-Side)
+
+| Metric | Spring Cloud Function | Koin | Improvement |
+|---|---|---|---|
+| p50 | 2.3 ms | 1.4 ms | **39% faster** |
+| p95 | 3.2 ms | 2.1 ms | **34% faster** |
+| p99 | 4.5 ms | 2.7 ms | **40% faster** |
+| max | 126.4 ms | 16.2 ms | **87% lower** |
+| count | 2935 | 2968 | — |
+
+Warm starts are cleanly separated from cold starts — only REPORT lines without `Restore Duration` are included. The ~1ms improvement at p50 is consistent across both test runs and reflects Koin's lighter per-invocation overhead (no reflection, no annotation processing on each call).
+
+#### Cold Starts (Lambda-Side, SnapStart Restore + Duration)
+
+| Metric | Spring Cloud Function | Koin |
+|---|---|---|
+| cold start | ~2087 ms (1 sample) | ~755 ms (2 samples) |
+
+Koin cold starts are **2.8x faster** than Spring Cloud Function. This is consistent with the smaller artifact size (63 MB vs 83 MB) — less data to restore from the SnapStart snapshot means faster environment restoration.
+
+#### Why This Matters Beyond Performance
+
+The 20 MB JAR reduction (83 MB → 63 MB) isn't just about cold start speed. AWS SAR has a **100 MB deployment artifact limit**. With Spring at 83 MB, we had only 17 MB of headroom for new features. At 63 MB with Koin, we have **37 MB of headroom** — more than double — giving us room to add capabilities like AI mock generation agents, additional protocol parsers, and traffic analysis without hitting the SAR limit.
+
+#### Test Configuration
+
+| Parameter | Value |
+|---|---|
+| Runtime Memory | 1024 MB |
+| AWS Region | eu-west-1 |
+| Request Rate | 5 req/s |
+| Duration | 10 min |
+| Total Requests | 3000 |
+| Target Endpoint | GET /__admin/health |
+| Mock Mappings Loaded | 0 (pre-test cleanup) |
 
 ### Spring Dependency Breakdown
 
@@ -459,8 +502,10 @@ The single failure remains the pre-existing `BugConditionExplorationTest` — a 
 The Spring-to-Koin migration achieved everything we hoped for and a few things we didn't expect:
 
 **The numbers:**
-- **Shadow JAR**: 83 MB → 63 MB (−24%, 20 MB saved)
+- **Shadow JAR**: 83 MB → 63 MB (−24%, 20 MB saved — doubles SAR headroom from 17 MB to 37 MB)
 - **Spring classes removed**: 28 MB Spring + 4.5 MB Reactor + 0.4 MB Spring Cloud = 0
+- **Warm start (Lambda-side p50)**: 2.3 ms → 1.4 ms (39% faster)
+- **Cold start (SnapStart restore)**: ~2087 ms → ~755 ms (2.8x faster)
 - **Test count**: 2503 → 3066 (+22%, all passing)
 - **Coverage**: 91.83% aggregated (koverVerify enforced at 90%)
 - **Zero Spring imports** in any source file across all layers

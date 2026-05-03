@@ -306,3 +306,43 @@ These constraints shape the load test design:
 - **429 invalidation**: Any HTTP 429 response during the test flags the entire run as invalid. The report displays a prominent warning when this happens, because throttled requests distort latency measurements.
 
 If you see 429 errors in a test run, reduce the `request-rate` parameter and re-run.
+
+### Benchmark Results: Koin Runtime (v0.7.0+)
+
+The following results were measured using the load test pipeline against the runtime Lambda with Koin DI. The test sends 3000 sequential requests at 5 req/s over 10 minutes against `GET /__admin/health` with no mock mappings loaded. All latency values are in milliseconds.
+
+> **Important**: These results measure the health check endpoint only, which does not access S3 or perform mock matching. They reflect pure Lambda cold start / warm invocation overhead. Real-world latency for mock-serving requests will be higher due to S3 access and WireMock matching.
+
+#### Warm Invocations (Lambda-Side)
+
+| p50 | p95 | p99 | max | count |
+|-----|-----|-----|-----|-------|
+| 1.4 ms | 2.1 ms | 2.7 ms | 16.2 ms | 2968 |
+
+#### Cold Starts (Lambda-Side, SnapStart Restore + Duration)
+
+| Samples | Observed |
+|---------|----------|
+| 2 | ~755 ms |
+
+Cold start frequency is low at 5 req/s because SnapStart keeps execution environments warm. For comparison with the pre-migration Spring Cloud Function baseline, see the [migration blog post](migration.md#load-test-benchmark-results).
+
+#### All Requests (Client-Side, includes API Gateway + network)
+
+| p50 | p95 | p99 | max | count |
+|-----|-----|-----|-----|-------|
+| 226.7 ms | 486.3 ms | 511.3 ms | 780.5 ms | 3000 |
+
+Client-side latency includes network transit and API Gateway processing overhead on top of Lambda execution time.
+
+#### Test Configuration
+
+| Parameter | Value |
+|-----------|-------|
+| Runtime Memory | 1024 MB |
+| AWS Region | eu-west-1 |
+| Request Rate | 5 req/s |
+| Duration | 10 min |
+| Total Requests | 3000 |
+| Target Endpoint | GET /__admin/health |
+| Mock Mappings Loaded | 0 (pre-test cleanup) |
