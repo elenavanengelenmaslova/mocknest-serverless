@@ -1,0 +1,404 @@
+name: Reusable - Load Test
+
+on:
+  workflow_call:
+    inputs:
+      stack-name:
+        required: true
+        type: string
+        description: 'CloudFormation stack name of the deployed MockNest instance to test'
+      aws-region:
+        required: false
+        type: string
+        default: 'eu-west-1'
+        description: 'AWS region where the stack is deployed'
+      test-label:
+        required: true
+        type: string
+        description: 'Label for comparison (e.g., "koin", "spring")'
+      request-rate:
+        required: false
+        type: string
+        default: '5'
+        description: 'Requests per second (1-50)'
+      duration-minutes:
+        required: false
+        type: string
+        default: '10'
+        description: 'Test duration in minutes'
+      github-actions-role-name:
+        required: false
+        type: string
+        default: 'GitHubOIDCAdmin'
+        description: 'GitHub Actions OIDC role name'
+    secrets:
+      AWS_ACCOUNT_ID:
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  load-test:
+    name: Load Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Resolve stack outputs
+        id: resolve-stack
+        run: |
+          STACK_NAME="${{ inputs.stack-name }}"
+
+          # Verify stack exists
+          if ! aws cloudformation describe-stacks --stack-name "$STACK_NAME" > /dev/null 2>&1; then
+            echo "ERROR: CloudFormation stack '$STACK_NAME' not found in region ${{ inputs.aws-region }}"
+            exit 1
+          fi
+
+          # Resolve API URL
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
+            --output text)
+          API_URL="${API_URL%/}"
+
+          if [ -z "$API_URL" ] || [ "$API_URL" = "None" ]; then
+            echo "ERROR: Failed to resolve MockNestApiUrl from stack '$STACK_NAME'"
+            exit 1
+          fi
+          echo "::add-mask::$API_URL"
+
+          # Resolve Auth Mode
+          AUTH_MODE=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query 'Stacks[0].Outputs[?OutputKey==`AuthMode`].OutputValue' \
+            --output text 2>/dev/null || echo "API_KEY")
+          AUTH_MODE="${AUTH_MODE:-API_KEY}"
+
+          # Resolve API Key (API_KEY mode only)
+          API_KEY=""
+          if [ "$AUTH_MODE" = "API_KEY" ]; then
+            API_KEY_ID=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
+              --output text)
+
+            if [ -z "$API_KEY_ID" ] || [ "$API_KEY_ID" = "None" ]; then
+              echo "ERROR: Failed to resolve MockNestApiKey from stack '$STACK_NAME'"
+              exit 1
+            fi
+
+            API_KEY=$(aws apigateway get-api-key \
+              --api-key "$API_KEY_ID" \
+              --include-value \
+              --query 'value' \
+              --output text)
+            echo "::add-mask::$API_KEY"
+
+            if [ -z "$API_KEY" ]; then
+              echo "ERROR: Failed to retrieve API key value for key ID '$API_KEY_ID'"
+              exit 1
+            fi
+          fi
+
+          # Resolve runtime Lambda memory size from stack parameters
+          MEMORY_SIZE=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query 'Stacks[0].Parameters[?ParameterKey==`RuntimeLambdaMemorySize`].ParameterValue' \
+            --output text 2>/dev/null || echo "0")
+          if [ -z "$MEMORY_SIZE" ] || [ "$MEMORY_SIZE" = "None" ]; then
+            MEMORY_SIZE="0"
+          fi
+
+          echo "api-url=$API_URL" >> "$GITHUB_OUTPUT"
+          echo "auth-mode=$AUTH_MODE" >> "$GITHUB_OUTPUT"
+          echo "api-key=$API_KEY" >> "$GITHUB_OUTPUT"
+          echo "memory-size=$MEMORY_SIZE" >> "$GITHUB_OUTPUT"
+
+          echo "Stack resolved successfully:"
+          echo "  Auth Mode:    $AUTH_MODE"
+          echo "  Memory Size:  ${MEMORY_SIZE} MB"
+
+      - name: Pre-test cleanup
+        run: |
+          API_URL="${{ steps.resolve-stack.outputs.api-url }}"
+          AUTH_MODE="${{ steps.resolve-stack.outputs.auth-mode }}"
+          API_KEY="${{ steps.resolve-stack.outputs.api-key }}"
+
+          echo "Cleaning up mock mappings before load test..."
+
+          if [ "$AUTH_MODE" = "IAM" ]; then
+            CLEANUP_RESPONSE=$(curl --silent --show-error --max-time 30 \
+              --write-out "\n%{http_code}" \
+              --output /dev/null \
+              --aws-sigv4 "aws:amz:${{ inputs.aws-region }}:execute-api" \
+              --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+              --header "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
+              --header "Content-Type: application/json" \
+              --request DELETE \
+              "${API_URL}/__admin/mappings")
+          else
+            CLEANUP_RESPONSE=$(curl --silent --show-error --max-time 30 \
+              --write-out "\n%{http_code}" \
+              --output /dev/null \
+              --header "x-api-key: $API_KEY" \
+              --header "Content-Type: application/json" \
+              --request DELETE \
+              "${API_URL}/__admin/mappings")
+          fi
+
+          HTTP_CODE=$(echo "$CLEANUP_RESPONSE" | tail -n1)
+          echo "Cleanup response status: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "ERROR: Pre-test cleanup failed with HTTP status $HTTP_CODE (expected 200)"
+            exit 1
+          fi
+
+          echo "Pre-test cleanup successful."
+
+      - name: Run load test
+        run: |
+          chmod +x scripts/load-test.sh
+          ./scripts/load-test.sh
+        env:
+          API_URL: ${{ steps.resolve-stack.outputs.api-url }}
+          API_KEY: ${{ steps.resolve-stack.outputs.api-key }}
+          AUTH_MODE: ${{ steps.resolve-stack.outputs.auth-mode }}
+          REQUEST_RATE: ${{ inputs.request-rate }}
+          DURATION_MINUTES: ${{ inputs.duration-minutes }}
+          TEST_LABEL: ${{ inputs.test-label }}
+          STACK_NAME: ${{ inputs.stack-name }}
+          AWS_REGION: ${{ inputs.aws-region }}
+          MEMORY_SIZE: ${{ steps.resolve-stack.outputs.memory-size }}
+
+      - name: Wait for CloudWatch log flush
+        run: |
+          echo "Waiting 60 seconds for CloudWatch logs to flush..."
+          sleep 60
+          echo "CloudWatch flush wait complete."
+
+      - name: Query CloudWatch Logs Insights
+        id: cloudwatch-query
+        run: |
+          STACK_NAME="${{ inputs.stack-name }}"
+          LOG_GROUP="/aws/lambda/${STACK_NAME}-runtime"
+          CW_QUERY_FAILED="false"
+
+          # Read start_time and end_time from load-test-results.json
+          START_TIME=$(python3 -c "import json; d=json.load(open('load-test-results.json')); print(d['start_time'])")
+          END_TIME=$(python3 -c "import json; d=json.load(open('load-test-results.json')); print(d['end_time'])")
+
+          echo "Querying CloudWatch Logs Insights..."
+          echo "  Log group:  $LOG_GROUP"
+          echo "  Start time: $START_TIME"
+          echo "  End time:   $END_TIME"
+
+          QUERY='filter @type = "REPORT"
+          | parse @message /Duration: (?<duration>[\d.]+) ms/
+          | parse @message /Restore Duration: (?<restore_duration>[\d.]+) ms/
+          | fields duration, restore_duration, ispresent(restore_duration) as is_cold_start'
+
+          # Start the query
+          QUERY_ID=$(aws logs start-query \
+            --log-group-name "$LOG_GROUP" \
+            --start-time "$START_TIME" \
+            --end-time "$END_TIME" \
+            --query-string "$QUERY" \
+            --output text 2>&1) || {
+            echo "WARNING: Failed to start CloudWatch Logs Insights query: $QUERY_ID"
+            CW_QUERY_FAILED="true"
+            echo '{"results":[],"status":"Failed"}' > cloudwatch-results.json
+            echo "cw-query-failed=$CW_QUERY_FAILED" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
+          echo "Query started with ID: $QUERY_ID"
+
+          # Poll for completion (max 60 seconds, 5s intervals)
+          for i in $(seq 1 12); do
+            STATUS=$(aws logs get-query-results --query-id "$QUERY_ID" \
+              --query 'status' --output text 2>/dev/null || echo "Unknown")
+
+            echo "  Poll $i/12: status=$STATUS"
+
+            if [ "$STATUS" = "Complete" ]; then
+              aws logs get-query-results --query-id "$QUERY_ID" > cloudwatch-results.json
+              echo "CloudWatch query completed successfully."
+              echo "cw-query-failed=$CW_QUERY_FAILED" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ]; then
+              echo "WARNING: CloudWatch query ended with status: $STATUS"
+              CW_QUERY_FAILED="true"
+              echo '{"results":[],"status":"Failed"}' > cloudwatch-results.json
+              echo "cw-query-failed=$CW_QUERY_FAILED" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "WARNING: CloudWatch query timed out after 60 seconds."
+          CW_QUERY_FAILED="true"
+          echo '{"results":[],"status":"Timeout"}' > cloudwatch-results.json
+          echo "cw-query-failed=$CW_QUERY_FAILED" >> "$GITHUB_OUTPUT"
+
+      - name: Generate report
+        run: |
+          python3 << 'PYEOF'
+          import json
+          import statistics
+          import os
+
+          def percentiles(data):
+              if not data:
+                  return {"p50": "N/A", "p95": "N/A", "p99": "N/A", "max": "N/A", "count": 0}
+              sorted_data = sorted(data)
+              if len(sorted_data) < 2:
+                  val = f"{sorted_data[0]:.1f}"
+                  return {"p50": val, "p95": val, "p99": val, "max": val, "count": 1}
+              q = statistics.quantiles(sorted_data, n=100)
+              return {
+                  "p50": f"{q[49]:.1f}",
+                  "p95": f"{q[94]:.1f}",
+                  "p99": f"{q[98]:.1f}",
+                  "max": f"{max(sorted_data):.1f}",
+                  "count": len(sorted_data)
+              }
+
+          # Read load test results
+          with open("load-test-results.json", "r") as f:
+              results = json.load(f)
+
+          test_label = results["test_label"]
+          stack_name = results.get("stack_name", "")
+          aws_region = results.get("aws_region", "")
+          memory_size = results.get("memory_size", 0)
+          duration_minutes = results["duration_minutes"]
+          request_rate = results["request_rate"]
+          total_requests = results["total_requests"]
+          error_count = results["error_count"]
+          throttled_count = results["throttled_count"]
+
+          # Client-side latencies
+          client_latencies = [r["latency_ms"] for r in results["requests"]]
+          client_stats = percentiles(client_latencies)
+
+          # Read CloudWatch results
+          cw_query_failed = os.environ.get("CW_QUERY_FAILED", "false") == "true"
+          warm_durations = []
+          cold_durations = []
+
+          if not cw_query_failed:
+              try:
+                  with open("cloudwatch-results.json", "r") as f:
+                      cw_data = json.load(f)
+
+                  for row in cw_data.get("results", []):
+                      fields = {item["field"]: item["value"] for item in row}
+                      duration_str = fields.get("duration", "")
+                      restore_str = fields.get("restore_duration", "")
+                      is_cold = fields.get("is_cold_start", "0")
+
+                      if not duration_str:
+                          continue
+
+                      duration = float(duration_str)
+
+                      if is_cold == "1" and restore_str:
+                          restore_duration = float(restore_str)
+                          cold_durations.append(duration + restore_duration)
+                      else:
+                          warm_durations.append(duration)
+              except (json.JSONDecodeError, FileNotFoundError, KeyError, ValueError) as e:
+                  print(f"WARNING: Failed to parse CloudWatch results: {e}")
+                  cw_query_failed = True
+
+          warm_stats = percentiles(warm_durations)
+          cold_stats = percentiles(cold_durations)
+
+          # Build report
+          lines = []
+          lines.append(f"# Load Test Report: {test_label}")
+          lines.append("")
+          lines.append("## Metadata")
+          lines.append("| Parameter | Value |")
+          lines.append("|-----------|-------|")
+          lines.append(f"| Test Label | {test_label} |")
+          lines.append(f"| Stack Name | {stack_name} |")
+          lines.append(f"| AWS Region | {aws_region} |")
+          lines.append(f"| Runtime Memory | {memory_size} MB |")
+          lines.append(f"| Duration | {duration_minutes} min |")
+          lines.append(f"| Request Rate | {request_rate} req/s |")
+          lines.append(f"| Target Endpoint | GET /__admin/health |")
+          lines.append(f"| Total Requests | {total_requests} |")
+          lines.append(f"| Errors (non-2xx excl. 429) | {error_count} |")
+          lines.append(f"| 429 Throttled | {throttled_count} |")
+          lines.append("")
+
+          if throttled_count > 0:
+              lines.append(f"> ⚠️ **WARNING: Test run invalid — {throttled_count} requests were throttled (HTTP 429)**")
+              lines.append("")
+
+          lines.append("## All Requests (Client-Side)")
+          lines.append("| p50 | p95 | p99 | max | count |")
+          lines.append("|-----|-----|-----|-----|-------|")
+          lines.append(f"| {client_stats['p50']} | {client_stats['p95']} | {client_stats['p99']} | {client_stats['max']} | {client_stats['count']} |")
+          lines.append("")
+
+          if cw_query_failed and not warm_durations and not cold_durations:
+              lines.append("> ⚠️ **Server-side metrics unavailable** — CloudWatch Logs Insights query failed or returned no results. Only client-side latency is shown.")
+              lines.append("")
+
+          lines.append("## Warm Invocations Only (Lambda-Side)")
+          lines.append("| p50 | p95 | p99 | max | count |")
+          lines.append("|-----|-----|-----|-----|-------|")
+          lines.append(f"| {warm_stats['p50']} | {warm_stats['p95']} | {warm_stats['p99']} | {warm_stats['max']} | {warm_stats['count']} |")
+          lines.append("")
+
+          lines.append("## Cold Starts Only (Lambda-Side)")
+          lines.append("| p50 | p95 | p99 | max | count |")
+          lines.append("|-----|-----|-----|-----|-------|")
+          lines.append(f"| {cold_stats['p50']} | {cold_stats['p95']} | {cold_stats['p99']} | {cold_stats['max']} | {cold_stats['count']} |")
+          lines.append("")
+
+          report = "\n".join(lines)
+
+          with open("load-test-report.md", "w") as f:
+              f.write(report)
+
+          print("Report generated: load-test-report.md")
+          print(report)
+          PYEOF
+        env:
+          CW_QUERY_FAILED: ${{ steps.cloudwatch-query.outputs.cw-query-failed }}
+
+      - name: Write Job Summary
+        run: |
+          cat load-test-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate artifact timestamp
+        if: always()
+        id: artifact-ts
+        run: echo "timestamp=$(date +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-${{ inputs.test-label }}-${{ steps.artifact-ts.outputs.timestamp }}
+          path: |
+            load-test-results.json
+            cloudwatch-results.json
+            load-test-report.md
