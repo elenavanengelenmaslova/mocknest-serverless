@@ -1,5 +1,14 @@
 # Performance Guide
 
+## Lambda Configuration
+
+All Lambda functions are deployed with the following configuration that affects performance:
+
+- **Architecture**: ARM64 (Graviton2) — 20% better price-performance compared to x86_64
+- **Runtime**: Java 25 with SnapStart enabled (`ApplyOn: PublishedVersions`) and priming for reduced cold start latency
+- **JVM optimization**: `-XX:+TieredCompilation -XX:TieredStopAtLevel=1` — stops JIT compilation after C1 tier, trading peak throughput for faster startup. This is optimal for Lambda's short-lived execution model where functions rarely run long enough to benefit from C2 optimizations.
+- **DI framework**: Koin (~1 MB footprint, no annotation processing) — replaced Spring Cloud Function in v0.7.0, reducing the deployment artifact from 83 MB to 63 MB
+
 ## Memory Configuration
 
 Runtime and Generation functions default to **1024 MB** and **512 MB** respectively, RuntimeAsync defaults to **256 MB**, all based on AWS Lambda Power Tuner analysis using the `balanced` strategy.

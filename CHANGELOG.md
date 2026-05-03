@@ -5,6 +5,13 @@ All notable changes to MockNest Serverless will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-05-02
+### Changed
+- **Migrated from Spring Cloud Function to Koin** for dependency injection, reducing the deployment artifact from 83 MB to 63 MB (−24%). See [migration notes](docs/migration.md) for details.
+### Added
+- IAM permissions reference and Bedrock data residency guidance in [SECURITY.md](SECURITY.md).
+### Removed
+- All Spring Framework, Spring Cloud Function, and Project Reactor dependencies.
 
 ## [0.6.0] - 2026-04-22
 ### Documentation
