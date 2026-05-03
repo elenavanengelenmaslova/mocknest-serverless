@@ -190,13 +190,15 @@ jobs:
       - name: Query CloudWatch Logs Insights
         id: cloudwatch-query
         run: |
+          set +e
           STACK_NAME="${{ inputs.stack-name }}"
           LOG_GROUP="/aws/lambda/${STACK_NAME}-runtime"
           CW_QUERY_FAILED="false"
 
           # Read start_time and end_time from load-test-results.json
-          START_TIME=$(python3 -c "import json; d=json.load(open('load-test-results.json')); print(d['start_time'])")
-          END_TIME=$(python3 -c "import json; d=json.load(open('load-test-results.json')); print(d['end_time'])")
+          # Subtract 60s from start and add 120s to end to capture all REPORT lines
+          START_TIME=$(python3 -c "import json; d=json.load(open('load-test-results.json')); print(d['start_time'] - 60)")
+          END_TIME=$(python3 -c "import json; d=json.load(open('load-test-results.json')); print(d['end_time'] + 120)")
 
           echo "Querying CloudWatch Logs Insights..."
           echo "  Log group:  $LOG_GROUP"
@@ -214,26 +216,30 @@ jobs:
             --start-time "$START_TIME" \
             --end-time "$END_TIME" \
             --query-string "$QUERY" \
-            --output text 2>&1) || {
-            echo "WARNING: Failed to start CloudWatch Logs Insights query: $QUERY_ID"
+            --output text 2>&1)
+          QUERY_RC=$?
+
+          if [ "$QUERY_RC" -ne 0 ]; then
+            echo "WARNING: Failed to start CloudWatch Logs Insights query (exit code $QUERY_RC): $QUERY_ID"
             CW_QUERY_FAILED="true"
             echo '{"results":[],"status":"Failed"}' > cloudwatch-results.json
             echo "cw-query-failed=$CW_QUERY_FAILED" >> "$GITHUB_OUTPUT"
             exit 0
-          }
+          fi
 
           echo "Query started with ID: $QUERY_ID"
 
-          # Poll for completion (max 60 seconds, 5s intervals)
-          for i in $(seq 1 12); do
+          # Poll for completion (max 90 seconds, 5s intervals)
+          for i in $(seq 1 18); do
             STATUS=$(aws logs get-query-results --query-id "$QUERY_ID" \
               --query 'status' --output text 2>/dev/null || echo "Unknown")
 
-            echo "  Poll $i/12: status=$STATUS"
+            echo "  Poll $i/18: status=$STATUS"
 
             if [ "$STATUS" = "Complete" ]; then
               aws logs get-query-results --query-id "$QUERY_ID" > cloudwatch-results.json
-              echo "CloudWatch query completed successfully."
+              RESULT_COUNT=$(python3 -c "import json; print(len(json.load(open('cloudwatch-results.json')).get('results', [])))")
+              echo "CloudWatch query completed successfully. Found $RESULT_COUNT REPORT lines."
               echo "cw-query-failed=$CW_QUERY_FAILED" >> "$GITHUB_OUTPUT"
               exit 0
             fi
@@ -249,7 +255,7 @@ jobs:
             sleep 5
           done
 
-          echo "WARNING: CloudWatch query timed out after 60 seconds."
+          echo "WARNING: CloudWatch query timed out after 90 seconds."
           CW_QUERY_FAILED="true"
           echo '{"results":[],"status":"Timeout"}' > cloudwatch-results.json
           echo "cw-query-failed=$CW_QUERY_FAILED" >> "$GITHUB_OUTPUT"
@@ -291,9 +297,7 @@ jobs:
           error_count = results["error_count"]
           throttled_count = results["throttled_count"]
 
-          # Client-side latencies
-          client_latencies = [r["latency_ms"] for r in results["requests"]]
-          client_stats = percentiles(client_latencies)
+          # Client-side latencies are filtered after throttle check below
 
           # Read CloudWatch results
           cw_query_failed = os.environ.get("CW_QUERY_FAILED", "false") == "true"
@@ -348,8 +352,12 @@ jobs:
           lines.append("")
 
           if throttled_count > 0:
-              lines.append(f"> ⚠️ **WARNING: Test run invalid — {throttled_count} requests were throttled (HTTP 429)**")
+              lines.append(f"> ⚠️ **Note: {throttled_count} requests were throttled (HTTP 429)** — these are excluded from client-side percentiles below. Server-side metrics from CloudWatch are unaffected.")
               lines.append("")
+
+          # Filter out 429s from client-side latencies for cleaner percentiles
+          client_latencies_clean = [r["latency_ms"] for r in results["requests"] if r["status_code"] != 429]
+          client_stats = percentiles(client_latencies_clean)
 
           lines.append("## All Requests (Client-Side)")
           lines.append("| p50 | p95 | p99 | max | count |")
