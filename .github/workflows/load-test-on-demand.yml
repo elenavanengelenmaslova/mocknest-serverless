@@ -1,0 +1,50 @@
+name: Load Test - On Demand
+
+on:
+  workflow_dispatch:
+    inputs:
+      stack-name:
+        description: 'CloudFormation stack name of the deployed MockNest instance to test'
+        required: true
+        type: string
+      aws-region:
+        description: 'AWS region where the stack is deployed'
+        required: false
+        default: 'eu-west-1'
+        type: string
+      test-label:
+        description: 'Label for comparison (e.g., "koin", "spring")'
+        required: true
+        type: string
+      request-rate:
+        description: 'Requests per second (1-50)'
+        required: false
+        default: '5'
+        type: string
+      duration-minutes:
+        description: 'Test duration in minutes'
+        required: false
+        default: '10'
+        type: string
+      github-actions-role-name:
+        description: 'GitHub Actions OIDC role name'
+        required: false
+        default: 'GitHubOIDCAdmin'
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  load-test:
+    uses: ./.github/workflows/workflow-load-test.yml
+    with:
+      stack-name: ${{ inputs.stack-name }}
+      aws-region: ${{ inputs.aws-region }}
+      test-label: ${{ inputs.test-label }}
+      request-rate: ${{ inputs.request-rate }}
+      duration-minutes: ${{ inputs.duration-minutes }}
+      github-actions-role-name: ${{ inputs.github-actions-role-name }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

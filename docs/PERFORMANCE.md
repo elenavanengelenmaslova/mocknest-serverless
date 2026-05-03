@@ -217,3 +217,92 @@ filter @type = "REPORT"
 ```
 
 This shows average, minimum, and maximum SnapStart cold-start durations for cold-start invocations only. For SnapStart, cold-start duration is Restore Duration + Duration.
+
+## Load Test Benchmarking
+
+The load test pipeline measures cold start and warm invocation latency of the runtime Lambda by sending sequential HTTP requests through API Gateway to a deployed stack. It produces a percentile-based report that separates client-side round-trip time from server-side Lambda execution metrics, making it straightforward to compare performance across framework migrations (e.g., Spring Cloud Function → Koin).
+
+### Methodology
+
+- **Target endpoint**: `GET /__admin/health` on the runtime Lambda via API Gateway
+- **Pre-test cleanup**: All mock mappings are removed (`DELETE /__admin/mappings`) before the test starts, so the health endpoint measures pure cold/warm start latency without data loading overhead
+- **Request pattern**: Sequential requests (one at a time) at a configurable rate, default 5 req/s
+- **Client-side latency**: Measured via curl timing (`time_total`) for each request — this is the full round-trip including network transit, API Gateway processing, and Lambda execution
+- **Server-side metrics**: Collected from CloudWatch Logs Insights after the test completes, querying Lambda REPORT log lines for `Duration` and `Restore Duration` fields
+
+The pipeline waits 60 seconds after the test for CloudWatch logs to flush before running the Logs Insights query. If the query fails or returns no results, the report still includes client-side metrics with a warning.
+
+### Triggering the Load Test
+
+The load test runs as a GitHub Actions workflow:
+
+1. Go to **Actions** → **Load Test - On Demand** → **Run workflow**
+2. Fill in the input parameters:
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `stack-name` | yes | — | CloudFormation stack name of the deployed MockNest instance to test |
+| `aws-region` | no | `eu-west-1` | AWS region where the stack is deployed |
+| `test-label` | yes | — | Label for comparison, e.g. `"koin"` or `"spring"` |
+| `request-rate` | no | `"5"` | Requests per second (1–50) |
+| `duration-minutes` | no | `"10"` | Test duration in minutes |
+| `github-actions-role-name` | no | `"GitHubOIDCAdmin"` | GitHub Actions OIDC role name for AWS authentication |
+
+The workflow resolves the API URL, API key, auth mode, and runtime Lambda memory size directly from CloudFormation stack outputs — no manual URL or key inputs needed.
+
+### Interpreting the Report
+
+The report contains three percentile tables, each with columns: **p50**, **p95**, **p99**, **max**, and **count**.
+
+#### All Requests (Client-Side)
+
+Total round-trip time measured by curl for every request sent during the test. This includes network transit, API Gateway processing, and Lambda execution time. This is what the end user experiences and is the most representative metric for overall API latency.
+
+#### Warm Invocations Only (Lambda-Side)
+
+Lambda execution duration (`Duration` from the REPORT log line) for invocations where no SnapStart restore occurred. This isolates the Lambda-level performance baseline by excluding cold starts and stripping away network and API Gateway overhead. Use this table to compare the steady-state execution cost of different frameworks or configurations.
+
+#### Cold Starts Only (Lambda-Side)
+
+The sum of `Restore Duration` + `Duration` from the REPORT log line for invocations where SnapStart restore occurred. This shows the cold start penalty — how long it takes for a new Lambda execution environment to restore from the SnapStart snapshot and serve the first request. Fewer cold starts and lower cold start durations indicate better SnapStart optimization.
+
+> If the CloudWatch Logs Insights query fails or returns no results, the report displays only the client-side table with a warning that server-side metrics are unavailable.
+
+### Comparison Workflow for Framework Migrations
+
+To compare performance between two versions (e.g., Spring Cloud Function vs Koin):
+
+1. **Deploy version A** (e.g., Spring Cloud Function) to a stack
+2. **Run the load test** with a descriptive label:
+   - `stack-name` = your stack name
+   - `test-label` = `spring`
+   - `duration-minutes` = `10`
+   - `request-rate` = `5`
+3. **Deploy version B** (e.g., Koin) to the same stack
+4. **Run the load test** again with a different label:
+   - `stack-name` = your stack name
+   - `test-label` = `koin`
+   - `duration-minutes` = `10`
+   - `request-rate` = `5`
+5. **Download artifacts** from both workflow runs (each run uploads `load-test-results.json`, `cloudwatch-results.json`, and `load-test-report.md` as a GitHub Actions artifact named `load-test-{label}-{timestamp}`)
+6. **Compare the markdown reports side by side** — focus on the warm invocation p50/p95 for steady-state comparison and cold start p50/p99 for startup impact
+
+Using the same `stack-name`, `duration-minutes`, and `request-rate` for both runs ensures an apples-to-apples comparison.
+
+### API Gateway Throttle Constraints
+
+The API Gateway usage plan is configured with:
+
+| Setting | Value |
+|---------|-------|
+| **BurstLimit** | 1 (only 1 concurrent request allowed at any instant) |
+| **RateLimit** | 100 req/s (steady-state token bucket refill rate) |
+
+These constraints shape the load test design:
+
+- **Sequential requests**: The test sends one request at a time (no concurrency) to respect the BurstLimit of 1. Concurrent requests would immediately trigger HTTP 429 throttling.
+- **Default rate of 5 req/s**: Well below the 100 req/s RateLimit, providing a comfortable margin to avoid throttling even with minor timing jitter.
+- **Maximum rate of 50 req/s**: The script rejects any `request-rate` above 50 to prevent getting close to the throttle limit.
+- **429 invalidation**: Any HTTP 429 response during the test flags the entire run as invalid. The report displays a prominent warning when this happens, because throttled requests distort latency measurements.
+
+If you see 429 errors in a test run, reduce the `request-rate` parameter and re-run.
