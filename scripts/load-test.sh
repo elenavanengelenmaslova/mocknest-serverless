@@ -171,7 +171,6 @@ for ((i = 1; i <= TOTAL_REQUESTS; i++)); do
   # Track 429 throttling
   if [ "$HTTP_CODE" = "429" ]; then
     THROTTLED_COUNT=$((THROTTLED_COUNT + 1))
-    IS_VALID=false
     # 429 does not count toward consecutive non-2xx errors
   elif [ "$HTTP_CODE" -lt 200 ] 2>/dev/null || [ "$HTTP_CODE" -ge 300 ] 2>/dev/null; then
     # Non-2xx (excluding 429)
