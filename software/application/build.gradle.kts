@@ -38,5 +38,5 @@ dependencies {
     testImplementation("ai.koog:agents-test")
 
     // Logback for tests that capture log output
-    testImplementation("ch.qos.logback:logback-classic:1.5.18")
+    testImplementation("ch.qos.logback:logback-classic:1.5.32")
 }
