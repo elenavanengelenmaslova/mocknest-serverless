@@ -317,7 +317,7 @@ The following results were measured using the load test pipeline against the run
 
 | p50 | p95 | p99 | max | count |
 |-----|-----|-----|-----|-------|
-| 1.4 ms | 2.1 ms | 2.7 ms | 16.2 ms | 2968 |
+| 1.4 ms | 2.1 ms | 2.7 ms | 16.2 ms | 2998 |
 
 #### Cold Starts (Lambda-Side, SnapStart Restore + Duration)
 
