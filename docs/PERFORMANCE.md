@@ -309,7 +309,7 @@ If you see 429 errors in a test run, reduce the `request-rate` parameter and re-
 
 ### Benchmark Results: Koin Runtime (v0.7.0+)
 
-The following results were measured using the load test pipeline against the runtime Lambda with Koin DI. The test sends 3000 sequential requests at 5 req/s over 10 minutes against `GET /__admin/health` with no mock mappings loaded. All latency values are in milliseconds.
+The following results were measured using the load test pipeline against the runtime Lambda with Koin DI, configured with **1024 MB memory**. The test sends 3000 sequential requests at 5 req/s over 10 minutes against `GET /__admin/health` with no mock mappings loaded. The request rate is constrained by the API Gateway usage plan (BurstLimit: 1, RateLimit: 100 req/s) — see [API Gateway Throttle Constraints](#api-gateway-throttle-constraints) for details. All latency values are in milliseconds.
 
 > **Important**: These results measure the health check endpoint only, which does not access S3 or perform mock matching. They reflect pure Lambda cold start / warm invocation overhead. Real-world latency for mock-serving requests will be higher due to S3 access and WireMock matching.
 
