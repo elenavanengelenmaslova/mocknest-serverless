@@ -133,7 +133,7 @@ subprojects {
             testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
 
             // Koin DI Framework
-            val koinVersion = "4.2.0"
+            val koinVersion = "4.2.1"
             implementation("io.insert-koin:koin-core:$koinVersion")
             implementation("io.insert-koin:koin-test:$koinVersion")
             implementation("io.insert-koin:koin-test-junit5:$koinVersion")
