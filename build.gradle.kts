@@ -61,7 +61,7 @@ subprojects {
         val runtimeOnly by configurations
 
         // Koin BOM for consistent Koin versions
-        implementation(platform("io.insert-koin:koin-bom:4.2.0"))
+        implementation(platform("io.insert-koin:koin-bom:4.2.1"))
 
         // Kotlin standard library
         implementation("org.jetbrains.kotlin:kotlin-stdlib")
