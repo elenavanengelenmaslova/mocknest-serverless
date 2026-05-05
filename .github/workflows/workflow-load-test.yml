@@ -205,7 +205,7 @@ jobs:
           echo "  Start time: $START_TIME"
           echo "  End time:   $END_TIME"
 
-          QUERY='filter @type = "REPORT" | fields @duration, @message'
+          QUERY='filter @type = "REPORT" | fields @duration, @message | limit 10000'
 
           # Start the query
           QUERY_ID=$(aws logs start-query \
