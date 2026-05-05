@@ -31,6 +31,16 @@ on:
         type: string
         default: 'GitHubOIDCAdmin'
         description: 'GitHub Actions OIDC role name'
+      test-endpoint:
+        required: false
+        type: string
+        default: '__admin/health'
+        description: 'Endpoint path to hit during load test (relative to API_URL)'
+      setup-mock:
+        required: false
+        type: boolean
+        default: false
+        description: 'Create a test mock before running the load test'
     secrets:
       AWS_ACCOUNT_ID:
         required: true
@@ -166,6 +176,46 @@ jobs:
 
           echo "Pre-test cleanup successful."
 
+      - name: Setup test mock
+        if: ${{ inputs.setup-mock }}
+        run: |
+          API_URL="${{ steps.resolve-stack.outputs.api-url }}"
+          AUTH_MODE="${{ steps.resolve-stack.outputs.auth-mode }}"
+          API_KEY="${{ steps.resolve-stack.outputs.api-key }}"
+
+          MOCK_BODY='{"id":"76ada7b0-55ae-4229-91c4-396a36f18347","priority":2,"request":{"method":"GET","urlPath":"/mocknest/bored/api/activity","queryParameters":{"type":{"equalTo":"social"}}},"response":{"status":200,"headers":{"Content-Type":"application/json"},"jsonBody":{"activity":"Escape the nulls of daily life","type":"social","participants":1,"price":0.3,"accessibility":0.4}},"persistent":true}'
+
+          echo "Creating test mock..."
+
+          if [ "$AUTH_MODE" = "IAM" ]; then
+            MOCK_RESPONSE=$(curl --silent --show-error --max-time 30 \
+              --write-out "\n%{http_code}" \
+              --aws-sigv4 "aws:amz:${{ inputs.aws-region }}:execute-api" \
+              --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+              --header "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
+              --header "Content-Type: application/json" \
+              --request POST \
+              --data "$MOCK_BODY" \
+              "${API_URL}/__admin/mappings")
+          else
+            MOCK_RESPONSE=$(curl --silent --show-error --max-time 30 \
+              --write-out "\n%{http_code}" \
+              --header "x-api-key: $API_KEY" \
+              --header "Content-Type: application/json" \
+              --request POST \
+              --data "$MOCK_BODY" \
+              "${API_URL}/__admin/mappings")
+          fi
+
+          HTTP_CODE=$(echo "$MOCK_RESPONSE" | tail -n1)
+          echo "Mock creation response: HTTP $HTTP_CODE"
+
+          if [ "$HTTP_CODE" != "201" ] && [ "$HTTP_CODE" != "200" ]; then
+            echo "WARNING: Mock creation returned HTTP $HTTP_CODE (expected 201). Continuing anyway."
+          else
+            echo "Test mock created successfully."
+          fi
+
       - name: Run load test
         run: |
           chmod +x scripts/load-test.sh
@@ -180,6 +230,7 @@ jobs:
           STACK_NAME: ${{ inputs.stack-name }}
           AWS_REGION: ${{ inputs.aws-region }}
           MEMORY_SIZE: ${{ steps.resolve-stack.outputs.memory-size }}
+          TEST_ENDPOINT: ${{ inputs.test-endpoint }}
 
       - name: Wait for CloudWatch log flush
         run: |

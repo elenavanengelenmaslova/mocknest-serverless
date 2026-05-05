@@ -91,6 +91,9 @@ fi
 # Remove trailing slash from API_URL if present
 API_URL="${API_URL%/}"
 
+# Default test endpoint if not specified
+TEST_ENDPOINT="${TEST_ENDPOINT:-__admin/health}"
+
 # ---------------------------------------------------------------------------
 # Build curl options array
 # ---------------------------------------------------------------------------
@@ -159,7 +162,7 @@ for ((i = 1; i <= TOTAL_REQUESTS; i++)); do
   RESPONSE=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code} %{time_total}" \
     --output /dev/null \
-    "${API_URL}/__admin/health" 2>&1) || true
+    "${API_URL}/${TEST_ENDPOINT}" 2>&1) || true
 
   HTTP_CODE=$(echo "$RESPONSE" | tail -n1 | awk '{print $1}')
   TIME_TOTAL=$(echo "$RESPONSE" | tail -n1 | awk '{print $2}')
