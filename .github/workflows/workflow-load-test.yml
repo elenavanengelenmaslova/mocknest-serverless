@@ -205,7 +205,7 @@ jobs:
           echo "  Start time: $START_TIME"
           echo "  End time:   $END_TIME"
 
-          QUERY='filter @type = "REPORT" | fields @duration, @message'
+          QUERY='filter @type = "REPORT" | fields @duration, @message | limit 10000'
 
           # Start the query
           QUERY_ID=$(aws logs start-query \
@@ -269,16 +269,18 @@ jobs:
               if not data:
                   return {"p50": "N/A", "p95": "N/A", "p99": "N/A", "max": "N/A", "count": 0}
               sorted_data = sorted(data)
-              if len(sorted_data) < 2:
+              n = len(sorted_data)
+              if n < 2:
                   val = f"{sorted_data[0]:.1f}"
                   return {"p50": val, "p95": val, "p99": val, "max": val, "count": 1}
               q = statistics.quantiles(sorted_data, n=100)
+              max_val = max(sorted_data)
               return {
-                  "p50": f"{q[49]:.1f}",
-                  "p95": f"{q[94]:.1f}",
-                  "p99": f"{q[98]:.1f}",
-                  "max": f"{max(sorted_data):.1f}",
-                  "count": len(sorted_data)
+                  "p50": f"{min(q[49], max_val):.1f}",
+                  "p95": f"{min(q[94], max_val):.1f}",
+                  "p99": f"{min(q[98], max_val):.1f}",
+                  "max": f"{max_val:.1f}",
+                  "count": n
               }
 
           # Read load test results
