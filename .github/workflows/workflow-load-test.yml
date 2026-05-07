@@ -41,6 +41,11 @@ on:
         type: boolean
         default: false
         description: 'Create a test mock before running the load test'
+      concurrency:
+        required: false
+        type: string
+        default: '1'
+        description: 'Number of parallel workers (1=sequential, 30=parallel like article benchmark)'
     secrets:
       AWS_ACCOUNT_ID:
         required: true
@@ -219,6 +224,25 @@ jobs:
       - name: Run load test
         run: |
           chmod +x scripts/load-test.sh
+
+          # Warmup: hit health endpoint once to ensure Lambda is warm before measuring
+          API_URL="${{ steps.resolve-stack.outputs.api-url }}"
+          AUTH_MODE="${{ steps.resolve-stack.outputs.auth-mode }}"
+          API_KEY="${{ steps.resolve-stack.outputs.api-key }}"
+          echo "Warming up Lambda (single health check with 60s timeout)..."
+          if [ "$AUTH_MODE" = "IAM" ]; then
+            curl --silent --show-error --max-time 60 --output /dev/null \
+              --aws-sigv4 "aws:amz:${{ inputs.aws-region }}:execute-api" \
+              --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+              --header "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
+              "${API_URL}/__admin/health" || echo "Warmup request failed (may be first cold start), continuing..."
+          else
+            curl --silent --show-error --max-time 60 --output /dev/null \
+              --header "x-api-key: $API_KEY" \
+              "${API_URL}/__admin/health" || echo "Warmup request failed (may be first cold start), continuing..."
+          fi
+          echo "Warmup complete. Starting load test..."
+
           ./scripts/load-test.sh
         env:
           API_URL: ${{ steps.resolve-stack.outputs.api-url }}
@@ -231,6 +255,7 @@ jobs:
           AWS_REGION: ${{ inputs.aws-region }}
           MEMORY_SIZE: ${{ steps.resolve-stack.outputs.memory-size }}
           TEST_ENDPOINT: ${{ inputs.test-endpoint }}
+          CONCURRENCY: ${{ inputs.concurrency }}
 
       - name: Wait for CloudWatch log flush
         run: |
@@ -397,7 +422,7 @@ jobs:
           lines.append(f"| Runtime Memory | {memory_size} MB |")
           lines.append(f"| Duration | {duration_minutes} min |")
           lines.append(f"| Request Rate | {request_rate} req/s |")
-          lines.append(f"| Target Endpoint | GET /__admin/health |")
+          lines.append(f"| Target Endpoint | GET /{results.get('test_endpoint', '__admin/health')} |")
           lines.append(f"| Total Requests | {total_requests} |")
           lines.append(f"| Errors (non-2xx excl. 429) | {error_count} |")
           lines.append(f"| 429 Throttled | {throttled_count} |")

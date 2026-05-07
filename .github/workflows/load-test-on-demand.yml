@@ -41,6 +41,11 @@ on:
         required: false
         default: false
         type: boolean
+      concurrency:
+        description: 'Number of parallel workers (1=sequential, 30=parallel for scaling test)'
+        required: false
+        default: '1'
+        type: string
 
 permissions:
   id-token: write
@@ -58,5 +63,6 @@ jobs:
       github-actions-role-name: ${{ inputs.github-actions-role-name }}
       test-endpoint: ${{ inputs.test-endpoint }}
       setup-mock: ${{ inputs.setup-mock }}
+      concurrency: ${{ inputs.concurrency }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

@@ -122,17 +122,30 @@ fi
 # ---------------------------------------------------------------------------
 # Calculate test parameters
 # ---------------------------------------------------------------------------
+CONCURRENCY="${CONCURRENCY:-1}"
 TOTAL_REQUESTS=$((REQUEST_RATE * DURATION_MINUTES * 60))
-DELAY=$(awk "BEGIN {printf \"%.6f\", 1 / $REQUEST_RATE}")
+
+if [ "$CONCURRENCY" -gt 1 ]; then
+  WORKER_RATE=$(awk "BEGIN {printf \"%.6f\", $REQUEST_RATE / $CONCURRENCY}")
+  DELAY=$(awk "BEGIN {printf \"%.6f\", 1 / ($REQUEST_RATE / $CONCURRENCY)}")
+  REQUESTS_PER_WORKER=$((TOTAL_REQUESTS / CONCURRENCY))
+else
+  WORKER_RATE="$REQUEST_RATE"
+  DELAY=$(awk "BEGIN {printf \"%.6f\", 1 / $REQUEST_RATE}")
+  REQUESTS_PER_WORKER="$TOTAL_REQUESTS"
+fi
 
 echo "Load test configuration:"
 echo "  API URL:          $API_URL"
 echo "  Auth mode:        $AUTH_MODE"
 echo "  Request rate:     $REQUEST_RATE req/s"
+echo "  Concurrency:      $CONCURRENCY workers"
 echo "  Duration:         $DURATION_MINUTES min"
 echo "  Total requests:   $TOTAL_REQUESTS"
+echo "  Requests/worker:  $REQUESTS_PER_WORKER"
 echo "  Delay between:    ${DELAY}s"
 echo "  Test label:       $TEST_LABEL"
+echo "  Test endpoint:    $TEST_ENDPOINT"
 echo ""
 
 # ---------------------------------------------------------------------------
@@ -151,55 +164,120 @@ trap 'rm -f "$REQUESTS_TMPFILE"' EXIT
 START_TIME=$(date +%s)
 
 # ---------------------------------------------------------------------------
-# Sequential request loop
+# Sequential request loop (or parallel workers)
 # ---------------------------------------------------------------------------
 echo "Starting load test..."
 
-for ((i = 1; i <= TOTAL_REQUESTS; i++)); do
-  TIMESTAMP=$(date +%s)
+worker_loop() {
+  local worker_id=$1
+  local num_requests=$2
+  local delay=$3
+  local tmpfile=$4
 
-  # Send GET request and capture timing + status code
-  RESPONSE=$(curl "${CURL_OPTS[@]}" \
-    --write-out "\n%{http_code} %{time_total}" \
-    --output /dev/null \
-    "${API_URL}/${TEST_ENDPOINT}" 2>&1) || true
+  for ((i = 1; i <= num_requests; i++)); do
+    TIMESTAMP=$(date +%s)
 
-  HTTP_CODE=$(echo "$RESPONSE" | tail -n1 | awk '{print $1}')
-  TIME_TOTAL=$(echo "$RESPONSE" | tail -n1 | awk '{print $2}')
-  LATENCY_MS=$(awk "BEGIN {printf \"%.1f\", $TIME_TOTAL * 1000}")
+    RESPONSE=$(curl "${CURL_OPTS[@]}" \
+      --write-out "\n%{http_code} %{time_total}" \
+      --output /dev/null \
+      "${API_URL}/${TEST_ENDPOINT}" 2>&1) || true
 
-  # Append per-request data as a CSV line (timestamp,status_code,latency_ms)
-  echo "${TIMESTAMP},${HTTP_CODE},${LATENCY_MS}" >> "$REQUESTS_TMPFILE"
+    HTTP_CODE=$(echo "$RESPONSE" | tail -n1 | awk '{print $1}')
+    TIME_TOTAL=$(echo "$RESPONSE" | tail -n1 | awk '{print $2}')
+    LATENCY_MS=$(awk "BEGIN {printf \"%.1f\", $TIME_TOTAL * 1000}")
 
-  # Track 429 throttling
-  if [ "$HTTP_CODE" = "429" ]; then
-    THROTTLED_COUNT=$((THROTTLED_COUNT + 1))
-    # 429 does not count toward consecutive non-2xx errors
-  elif [ "$HTTP_CODE" -lt 200 ] 2>/dev/null || [ "$HTTP_CODE" -ge 300 ] 2>/dev/null; then
-    # Non-2xx (excluding 429)
-    ERROR_COUNT=$((ERROR_COUNT + 1))
-    CONSECUTIVE_ERRORS=$((CONSECUTIVE_ERRORS + 1))
-  else
-    # 2xx success — reset consecutive error counter
-    CONSECUTIVE_ERRORS=0
-  fi
+    echo "${TIMESTAMP},${HTTP_CODE},${LATENCY_MS}" >> "$tmpfile"
 
-  # Abort if >10 consecutive non-2xx errors (excluding 429)
-  if [ "$CONSECUTIVE_ERRORS" -gt 10 ]; then
-    echo "ABORT: More than 10 consecutive non-2xx errors (excluding 429). Stopping test."
-    break
-  fi
+    if [ "$i" -lt "$num_requests" ]; then
+      sleep "$delay"
+    fi
+  done
+}
 
-  # Progress reporting every 100 requests
-  if [ $((i % 100)) -eq 0 ] || [ "$i" -eq "$TOTAL_REQUESTS" ]; then
-    echo "  Progress: $i/$TOTAL_REQUESTS requests (429s: $THROTTLED_COUNT, errors: $ERROR_COUNT)"
-  fi
+if [ "$CONCURRENCY" -gt 1 ]; then
+  # Parallel mode: spawn N workers
+  WORKER_PIDS=()
+  WORKER_FILES=()
 
-  # Sleep between requests (skip after last request)
-  if [ "$i" -lt "$TOTAL_REQUESTS" ]; then
-    sleep "$DELAY"
-  fi
-done
+  for ((w = 1; w <= CONCURRENCY; w++)); do
+    WORKER_FILE=$(mktemp)
+    WORKER_FILES+=("$WORKER_FILE")
+    worker_loop "$w" "$REQUESTS_PER_WORKER" "$DELAY" "$WORKER_FILE" &
+    WORKER_PIDS+=($!)
+  done
+
+  # Progress reporting
+  ELAPSED=0
+  while true; do
+    RUNNING=0
+    for pid in "${WORKER_PIDS[@]}"; do
+      if kill -0 "$pid" 2>/dev/null; then
+        RUNNING=$((RUNNING + 1))
+      fi
+    done
+    if [ "$RUNNING" -eq 0 ]; then
+      break
+    fi
+    ELAPSED=$((ELAPSED + 10))
+    TOTAL_SO_FAR=$(cat "${WORKER_FILES[@]}" 2>/dev/null | wc -l | tr -d ' ')
+    echo "  Progress: ~${TOTAL_SO_FAR}/${TOTAL_REQUESTS} requests (${ELAPSED}s elapsed, ${RUNNING} workers active)"
+    sleep 10
+  done
+
+  # Wait for all workers
+  for pid in "${WORKER_PIDS[@]}"; do
+    wait "$pid" 2>/dev/null || true
+  done
+
+  # Merge worker files into main tmpfile
+  for f in "${WORKER_FILES[@]}"; do
+    cat "$f" >> "$REQUESTS_TMPFILE"
+    rm -f "$f"
+  done
+
+else
+  # Sequential mode (original behavior)
+  for ((i = 1; i <= TOTAL_REQUESTS; i++)); do
+    TIMESTAMP=$(date +%s)
+
+    RESPONSE=$(curl "${CURL_OPTS[@]}" \
+      --write-out "\n%{http_code} %{time_total}" \
+      --output /dev/null \
+      "${API_URL}/${TEST_ENDPOINT}" 2>&1) || true
+
+    HTTP_CODE=$(echo "$RESPONSE" | tail -n1 | awk '{print $1}')
+    TIME_TOTAL=$(echo "$RESPONSE" | tail -n1 | awk '{print $2}')
+    LATENCY_MS=$(awk "BEGIN {printf \"%.1f\", $TIME_TOTAL * 1000}")
+
+    echo "${TIMESTAMP},${HTTP_CODE},${LATENCY_MS}" >> "$REQUESTS_TMPFILE"
+
+    # Track 429 throttling
+    if [ "$HTTP_CODE" = "429" ]; then
+      THROTTLED_COUNT=$((THROTTLED_COUNT + 1))
+      # 429 does not count toward consecutive non-2xx errors
+    elif [ "$HTTP_CODE" -lt 200 ] 2>/dev/null || [ "$HTTP_CODE" -ge 300 ] 2>/dev/null; then
+      ERROR_COUNT=$((ERROR_COUNT + 1))
+      CONSECUTIVE_ERRORS=$((CONSECUTIVE_ERRORS + 1))
+    else
+      CONSECUTIVE_ERRORS=0
+    fi
+
+    # Abort if >10 consecutive non-2xx errors (excluding 429)
+    if [ "$CONSECUTIVE_ERRORS" -gt 10 ]; then
+      echo "ABORT: More than 10 consecutive non-2xx errors (excluding 429). Stopping test."
+      break
+    fi
+
+    # Progress reporting every 100 requests
+    if [ $((i % 100)) -eq 0 ] || [ "$i" -eq "$TOTAL_REQUESTS" ]; then
+      echo "  Progress: $i/$TOTAL_REQUESTS requests (429s: $THROTTLED_COUNT, errors: $ERROR_COUNT)"
+    fi
+
+    if [ "$i" -lt "$TOTAL_REQUESTS" ]; then
+      sleep "$DELAY"
+    fi
+  done
+fi
 
 # Record test end time
 END_TIME=$(date +%s)
@@ -242,6 +320,7 @@ result = {
     "stack_name": "${STACK_NAME:-}",
     "aws_region": "${AWS_REGION:-}",
     "memory_size": memory_val,
+    "test_endpoint": "${TEST_ENDPOINT}",
     "start_time": ${START_TIME},
     "end_time": ${END_TIME},
     "request_rate": ${REQUEST_RATE},
