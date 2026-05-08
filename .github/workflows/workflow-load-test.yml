@@ -281,7 +281,9 @@ jobs:
           echo "  Start time: $START_TIME"
           echo "  End time:   $END_TIME"
 
-          QUERY='filter @type = "REPORT" | fields @duration, @message | limit 10000'
+          # Two queries: one for stats (cold/warm split), one for raw data
+          # Stats query gives us the cold start count and percentiles server-side
+          QUERY='filter @type = "REPORT" | parse @message /Restore Duration: (?<restoreDuration>.*?) ms/ | stats count(*) as invocations, pct(@duration+coalesce(restoreDuration,0), 50) as p50, pct(@duration+coalesce(restoreDuration,0), 90) as p90, pct(@duration+coalesce(restoreDuration,0), 95) as p95, pct(@duration+coalesce(restoreDuration,0), 99) as p99, max(@duration+coalesce(restoreDuration,0)) as maxDuration group by (ispresent(restoreDuration)) as coldstart | sort by coldstart desc'
 
           # Start the query
           QUERY_ID=$(aws logs start-query \
@@ -339,7 +341,6 @@ jobs:
           import json
           import statistics
           import os
-          import re
 
           def percentiles(data):
               if not data:
@@ -387,27 +388,29 @@ jobs:
 
                   for row in cw_data.get("results", []):
                       fields = {item["field"]: item["value"] for item in row}
-                      duration_str = fields.get("@duration", "")
-                      message = fields.get("@message", "")
+                      is_cold = fields.get("coldstart", "0")
+                      invocations = int(fields.get("invocations", "0"))
+                      p50 = float(fields.get("p50", "0"))
+                      p90 = float(fields.get("p90", "0"))
+                      p95 = float(fields.get("p95", "0"))
+                      p99 = float(fields.get("p99", "0"))
+                      max_dur = float(fields.get("maxDuration", "0"))
 
-                      if not duration_str:
-                          continue
-
-                      duration = float(duration_str)
-
-                      # Parse Restore Duration from @message (SnapStart cold starts)
-                      restore_match = re.search(r"Restore Duration:\s+([\d.]+)\s+ms", message)
-                      if restore_match:
-                          restore_duration = float(restore_match.group(1))
-                          cold_durations.append(duration + restore_duration)
+                      if is_cold == "1":
+                          # Cold start stats from CloudWatch
+                          cold_stats_cw = {"p50": f"{p50:.1f}", "p90": f"{p90:.1f}", "p95": f"{p95:.1f}", "p99": f"{p99:.1f}", "max": f"{max_dur:.1f}", "count": invocations}
                       else:
-                          warm_durations.append(duration)
+                          # Warm start stats from CloudWatch
+                          warm_stats_cw = {"p50": f"{p50:.1f}", "p90": f"{p90:.1f}", "p95": f"{p95:.1f}", "p99": f"{p99:.1f}", "max": f"{max_dur:.1f}", "count": invocations}
               except (json.JSONDecodeError, FileNotFoundError, KeyError, ValueError) as e:
                   print(f"WARNING: Failed to parse CloudWatch results: {e}")
                   cw_query_failed = True
 
-          warm_stats = percentiles(warm_durations)
-          cold_stats = percentiles(cold_durations)
+          # Use CloudWatch stats if available, otherwise show N/A
+          if "warm_stats_cw" not in dir():
+              warm_stats_cw = {"p50": "N/A", "p90": "N/A", "p95": "N/A", "p99": "N/A", "max": "N/A", "count": 0}
+          if "cold_stats_cw" not in dir():
+              cold_stats_cw = {"p50": "N/A", "p90": "N/A", "p95": "N/A", "p99": "N/A", "max": "N/A", "count": 0}
 
           # Build report
           lines = []
@@ -442,20 +445,20 @@ jobs:
           lines.append(f"| {client_stats['p50']} | {client_stats['p95']} | {client_stats['p99']} | {client_stats['max']} | {client_stats['count']} |")
           lines.append("")
 
-          if cw_query_failed and not warm_durations and not cold_durations:
+          if cw_query_failed and warm_stats_cw["count"] == 0 and cold_stats_cw["count"] == 0:
               lines.append("> ⚠️ **Server-side metrics unavailable** — CloudWatch Logs Insights query failed or returned no results. Only client-side latency is shown.")
               lines.append("")
 
           lines.append("## Warm Invocations Only (Lambda-Side)")
-          lines.append("| p50 | p95 | p99 | max | count |")
-          lines.append("|-----|-----|-----|-----|-------|")
-          lines.append(f"| {warm_stats['p50']} | {warm_stats['p95']} | {warm_stats['p99']} | {warm_stats['max']} | {warm_stats['count']} |")
+          lines.append("| p50 | p90 | p95 | p99 | max | count |")
+          lines.append("|-----|-----|-----|-----|-----|-------|")
+          lines.append(f"| {warm_stats_cw['p50']} | {warm_stats_cw['p90']} | {warm_stats_cw['p95']} | {warm_stats_cw['p99']} | {warm_stats_cw['max']} | {warm_stats_cw['count']} |")
           lines.append("")
 
           lines.append("## Cold Starts Only (Lambda-Side)")
-          lines.append("| p50 | p95 | p99 | max | count |")
-          lines.append("|-----|-----|-----|-----|-------|")
-          lines.append(f"| {cold_stats['p50']} | {cold_stats['p95']} | {cold_stats['p99']} | {cold_stats['max']} | {cold_stats['count']} |")
+          lines.append("| p50 | p90 | p95 | p99 | max | count |")
+          lines.append("|-----|-----|-----|-----|-----|-------|")
+          lines.append(f"| {cold_stats_cw['p50']} | {cold_stats_cw['p90']} | {cold_stats_cw['p95']} | {cold_stats_cw['p99']} | {cold_stats_cw['max']} | {cold_stats_cw['count']} |")
           lines.append("")
 
           report = "\n".join(lines)
