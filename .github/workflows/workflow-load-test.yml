@@ -272,8 +272,8 @@ jobs:
           CW_QUERY_FAILED="false"
 
           # Read start_time and end_time from load-test-results.json
-          # Subtract 60s from start and add 120s to end to capture all REPORT lines
-          START_TIME=$(python3 -c "import json; d=json.load(open('load-test-results.json')); print(d['start_time'] - 60)")
+          # Use exact start_time (after warmup) so warmup cold start is excluded
+          START_TIME=$(python3 -c "import json; d=json.load(open('load-test-results.json')); print(d['start_time'])")
           END_TIME=$(python3 -c "import json; d=json.load(open('load-test-results.json')); print(d['end_time'] + 120)")
 
           echo "Querying CloudWatch Logs Insights..."
