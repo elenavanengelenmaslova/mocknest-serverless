@@ -153,7 +153,6 @@ echo ""
 # ---------------------------------------------------------------------------
 THROTTLED_COUNT=0
 ERROR_COUNT=0
-CONSECUTIVE_ERRORS=0
 IS_VALID=true
 
 # Temporary file for per-request data (avoids shell argument length limits)
@@ -254,17 +253,13 @@ else
     # Track 429 throttling
     if [ "$HTTP_CODE" = "429" ]; then
       THROTTLED_COUNT=$((THROTTLED_COUNT + 1))
-      # 429 does not count toward consecutive non-2xx errors
     elif [ "$HTTP_CODE" -lt 200 ] 2>/dev/null || [ "$HTTP_CODE" -ge 300 ] 2>/dev/null; then
       ERROR_COUNT=$((ERROR_COUNT + 1))
-      CONSECUTIVE_ERRORS=$((CONSECUTIVE_ERRORS + 1))
-    else
-      CONSECUTIVE_ERRORS=0
     fi
 
-    # Abort if >10 consecutive non-2xx errors (excluding 429)
-    if [ "$CONSECUTIVE_ERRORS" -gt 10 ]; then
-      echo "ABORT: More than 10 consecutive non-2xx errors (excluding 429). Stopping test."
+    # Abort if error rate exceeds 50% (after at least 100 requests)
+    if [ "$i" -ge 100 ] && [ "$ERROR_COUNT" -gt $((i / 2)) ]; then
+      echo "ABORT: Error rate exceeds 50% ($ERROR_COUNT errors in $i requests). Stack may be down."
       break
     fi
 
