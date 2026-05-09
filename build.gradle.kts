@@ -98,8 +98,8 @@ subprojects {
             implementation("ai.koog:agents-test:$koogVersion")
 
             // Kotlin AWS SDK (versions from main)
-            val awsSdkKotlinVersion = "1.6.64"
-            val smithyKotlinVersion = "1.6.12"
+            val awsSdkKotlinVersion = "1.6.68"
+            val smithyKotlinVersion = "1.6.13"
             implementation("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
