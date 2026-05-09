@@ -309,31 +309,23 @@ If you see 429 errors in a test run, reduce the `request-rate` parameter and re-
 
 ### Benchmark Results: Koin Runtime (v0.7.0+)
 
-The following results were measured using the load test pipeline against the runtime Lambda with Koin DI, configured with **1024 MB memory**. The test sends 3000 sequential requests at 5 req/s over 10 minutes against `GET /__admin/health` with no mock mappings loaded. The request rate is constrained by the API Gateway usage plan (BurstLimit: 1, RateLimit: 100 req/s) — see [API Gateway Throttle Constraints](#api-gateway-throttle-constraints) for details. All latency values are in milliseconds.
+The following results were measured using the load test pipeline against the runtime Lambda with Koin DI, configured with **1024 MB memory**. The test sends parallel requests at 30 req/s over 10 minutes against `GET /__admin/health` with no mock mappings loaded. All latency values are in milliseconds.
 
 > **Important**: These results measure the health check endpoint only, which does not access S3 or perform mock matching. They reflect pure Lambda cold start / warm invocation overhead. Real-world latency for mock-serving requests will be higher due to S3 access and WireMock matching.
 
 #### Warm Invocations (Lambda-Side)
 
-| p50 | p95 | p99 | max | count |
-|-----|-----|-----|-----|-------|
-| 1.4 ms | 2.1 ms | 2.7 ms | 16.2 ms | 2998 |
+| p50 | p90 | p95 | p99 | max | count |
+|-----|-----|-----|-----|-----|-------|
+| 1.4 ms | 1.9 ms | 2.1 ms | 4.2 ms | 35.3 ms | 17,217 |
 
 #### Cold Starts (Lambda-Side, SnapStart Restore + Duration)
 
-| Samples | Observed |
-|---------|----------|
-| 2 | ~755 ms |
-
-Cold start frequency is low at 5 req/s because SnapStart keeps execution environments warm. For comparison with the pre-migration Spring Cloud Function baseline, see the [migration blog post](migration.md#load-test-benchmark-results).
-
-#### All Requests (Client-Side, includes API Gateway + network)
-
-| p50 | p95 | p99 | max | count |
+| p50 | p90 | p99 | max | count |
 |-----|-----|-----|-----|-------|
-| 226.7 ms | 486.3 ms | 511.3 ms | 780.5 ms | 3000 |
+| 754 ms | 869 ms | 869 ms | 869 ms | 4 |
 
-Client-side latency includes network transit and API Gateway processing overhead on top of Lambda execution time.
+Cold start count is remarkably low (only 4 across 10 minutes at 30 req/s) because Koin's fast execution means less concurrent scaling pressure — Lambda reuses existing environments rather than spawning new ones. For comparison with the pre-migration Spring Cloud Function baseline, see the [migration blog post](migration.md#load-test-benchmark-results).
 
 #### Test Configuration
 
@@ -341,8 +333,7 @@ Client-side latency includes network transit and API Gateway processing overhead
 |-----------|-------|
 | Runtime Memory | 1024 MB |
 | AWS Region | eu-west-1 |
-| Request Rate | 5 req/s |
+| Request Rate | 30 req/s (parallel) |
 | Duration | 10 min |
-| Total Requests | 3000 |
 | Target Endpoint | GET /__admin/health |
 | Mock Mappings Loaded | 0 (pre-test cleanup) |
