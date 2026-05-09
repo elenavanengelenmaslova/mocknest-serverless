@@ -65,7 +65,7 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
           
       - name: Setup SAM CLI
-        uses: aws-actions/setup-sam@v2
+        uses: aws-actions/setup-sam@v3
         
       - name: Build Lambda JAR
         run: |
