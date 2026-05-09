@@ -10,7 +10,7 @@
 - [x] 1.6 Implement per-request tracking: record timestamp, HTTP status code, and latency_ms for each request; track 429 count and consecutive non-2xx error count; abort if >10 consecutive non-2xx (excluding 429)
 - [x] 1.7 Implement JSON output: write all results to `load-test-results.json` with metadata (test_label, start_time, end_time, request_rate, duration_minutes, total_requests, throttled_count, error_count, is_valid) and per-request array
 - [x] 1.8 Make the script executable (`chmod +x`)
-- [~] 1.9 Test the script locally against a deployed stack with a short run (1 min, 2 req/s) to verify JSON output, timing capture, and error handling
+- [ ] 1.9 Test the script locally against a deployed stack with a short run (1 min, 2 req/s) to verify JSON output, timing capture, and error handling
 
 ## Task 2: Create the reusable load test workflow (`workflow-load-test.yml`)
 
@@ -41,5 +41,5 @@
 
 ## Task 5: End-to-end validation
 
-- [~] 5.1 Trigger the workflow via `workflow_dispatch` against a test stack with a short duration (2 min, 3 req/s) and verify: Job Summary renders all three tables, artifacts are uploaded with correct naming, no 429s at the configured rate
-- [~] 5.2 Verify error handling: test with a non-existent stack name to confirm descriptive error message; test with `request-rate` > 50 to confirm rejection
+- [ ] 5.1 Trigger the workflow via `workflow_dispatch` against a test stack with a short duration (2 min, 3 req/s) and verify: Job Summary renders all three tables, artifacts are uploaded with correct naming, no 429s at the configured rate
+- [ ] 5.2 Verify error handling: test with a non-existent stack name to confirm descriptive error message; test with `request-rate` > 50 to confirm rejection

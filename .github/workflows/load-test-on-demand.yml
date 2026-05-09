@@ -31,6 +31,21 @@ on:
         required: false
         default: 'GitHubOIDCAdmin'
         type: string
+      test-endpoint:
+        description: 'Endpoint path to hit during load test (e.g., "mocknest/bored/api/activity?type=social")'
+        required: false
+        default: '__admin/health'
+        type: string
+      setup-mock:
+        description: 'Create a test mock before running the load test'
+        required: false
+        default: false
+        type: boolean
+      concurrency:
+        description: 'Number of parallel workers (1=sequential, 30=parallel for scaling test)'
+        required: false
+        default: '1'
+        type: string
 
 permissions:
   id-token: write
@@ -46,5 +61,8 @@ jobs:
       request-rate: ${{ inputs.request-rate }}
       duration-minutes: ${{ inputs.duration-minutes }}
       github-actions-role-name: ${{ inputs.github-actions-role-name }}
+      test-endpoint: ${{ inputs.test-endpoint }}
+      setup-mock: ${{ inputs.setup-mock }}
+      concurrency: ${{ inputs.concurrency }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
