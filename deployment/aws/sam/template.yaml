@@ -39,6 +39,21 @@ Parameters:
       API_KEY (default): callers supply an x-api-key header. An API key and usage plan are created automatically.
       IAM: callers sign requests with AWS Signature Version 4. No API key is created.
 
+  # ── Throttling ──
+  ThrottleBurstLimit:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    MaxValue: 5000
+    Description: Maximum number of concurrent requests allowed (burst capacity) for API Gateway throttling
+
+  ThrottleRateLimit:
+    Type: Number
+    Default: 100
+    MinValue: 1
+    MaxValue: 10000
+    Description: Steady-state request rate (requests per second) for API Gateway throttling
+
   # ── Runtime Lambda (serves mock responses) ──
   RuntimeLambdaMemorySize:
     Type: Number
@@ -521,8 +536,8 @@ Resources:
         - ApiId: !Ref MockNestApiKeyModeApi
           Stage: !Ref DeploymentName
       Throttle:
-        BurstLimit: 1    # Limit concurrent requests to reduce Lambda scaling
-        RateLimit: 100   # Allow 100 requests/second sequential - mocks are very fast
+        BurstLimit: !Ref ThrottleBurstLimit
+        RateLimit: !Ref ThrottleRateLimit
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -535,6 +550,24 @@ Resources:
       KeyId: !Ref MockNestApiKey
       KeyType: API_KEY
       UsagePlanId: !Ref MockNestUsagePlan
+
+  # Usage Plan for IAM mode API throttling (no API key or UsagePlanKey needed — IAM uses SigV4)
+  MockNestIamUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Condition: IsIamMode
+    DependsOn: MockNestIamModeApiStage
+    Properties:
+      UsagePlanName: !Sub "${AWS::StackName}-iam-usage-plan"
+      Description: Usage plan for MockNest Serverless IAM-mode API
+      ApiStages:
+        - ApiId: !Ref MockNestIamModeApi
+          Stage: !Ref DeploymentName
+      Throttle:
+        BurstLimit: !Ref ThrottleBurstLimit
+        RateLimit: !Ref ThrottleRateLimit
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
 
   # Lambda function for MockNest Serverless runtime — API key mode
   MockNestRuntimeFunction:
