@@ -45,7 +45,7 @@ Parameters:
     Default: 1
     MinValue: 1
     MaxValue: 5000
-    Description: Maximum number of concurrent requests allowed (burst capacity) for API Gateway throttling
+    Description: Burst capacity (short spike allowance in API Gateway token-bucket throttling), not guaranteed sustained concurrency
 
   ThrottleRateLimit:
     Type: Number
