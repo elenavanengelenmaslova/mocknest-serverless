@@ -495,6 +495,11 @@ Resources:
       OpenApiVersion: '3.0.1'
       Auth:
         ApiKeyRequired: true
+      MethodSettings:
+        - HttpMethod: "*"
+          ResourcePath: "/*"
+          ThrottlingBurstLimit: !Ref ThrottleBurstLimit
+          ThrottlingRateLimit: !Ref ThrottleRateLimit
       Tags:
         Application: MockNest-Serverless
 
@@ -508,6 +513,11 @@ Resources:
       OpenApiVersion: '3.0.1'
       Auth:
         DefaultAuthorizer: AWS_IAM
+      MethodSettings:
+        - HttpMethod: "*"
+          ResourcePath: "/*"
+          ThrottlingBurstLimit: !Ref ThrottleBurstLimit
+          ThrottlingRateLimit: !Ref ThrottleRateLimit
       Tags:
         Application: MockNest-Serverless
 
@@ -535,9 +545,6 @@ Resources:
       ApiStages:
         - ApiId: !Ref MockNestApiKeyModeApi
           Stage: !Ref DeploymentName
-      Throttle:
-        BurstLimit: !Ref ThrottleBurstLimit
-        RateLimit: !Ref ThrottleRateLimit
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -550,24 +557,6 @@ Resources:
       KeyId: !Ref MockNestApiKey
       KeyType: API_KEY
       UsagePlanId: !Ref MockNestUsagePlan
-
-  # Usage Plan for IAM mode API throttling (no API key or UsagePlanKey needed — IAM uses SigV4)
-  MockNestIamUsagePlan:
-    Type: AWS::ApiGateway::UsagePlan
-    Condition: IsIamMode
-    DependsOn: MockNestIamModeApiStage
-    Properties:
-      UsagePlanName: !Sub "${AWS::StackName}-iam-usage-plan"
-      Description: Usage plan for MockNest Serverless IAM-mode API
-      ApiStages:
-        - ApiId: !Ref MockNestIamModeApi
-          Stage: !Ref DeploymentName
-      Throttle:
-        BurstLimit: !Ref ThrottleBurstLimit
-        RateLimit: !Ref ThrottleRateLimit
-      Tags:
-        - Key: Application
-          Value: MockNest-Serverless
 
   # Lambda function for MockNest Serverless runtime — API key mode
   MockNestRuntimeFunction:
