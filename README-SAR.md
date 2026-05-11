@@ -21,6 +21,11 @@ When deploying from SAR, you can configure these parameters:
 - **DeploymentName** (default: `mocks`): deployment instance identifier for this MockNest installation. Examples: `team-alpha`, `payment-apis`, `test`. Used as API Gateway stage name.
 - **AuthMode** (default: `API_KEY`): authentication mode for all API Gateway endpoints. `API_KEY`: callers supply an `x-api-key` header; an API key and usage plan are created automatically. `IAM`: callers sign requests with AWS Signature Version 4; no API key is created.
 
+**Throttling** — API Gateway rate limiting
+
+- **ThrottleBurstLimit** (default: `1`): maximum number of concurrent requests allowed (burst capacity) for API Gateway throttling (range: 1–5000). Applied to usage plans in both API_KEY and IAM modes.
+- **ThrottleRateLimit** (default: `100`): steady-state request rate (requests per second) for API Gateway throttling (range: 1–10000). Applied to usage plans in both API_KEY and IAM modes.
+
 **Runtime Lambda** — serves mock responses
 
 - **RuntimeLambdaMemorySize** (default: `1024`): memory size in MB (range: 512–10240). Default optimized via Lambda Power Tuner with 100 mocks. See [PERFORMANCE.md](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/PERFORMANCE.md).
@@ -239,7 +244,7 @@ MockNest Serverless runs on AWS Lambda with:
 - **API Gateway**: HTTP routing with API key or IAM authentication (configurable via `AuthMode`)
 - **Amazon Bedrock**: AI-powered mock generation (optional)
 
-**API Gateway Throttling**: BurstLimit: 1 limits concurrent requests to reduce Lambda scaling, allowing 100 requests/second sequential throughput.
+**API Gateway Throttling**: Configurable via `ThrottleBurstLimit` (default: 1) and `ThrottleRateLimit` (default: 100) parameters. BurstLimit limits concurrent requests to reduce Lambda scaling; RateLimit controls steady-state requests/second throughput.
 
 For detailed architecture information, see the [main README](https://github.com/elenavanengelenmaslova/mocknest-serverless#architecture-overview).
 

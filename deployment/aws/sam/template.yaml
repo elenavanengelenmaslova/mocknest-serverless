@@ -39,6 +39,21 @@ Parameters:
       API_KEY (default): callers supply an x-api-key header. An API key and usage plan are created automatically.
       IAM: callers sign requests with AWS Signature Version 4. No API key is created.
 
+  # ── Throttling ──
+  ThrottleBurstLimit:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    MaxValue: 5000
+    Description: Burst capacity (short spike allowance in API Gateway token-bucket throttling), not guaranteed sustained concurrency
+
+  ThrottleRateLimit:
+    Type: Number
+    Default: 100
+    MinValue: 1
+    MaxValue: 10000
+    Description: Steady-state request rate (requests per second) for API Gateway throttling
+
   # ── Runtime Lambda (serves mock responses) ──
   RuntimeLambdaMemorySize:
     Type: Number
@@ -480,6 +495,11 @@ Resources:
       OpenApiVersion: '3.0.1'
       Auth:
         ApiKeyRequired: true
+      MethodSettings:
+        - HttpMethod: "*"
+          ResourcePath: "/*"
+          ThrottlingBurstLimit: !Ref ThrottleBurstLimit
+          ThrottlingRateLimit: !Ref ThrottleRateLimit
       Tags:
         Application: MockNest-Serverless
 
@@ -493,6 +513,11 @@ Resources:
       OpenApiVersion: '3.0.1'
       Auth:
         DefaultAuthorizer: AWS_IAM
+      MethodSettings:
+        - HttpMethod: "*"
+          ResourcePath: "/*"
+          ThrottlingBurstLimit: !Ref ThrottleBurstLimit
+          ThrottlingRateLimit: !Ref ThrottleRateLimit
       Tags:
         Application: MockNest-Serverless
 
@@ -520,9 +545,6 @@ Resources:
       ApiStages:
         - ApiId: !Ref MockNestApiKeyModeApi
           Stage: !Ref DeploymentName
-      Throttle:
-        BurstLimit: 1    # Limit concurrent requests to reduce Lambda scaling
-        RateLimit: 100   # Allow 100 requests/second sequential - mocks are very fast
       Tags:
         - Key: Application
           Value: MockNest-Serverless
