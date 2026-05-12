@@ -69,13 +69,13 @@ subprojects {
         // Logging
         implementation("io.github.oshai:kotlin-logging-jvm:8.0.02")
 
-        runtimeOnly("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
+        runtimeOnly("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0-0.6.x-compat")
 
         // Testing
         testImplementation("org.junit.jupiter:junit-jupiter:6.0.3")
         testImplementation("io.mockk:mockk:1.14.9")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
-        testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+        testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.8")
 
         // Jackson 2.x BOM for consistent Jackson versions
@@ -83,7 +83,7 @@ subprojects {
 
         // Explicit version constraints for managed dependencies
         constraints {
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 
             // WireMock
             implementation("org.wiremock:wiremock:3.13.2")
