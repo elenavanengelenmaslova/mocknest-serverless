@@ -5,10 +5,10 @@ All notable changes to MockNest Serverless will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.7.1] - 2026-05-12
+## [0.8.0] - 2026-05-12
 ### Added
 - **Rate limiting for IAM-authenticated APIs**: Rate limiting now applies to both API key and IAM SigV4 authentication modes, ensuring consistent throttling regardless of auth method.
-- **Configurable rate limiting via SAM/SAR parameters**: Exposed rate limiting configuration as SAM template and SAR deployment parameters for easy customization during deployment.
+- **New SAM/SAR parameters for rate limiting**: Added `ThrottleRateLimit` and `ThrottlingBurstLimit` parameters to the SAM template and SAR application, allowing users to configure API Gateway throttling at deployment time.
 ### Changed
 - **Upgraded dependencies**: Updated project dependencies to latest compatible versions.
 
