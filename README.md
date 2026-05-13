@@ -36,6 +36,8 @@ Received the 🏆 **Creative Track Award** at the [AWS 10,000 AIdeas Competition
 | Beeceptor | Hosted SaaS | Docker / VMs / Kubernetes | ❌ | REST / GraphQL / SOAP / gRPC | ❌ | Free tier + paid |
 | Postman Mock Servers | Hosted SaaS | Local desktop only | ❌ | HTTP example-based | ❌ | Free tier + paid |
 
+For detailed competitive analysis, operating model comparison, and cost positioning, see [Market Analysis](docs/MARKET_ANALYSIS.md).
+
 ## Used for
 
 - **CI/CD integration testing in the cloud** - Run automated integration tests in your CI/CD pipeline without depending on external APIs
@@ -222,7 +224,7 @@ MockNest Serverless offers two deployment methods:
 **AWS Serverless Application Repository (SAR) - Recommended for Most Users**
 - One-click deployment from AWS Console
 - Pre-built and tested application package
-- Automatic updates available
+- New versions published to SAR — update your deployment when ready
 - See [Quick Start for SAR Users](#quick-start-for-sar-users) below
 
 **Build from Source - For Developers and Contributors**
@@ -388,7 +390,7 @@ For developers who want to build from source or contribute to MockNest Serverles
 
 1. **Clone and Build**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/elenavanengelenmaslova/mocknest-serverless.git
    cd mocknest-serverless
    ./gradlew build
    ```
