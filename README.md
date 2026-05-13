@@ -14,16 +14,27 @@
 [![JVM](https://img.shields.io/badge/JVM-25-orange.svg)](https://openjdk.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-*AI-powered API mocking for cloud-native testing on AWS*
+> Deploy WireMock-compatible API mocking into your own AWS account.
 
-MockNest Serverless is a serverless WireMock-compatible runtime for AWS that enables realistic integration testing without relying on live external services, with AI-assisted mock generation using Amazon Bedrock. It runs natively on AWS Lambda and persists mock definitions in Amazon S3, making mocks available across cold starts and deployments.
+Your integration tests need stable external APIs. Those APIs are often unavailable, unreliable, or impossible to configure with test data in non-production environments. MockNest gives you a persistent, serverless mock server running in your own AWS account.
+
+[**Deploy via SAR**](https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless) | [**Demo Video**](https://youtu.be/NjzcsuE1gqA) | [**Postman Collection**](docs/postman/) | [**API Docs**](docs/api/mocknest-openapi.yaml)
 
 Received the 🏆 **Creative Track Award** at the [AWS 10,000 AIdeas Competition](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners).
-- [Demo](https://youtu.be/NjzcsuE1gqA)
 
 <p>
   <img src="docs/images/MockNestServerlessLogo.png" alt="MockNest Serverless Logo" width="400">
 </p>
+
+## Why MockNest?
+
+| Solution | Delivery | Customer-hosted | Serverless | AI mock generation | IAM auth | Pricing |
+|---|---|---|---|---|---|---|
+| **MockNest Serverless** | Own AWS account | ✅ (runs in your account) | ✅ | REST / GraphQL / SOAP | ✅ | Open source |
+| WireMock Cloud | Hosted SaaS | Kubernetes + Postgres | ❌ | REST / GraphQL | ❌ | Free tier + paid |
+| Mockoon Cloud | Hosted SaaS | CLI / Docker (self-assembly) | ❌ | HTTP / JSON templates | ❌ | Paid + trial |
+| Beeceptor | Hosted SaaS | Docker / VMs / Kubernetes | ❌ | REST / GraphQL / SOAP / gRPC | ❌ | Free tier + paid |
+| Postman Mock Servers | Hosted SaaS | Local desktop only | ❌ | HTTP example-based | ❌ | Free tier + paid |
 
 ## Used for
 
