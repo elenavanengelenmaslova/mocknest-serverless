@@ -138,9 +138,8 @@ curl "${MOCKNEST_URL}/ai/generation/health" -H "x-api-key: ${API_KEY}"
 
 > **Note**: The `x-api-key` header applies to API key mode (the default). In IAM mode, requests must be SigV4-signed instead of using an API key header.
 
-### Step 4: Create and Test a Mock
+### Step 4: Create a Mock
 
-Create a simple mock:
 ```bash
 curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
   -H "x-api-key: ${API_KEY}" \
@@ -155,52 +154,18 @@ curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
   }'
 ```
 
-Test the mock:
+### Step 5: Test the Mock
+
 ```bash
 curl "${MOCKNEST_URL}/mocknest/hello" -H "x-api-key: ${API_KEY}"
 ```
 
-> **Note**: The `x-api-key` header applies to API key mode (the default). In IAM mode, use SigV4 request signing instead.
-
-### Step 5: Try AI-Assisted Generation
-
-Generate mocks from an OpenAPI spec:
-```bash
-curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
-  -H "x-api-key: ${API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "namespace": {
-        "apiName": "petstore",
-        "client": null
-    },
-    "specification": null,
-    "specificationUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
-    "format": "OPENAPI_3",
-    "description": "Generate mocks for 4 pets, only GET endpoints. 1 pet is a bird with image: https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg, available, new, tag id=1 name=new. API call to get all new pets returns that bird. The other 3 pets are available but not new.",
-    "options": {
-        "enableValidation": true
-    }
-}'
-```
-
-When `enableValidation` is enabled, generated mocks are automatically validated. If invalid mocks are detected, the system retries generation with AI self-correction (up to `BedrockGenerationMaxRetries` attempts, default 1, range 0-2) and only returns mocks that pass validation.
-
-Import the generated mappings (copy the `mappings` array from the response):
-```bash
-curl -X POST "${MOCKNEST_URL}/__admin/mappings/import" \
-  -H "x-api-key: ${API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{"mappings": [...]}'
-```
-
-Test the imported mock:
-```bash
-curl "${MOCKNEST_URL}/mocknest/petstore/pet/findByStatus?status=available" \
-  -H "x-api-key: ${API_KEY}"
-```
+You should receive: `{"message": "Hello from MockNest!"}`
 
 ### What's Next?
+
+**Try AI-Assisted Generation**
+Generate mocks from an OpenAPI spec with a single API call — see [docs/USAGE.md](docs/USAGE.md) for examples using REST, SOAP/WSDL, and GraphQL specifications.
 
 **Configure Your Client App**
 To use MockNest with your application:
@@ -336,11 +301,10 @@ The following WireMock capabilities have been validated in the serverless enviro
 
 **Runtime Latency by Mock Count**: Lambda Power Tuner testing shows warm invocation latency stays flat as mock count grows — ~119 ms with 100 mocks (1024 MB) and ~113 ms with 1000 mocks (1536 MB). The optimal memory shifts from 1024 MB to 1536 MB at 1000 mocks due to increased heap and CPU demand, with per-invocation cost rising from ~$0.0000016 to ~$0.0000023.
 
-**Scaling Strategy**: For large-scale deployments or when managing many APIs, consider these approaches:
+**Scaling Strategy**: As your mock count grows, increase Lambda memory accordingly. For large-scale deployments or when managing many APIs, consider grouping mocks into separate deployments:
 
-- **Multiple Deployments**: Deploy separate MockNest instances for different API groups or teams. Group APIs by authentication method (since `AuthMode` is a deployment-level setting), team ownership, or traffic volume. This keeps mock sets smaller per deployment, reduces cold start times, and allows independent access control.
+- **Multiple Deployments**: Deploy separate MockNest instances for different API groups or teams. Group APIs by authentication method (since `AuthMode` is a deployment-level setting), team ownership, or traffic volume. This keeps mock sets at a reasonable size per Lambda, reduces cold start times, and allows independent access control.
   - Example: `mocknest-payment-apis`, `mocknest-user-apis`, `mocknest-notification-apis`
-  - Recommended when mock count exceeds ~1000 per deployment
 
 - **Namespace Organization**: Within a single deployment, use namespaces to logically group mocks
   - Simple API: `/petstore/`
@@ -348,7 +312,7 @@ The following WireMock capabilities have been validated in the serverless enviro
   - Multi-tenant: `/tenant-b/petstore/`
   - Allows multiple teams and APIs to coexist without conflicts
 
-**Recommendation**: Keep each deployment under ~500–1000 mappings for optimal performance. Use namespaces for logical grouping within a deployment, and use multiple deployments when you need isolation, separate auth modes, or independent scaling.
+**Memory Sizing**: Increase Lambda memory as mock count grows. Load testing shows 1024 MB works well for ~100 mocks and 1536 MB for ~1000 mocks. Use multiple deployments when you need isolation, separate auth modes, or independent scaling.
 
 For detailed memory sizing, cold start measurements, scaling benchmarks (100 vs 1000 mocks), and tuning guidance, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
