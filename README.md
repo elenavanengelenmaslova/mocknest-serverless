@@ -36,19 +36,80 @@ Received the 🏆 **Creative Track Award** at the [AWS 10,000 AIdeas Competition
 | Beeceptor | Hosted SaaS | Docker / VMs / Kubernetes | ❌ | REST / GraphQL / SOAP / gRPC | ❌ | Free tier + paid |
 | Postman Mock Servers | Hosted SaaS | Local desktop only | ❌ | HTTP example-based | ❌ | Free tier + paid |
 
-## Used for
+For detailed competitive analysis, operating model comparison, and cost positioning, see [Market Analysis](docs/MARKET_ANALYSIS.md).
 
-- **CI/CD integration testing in the cloud** - Run automated integration tests in your CI/CD pipeline without depending on external APIs
-- **Mocking third-party APIs** - Mock Salesforce, payment gateways, SOAP services, REST APIs, GraphQL APIs and other external dependencies
-- **Testing in restricted environments** - Run exploratory and integration tests in cloud environments where external APIs are unavailable, unreliable, or have difficult-to-setup test data
+## Getting Started
 
-## Architecture Overview
+### Quick Start (5 Minutes)
 
-<div style="text-align: center;">
-  <img src="docs/images/SolutionDesign.png" alt="MockNest Serverless Architecture" width="600">
-</div>
+Try out MockNest Serverless quickly - deploy from SAR and test your first mocks.
 
-MockNest Serverless consists of AWS Lambda functions that serve both the WireMock admin API and mocked endpoints, with persistent storage in Amazon S3. AI features use Amazon Bedrock for intelligent mock generation when called.
+### Step 1: Deploy from AWS Serverless Application Repository
+
+1. Go to the [AWS Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless)
+2. Click "Deploy" and accept the default parameters
+3. Wait for deployment to complete (typically 2-3 minutes)
+
+### Step 2: Get Your API Details
+
+After deployment completes, find your API URL and API key in the CloudFormation stack outputs:
+
+```bash
+export MOCKNEST_URL="https://your-api-id.execute-api.your-region.amazonaws.com/mocks"
+export API_KEY="your-api-key-value-here"
+```
+
+### Step 3: Verify Health
+
+```bash
+curl "${MOCKNEST_URL}/__admin/health" -H "x-api-key: ${API_KEY}"
+```
+
+### Step 4: Create a Mock
+
+```bash
+curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request": {"method": "GET", "urlPath": "/hello"},
+    "response": {
+      "status": 200,
+      "jsonBody": {"message": "Hello from MockNest!"}
+    },
+    "persistent": true
+  }'
+```
+
+### Step 5: Test the Mock
+
+```bash
+curl "${MOCKNEST_URL}/mocknest/hello" -H "x-api-key: ${API_KEY}"
+```
+
+You should receive: `{"message": "Hello from MockNest!"}`
+
+For detailed deployment options, customization, and building from source, see [Deployment for Developers](#deployment-for-developers) below.
+
+### What's Next?
+
+**Try AI-Assisted Generation**
+Generate mocks from an OpenAPI spec with a single API call — see [docs/USAGE.md](docs/USAGE.md) for examples using REST, SOAP/WSDL, and GraphQL specifications.
+
+**Configure Your Client App**
+To use MockNest with your application:
+1. Create mocks for the third-party APIs your app depends on (using manual creation or AI generation)
+2. Update your app's configuration to point at MockNest instead of the real API:
+   - Change the API base URL to `${MOCKNEST_URL}/mocknest` (plus any path prefix like `/petstore`)
+   - **API key mode** (default): Add the API key header to your requests: `x-api-key: ${API_KEY}`
+   - **IAM mode**: Sign requests with AWS SigV4 (using your AWS SDK or `--aws-sigv4` in curl)
+3. Your app will now call mocks instead of real services
+
+**Learn More**
+- **More Examples**: See [docs/USAGE.md](docs/USAGE.md) for SOAP/WSDL, GraphQL, and advanced AI generation
+- **Postman Collection**: Import from [docs/postman/](docs/postman/) for ready-to-use examples
+- **OpenAPI Specification**: Full API reference at [docs/api/mocknest-openapi.yaml](docs/api/mocknest-openapi.yaml)
+- **SAR Guide**: Read [README-SAR.md](README-SAR.md) for detailed deployment and configuration options
 
 ## Features
 
@@ -95,236 +156,13 @@ Generation quality is measured using a 46-scenario eval suite across 12 API spec
 
 *Tested with Amazon Nova Pro (`eu-west-1`). Self-correction retries are configurable (0–2 via `BedrockGenerationMaxRetries`, default 1). Invalid mocks are filtered out — only valid mocks are returned. For full methodology see the [Prompt Eval Guide](docs/PROMPT_EVAL.md).*
 
-## Getting Started
+## Architecture Overview
 
-### Quick Start (5 Minutes)
+<div style="text-align: center;">
+  <img src="docs/images/SolutionDesign.png" alt="MockNest Serverless Architecture" width="600">
+</div>
 
-Try out MockNest Serverless quickly - deploy from SAR and test your first mocks.
-
-### Step 1: Deploy from AWS Serverless Application Repository
-
-1. Go to the [AWS Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless)
-2. Select your deployment region (see [supported regions](docs/REGIONS.md) for AI feature availability)
-3. Click "Deploy" and accept the default parameters
-4. Wait for deployment to complete (typically 2-3 minutes)
-
-> For parameter details and customization options, see the [SAR User Guide](README-SAR.md).
-
-### Step 2: Get Your API Details
-
-After deployment completes, retrieve your API Gateway URL from the AWS Console. If you deployed with `AuthMode=API_KEY` (the default), also retrieve your API key. In `AuthMode=IAM`, requests are authenticated with SigV4 signing instead of an API key.
-
-Set environment variables:
-```bash
-export MOCKNEST_URL="https://your-api-id.execute-api.your-region.amazonaws.com/mocks"
-export API_KEY="your-api-key-value-here"
-```
-
-> See the [SAR User Guide](README-SAR.md) for detailed instructions on retrieving these values.
-
-### Step 3: Verify Health
-
-Check runtime health:
-```bash
-curl "${MOCKNEST_URL}/__admin/health" -H "x-api-key: ${API_KEY}"
-```
-
-Check AI generation health:
-```bash
-curl "${MOCKNEST_URL}/ai/generation/health" -H "x-api-key: ${API_KEY}"
-```
-
-> **Note**: The `x-api-key` header applies to API key mode (the default). In IAM mode, requests must be SigV4-signed instead of using an API key header.
-
-### Step 4: Create and Test a Mock
-
-Create a simple mock:
-```bash
-curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
-  -H "x-api-key: ${API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "request": {"method": "GET", "urlPath": "/hello"},
-    "response": {
-      "status": 200,
-      "jsonBody": {"message": "Hello from MockNest!"}
-    },
-    "persistent": true
-  }'
-```
-
-Test the mock:
-```bash
-curl "${MOCKNEST_URL}/mocknest/hello" -H "x-api-key: ${API_KEY}"
-```
-
-> **Note**: The `x-api-key` header applies to API key mode (the default). In IAM mode, use SigV4 request signing instead.
-
-### Step 5: Try AI-Assisted Generation
-
-Generate mocks from an OpenAPI spec:
-```bash
-curl -X POST "${MOCKNEST_URL}/ai/generation/from-spec" \
-  -H "x-api-key: ${API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "namespace": {
-        "apiName": "petstore",
-        "client": null
-    },
-    "specification": null,
-    "specificationUrl": "https://petstore3.swagger.io/api/v3/openapi.json",
-    "format": "OPENAPI_3",
-    "description": "Generate mocks for 4 pets, only GET endpoints. 1 pet is a bird with image: https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg, available, new, tag id=1 name=new. API call to get all new pets returns that bird. The other 3 pets are available but not new.",
-    "options": {
-        "enableValidation": true
-    }
-}'
-```
-
-When `enableValidation` is enabled, generated mocks are automatically validated. If invalid mocks are detected, the system retries generation with AI self-correction (up to `BedrockGenerationMaxRetries` attempts, default 1, range 0-2) and only returns mocks that pass validation.
-
-Import the generated mappings (copy the `mappings` array from the response):
-```bash
-curl -X POST "${MOCKNEST_URL}/__admin/mappings/import" \
-  -H "x-api-key: ${API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{"mappings": [...]}'
-```
-
-Test the imported mock:
-```bash
-curl "${MOCKNEST_URL}/mocknest/petstore/pet/findByStatus?status=available" \
-  -H "x-api-key: ${API_KEY}"
-```
-
-### What's Next?
-
-**Configure Your Client App**
-To use MockNest with your application:
-1. Create mocks for the third-party APIs your app depends on (using manual creation or AI generation)
-2. Update your app's configuration to point at MockNest instead of the real API:
-   - Change the API base URL to `${MOCKNEST_URL}/mocknest` (plus any path prefix like `/petstore`)
-   - **API key mode** (default): Add the API key header to your requests: `x-api-key: ${API_KEY}`
-   - **IAM mode**: Sign requests with AWS SigV4 (using your AWS SDK or `--aws-sigv4` in curl)
-3. Your app will now call mocks instead of real services
-
-**Learn More**
-- **More Examples**: See [docs/USAGE.md](docs/USAGE.md) for SOAP/WSDL, GraphQL, and advanced AI generation
-- **Postman Collection**: Import from [docs/postman/](docs/postman/) for ready-to-use examples
-- **OpenAPI Specification**: Full API reference at [docs/api/mocknest-openapi.yaml](docs/api/mocknest-openapi.yaml)
-- **SAR Guide**: Read [README-SAR.md](README-SAR.md) for detailed deployment and configuration options
-
-### Deployment Options
-
-MockNest Serverless offers two deployment methods:
-
-**AWS Serverless Application Repository (SAR) - Recommended for Most Users**
-- One-click deployment from AWS Console
-- Pre-built and tested application package
-- Automatic updates available
-- See [Quick Start for SAR Users](#quick-start-for-sar-users) below
-
-**Build from Source - For Developers and Contributors**
-- Full control over build and deployment
-- Ability to customize and contribute
-- Requires AWS SAM CLI and development tools
-- See [Deployment for Developers](#deployment-for-developers) below
-
-### After Deployment
-
-Once deployed, retrieve your API Gateway URL from the AWS Console. If you deployed with `AuthMode=API_KEY` (the default), also retrieve your API key. See the [Quick Start (5 Minutes)](#quick-start-5-minutes) guide above for step-by-step instructions, or refer to the [SAR User Guide](README-SAR.md) for detailed guidance.
-
-### Usage Options
-
-MockNest Serverless provides multiple ways to interact with the API:
-
-**Postman Collections (Easiest)**
-- Pre-configured requests for all API operations
-- Import from [docs/postman/](docs/postman/)
-- Includes examples for REST, SOAP, GraphQL, and AI generation
-- Ready to use with environment variables
-
-**cURL Commands (Automation-Friendly)**
-- Command-line access for CI/CD integration
-- Comprehensive examples in [docs/USAGE.md](docs/USAGE.md)
-- Suitable for scripts and automated testing
-- Works in any terminal or shell script
-- Examples cover both API key and IAM (SigV4) auth modes
-
-**Direct HTTP Clients**
-- Use any HTTP client library in your preferred language
-- Standard REST API with JSON request/response
-
-## Quick Start for SAR Users
-
-**Recommended Path**: Deploy MockNest Serverless directly from the AWS Serverless Application Repository for the easiest setup experience.
-
-### Prerequisites
-
-- AWS account with appropriate permissions
-- Access to AWS Console
-
-### Deployment from AWS Serverless Application Repository
-
-1. **Navigate to SAR**: Go to the [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home) in your AWS Console
-2. **Select Region**: Choose your preferred deployment region (see [supported regions](docs/REGIONS.md))
-3. **Deploy**: Click "Deploy" and configure parameters:
-   - **DeploymentName**: Unique identifier for your deployment (default: "mocks")
-   - **BedrockModelName**: AI model for mock generation (default: "AmazonNovaPro")
-   - **RuntimeLambdaMemorySize**: Runtime Lambda memory in MB (default: 1024)
-   - **GenerationLambdaMemorySize**: Generation Lambda memory in MB (default: 512)
-   - **RuntimeLambdaTimeout**: Mock serving timeout in seconds (default: 29)
-   - **GenerationLambdaTimeout**: AI generation timeout in seconds (default: 29)
-
-### Getting Started After Deployment
-
-**Quick Start with Postman**: Import our ready-to-use Postman collections from [`docs/postman/`](docs/postman/) for instant access to all API endpoints with working examples.
-
-**Manual Setup**: Follow the [SAR User Guide](README-SAR.md) for step-by-step instructions using cURL.
-
-#### Region Selection and Model Availability
-
-**Choose Your Deployment Region**: When deploying from SAR, you select the deployment region in the AWS Console. MockNest automatically configures itself for that region.
-
-**Bedrock Model Availability**: Verify Amazon Nova Pro is available in your chosen region using the [AWS Bedrock model availability documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html). Amazon Nova Pro is ready to use immediately in supported regions.
-
-**Note**: If using third-party models (like Anthropic Claude), you may need to enable model access and accept terms in the Amazon Bedrock console.
-
-#### Support and Troubleshooting
-
-**Getting Help**:
-- **Issues**: Report problems via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
-- **Documentation**: See the [SAR User Guide](README-SAR.md) for detailed deployment and usage instructions
-- **API Reference**: Complete API documentation in the [OpenAPI specification](docs/api/mocknest-openapi.yaml)
-
-**Common Deployment Issues**:
-- **Bedrock Access Denied**: Ensure model access is enabled in Amazon Bedrock console
-- **Region Not Supported**: Verify Amazon Bedrock is available in your deployment region
-- **CloudFormation Failures**: Check CloudFormation events for detailed error messages
-
-## Tested Configuration
-
-MockNest Serverless has been thoroughly tested in multiple AWS regions:
-
-### Regional Support
-- **Core Runtime**: Works in any AWS region with Lambda, API Gateway, and S3 support
-- **AI Features**: Availability varies by region based on Amazon Bedrock model support
-- **Tested Regions**: See [docs/REGIONS.md](docs/REGIONS.md) for the complete list of tested regions and AI feature availability
-
-### AI Features Support
-- **Officially supported**: Amazon Nova Pro model in [tested regions](docs/REGIONS.md)
-- **Other Bedrock models**: Are experimental and have not been tested
-The following WireMock capabilities have been validated in the serverless environment:
-- Request matching (URL, headers, body, query parameters)
-- Response templating and transformation
-- JSON and XML body matching
-- Stateful behavior and scenarios
-- Request verification and admin API
-- File serving for response bodies
-- Callback and webhook simulation
-
-**Note**: MockNest does not claim support for WireMock features that have not been explicitly tested in serverless environments.
+MockNest Serverless consists of AWS Lambda functions that serve both the WireMock admin API and mocked endpoints, with persistent storage in Amazon S3. AI features use Amazon Bedrock for intelligent mock generation when called.
 
 ## Known Limitations and Best Practices
 
@@ -334,11 +172,10 @@ The following WireMock capabilities have been validated in the serverless enviro
 
 **Runtime Latency by Mock Count**: Lambda Power Tuner testing shows warm invocation latency stays flat as mock count grows — ~119 ms with 100 mocks (1024 MB) and ~113 ms with 1000 mocks (1536 MB). The optimal memory shifts from 1024 MB to 1536 MB at 1000 mocks due to increased heap and CPU demand, with per-invocation cost rising from ~$0.0000016 to ~$0.0000023.
 
-**Scaling Strategy**: For large-scale deployments or when managing many APIs, consider these approaches:
+**Scaling Strategy**: As your mock count grows, increase Lambda memory accordingly. For large-scale deployments or when managing many APIs, consider grouping mocks into separate deployments:
 
-- **Multiple Deployments**: Deploy separate MockNest instances for different API groups or teams. Group APIs by authentication method (since `AuthMode` is a deployment-level setting), team ownership, or traffic volume. This keeps mock sets smaller per deployment, reduces cold start times, and allows independent access control.
+- **Multiple Deployments**: Deploy separate MockNest instances for different API groups or teams. Group APIs by authentication method (since `AuthMode` is a deployment-level setting), team ownership, or traffic volume. This keeps mock sets at a reasonable size per Lambda, reduces cold start times, and allows independent access control.
   - Example: `mocknest-payment-apis`, `mocknest-user-apis`, `mocknest-notification-apis`
-  - Recommended when mock count exceeds ~1000 per deployment
 
 - **Namespace Organization**: Within a single deployment, use namespaces to logically group mocks
   - Simple API: `/petstore/`
@@ -346,7 +183,7 @@ The following WireMock capabilities have been validated in the serverless enviro
   - Multi-tenant: `/tenant-b/petstore/`
   - Allows multiple teams and APIs to coexist without conflicts
 
-**Recommendation**: Keep each deployment under ~500–1000 mappings for optimal performance. Use namespaces for logical grouping within a deployment, and use multiple deployments when you need isolation, separate auth modes, or independent scaling.
+**Memory Sizing**: Increase Lambda memory as mock count grows. Load testing shows 1024 MB works well for ~100 mocks and 1536 MB for ~1000 mocks. Use multiple deployments when you need isolation, separate auth modes, or independent scaling.
 
 For detailed memory sizing, cold start measurements, scaling benchmarks (100 vs 1000 mocks), and tuning guidance, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
@@ -373,6 +210,21 @@ If you need longer-running AI generation requests, you can:
 
 For comprehensive usage examples including SOAP, GraphQL, and advanced AI generation scenarios, see [docs/USAGE.md](docs/USAGE.md).
 
+### Regional Support
+
+- **Core Runtime**: Works in any AWS region with Lambda, API Gateway, and S3 support
+- **AI Features**: Availability varies by region based on Amazon Bedrock model support
+- **Tested Regions**: See [docs/REGIONS.md](docs/REGIONS.md) for the complete list of tested regions and AI feature availability
+- **Officially supported model**: Amazon Nova Pro in [tested regions](docs/REGIONS.md). Other Bedrock models are experimental and have not been tested.
+
+### When Not to Use MockNest
+
+MockNest is designed for cloud-based integration testing over HTTP. For some scenarios, a different tool is a better fit:
+
+- **gRPC or non-HTTP protocols** — Use a protocol-specific mock tool if you need gRPC, WebSocket, or other non-HTTP protocol support.
+- **Local-only development without an AWS account** — Use standard WireMock or Mockoon if you only need local mocking without an AWS account.
+- **Very large request or response payloads (over 6 MB)** — Use a container-based mock server if your payloads exceed Lambda's 6 MB request/response size limit.
+
 ## Deployment for Developers
 
 For developers who want to build from source or contribute to MockNest Serverless.
@@ -388,7 +240,7 @@ For developers who want to build from source or contribute to MockNest Serverles
 
 1. **Clone and Build**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/elenavanengelenmaslova/mocknest-serverless.git
    cd mocknest-serverless
    ./gradlew build
    ```
@@ -518,7 +370,44 @@ MockNest Serverless uses a serverless, pay-as-you-go architecture — you only p
 
 For a detailed cost breakdown and monitoring tips, see the [Cost Guide](docs/COST.md).
 
+## Contributing
+
+We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation, your help makes the project better.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+- Reporting bugs and requesting features
+- Submitting pull requests
+- Development setup and standards
+- CI/CD pipelines and testing requirements
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## Support
+
+- **Issues**: Report bugs and feature requests via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
+- **Changelog**: See [CHANGELOG.md](CHANGELOG.md) for release history and recent changes
+- **Documentation**: Additional documentation in the `docs/` directory
+- **Architecture**: Design decisions documented in `.kiro/steering/`
+- **Community**: Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## Learn more
+
+A detailed explanation of the problem and approach: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)  
+
+For additional context and background: [AIdeas Finalist: MockNest Serverless](https://builder.aws.com/content/3BzM2TZzM7RnsPFR7bzO7qlORUv/aideas-finalist-mocknest-serverless)
+
+🏆 [AWS 10,000 AIdeas Competition — Meet the Winners](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners)
+
+## Security
+
+MockNest Serverless is designed with security in mind. Access is protected at the edge via API Gateway with configurable authentication (API key or AWS IAM SigV4).
+
+For the full security policy, vulnerability reporting process, IAM permissions reference, and guidance on restricting Bedrock permissions by region, see [SECURITY.md](SECURITY.md).
+
 ## Troubleshooting
+
 ### Common Issues
 
 1. **Region Mismatch**: Ensure all AWS resources are in the same region
@@ -550,32 +439,3 @@ sam logs -n MockNestGenerationFunction --stack-name mocknest-serverless --tail
 
 **Note**: API Gateway access logs are disabled to simplify deployment. Lambda logs provide comprehensive application monitoring.
 
-## Contributing
-
-We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation, your help makes the project better.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
-- Reporting bugs and requesting features
-- Submitting pull requests
-- Development setup and standards
-- CI/CD pipelines and testing requirements
-
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## Support
-
-- **Issues**: Report bugs and feature requests via [GitHub Issues](https://github.com/elenavanengelenmaslova/mocknest-serverless/issues)
-- **Changelog**: See [CHANGELOG.md](CHANGELOG.md) for release history and recent changes
-- **Documentation**: Additional documentation in the `docs/` directory
-- **Architecture**: Design decisions documented in `.kiro/steering/`
-- **Community**: Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## Learn more
-
-A detailed explanation of the problem and approach: [Goodbye Flaky External APIs — Hello Mocking in the Cloud](https://medium.com/aws-in-plain-english/goodbye-flaky-external-apis-hello-mocking-in-the-cloud-c0943adf6183)  
-
-For additional context and background: [AIdeas Finalist: MockNest Serverless](https://builder.aws.com/content/3BzM2TZzM7RnsPFR7bzO7qlORUv/aideas-finalist-mocknest-serverless)
-
-🏆 [AWS 10,000 AIdeas Competition — Meet the Winners](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners)
