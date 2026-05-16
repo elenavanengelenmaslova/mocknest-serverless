@@ -43,6 +43,10 @@ There are two parts to using MockNest:
   - [S3-Backed Request Journal](#s3-backed-request-journal)
   - [Sensitive Header Redaction](#sensitive-header-redaction)
   - [Known Limitations](#known-limitations)
+- [Streaming Responses and SSE Mocks](#streaming-responses-and-sse-mocks)
+  - [Response Size Limits](#response-size-limits)
+  - [SSE Mock with Chunked Dribble Delay](#sse-mock-with-chunked-dribble-delay)
+  - [Idle Timeout Constraint](#idle-timeout-constraint)
 - [Administrative Operations](#administrative-operations)
   - [Get All Mappings](#get-all-mappings)
   - [Get File Content](#get-file-content)
@@ -1428,6 +1432,138 @@ Headers configured in `MOCKNEST_SENSITIVE_HEADERS` (default: `x-api-key`, `autho
 - Both inbound trigger requests and inbound webhook callback requests
 
 Sensitive header values are never written to logs at any log level.
+
+---
+
+## Streaming Responses and SSE Mocks
+
+MockNest Serverless uses Lambda response streaming to deliver mock responses. This enables response payloads up to 200MB and supports Server-Sent Events (SSE) simulation via chunked delivery with configurable delays.
+
+### Response Size Limits
+
+With response streaming enabled, MockNest supports significantly larger payloads than before:
+
+| Limit | Value | Notes |
+|-------|-------|-------|
+| **Response payload** | Up to **200MB** | Delivered via Lambda response streaming through API Gateway |
+| **Request payload** | Up to **6MB** | Limited by Lambda's invocation payload size (unchanged) |
+
+The previous 6MB response limit (imposed by API Gateway's synchronous payload cap) no longer applies. Responses are streamed directly from Lambda to the client, bypassing the synchronous payload restriction.
+
+Most REST API testing scenarios involve payloads well under these limits. The 200MB ceiling is useful for testing file download endpoints, bulk data exports, or large JSON/XML responses.
+
+### SSE Mock with Chunked Dribble Delay
+
+You can simulate Server-Sent Events (SSE) or any streaming response by configuring `chunkedDribbleDelay` on a mock's response. This splits the response body into chunks delivered over a specified duration, simulating real-time data streaming.
+
+**Configuration parameters:**
+- `numberOfChunks`: Number of chunks to split the body into (must be >= 2)
+- `totalDuration`: Total time in milliseconds to spread delivery over
+
+The body is split into equal-sized chunks (remainder bytes go to the last chunk). A delay of `totalDuration / numberOfChunks` milliseconds is inserted before each chunk after the first.
+
+#### Step 1: Create the SSE Mock Mapping
+
+```bash
+curl -X POST "${MOCKNEST_URL}/__admin/mappings" \
+  -H "x-api-key: ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "request": {
+    "method": "GET",
+    "urlPath": "/events/stream"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache"
+    },
+    "body": "data: {\"event\":\"update\",\"id\":1}\n\ndata: {\"event\":\"update\",\"id\":2}\n\ndata: {\"event\":\"update\",\"id\":3}\n\n",
+    "chunkedDribbleDelay": {
+      "numberOfChunks": 3,
+      "totalDuration": 3000
+    }
+  },
+  "persistent": true
+}'
+```
+
+**Expected Response** (201 Created):
+```json
+{
+  "id": "generated-uuid",
+  "request": {
+    "method": "GET",
+    "urlPath": "/events/stream"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache"
+    },
+    "chunkedDribbleDelay": {
+      "numberOfChunks": 3,
+      "totalDuration": 3000
+    }
+  },
+  "uuid": "generated-uuid",
+  "persistent": true
+}
+```
+
+#### Step 2: Call the SSE Mock
+
+```bash
+curl -X GET "${MOCKNEST_URL}/mocknest/events/stream" \
+  -H "x-api-key: ${API_KEY}" \
+  --no-buffer
+```
+
+The `--no-buffer` flag ensures curl displays each chunk as it arrives rather than buffering the entire response.
+
+**Expected output** (delivered in 3 chunks over ~3 seconds):
+```
+data: {"event":"update","id":1}
+
+data: {"event":"update","id":2}
+
+data: {"event":"update","id":3}
+
+```
+
+Each chunk arrives approximately 1 second apart (3000ms / 3 chunks = 1000ms between chunks).
+
+#### Step 3: Clean Up
+
+```bash
+curl -X DELETE "${MOCKNEST_URL}/__admin/mappings" \
+  -H "x-api-key: ${API_KEY}"
+```
+
+### Idle Timeout Constraint
+
+Lambda response streaming has a **5-minute idle timeout**: if no data is written to the stream for 300 seconds, the connection is closed by the platform.
+
+This means the delay between any two consecutive chunks must not exceed 300 seconds. When configuring `chunkedDribbleDelay`, ensure:
+
+```
+totalDuration / numberOfChunks < 300,000 ms
+```
+
+For example, a configuration with `totalDuration: 600000` (10 minutes) and `numberOfChunks: 2` would result in a 5-minute gap between chunks, which would trigger the idle timeout and close the connection before the second chunk is delivered.
+
+MockNest logs a warning when `totalDuration` exceeds 270,000 ms (4.5 minutes) to alert you that the configuration is approaching the idle timeout limit.
+
+**Safe configurations:**
+- 3 chunks over 3 seconds → 1s between chunks ✓
+- 10 chunks over 60 seconds → 6s between chunks ✓
+- 5 chunks over 1200 seconds (20 min) → 240s between chunks ✓
+
+**Risky configurations:**
+- 2 chunks over 600 seconds (10 min) → 300s between chunks ⚠️ (at the limit)
+- 2 chunks over 900 seconds (15 min) → 450s between chunks ✗ (will timeout)
 
 ---
 

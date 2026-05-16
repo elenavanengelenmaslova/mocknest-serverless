@@ -52,7 +52,7 @@ class HandleRequestTest {
 
     @Test
     fun `Should handle response with content type header`() {
-        val httpRequest = HttpRequest(HttpMethod.GET, emptyMap(), "/test", emptyMap(), null)
+        val httpRequest = HttpRequest(method = HttpMethod.GET, headers = emptyMap(), path = "/test", queryParameters = emptyMap(), body = null)
         val mockResponse = mockk<Response>()
         every { mockResponse.status } returns 200
         every { mockResponse.bodyAsString } returns "ok"

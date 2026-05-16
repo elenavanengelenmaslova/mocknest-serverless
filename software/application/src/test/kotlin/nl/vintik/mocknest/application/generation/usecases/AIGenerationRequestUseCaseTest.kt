@@ -37,7 +37,7 @@ class AIGenerationRequestUseCaseTest {
                     "description": "test description"
                 }
             """.trimIndent()
-            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/ai/generation/from-spec", emptyMap(), body)
+            val httpRequest = HttpRequest(method = HttpMethod.POST, headers = emptyMap(), path = "/ai/generation/from-spec", queryParameters = emptyMap(), body = body)
 
             coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } returns GenerationResult.success(
                 jobId = "job-123",
@@ -71,7 +71,7 @@ class AIGenerationRequestUseCaseTest {
         @Test
         fun `Given unknown path When handling request Then should return 404`() {
             // Given
-            val httpRequest = HttpRequest(HttpMethod.GET, emptyMap(), "/unknown", emptyMap(), null)
+            val httpRequest = HttpRequest(method = HttpMethod.GET, headers = emptyMap(), path = "/unknown", queryParameters = emptyMap(), body = null)
 
             // When
             val response = useCase.invoke("/unknown", httpRequest)
@@ -83,7 +83,7 @@ class AIGenerationRequestUseCaseTest {
         @Test
         fun `Given wrong HTTP method When handling from-spec request Then should return 404`() {
             // Given
-            val httpRequest = HttpRequest(HttpMethod.GET, emptyMap(), "/from-spec", emptyMap(), null)
+            val httpRequest = HttpRequest(method = HttpMethod.GET, headers = emptyMap(), path = "/from-spec", queryParameters = emptyMap(), body = null)
 
             // When
             val response = useCase.invoke("/from-spec", httpRequest)
@@ -99,7 +99,7 @@ class AIGenerationRequestUseCaseTest {
         @Test
         fun `Given malformed JSON When handling from-spec request Then should return 400`() {
             // Given
-            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), "not-json")
+            val httpRequest = HttpRequest(method = HttpMethod.POST, headers = emptyMap(), path = "/from-spec", queryParameters = emptyMap(), body = "not-json")
 
             // When
             val response = useCase.invoke("/from-spec", httpRequest)
@@ -111,7 +111,7 @@ class AIGenerationRequestUseCaseTest {
         @Test
         fun `Given null body When handling from-spec request Then should return 400`() {
             // Given
-            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), null)
+            val httpRequest = HttpRequest(method = HttpMethod.POST, headers = emptyMap(), path = "/from-spec", queryParameters = emptyMap(), body = null)
 
             // When
             val response = useCase.invoke("/from-spec", httpRequest)
@@ -131,7 +131,7 @@ class AIGenerationRequestUseCaseTest {
                     "description": "test description"
                 }
             """.trimIndent()
-            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), body)
+            val httpRequest = HttpRequest(method = HttpMethod.POST, headers = emptyMap(), path = "/from-spec", queryParameters = emptyMap(), body = body)
 
             // When
             val response = useCase.invoke("/from-spec", httpRequest)
@@ -152,7 +152,7 @@ class AIGenerationRequestUseCaseTest {
                     "description": ""
                 }
             """.trimIndent()
-            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), body)
+            val httpRequest = HttpRequest(method = HttpMethod.POST, headers = emptyMap(), path = "/from-spec", queryParameters = emptyMap(), body = body)
 
             // When
             val response = useCase.invoke("/from-spec", httpRequest)
@@ -177,7 +177,7 @@ class AIGenerationRequestUseCaseTest {
                     "description": "test description"
                 }
             """.trimIndent()
-            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/ai/generation/from-spec", emptyMap(), body)
+            val httpRequest = HttpRequest(method = HttpMethod.POST, headers = emptyMap(), path = "/ai/generation/from-spec", queryParameters = emptyMap(), body = body)
 
             coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } returns GenerationResult.failure(
                 jobId = "job-123",
@@ -204,7 +204,7 @@ class AIGenerationRequestUseCaseTest {
                     "description": "test description"
                 }
             """.trimIndent()
-            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), body)
+            val httpRequest = HttpRequest(method = HttpMethod.POST, headers = emptyMap(), path = "/from-spec", queryParameters = emptyMap(), body = body)
 
             coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } throws RuntimeException("secret internal detail")
 
@@ -228,7 +228,7 @@ class AIGenerationRequestUseCaseTest {
                     "description": "test description"
                 }
             """.trimIndent()
-            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), body)
+            val httpRequest = HttpRequest(method = HttpMethod.POST, headers = emptyMap(), path = "/from-spec", queryParameters = emptyMap(), body = body)
 
             coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } throws IllegalArgumentException("some library error")
 
@@ -250,7 +250,7 @@ class AIGenerationRequestUseCaseTest {
                     "description": "test description"
                 }
             """.trimIndent()
-            val httpRequest = HttpRequest(HttpMethod.POST, emptyMap(), "/from-spec", emptyMap(), body)
+            val httpRequest = HttpRequest(method = HttpMethod.POST, headers = emptyMap(), path = "/from-spec", queryParameters = emptyMap(), body = body)
 
             coEvery { generateFromSpecWithDescriptionUseCase.execute(any()) } returns GenerationResult.success(
                 jobId = "job-123",

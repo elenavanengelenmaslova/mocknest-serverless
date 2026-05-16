@@ -20,6 +20,7 @@ import nl.vintik.mocknest.infra.aws.runtime.health.AwsRuntimeHealthUseCase
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimeMappingReloadHook
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimePrimingHook
 import nl.vintik.mocknest.infra.aws.runtime.storage.S3ObjectStorageAdapter
+import nl.vintik.mocknest.infra.aws.runtime.streaming.S3ResponseStreamer
 import nl.vintik.mocknest.infra.aws.runtime.webhook.SqsWebhookPublisher
 import nl.vintik.mocknest.infra.aws.runtime.webhook.WebhookHttpClient
 import org.koin.dsl.module
@@ -43,6 +44,14 @@ fun runtimeModule() = module {
         S3ObjectStorageAdapter(
             bucketName = System.getenv("MOCKNEST_S3_BUCKET_NAME") ?: "",
             s3Client = get(),
+        )
+    }
+
+    // S3 response streamer for large body files (S3Client comes from coreModule)
+    single {
+        S3ResponseStreamer(
+            s3Client = get(),
+            bucketName = System.getenv("MOCKNEST_S3_BUCKET_NAME") ?: "",
         )
     }
 

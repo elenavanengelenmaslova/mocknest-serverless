@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm")
+    kotlin("plugin.serialization")
 }
 
 dependencies {
@@ -13,6 +14,9 @@ dependencies {
     // JSON processing (shared ObjectMapper)
     api("com.fasterxml.jackson.module:jackson-module-kotlin")
 
+    // Kotlinx Serialization for streaming protocol
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json")
+
     // Koin DI
     implementation("io.insert-koin:koin-core")
 
@@ -22,4 +26,5 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    maxHeapSize = "1g"
 }
