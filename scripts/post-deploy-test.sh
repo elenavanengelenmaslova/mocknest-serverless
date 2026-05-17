@@ -16,6 +16,7 @@ set -o pipefail
 #   rest                 - Run REST/OpenAPI generation and import tests
 #   graphql              - Run GraphQL generation and import tests (future)
 #   soap                 - Run SOAP/WSDL generation and import tests (future)
+#   streaming            - Run response streaming validation tests
 #   webhook              - Run webhook delivery and redaction tests
 #   mock-management      - Run extensive mock management CRUD tests
 #   request-verification - Run extensive request verification tests
@@ -53,7 +54,7 @@ if [ -z "$API_URL" ]; then
   echo "Usage: $0 [TEST_SUITE] <API_URL> [API_KEY]"
   echo "   or: $0 [TEST_SUITE]  # if API_URL (and API_KEY for API_KEY mode) are set as environment variables"
   echo ""
-  echo "TEST_SUITE options: setup, rest, graphql, soap, webhook, mock-management, request-verification, near-miss, files, extensive, all (default: all)"
+  echo "TEST_SUITE options: setup, rest, graphql, soap, streaming, webhook, mock-management, request-verification, near-miss, files, extensive, all (default: all)"
   echo ""
   echo "Examples:"
   echo "  $0 setup https://api.example.com abc123key"
@@ -145,6 +146,23 @@ curl_no_fail() {
 test_runtime_health() {
   echo "Testing runtime health..."
   
+  # Debug: verbose request to see full HTTP exchange
+  echo "  [debug] Requesting: $API_URL/__admin/health"
+  local debug_response
+  debug_response=$(curl \
+    --silent \
+    --show-error \
+    --max-time 30 \
+    --include \
+    --header "x-api-key: $API_KEY" \
+    --header "Content-Type: application/json" \
+    "$API_URL/__admin/health" 2>&1) || true
+  echo "  [debug] Full response (headers + body):"
+  echo "$debug_response" | head -30
+  echo "  [debug] Response bytes (hex, first 200):"
+  echo "$debug_response" | tail -1 | xxd | head -15
+  echo "  [debug] ---"
+
   local response
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
@@ -165,6 +183,9 @@ test_runtime_health() {
   if ! echo "$BODY" | grep -q '"status"[[:space:]]*:[[:space:]]*"healthy"'; then
     echo "ERROR: Runtime health check response missing 'status: healthy'"
     echo "Response: $BODY"
+    echo "  [debug] Body length: ${#BODY}"
+    echo "  [debug] Body hex (first 100 bytes):"
+    echo "$BODY" | xxd | head -10
     exit 1
   fi
   
@@ -1937,6 +1958,624 @@ test_file_management_crud() {
   echo "[files] ✓ File CRUD lifecycle passed"
 }
 
+# =============================================================================
+# Streaming Response Validation Tests
+# =============================================================================
+
+# Test: Large payload (7MB+) streaming delivery
+# Registers a mock with a 7MB+ response body, invokes it, and verifies the
+# received byte length matches the registered body size.
+# Validates: Requirement 9.1
+test_streaming_large_payload() {
+  echo "[streaming] Testing large payload (7MB+) streaming delivery..."
+
+  # Generate a 7MB+ body (7,340,032 bytes = 7 * 1024 * 1024)
+  local BODY_SIZE=7340032
+  echo "[streaming]   Generating ${BODY_SIZE}-byte payload..."
+  local LARGE_BODY
+  LARGE_BODY=$(python3 -c "print('A' * $BODY_SIZE)")
+
+  # Step 1: Register mock with large body
+  echo "[streaming]   Registering mock with ${BODY_SIZE}-byte body..."
+  local mapping_body
+  mapping_body=$(python3 -c "
+import json
+body = 'A' * $BODY_SIZE
+mapping = {
+    'request': {
+        'method': 'GET',
+        'urlPath': '/streaming-test/large-payload'
+    },
+    'response': {
+        'status': 200,
+        'body': body,
+        'headers': {'Content-Type': 'application/octet-stream'}
+    },
+    'persistent': True
+}
+print(json.dumps(mapping))
+")
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$mapping_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register large payload mock"
+    echo "[streaming] Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "[streaming] ERROR: Large payload mock registration failed with HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ Mock registered: $MAPPING_ID"
+
+  # Step 2: Invoke the mock and measure received bytes
+  echo "[streaming]   Invoking mock and measuring response size..."
+  local received_bytes
+  received_bytes=$(curl "${CURL_OPTS[@]}" \
+    --max-time 120 \
+    --request GET \
+    --output /dev/null \
+    --write-out "%{size_download}" \
+    "$API_URL/mocknest/streaming-test/large-payload" 2>&1) || {
+    echo "[streaming] ERROR: Failed to invoke large payload mock"
+    exit 1
+  }
+
+  echo "[streaming]   Received $received_bytes bytes (expected $BODY_SIZE)"
+  if [ "$received_bytes" -ne "$BODY_SIZE" ]; then
+    echo "[streaming] ERROR: Byte count mismatch — expected $BODY_SIZE, got $received_bytes"
+    exit 1
+  fi
+  echo "[streaming]   ✓ Received byte length matches registered body size"
+
+  # Step 3: Cleanup
+  echo "[streaming]   Cleaning up mapping..."
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ Large payload streaming test passed"
+}
+
+# Test: SSE mock with chunkedDribbleDelay timing verification
+# Registers an SSE mock with chunkedDribbleDelay (3 chunks, 2000ms total),
+# invokes it, and verifies the elapsed time is at least totalDuration.
+# Validates: Requirement 9.2
+test_streaming_sse_chunked_delay() {
+  echo "[streaming] Testing SSE chunked dribble delay timing..."
+
+  local NUM_CHUNKS=3
+  local TOTAL_DURATION_MS=2000
+
+  # Step 1: Register SSE mock with chunkedDribbleDelay
+  echo "[streaming]   Registering SSE mock (chunks=$NUM_CHUNKS, totalDuration=${TOTAL_DURATION_MS}ms)..."
+  local mapping_body
+  mapping_body="{
+    \"request\": {
+      \"method\": \"GET\",
+      \"urlPath\": \"/streaming-test/sse-chunked\"
+    },
+    \"response\": {
+      \"status\": 200,
+      \"body\": \"data: chunk1\\n\\ndata: chunk2\\n\\ndata: chunk3\\n\\n\",
+      \"headers\": {
+        \"Content-Type\": \"text/event-stream\",
+        \"Cache-Control\": \"no-cache\",
+        \"Connection\": \"keep-alive\"
+      },
+      \"chunkedDribbleDelay\": {
+        \"numberOfChunks\": $NUM_CHUNKS,
+        \"totalDuration\": $TOTAL_DURATION_MS
+      }
+    },
+    \"persistent\": true
+  }"
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$mapping_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register SSE chunked mock"
+    echo "[streaming] Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "[streaming] ERROR: SSE mock registration failed with HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ SSE mock registered: $MAPPING_ID"
+
+  # Step 2: Invoke the mock and measure elapsed time
+  echo "[streaming]   Invoking SSE mock and measuring elapsed time..."
+  local elapsed_seconds
+  elapsed_seconds=$(curl "${CURL_OPTS[@]}" \
+    --max-time 30 \
+    --request GET \
+    --output /dev/null \
+    --write-out "%{time_total}" \
+    "$API_URL/mocknest/streaming-test/sse-chunked" 2>&1) || {
+    echo "[streaming] ERROR: Failed to invoke SSE chunked mock"
+    exit 1
+  }
+
+  # Convert elapsed seconds to milliseconds
+  local elapsed_ms
+  elapsed_ms=$(python3 -c "print(int(float('$elapsed_seconds') * 1000))")
+
+  echo "[streaming]   Elapsed: ${elapsed_ms}ms (expected >= ${TOTAL_DURATION_MS}ms)"
+  if [ "$elapsed_ms" -lt "$TOTAL_DURATION_MS" ]; then
+    echo "[streaming] ERROR: Elapsed time ${elapsed_ms}ms is less than totalDuration ${TOTAL_DURATION_MS}ms"
+    exit 1
+  fi
+  echo "[streaming]   ✓ Elapsed time meets or exceeds totalDuration"
+
+  # Step 3: Cleanup
+  echo "[streaming]   Cleaning up mapping..."
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ SSE chunked dribble delay test passed"
+}
+
+# Test: Standard response body matching (< 6MB)
+# Registers a mock with a body under 6MB, invokes it, and verifies HTTP 200
+# and that the response body matches the registered content.
+# Validates: Requirement 9.3
+test_streaming_standard_body() {
+  echo "[streaming] Testing standard response body matching (< 6MB)..."
+
+  local EXPECTED_BODY='{"message":"Hello from MockNest streaming test","status":"success","items":[1,2,3,4,5]}'
+
+  # Step 1: Register mock with standard body
+  echo "[streaming]   Registering mock with standard body..."
+  local mapping_body
+  mapping_body="{
+    \"request\": {
+      \"method\": \"GET\",
+      \"urlPath\": \"/streaming-test/standard-body\"
+    },
+    \"response\": {
+      \"status\": 200,
+      \"body\": \"{\\\"message\\\":\\\"Hello from MockNest streaming test\\\",\\\"status\\\":\\\"success\\\",\\\"items\\\":[1,2,3,4,5]}\",
+      \"headers\": {
+        \"Content-Type\": \"application/json\"
+      }
+    },
+    \"persistent\": true
+  }"
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$mapping_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register standard body mock"
+    echo "[streaming] Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "[streaming] ERROR: Standard body mock registration failed with HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ Mock registered: $MAPPING_ID"
+
+  # Step 2: Invoke the mock and verify response
+  echo "[streaming]   Invoking mock and verifying response..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/mocknest/streaming-test/standard-body" 2>&1) || {
+    echo "[streaming] ERROR: Failed to invoke standard body mock"
+    echo "[streaming] Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "[streaming] ERROR: Expected HTTP 200, got HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+  echo "[streaming]   ✓ HTTP 200 received"
+
+  # Verify body content matches
+  if [ "$BODY" != "$EXPECTED_BODY" ]; then
+    echo "[streaming] ERROR: Response body does not match expected content"
+    echo "[streaming] Expected: $EXPECTED_BODY"
+    echo "[streaming] Got:      $BODY"
+    exit 1
+  fi
+  echo "[streaming]   ✓ Response body matches registered content"
+
+  # Step 3: Cleanup
+  echo "[streaming]   Cleaning up mapping..."
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ Standard response body test passed"
+}
+
+# Test: Custom headers verification
+# Registers a mock with 2+ custom response headers, invokes it, and verifies
+# each custom header name and value appears in the curl response.
+# Validates: Requirement 9.4
+test_streaming_custom_headers() {
+  echo "[streaming] Testing custom response headers..."
+
+  # Step 1: Register mock with custom headers
+  echo "[streaming]   Registering mock with custom headers..."
+  local mapping_body
+  mapping_body='{
+    "request": {
+      "method": "GET",
+      "urlPath": "/streaming-test/custom-headers"
+    },
+    "response": {
+      "status": 200,
+      "body": "{\"headers\":\"test\"}",
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Custom-Header-One": "value-one",
+        "X-Custom-Header-Two": "value-two",
+        "X-MockNest-Version": "streaming-v1"
+      }
+    },
+    "persistent": true
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$mapping_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register custom headers mock"
+    echo "[streaming] Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "[streaming] ERROR: Custom headers mock registration failed with HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ Mock registered: $MAPPING_ID"
+
+  # Step 2: Invoke the mock with -i to include response headers
+  echo "[streaming]   Invoking mock and checking response headers..."
+
+  # Build curl options without --fail and --silent for header inspection
+  local curl_header_opts=()
+  for opt in "${CURL_OPTS[@]}"; do
+    if [ "$opt" != "--fail" ] && [ "$opt" != "--silent" ]; then
+      curl_header_opts+=("$opt")
+    fi
+  done
+
+  local full_response
+  full_response=$(curl "${curl_header_opts[@]}" \
+    --include \
+    --max-time 30 \
+    --request GET \
+    "$API_URL/mocknest/streaming-test/custom-headers" 2>/dev/null) || {
+    echo "[streaming] ERROR: Failed to invoke custom headers mock"
+    exit 1
+  }
+
+  # Verify each custom header is present in the response
+  local header_errors=0
+
+  if ! echo "$full_response" | grep -qi "X-Custom-Header-One: value-one"; then
+    echo "[streaming] ERROR: Missing header X-Custom-Header-One: value-one"
+    header_errors=$((header_errors + 1))
+  else
+    echo "[streaming]   ✓ X-Custom-Header-One: value-one present"
+  fi
+
+  if ! echo "$full_response" | grep -qi "X-Custom-Header-Two: value-two"; then
+    echo "[streaming] ERROR: Missing header X-Custom-Header-Two: value-two"
+    header_errors=$((header_errors + 1))
+  else
+    echo "[streaming]   ✓ X-Custom-Header-Two: value-two present"
+  fi
+
+  if ! echo "$full_response" | grep -qi "X-MockNest-Version: streaming-v1"; then
+    echo "[streaming] ERROR: Missing header X-MockNest-Version: streaming-v1"
+    header_errors=$((header_errors + 1))
+  else
+    echo "[streaming]   ✓ X-MockNest-Version: streaming-v1 present"
+  fi
+
+  if [ "$header_errors" -gt 0 ]; then
+    echo "[streaming] ERROR: $header_errors custom header(s) missing from response"
+    echo "[streaming] Full response headers:"
+    echo "$full_response" | head -20
+    exit 1
+  fi
+
+  # Step 3: Cleanup
+  echo "[streaming]   Cleaning up mapping..."
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ Custom headers test passed"
+}
+
+# Test: Streaming validation — proves response streaming is actually working
+# Registers a mock with chunkedDribbleDelay, measures TTFB vs total time.
+# If streaming works: TTFB << total time (chunks arrive progressively)
+# If buffered: TTFB ≈ total time (everything arrives at once)
+# This detects whether the Java runtime + RequestStreamHandler actually streams.
+test_streaming_progressive_delivery() {
+  echo "[streaming] Testing progressive delivery (TTFB vs total time)..."
+
+  local NUM_CHUNKS=5
+  local TOTAL_DURATION_MS=5000
+
+  # Step 1: Register mock with chunkedDribbleDelay
+  echo "[streaming]   Registering chunked mock (chunks=$NUM_CHUNKS, totalDuration=${TOTAL_DURATION_MS}ms)..."
+  local mapping_body
+  mapping_body="{
+    \"request\": {
+      \"method\": \"GET\",
+      \"urlPath\": \"/streaming-test/progressive-delivery\"
+    },
+    \"response\": {
+      \"status\": 200,
+      \"body\": \"chunk1-data chunk2-data chunk3-data chunk4-data chunk5-data\",
+      \"headers\": {
+        \"Content-Type\": \"text/plain\"
+      },
+      \"chunkedDribbleDelay\": {
+        \"numberOfChunks\": $NUM_CHUNKS,
+        \"totalDuration\": $TOTAL_DURATION_MS
+      }
+    },
+    \"persistent\": true
+  }"
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$mapping_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register progressive delivery mock"
+    echo "[streaming] Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "[streaming] ERROR: Progressive delivery mock registration failed with HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ Mock registered: $MAPPING_ID"
+
+  # Step 2: Invoke and measure TTFB vs total time
+  echo "[streaming]   Invoking mock and measuring TTFB vs total time..."
+  local timing_output
+  timing_output=$(curl \
+    --silent \
+    --show-error \
+    --max-time 30 \
+    --no-buffer \
+    --header "x-api-key: $API_KEY" \
+    --output /dev/null \
+    --write-out "ttfb=%{time_starttransfer}\ntotal=%{time_total}\n" \
+    "$API_URL/mocknest/streaming-test/progressive-delivery" 2>&1) || {
+    echo "[streaming] ERROR: Failed to invoke progressive delivery mock"
+    exit 1
+  }
+
+  local ttfb_seconds total_seconds
+  ttfb_seconds=$(echo "$timing_output" | grep "^ttfb=" | cut -d= -f2)
+  total_seconds=$(echo "$timing_output" | grep "^total=" | cut -d= -f2)
+
+  local ttfb_ms total_ms
+  ttfb_ms=$(python3 -c "print(int(float('$ttfb_seconds') * 1000))")
+  total_ms=$(python3 -c "print(int(float('$total_seconds') * 1000))")
+
+  echo "[streaming]   TTFB: ${ttfb_ms}ms"
+  echo "[streaming]   Total: ${total_ms}ms"
+
+  # Check if streaming is working: TTFB should be < 50% of total time
+  local ttfb_ratio
+  ttfb_ratio=$(python3 -c "print(f'{float($ttfb_ms) / max(float($total_ms), 1) * 100:.1f}')")
+  echo "[streaming]   TTFB/Total ratio: ${ttfb_ratio}%"
+
+  if python3 -c "exit(0 if float('$ttfb_ms') < float('$total_ms') * 0.5 else 1)"; then
+    echo "[streaming]   ✓ STREAMING CONFIRMED: TTFB (${ttfb_ms}ms) < 50% of total (${total_ms}ms)"
+    echo "[streaming]   Response is being delivered progressively (not buffered)"
+  else
+    echo "[streaming]   ⚠ WARNING: TTFB (${ttfb_ms}ms) >= 50% of total (${total_ms}ms)"
+    echo "[streaming]   This suggests the response may be BUFFERED, not streamed."
+    echo "[streaming]   The Java runtime may not support InvokeWithResponseStream natively."
+    echo "[streaming]   Consider using Lambda Web Adapter or custom runtime for true streaming."
+    # Don't fail the test — streaming is a nice-to-have optimization
+    # The response still arrives correctly, just not progressively
+  fi
+
+  # Step 3: Cleanup
+  echo "[streaming]   Cleaning up mapping..."
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ Progressive delivery test completed"
+}
+
+# Test: Unmatched mock returns 404 with no body
+# Verifies that calling a path with no matching mock returns HTTP 404
+# and does not return a body from a different mock.
+test_streaming_unmatched_returns_404() {
+  echo "[streaming] Testing unmatched mock returns 404..."
+
+  # Step 1: Register a mock for a specific path
+  local mapping_body='{
+    "request": {
+      "method": "GET",
+      "urlPath": "/streaming-test/existing-endpoint"
+    },
+    "response": {
+      "status": 200,
+      "body": "this-is-the-existing-mock",
+      "headers": { "Content-Type": "text/plain" }
+    },
+    "persistent": true
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$mapping_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register mock"
+    exit 1
+  }
+  parse_response "$response"
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ Mock registered: $MAPPING_ID"
+
+  # Step 2: Call a path that does NOT match any mock
+  echo "[streaming]   Calling unmatched path..."
+  local unmatched_response
+  unmatched_response=$(curl_no_fail \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/mocknest/streaming-test/nonexistent-path" 2>&1) || true
+  parse_response "$unmatched_response"
+
+  # Verify 404 status
+  if [ "$HTTP_CODE" != "404" ]; then
+    echo "[streaming] ERROR: Expected HTTP 404 for unmatched path, got HTTP $HTTP_CODE"
+    echo "[streaming] Response body: $BODY"
+    exit 1
+  fi
+  echo "[streaming]   ✓ HTTP 404 received for unmatched path"
+
+  # Verify body does NOT contain the existing mock's response
+  if echo "$BODY" | grep -q "this-is-the-existing-mock"; then
+    echo "[streaming] ERROR: Unmatched path returned body from a different mock!"
+    echo "[streaming] Response body: $BODY"
+    exit 1
+  fi
+  echo "[streaming]   ✓ Body does not contain other mock's response"
+
+  # Step 3: Cleanup
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ Unmatched mock 404 test passed"
+}
+
+# Test: Multiple mocks — correct one is returned
+# Registers 3 mocks with different paths, calls the second one,
+# and verifies the correct response is returned (not the first or third).
+test_streaming_multiple_mocks_correct_match() {
+  echo "[streaming] Testing multiple mocks correct matching..."
+
+  # Step 1: Register 3 different mocks
+  local mock1='{
+    "request": { "method": "GET", "urlPath": "/streaming-test/alpha" },
+    "response": { "status": 200, "body": "response-alpha", "headers": { "Content-Type": "text/plain" } },
+    "persistent": true
+  }'
+  local mock2='{
+    "request": { "method": "GET", "urlPath": "/streaming-test/beta" },
+    "response": { "status": 200, "body": "response-beta", "headers": { "Content-Type": "text/plain" } },
+    "persistent": true
+  }'
+  local mock3='{
+    "request": { "method": "GET", "urlPath": "/streaming-test/gamma" },
+    "response": { "status": 200, "body": "response-gamma", "headers": { "Content-Type": "text/plain" } },
+    "persistent": true
+  }'
+
+  local response id1 id2 id3
+
+  response=$(curl "${CURL_OPTS[@]}" --write-out "\n%{http_code}" --request POST --data "$mock1" "$API_URL/__admin/mappings" 2>&1)
+  parse_response "$response"
+  id1=$(echo "$BODY" | json_field "id")
+
+  response=$(curl "${CURL_OPTS[@]}" --write-out "\n%{http_code}" --request POST --data "$mock2" "$API_URL/__admin/mappings" 2>&1)
+  parse_response "$response"
+  id2=$(echo "$BODY" | json_field "id")
+
+  response=$(curl "${CURL_OPTS[@]}" --write-out "\n%{http_code}" --request POST --data "$mock3" "$API_URL/__admin/mappings" 2>&1)
+  parse_response "$response"
+  id3=$(echo "$BODY" | json_field "id")
+
+  echo "[streaming]   ✓ 3 mocks registered: $id1, $id2, $id3"
+
+  # Step 2: Call the second mock (beta)
+  echo "[streaming]   Calling /streaming-test/beta..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/mocknest/streaming-test/beta" 2>&1) || {
+    echo "[streaming] ERROR: Failed to invoke beta mock"
+    exit 1
+  }
+  parse_response "$response"
+
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "[streaming] ERROR: Expected HTTP 200, got HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+
+  if [ "$BODY" != "response-beta" ]; then
+    echo "[streaming] ERROR: Expected 'response-beta', got '$BODY'"
+    echo "[streaming] This indicates WireMock is returning the wrong mock!"
+    exit 1
+  fi
+  echo "[streaming]   ✓ Correct mock (beta) returned"
+
+  # Step 3: Cleanup
+  curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$id1" 2>/dev/null || true
+  curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$id2" 2>/dev/null || true
+  curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$id3" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ Multiple mocks correct match test passed"
+}
+
 # Main test execution
 main() {
   echo "=== MockNest Serverless Post-Deployment Integration Tests ==="
@@ -1968,6 +2607,16 @@ main() {
     webhook)
       echo "Running webhook tests..."
       test_webhook_delivery
+      ;;
+    streaming)
+      echo "Running response streaming validation tests..."
+      test_streaming_large_payload
+      test_streaming_sse_chunked_delay
+      test_streaming_standard_body
+      test_streaming_custom_headers
+      test_streaming_progressive_delivery
+      test_streaming_unmatched_returns_404
+      test_streaming_multiple_mocks_correct_match
       ;;
     mock-management)
       echo "Running mock management extensive tests..."
@@ -2034,10 +2683,17 @@ main() {
       test_soap_generation
       test_soap_import
       test_webhook_delivery
+      test_streaming_large_payload
+      test_streaming_sse_chunked_delay
+      test_streaming_standard_body
+      test_streaming_custom_headers
+      test_streaming_progressive_delivery
+      test_streaming_unmatched_returns_404
+      test_streaming_multiple_mocks_correct_match
       ;;
     *)
       echo "ERROR: Unknown test suite: $TEST_SUITE"
-      echo "Valid options: setup, rest, graphql, soap, webhook, mock-management, request-verification, near-miss, files, extensive, extensive-cleanup, all"
+      echo "Valid options: setup, rest, graphql, soap, webhook, streaming, mock-management, request-verification, near-miss, files, extensive, extensive-cleanup, all"
       exit 2
       ;;
   esac

@@ -96,6 +96,20 @@ This creates a distinct story:
 
 ### Other Relevant Approaches (Not Primary SaaS Comparisons)
 
+### Protocol and Streaming Comparison
+
+| Product | REST | GraphQL | SOAP | gRPC | SSE / Streaming mocks |
+|---|---|---|---|---|---|
+| **MockNest Serverless** | ✅ | ✅ | ✅ | ❌ | ✅ (chunked delivery with configurable delays) |
+| **WireMock Cloud** | ✅ | ✅ | ✅ | ❌ | ✅ (chunked dribble delay) |
+| **Mockoon Cloud** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Beeceptor** | ✅ | ✅ | ✅ | ✅ | ❌ |
+| **Postman Mock Servers** | ✅ | ❌ | ❌ | ❌ | ❌ (can consume SSE, not generate) |
+
+MockNest Serverless and WireMock Cloud both support SSE mock simulation via chunked dribble delay (both are built on WireMock core). The key differentiator for MockNest is the combination of SSE support with serverless deployment in the customer's own AWS account, 200 MB response streaming (vs platform-dependent limits on hosted SaaS), and open-source pricing.
+
+### Other Relevant Approaches (Not Primary SaaS Comparisons)
+
 Some tools are important to mention, but they are better treated as **adjacent approaches** rather than direct hosted-platform competitors:
 
 - **Mockoon Serverless**: useful as a serverless package, but it requires customer code, customer packaging, and customer infrastructure setup around the package

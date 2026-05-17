@@ -565,7 +565,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
-      Handler: nl.vintik.mocknest.infra.aws.runtime.function.RuntimeLambdaHandler
+      Handler: nl.vintik.mocknest.infra.aws.runtime.function.StreamingRuntimeLambdaHandler
       Role: !GetAtt MockNestLambdaRole.Arn
       Timeout: !Ref RuntimeLambdaTimeout
       MemorySize: !Ref RuntimeLambdaMemorySize
@@ -592,12 +592,14 @@ Resources:
             RestApiId: !Ref MockNestApiKeyModeApi
             Path: /__admin/{proxy+}
             Method: ANY
+            ResponseTransferMode: RESPONSE_STREAM
         MockRoutes:
           Type: Api
           Properties:
             RestApiId: !Ref MockNestApiKeyModeApi
             Path: /mocknest/{proxy+}
             Method: ANY
+            ResponseTransferMode: RESPONSE_STREAM
 
   # Lambda function for MockNest Serverless runtime — IAM mode
   MockNestRuntimeFunctionIam:
@@ -606,7 +608,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-runtime"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
-      Handler: nl.vintik.mocknest.infra.aws.runtime.function.RuntimeLambdaHandler
+      Handler: nl.vintik.mocknest.infra.aws.runtime.function.StreamingRuntimeLambdaHandler
       Role: !GetAtt MockNestLambdaRole.Arn
       Timeout: !Ref RuntimeLambdaTimeout
       MemorySize: !Ref RuntimeLambdaMemorySize
@@ -633,12 +635,14 @@ Resources:
             RestApiId: !Ref MockNestIamModeApi
             Path: /__admin/{proxy+}
             Method: ANY
+            ResponseTransferMode: RESPONSE_STREAM
         MockRoutes:
           Type: Api
           Properties:
             RestApiId: !Ref MockNestIamModeApi
             Path: /mocknest/{proxy+}
             Method: ANY
+            ResponseTransferMode: RESPONSE_STREAM
 
   # Lambda function for MockNest Generation — API key mode
   MockNestGenerationFunction:
@@ -647,7 +651,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-generation"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
-      Handler: nl.vintik.mocknest.infra.aws.generation.function.GenerationLambdaHandler
+      Handler: nl.vintik.mocknest.infra.aws.generation.function.StreamingGenerationLambdaHandler
       Role: !GetAtt MockNestGenerationLambdaRole.Arn
       Timeout: !Ref GenerationLambdaTimeout
       MemorySize: !Ref GenerationLambdaMemorySize
@@ -674,6 +678,7 @@ Resources:
             RestApiId: !Ref MockNestApiKeyModeApi
             Path: /ai/{proxy+}
             Method: ANY
+            ResponseTransferMode: RESPONSE_STREAM
 
   # Lambda function for MockNest Generation — IAM mode
   MockNestGenerationFunctionIam:
@@ -682,7 +687,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-generation"
       CodeUri: ../../../build/dist/mocknest-serverless.jar
-      Handler: nl.vintik.mocknest.infra.aws.generation.function.GenerationLambdaHandler
+      Handler: nl.vintik.mocknest.infra.aws.generation.function.StreamingGenerationLambdaHandler
       Role: !GetAtt MockNestGenerationLambdaRole.Arn
       Timeout: !Ref GenerationLambdaTimeout
       MemorySize: !Ref GenerationLambdaMemorySize
@@ -709,6 +714,7 @@ Resources:
             RestApiId: !Ref MockNestIamModeApi
             Path: /ai/{proxy+}
             Method: ANY
+            ResponseTransferMode: RESPONSE_STREAM
 
   # Lambda function for MockNest RuntimeAsync (SQS webhook consumer) — API key mode
   MockNestRuntimeAsyncFunction:

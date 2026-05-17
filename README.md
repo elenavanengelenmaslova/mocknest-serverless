@@ -28,13 +28,13 @@ Received the 🏆 **Creative Track Award** at the [AWS 10,000 AIdeas Competition
 
 ## Why MockNest?
 
-| Solution | Delivery | Customer-hosted | Serverless | AI mock generation | IAM auth | Pricing |
-|---|---|---|---|---|---|---|
-| **MockNest Serverless** | Own AWS account | ✅ (runs in your account) | ✅ | REST / GraphQL / SOAP | ✅ | Open source |
-| WireMock Cloud | Hosted SaaS | Kubernetes + Postgres | ❌ | REST / GraphQL | ❌ | Free tier + paid |
-| Mockoon Cloud | Hosted SaaS | CLI / Docker (self-assembly) | ❌ | HTTP / JSON templates | ❌ | Paid + trial |
-| Beeceptor | Hosted SaaS | Docker / VMs / Kubernetes | ❌ | REST / GraphQL / SOAP / gRPC | ❌ | Free tier + paid |
-| Postman Mock Servers | Hosted SaaS | Local desktop only | ❌ | HTTP example-based | ❌ | Free tier + paid |
+| Solution | Delivery | Customer-hosted | Serverless | AI mock generation | SSE / Streaming | IAM auth | Pricing |
+|---|---|---|---|---|---|---|---|
+| **MockNest Serverless** | Own AWS account | ✅ (runs in your account) | ✅ | REST / GraphQL / SOAP | ✅ (chunked delivery) | ✅ | Open source |
+| WireMock Cloud | Hosted SaaS | Kubernetes + Postgres | ❌ | REST / GraphQL | ✅ (chunked dribble) | ❌ | Free tier + paid |
+| Mockoon Cloud | Hosted SaaS | CLI / Docker (self-assembly) | ❌ | HTTP / JSON templates | ❌ | ❌ | Paid + trial |
+| Beeceptor | Hosted SaaS | Docker / VMs / Kubernetes | ❌ | REST / GraphQL / SOAP / gRPC | ❌ | ❌ | Free tier + paid |
+| Postman Mock Servers | Hosted SaaS | Local desktop only | ❌ | HTTP example-based | ❌ | ❌ | Free tier + paid |
 
 For detailed competitive analysis, operating model comparison, and cost positioning, see [Market Analysis](docs/MARKET_ANALYSIS.md).
 
@@ -123,6 +123,7 @@ To use MockNest with your application:
 - **Support for secure API calls**: AWS IAM SigV4 or API Key supported
 - **AI-Assisted Mock Generation**: Generate realistic, consistent mocks from OpenAPI, WSDL/SOAP, or GraphQL specs using Amazon Bedrock (configurable model, defaults to Amazon Nova Pro)
 - **One-Click Deployment**: Deploy via AWS Serverless Application Repository (SAR) or build from source with SAM
+- **Support for Response Streaming**: Responses up to 200 MB via Lambda response streaming, with SSE mock simulation using chunked delivery and configurable delays
 - **Low Latency**: Lambda SnapStart minimises cold start times
 
 ### AI Mock Generation Flow
@@ -187,6 +188,12 @@ MockNest Serverless consists of AWS Lambda functions that serve both the WireMoc
 
 For detailed memory sizing, cold start measurements, scaling benchmarks (100 vs 1000 mocks), and tuning guidance, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
+### Payload Size Limits
+
+- **Request payloads** are limited to 6 MB by Lambda's invocation payload limit. This is rare in typical REST API testing scenarios.
+- **Response payloads** support up to 200 MB via Lambda response streaming.
+- Most APIs will not approach these limits in typical integration testing scenarios.
+
 ### SOAP/WSDL Support
 
 **SOAP 1.2 Bindings Only for AI Generation**: MockNest Serverless AI-assisted mock generation supports only SOAP 1.2 bindings. SOAP 1.1 bindings are not supported for AI generation.
@@ -223,7 +230,7 @@ MockNest is designed for cloud-based integration testing over HTTP. For some sce
 
 - **gRPC or non-HTTP protocols** — Use a protocol-specific mock tool if you need gRPC, WebSocket, or other non-HTTP protocol support.
 - **Local-only development without an AWS account** — Use standard WireMock or Mockoon if you only need local mocking without an AWS account.
-- **Very large request or response payloads (over 6 MB)** — Use a container-based mock server if your payloads exceed Lambda's 6 MB request/response size limit.
+- **Very large request payloads (over 6 MB)** — Request payloads are limited to 6 MB by Lambda's invocation payload limit. This is rare in typical REST API testing scenarios. Response payloads support up to 200 MB via streaming.
 
 ## Deployment for Developers
 

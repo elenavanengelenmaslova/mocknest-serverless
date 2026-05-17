@@ -495,7 +495,7 @@ Key AWS limits that may impact MockNest Serverless:
 - 15-minute maximum execution time (not typically relevant for HTTP APIs)
 - 10GB maximum memory allocation
 - 1000 concurrent executions (default, can be increased)
-- 6MB request/response payload size limit
+- 6MB request payload / 200MB response payload (streaming) size limit
 
 **API Gateway Limits:**
 - 10MB maximum payload size

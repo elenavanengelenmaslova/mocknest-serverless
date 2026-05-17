@@ -5,6 +5,24 @@ All notable changes to MockNest Serverless will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-05-17
+### Added
+- **Response Streaming**: Lambda response streaming via API Gateway REST API, enabling mock responses up to 200 MB (previously limited to 6 MB by the synchronous payload cap).
+- **SSE Mock Simulation**: Server-Sent Events simulation using WireMock's `chunkedDribbleDelay` — split response bodies into timed chunks to simulate real-time streaming APIs.
+- **S3 Streaming for Large Payloads**: Large response bodies stored in S3 are streamed to clients through a 1 MB bounded buffer without loading the entire file into memory.
+- **Streaming Protocol Writer**: Shared component implementing the API Gateway streaming protocol (metadata JSON + 8 null byte delimiter + payload) used by both Runtime and Generation Lambda handlers.
+- **API Gateway Request Parser**: Shared component parsing raw Lambda `InputStream` into domain HTTP requests, replacing SDK-based deserialization.
+- **Multi-value header and query parameter support**: `HttpRequest` domain model now carries full multi-value data from API Gateway for accurate WireMock matching.
+- **Post-deploy streaming tests**: Curl-based tests validating large payload delivery, SSE chunked timing, custom headers, and progressive delivery (TTFB vs total time).
+- **Streaming integration tests**: LocalStack-based integration tests covering end-to-end streaming response flow.
+
+### Changed
+- **Runtime Lambda handler**: Switched from `RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent>` to `RequestStreamHandler` (`StreamingRuntimeLambdaHandler`).
+- **Generation Lambda handler**: Switched to `RequestStreamHandler` (`StreamingGenerationLambdaHandler`).
+- **SAM template**: Added `ResponseTransferMode: RESPONSE_STREAM` on all API Gateway routes (admin, mock, and AI generation) for both API Key and IAM modes.
+- **Documentation**: Updated USAGE.md with SSE mock examples and idle timeout guidance, README.md with streaming feature description and payload size limits.
+
+
 ## [0.8.0] - 2026-05-12
 ### Added
 - **Rate limiting for IAM-authenticated APIs**: Rate limiting now applies to both API key and IAM SigV4 authentication modes, ensuring consistent throttling regardless of auth method.
