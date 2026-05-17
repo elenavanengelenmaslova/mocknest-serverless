@@ -23,7 +23,12 @@ class ChunkedDribbleDelayCapture : ResponseDefinitionTransformerV2 {
 
     override fun transform(serveEvent: ServeEvent): ResponseDefinition {
         val responseDefinition = serveEvent.responseDefinition
-        val chunkedDribbleDelay = responseDefinition?.chunkedDribbleDelay
+            ?: run {
+                capturedConfig.remove()
+                return ResponseDefinition.notConfigured()
+            }
+
+        val chunkedDribbleDelay = responseDefinition.chunkedDribbleDelay
 
         if (chunkedDribbleDelay != null) {
             val numberOfChunks = chunkedDribbleDelay.numberOfChunks
@@ -61,6 +66,14 @@ class ChunkedDribbleDelayCapture : ResponseDefinitionTransformerV2 {
          */
         fun clear() {
             capturedConfig.remove()
+        }
+
+        /**
+         * Sets the dribble config directly. Used in unit tests where the WireMock
+         * transformer pipeline is not active.
+         */
+        fun setForTest(config: CapturedDribbleConfig) {
+            capturedConfig.set(config)
         }
     }
 }

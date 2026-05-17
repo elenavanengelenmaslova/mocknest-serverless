@@ -16,6 +16,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import nl.vintik.mocknest.application.runtime.extensions.CapturedDribbleConfig
+import nl.vintik.mocknest.application.runtime.extensions.ChunkedDribbleDelayCapture
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.application.runtime.usecases.HandleAdminRequest
 import nl.vintik.mocknest.application.runtime.usecases.HandleClientRequest
@@ -284,15 +286,8 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
             )
             every { mockHandleClientRequest.invoke(any()) } returns clientResponse
 
-            val mockServeEvent = mockk<ServeEvent>(relaxed = true)
-            val mockResponseDef = mockk<ResponseDefinition>(relaxed = true)
-            val mockChunkedDelay = mockk<ChunkedDribbleDelay>(relaxed = true)
-            every { mockChunkedDelay.numberOfChunks } returns 3
-            every { mockChunkedDelay.totalDuration } returns 3000
-            every { mockResponseDef.chunkedDribbleDelay } returns mockChunkedDelay
-            every { mockResponseDef.bodyFileName } returns null
-            every { mockServeEvent.responseDefinition } returns mockResponseDef
-            every { mockWireMockServer.allServeEvents } returns listOf(mockServeEvent)
+            // Populate the thread-local that the ChunkedDribbleDelayCapture transformer would set
+            ChunkedDribbleDelayCapture.setForTest(CapturedDribbleConfig(numberOfChunks = 3, totalDurationMs = 3000))
 
             // When
             handler.handleRequest(input, output, mockContext)
