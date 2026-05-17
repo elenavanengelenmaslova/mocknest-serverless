@@ -28,13 +28,13 @@ Received the 🏆 **Creative Track Award** at the [AWS 10,000 AIdeas Competition
 
 ## Why MockNest?
 
-| Solution | Delivery | Customer-hosted | Serverless | AI mock generation | IAM auth | Pricing |
-|---|---|---|---|---|---|---|
-| **MockNest Serverless** | Own AWS account | ✅ (runs in your account) | ✅ | REST / GraphQL / SOAP | ✅ | Open source |
-| WireMock Cloud | Hosted SaaS | Kubernetes + Postgres | ❌ | REST / GraphQL | ❌ | Free tier + paid |
-| Mockoon Cloud | Hosted SaaS | CLI / Docker (self-assembly) | ❌ | HTTP / JSON templates | ❌ | Paid + trial |
-| Beeceptor | Hosted SaaS | Docker / VMs / Kubernetes | ❌ | REST / GraphQL / SOAP / gRPC | ❌ | Free tier + paid |
-| Postman Mock Servers | Hosted SaaS | Local desktop only | ❌ | HTTP example-based | ❌ | Free tier + paid |
+| Solution | Delivery | Customer-hosted | Serverless | AI mock generation | SSE / Streaming | IAM auth | Pricing |
+|---|---|---|---|---|---|---|---|
+| **MockNest Serverless** | Own AWS account | ✅ (runs in your account) | ✅ | REST / GraphQL / SOAP | ✅ (chunked delivery) | ✅ | Open source |
+| WireMock Cloud | Hosted SaaS | Kubernetes + Postgres | ❌ | REST / GraphQL | ✅ (chunked dribble) | ❌ | Free tier + paid |
+| Mockoon Cloud | Hosted SaaS | CLI / Docker (self-assembly) | ❌ | HTTP / JSON templates | ❌ | ❌ | Paid + trial |
+| Beeceptor | Hosted SaaS | Docker / VMs / Kubernetes | ❌ | REST / GraphQL / SOAP / gRPC | ❌ | ❌ | Free tier + paid |
+| Postman Mock Servers | Hosted SaaS | Local desktop only | ❌ | HTTP example-based | ❌ | ❌ | Free tier + paid |
 
 For detailed competitive analysis, operating model comparison, and cost positioning, see [Market Analysis](docs/MARKET_ANALYSIS.md).
 
