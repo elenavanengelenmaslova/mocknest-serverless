@@ -2436,6 +2436,146 @@ test_streaming_progressive_delivery() {
   echo "[streaming] ✓ Progressive delivery test completed"
 }
 
+# Test: Unmatched mock returns 404 with no body
+# Verifies that calling a path with no matching mock returns HTTP 404
+# and does not return a body from a different mock.
+test_streaming_unmatched_returns_404() {
+  echo "[streaming] Testing unmatched mock returns 404..."
+
+  # Step 1: Register a mock for a specific path
+  local mapping_body='{
+    "request": {
+      "method": "GET",
+      "urlPath": "/streaming-test/existing-endpoint"
+    },
+    "response": {
+      "status": 200,
+      "body": "this-is-the-existing-mock",
+      "headers": { "Content-Type": "text/plain" }
+    },
+    "persistent": true
+  }'
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$mapping_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register mock"
+    exit 1
+  }
+  parse_response "$response"
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ Mock registered: $MAPPING_ID"
+
+  # Step 2: Call a path that does NOT match any mock
+  echo "[streaming]   Calling unmatched path..."
+  local unmatched_response
+  unmatched_response=$(curl_no_fail \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/mocknest/streaming-test/nonexistent-path" 2>&1) || true
+  parse_response "$unmatched_response"
+
+  # Verify 404 status
+  if [ "$HTTP_CODE" != "404" ]; then
+    echo "[streaming] ERROR: Expected HTTP 404 for unmatched path, got HTTP $HTTP_CODE"
+    echo "[streaming] Response body: $BODY"
+    exit 1
+  fi
+  echo "[streaming]   ✓ HTTP 404 received for unmatched path"
+
+  # Verify body does NOT contain the existing mock's response
+  if echo "$BODY" | grep -q "this-is-the-existing-mock"; then
+    echo "[streaming] ERROR: Unmatched path returned body from a different mock!"
+    echo "[streaming] Response body: $BODY"
+    exit 1
+  fi
+  echo "[streaming]   ✓ Body does not contain other mock's response"
+
+  # Step 3: Cleanup
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ Unmatched mock 404 test passed"
+}
+
+# Test: Multiple mocks — correct one is returned
+# Registers 3 mocks with different paths, calls the second one,
+# and verifies the correct response is returned (not the first or third).
+test_streaming_multiple_mocks_correct_match() {
+  echo "[streaming] Testing multiple mocks correct matching..."
+
+  # Step 1: Register 3 different mocks
+  local mock1='{
+    "request": { "method": "GET", "urlPath": "/streaming-test/alpha" },
+    "response": { "status": 200, "body": "response-alpha", "headers": { "Content-Type": "text/plain" } },
+    "persistent": true
+  }'
+  local mock2='{
+    "request": { "method": "GET", "urlPath": "/streaming-test/beta" },
+    "response": { "status": 200, "body": "response-beta", "headers": { "Content-Type": "text/plain" } },
+    "persistent": true
+  }'
+  local mock3='{
+    "request": { "method": "GET", "urlPath": "/streaming-test/gamma" },
+    "response": { "status": 200, "body": "response-gamma", "headers": { "Content-Type": "text/plain" } },
+    "persistent": true
+  }'
+
+  local response id1 id2 id3
+
+  response=$(curl "${CURL_OPTS[@]}" --write-out "\n%{http_code}" --request POST --data "$mock1" "$API_URL/__admin/mappings" 2>&1)
+  parse_response "$response"
+  id1=$(echo "$BODY" | json_field "id")
+
+  response=$(curl "${CURL_OPTS[@]}" --write-out "\n%{http_code}" --request POST --data "$mock2" "$API_URL/__admin/mappings" 2>&1)
+  parse_response "$response"
+  id2=$(echo "$BODY" | json_field "id")
+
+  response=$(curl "${CURL_OPTS[@]}" --write-out "\n%{http_code}" --request POST --data "$mock3" "$API_URL/__admin/mappings" 2>&1)
+  parse_response "$response"
+  id3=$(echo "$BODY" | json_field "id")
+
+  echo "[streaming]   ✓ 3 mocks registered: $id1, $id2, $id3"
+
+  # Step 2: Call the second mock (beta)
+  echo "[streaming]   Calling /streaming-test/beta..."
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request GET \
+    "$API_URL/mocknest/streaming-test/beta" 2>&1) || {
+    echo "[streaming] ERROR: Failed to invoke beta mock"
+    exit 1
+  }
+  parse_response "$response"
+
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "[streaming] ERROR: Expected HTTP 200, got HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+
+  if [ "$BODY" != "response-beta" ]; then
+    echo "[streaming] ERROR: Expected 'response-beta', got '$BODY'"
+    echo "[streaming] This indicates WireMock is returning the wrong mock!"
+    exit 1
+  fi
+  echo "[streaming]   ✓ Correct mock (beta) returned"
+
+  # Step 3: Cleanup
+  curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$id1" 2>/dev/null || true
+  curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$id2" 2>/dev/null || true
+  curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$id3" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ Multiple mocks correct match test passed"
+}
+
 # Main test execution
 main() {
   echo "=== MockNest Serverless Post-Deployment Integration Tests ==="
@@ -2475,6 +2615,8 @@ main() {
       test_streaming_standard_body
       test_streaming_custom_headers
       test_streaming_progressive_delivery
+      test_streaming_unmatched_returns_404
+      test_streaming_multiple_mocks_correct_match
       ;;
     mock-management)
       echo "Running mock management extensive tests..."
@@ -2546,6 +2688,8 @@ main() {
       test_streaming_standard_body
       test_streaming_custom_headers
       test_streaming_progressive_delivery
+      test_streaming_unmatched_returns_404
+      test_streaming_multiple_mocks_correct_match
       ;;
     *)
       echo "ERROR: Unknown test suite: $TEST_SUITE"

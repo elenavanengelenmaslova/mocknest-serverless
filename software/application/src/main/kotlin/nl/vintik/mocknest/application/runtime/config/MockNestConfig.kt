@@ -2,6 +2,7 @@ package nl.vintik.mocknest.application.runtime.config
 
 import com.github.tomakehurst.wiremock.extension.Extension
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
+import nl.vintik.mocknest.application.runtime.extensions.ChunkedDribbleDelayCapture
 import nl.vintik.mocknest.application.runtime.extensions.DeleteAllMappingsAndFilesFilter
 import nl.vintik.mocknest.application.runtime.extensions.NormalizeMappingBodyFilter
 import nl.vintik.mocknest.application.runtime.extensions.RedactSensitiveHeadersFilter
@@ -37,6 +38,7 @@ fun createWireMockServer(
 ): WireMockServer {
 
     val extensions = mutableListOf<Extension>(
+        ChunkedDribbleDelayCapture(),
         NormalizeMappingBodyFilter(storage),
         DeleteAllMappingsAndFilesFilter(storage),
         redactFilter,

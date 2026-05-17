@@ -2,15 +2,15 @@ package nl.vintik.mocknest.infra.aws.runtime.function
 
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler
-import com.github.tomakehurst.wiremock.WireMockServer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
+import nl.vintik.mocknest.application.runtime.extensions.CapturedDribbleConfig
+import nl.vintik.mocknest.application.runtime.extensions.ChunkedDribbleDelayCapture
 import nl.vintik.mocknest.application.runtime.usecases.ADMIN_PREFIX
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.application.runtime.usecases.HandleAdminRequest
 import nl.vintik.mocknest.application.runtime.usecases.HandleClientRequest
 import nl.vintik.mocknest.application.runtime.usecases.MOCKNEST_PREFIX
-import nl.vintik.mocknest.application.runtime.store.adapters.FILES_PREFIX
 import nl.vintik.mocknest.domain.core.HttpRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
 import nl.vintik.mocknest.domain.core.HttpStatusCode
@@ -23,7 +23,6 @@ import nl.vintik.mocknest.infra.aws.runtime.di.runtimeModule
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimeMappingReloadHook
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimePrimingHook
 import nl.vintik.mocknest.infra.aws.runtime.streaming.ChunkedResponseWriter
-import nl.vintik.mocknest.infra.aws.runtime.streaming.S3ResponseStreamer
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.InputStream
@@ -46,7 +45,6 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
 
     companion object {
         private const val MAX_RESPONSE_SIZE_BYTES = 200L * 1024 * 1024 // 200MB
-        private const val S3_STREAM_BUFFER_SIZE = 1024 * 1024 // 1MB
 
         init {
             KoinBootstrap.init(listOf(coreModule(), runtimeModule()))
@@ -60,8 +58,6 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
     private val handleClientRequest: HandleClientRequest by inject()
     private val handleAdminRequest: HandleAdminRequest by inject()
     private val getRuntimeHealth: GetRuntimeHealth by inject()
-    private val wireMockServer: WireMockServer by inject()
-    private val s3ResponseStreamer: S3ResponseStreamer by inject()
 
     private val requestParser = ApiGatewayRequestParser()
     private val protocolWriter = StreamingProtocolWriter()
@@ -73,32 +69,25 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
         logger.info { "Runtime Lambda streaming request: ${httpRequest.method} ${httpRequest.path}" }
 
         val path = httpRequest.path
+
+        // Clear any previous dribble config before routing
+        ChunkedDribbleDelayCapture.clear()
+
         val response = routeRequest(path, httpRequest)
 
         // Check response body size against 200MB limit
         val bodyBytes = response.body?.toByteArray(Charsets.UTF_8)
         if (bodyBytes != null && bodyBytes.size > MAX_RESPONSE_SIZE_BYTES) {
             logger.error { "Response body size ${bodyBytes.size} exceeds maximum supported streaming limit of ${MAX_RESPONSE_SIZE_BYTES} bytes" }
-            writeErrorResponse(
-                output,
-                502,
-                "Response payload exceeds the maximum supported streaming limit of 200MB"
-            )
+            writeErrorResponse(output, 502, "Response payload exceeds the maximum supported streaming limit of 200MB")
             return
         }
 
-        // For client requests, check if chunkedDribbleDelay is configured
+        // For client requests, check if chunkedDribbleDelay was captured by the transformer
         if (path.startsWith(MOCKNEST_PREFIX)) {
-            // Check if response body comes from S3 (bodyFileName)
-            val bodyFileName = detectBodyFileName()
-            if (bodyFileName != null) {
-                writeS3StreamedResponse(response, bodyFileName, output)
-                return
-            }
-
-            val chunkedConfig = detectChunkedDribbleDelay()
-            if (chunkedConfig != null) {
-                writeChunkedResponse(response, bodyBytes, chunkedConfig, output)
+            val dribbleConfig = ChunkedDribbleDelayCapture.getAndClear()
+            if (dribbleConfig != null && bodyBytes != null && bodyBytes.isNotEmpty()) {
+                writeChunkedResponse(response, bodyBytes, dribbleConfig, output)
                 return
             }
         }
@@ -146,77 +135,13 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
         }
 
     /**
-     * Detects if the last WireMock serve event has a bodyFileName, indicating
-     * the response body is stored in S3 and should be streamed.
-     * Returns the body file name if present, or null otherwise.
-     */
-    private fun detectBodyFileName(): String? {
-        val serveEvents = wireMockServer.allServeEvents
-        val lastEvent = serveEvents.firstOrNull() ?: return null
-
-        val responseDefinition = lastEvent.responseDefinition ?: return null
-        return responseDefinition.bodyFileName
-    }
-
-    /**
-     * Writes a streaming response where the body is streamed from S3 using a bounded 1MB buffer.
-     * Writes metadata+delimiter first, then streams the S3 object content directly to the output.
-     * On S3 retrieval failure, the stream is aborted and the error is logged.
-     */
-    private fun writeS3StreamedResponse(
-        response: HttpResponse,
-        bodyFileName: String,
-        output: OutputStream,
-    ) {
-        val headers = response.headers
-            ?.flatMap { (name, values) -> values.map { name to it } }
-            ?.toMap()
-            ?: emptyMap()
-
-        protocolWriter.writeMetadataAndDelimiter(response.statusCode.value, headers, output)
-
-        val s3Key = "$FILES_PREFIX$bodyFileName"
-        logger.info { "Streaming S3 response body: key=$s3Key" }
-
-        val success = s3ResponseStreamer.streamToOutput(s3Key, output)
-        if (!success) {
-            logger.error { "S3 streaming failed for key=$s3Key, stream aborted" }
-        }
-        output.flush()
-    }
-
-    /**
-     * Detects chunkedDribbleDelay configuration from the last WireMock serve event.
-     * Returns a pair of (numberOfChunks, totalDuration) if valid chunked config is present,
-     * or null if not configured or invalid.
-     */
-    private fun detectChunkedDribbleDelay(): ChunkedDribbleConfig? {
-        val serveEvents = wireMockServer.allServeEvents
-        val lastEvent = serveEvents.firstOrNull() ?: return null
-
-        val responseDefinition = lastEvent.responseDefinition ?: return null
-        val chunkedDribbleDelay = responseDefinition.chunkedDribbleDelay ?: return null
-
-        val numberOfChunks = chunkedDribbleDelay.numberOfChunks
-        val totalDuration = chunkedDribbleDelay.totalDuration.toLong()
-
-        // Invalid config: numberOfChunks < 1 or totalDuration < 0 → ignore and write full body
-        if (numberOfChunks < 1 || totalDuration < 0) {
-            logger.debug { "Invalid chunkedDribbleDelay config (numberOfChunks=$numberOfChunks, totalDuration=$totalDuration), ignoring" }
-            return null
-        }
-
-        return ChunkedDribbleConfig(numberOfChunks, totalDuration)
-    }
-
-    /**
      * Writes a chunked streaming response using the ChunkedResponseWriter.
      * Writes metadata+delimiter first, then delivers body in chunks with delays.
      */
     private fun writeChunkedResponse(
         response: HttpResponse,
-        bodyBytes: ByteArray?,
-        config: ChunkedDribbleConfig,
+        bodyBytes: ByteArray,
+        config: CapturedDribbleConfig,
         output: OutputStream,
     ) {
         val headers = response.headers
@@ -226,10 +151,8 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
 
         protocolWriter.writeMetadataAndDelimiter(response.statusCode.value, headers, output)
 
-        if (bodyBytes != null && bodyBytes.isNotEmpty()) {
-            runBlocking {
-                chunkedWriter.writeChunked(bodyBytes, config.numberOfChunks, config.totalDurationMs, output)
-            }
+        runBlocking {
+            chunkedWriter.writeChunked(bodyBytes, config.numberOfChunks, config.totalDurationMs, output)
         }
         output.flush()
     }
@@ -246,12 +169,4 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
         protocolWriter.write(errorResponse, output)
         output.flush()
     }
-
-    /**
-     * Internal data class for chunked dribble delay configuration.
-     */
-    private data class ChunkedDribbleConfig(
-        val numberOfChunks: Int,
-        val totalDurationMs: Long,
-    )
 }

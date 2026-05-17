@@ -360,6 +360,87 @@ class StreamingIntegrationTest : KoinTest {
         assertEquals("""{"error":"Service temporarily unavailable"}""", parsed.body)
     }
 
+    @Test
+    fun `Given multiple mocks registered When invoking specific path Then correct mock is returned for each path`() {
+        // Given - register two different mocks with different paths
+        val mockAJson = """
+            {
+                "request": { "urlPath": "/api/users", "method": "GET" },
+                "response": {
+                    "status": 200,
+                    "body": "{\"users\":[\"Alice\",\"Bob\"]}",
+                    "headers": { "Content-Type": "application/json" }
+                }
+            }
+        """.trimIndent()
+        val mockBJson = """
+            {
+                "request": { "urlPath": "/api/orders", "method": "GET" },
+                "response": {
+                    "status": 200,
+                    "body": "{\"orders\":[\"order-1\",\"order-2\"]}",
+                    "headers": { "Content-Type": "application/json" }
+                }
+            }
+        """.trimIndent()
+        registerMapping(mockAJson)
+        registerMapping(mockBJson)
+
+        // When - invoke mock A
+        val inputA = createApiGatewayRequest("/mocknest/api/users", "GET")
+        val outputA = ByteArrayOutputStream()
+        handler.handleRequest(inputA, outputA, mockContext)
+
+        // Then - should return users, not orders
+        val parsedA = parseStreamingResponse(outputA.toByteArray())
+        assertEquals(200, parsedA.statusCode)
+        assertEquals("""{"users":["Alice","Bob"]}""", parsedA.body)
+
+        // When - invoke mock B
+        val inputB = createApiGatewayRequest("/mocknest/api/orders", "GET")
+        val outputB = ByteArrayOutputStream()
+        handler.handleRequest(inputB, outputB, mockContext)
+
+        // Then - should return orders, not users
+        val parsedB = parseStreamingResponse(outputB.toByteArray())
+        assertEquals(200, parsedB.statusCode)
+        assertEquals("""{"orders":["order-1","order-2"]}""", parsedB.body)
+    }
+
+    @Test
+    fun `Given mock with query parameters When invoking with matching query Then correct mock is returned`() {
+        // Given - register a mock with query parameter matching
+        val mappingJson = """
+            {
+                "request": {
+                    "urlPath": "/api/search",
+                    "method": "GET",
+                    "queryParameters": { "q": { "equalTo": "kotlin" } }
+                },
+                "response": {
+                    "status": 200,
+                    "body": "{\"results\":[\"kotlin-result\"]}",
+                    "headers": { "Content-Type": "application/json" }
+                }
+            }
+        """.trimIndent()
+        registerMapping(mappingJson)
+
+        // When - invoke with matching query parameter
+        val input = createApiGatewayRequest(
+            "/mocknest/api/search", "GET",
+            headers = mapOf("Accept" to "application/json"),
+            queryParameters = mapOf("q" to "kotlin")
+        )
+        val output = ByteArrayOutputStream()
+        handler.handleRequest(input, output, mockContext)
+
+        // Then - should return the search result
+        val parsed = parseStreamingResponse(output.toByteArray())
+        assertEquals(200, parsed.statusCode)
+        assertEquals("""{"results":["kotlin-result"]}""", parsed.body)
+    }
+
     // --- Helper methods ---
 
     /**
@@ -395,9 +476,17 @@ class StreamingIntegrationTest : KoinTest {
         headers: Map<String, String> = mapOf("Accept" to "application/json"),
         body: String? = null,
         isBase64Encoded: Boolean = false,
+        queryParameters: Map<String, String> = emptyMap(),
     ): ByteArrayInputStream {
         val headersJson = headers.entries.joinToString(",") { (k, v) ->
             """"${escapeJsonString(k)}":"${escapeJsonString(v)}""""
+        }
+        val queryParamsJson = if (queryParameters.isEmpty()) {
+            "{}"
+        } else {
+            queryParameters.entries.joinToString(",", "{", "}") { (k, v) ->
+                """"${escapeJsonString(k)}":"${escapeJsonString(v)}""""
+            }
         }
         val bodyJson = if (body != null) {
             "\"${escapeJsonString(body)}\""
@@ -408,7 +497,7 @@ class StreamingIntegrationTest : KoinTest {
             "httpMethod": "$httpMethod",
             "path": "$path",
             "headers": {$headersJson},
-            "queryStringParameters": {},
+            "queryStringParameters": $queryParamsJson,
             "body": $bodyJson,
             "isBase64Encoded": $isBase64Encoded
         }"""
