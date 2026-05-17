@@ -146,6 +146,23 @@ curl_no_fail() {
 test_runtime_health() {
   echo "Testing runtime health..."
   
+  # Debug: verbose request to see full HTTP exchange
+  echo "  [debug] Requesting: $API_URL/__admin/health"
+  local debug_response
+  debug_response=$(curl \
+    --silent \
+    --show-error \
+    --max-time 30 \
+    --include \
+    --header "x-api-key: $API_KEY" \
+    --header "Content-Type: application/json" \
+    "$API_URL/__admin/health" 2>&1) || true
+  echo "  [debug] Full response (headers + body):"
+  echo "$debug_response" | head -30
+  echo "  [debug] Response bytes (hex, first 200):"
+  echo "$debug_response" | tail -1 | xxd | head -15
+  echo "  [debug] ---"
+
   local response
   response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
@@ -166,6 +183,9 @@ test_runtime_health() {
   if ! echo "$BODY" | grep -q '"status"[[:space:]]*:[[:space:]]*"healthy"'; then
     echo "ERROR: Runtime health check response missing 'status: healthy'"
     echo "Response: $BODY"
+    echo "  [debug] Body length: ${#BODY}"
+    echo "  [debug] Body hex (first 100 bytes):"
+    echo "$BODY" | xxd | head -10
     exit 1
   fi
   
