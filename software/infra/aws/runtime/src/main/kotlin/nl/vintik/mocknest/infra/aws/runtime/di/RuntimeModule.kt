@@ -49,9 +49,13 @@ fun runtimeModule() = module {
 
     // S3 response streamer for large body files (S3Client comes from coreModule)
     single {
+        val bucketName = System.getenv("MOCKNEST_S3_BUCKET_NAME")
+        checkNotNull(bucketName?.takeIf { it.isNotBlank() }) {
+            "MOCKNEST_S3_BUCKET_NAME environment variable must be set for S3ResponseStreamer"
+        }
         S3ResponseStreamer(
             s3Client = get(),
-            bucketName = System.getenv("MOCKNEST_S3_BUCKET_NAME") ?: "",
+            bucketName = bucketName,
         )
     }
 

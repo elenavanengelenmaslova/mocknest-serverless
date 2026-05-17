@@ -1,6 +1,7 @@
 package nl.vintik.mocknest.infra.aws.runtime.streaming
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -64,9 +65,10 @@ class ChunkedDelayCalculationPropertyTest {
             // If there's a non-zero expected sleep, verify elapsed time is reasonable
             if (totalExpectedSleepMs > 0) {
                 val lowerBound = (totalExpectedSleepMs * 0.5).toLong()
-                assert(elapsedMs >= lowerBound) {
+                assertTrue(
+                    elapsedMs >= lowerBound,
                     "Elapsed time ${elapsedMs}ms should be at least 50% of expected total delay ${totalExpectedSleepMs}ms for: $description"
-                }
+                )
             }
         }
         // For larger delays, the mathematical property verification above is sufficient

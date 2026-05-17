@@ -9,6 +9,7 @@ import nl.vintik.mocknest.domain.core.HttpResponse
 import nl.vintik.mocknest.domain.core.HttpStatusCode
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -44,7 +45,7 @@ class StreamingProtocolRoundTripPropertyTest {
 
         // Find the 8 null byte delimiter
         val delimiterIndex = findNullDelimiter(bytes)
-        assert(delimiterIndex >= 0) { "8 null byte delimiter not found in output" }
+        assertTrue(delimiterIndex >= 0, "8 null byte delimiter not found in output")
 
         // Parse metadata JSON before the delimiter
         val metadataBytes = bytes.copyOfRange(0, delimiterIndex)

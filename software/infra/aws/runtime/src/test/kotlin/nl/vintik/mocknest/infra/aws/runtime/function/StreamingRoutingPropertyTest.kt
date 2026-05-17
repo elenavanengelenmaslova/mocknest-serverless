@@ -14,6 +14,7 @@ import nl.vintik.mocknest.application.runtime.usecases.HandleClientRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
 import nl.vintik.mocknest.domain.core.HttpStatusCode
 import nl.vintik.mocknest.infra.aws.core.di.KoinBootstrap
+import nl.vintik.mocknest.infra.aws.core.streaming.StreamingProtocolWriter
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimeMappingReloadHook
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimePrimingHook
 import nl.vintik.mocknest.infra.aws.runtime.streaming.S3ResponseStreamer
@@ -229,7 +230,7 @@ class StreamingRoutingPropertyTest : KoinTest {
         val bytes = output.toByteArray()
         val delimiterIndex = findNullDelimiterIndex(bytes)
         if (delimiterIndex < 0) return ""
-        val bodyStart = delimiterIndex + 8
+        val bodyStart = delimiterIndex + StreamingProtocolWriter.NULL_DELIMITER_SIZE
         if (bodyStart >= bytes.size) return ""
         return String(bytes, bodyStart, bytes.size - bodyStart, Charsets.UTF_8)
     }
@@ -238,18 +239,16 @@ class StreamingRoutingPropertyTest : KoinTest {
      * Finds the index of the 8 null byte delimiter in the streaming response bytes.
      */
     private fun findNullDelimiterIndex(bytes: ByteArray): Int {
-        for (i in 0..bytes.size - 8) {
-            if (bytes[i] == 0.toByte() &&
-                bytes[i + 1] == 0.toByte() &&
-                bytes[i + 2] == 0.toByte() &&
-                bytes[i + 3] == 0.toByte() &&
-                bytes[i + 4] == 0.toByte() &&
-                bytes[i + 5] == 0.toByte() &&
-                bytes[i + 6] == 0.toByte() &&
-                bytes[i + 7] == 0.toByte()
-            ) {
-                return i
+        val size = StreamingProtocolWriter.NULL_DELIMITER_SIZE
+        for (i in 0..bytes.size - size) {
+            var allNull = true
+            for (k in 0 until size) {
+                if (bytes[i + k] != 0.toByte()) {
+                    allNull = false
+                    break
+                }
             }
+            if (allNull) return i
         }
         return -1
     }

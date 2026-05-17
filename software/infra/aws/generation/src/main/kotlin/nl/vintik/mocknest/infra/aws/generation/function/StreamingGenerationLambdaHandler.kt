@@ -53,10 +53,16 @@ class StreamingGenerationLambdaHandler : RequestStreamHandler, KoinComponent {
             requestParser.parse(input)
         } catch (e: RequestParseException) {
             logger.warn(e) { "Failed to parse API Gateway request" }
+            val escapedMessage = (e.message ?: "Unknown parse error")
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t")
             val errorResponse = HttpResponse(
                 HttpStatusCode.BAD_REQUEST,
                 mapOf("Content-Type" to listOf("application/json")),
-                """{"error":"${e.message}"}"""
+                """{"error":"$escapedMessage"}"""
             )
             protocolWriter.write(errorResponse, output)
             output.flush()

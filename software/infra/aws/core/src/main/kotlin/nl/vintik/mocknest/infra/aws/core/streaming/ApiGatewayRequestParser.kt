@@ -34,7 +34,7 @@ class ApiGatewayRequestParser {
 
     private fun readInputStream(input: InputStream): String =
         runCatching {
-            input.bufferedReader().use { it.readText() }
+            input.bufferedReader(Charsets.UTF_8).use { it.readText() }
         }.getOrElse { e ->
             logger.error(e) { "Failed to read input stream" }
             throw RequestParseException("Failed to read input stream", e)
@@ -86,7 +86,7 @@ class ApiGatewayRequestParser {
         if (!isBase64Encoded) return body
 
         return runCatching {
-            String(Base64.getDecoder().decode(body))
+            String(Base64.getDecoder().decode(body), Charsets.UTF_8)
         }.getOrElse { e ->
             logger.error(e) { "Failed to decode base64-encoded body" }
             throw RequestParseException("Failed to decode base64-encoded body", e)
