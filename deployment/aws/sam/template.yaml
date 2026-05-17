@@ -592,14 +592,14 @@ Resources:
             RestApiId: !Ref MockNestApiKeyModeApi
             Path: /__admin/{proxy+}
             Method: ANY
-            ResponseTransferMode: STREAM
+            ResponseTransferMode: RESPONSE_STREAM
         MockRoutes:
           Type: Api
           Properties:
             RestApiId: !Ref MockNestApiKeyModeApi
             Path: /mocknest/{proxy+}
             Method: ANY
-            ResponseTransferMode: STREAM
+            ResponseTransferMode: RESPONSE_STREAM
 
   # Lambda function for MockNest Serverless runtime — IAM mode
   MockNestRuntimeFunctionIam:
@@ -635,14 +635,14 @@ Resources:
             RestApiId: !Ref MockNestIamModeApi
             Path: /__admin/{proxy+}
             Method: ANY
-            ResponseTransferMode: STREAM
+            ResponseTransferMode: RESPONSE_STREAM
         MockRoutes:
           Type: Api
           Properties:
             RestApiId: !Ref MockNestIamModeApi
             Path: /mocknest/{proxy+}
             Method: ANY
-            ResponseTransferMode: STREAM
+            ResponseTransferMode: RESPONSE_STREAM
 
   # Lambda function for MockNest Generation — API key mode
   MockNestGenerationFunction:
@@ -678,7 +678,7 @@ Resources:
             RestApiId: !Ref MockNestApiKeyModeApi
             Path: /ai/{proxy+}
             Method: ANY
-            ResponseTransferMode: STREAM
+            ResponseTransferMode: RESPONSE_STREAM
 
   # Lambda function for MockNest Generation — IAM mode
   MockNestGenerationFunctionIam:
@@ -714,7 +714,7 @@ Resources:
             RestApiId: !Ref MockNestIamModeApi
             Path: /ai/{proxy+}
             Method: ANY
-            ResponseTransferMode: STREAM
+            ResponseTransferMode: RESPONSE_STREAM
 
   # Lambda function for MockNest RuntimeAsync (SQS webhook consumer) — API key mode
   MockNestRuntimeAsyncFunction:

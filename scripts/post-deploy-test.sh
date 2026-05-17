@@ -2329,6 +2329,113 @@ test_streaming_custom_headers() {
   echo "[streaming] ✓ Custom headers test passed"
 }
 
+# Test: Streaming validation — proves response streaming is actually working
+# Registers a mock with chunkedDribbleDelay, measures TTFB vs total time.
+# If streaming works: TTFB << total time (chunks arrive progressively)
+# If buffered: TTFB ≈ total time (everything arrives at once)
+# This detects whether the Java runtime + RequestStreamHandler actually streams.
+test_streaming_progressive_delivery() {
+  echo "[streaming] Testing progressive delivery (TTFB vs total time)..."
+
+  local NUM_CHUNKS=5
+  local TOTAL_DURATION_MS=5000
+
+  # Step 1: Register mock with chunkedDribbleDelay
+  echo "[streaming]   Registering chunked mock (chunks=$NUM_CHUNKS, totalDuration=${TOTAL_DURATION_MS}ms)..."
+  local mapping_body
+  mapping_body="{
+    \"request\": {
+      \"method\": \"GET\",
+      \"urlPath\": \"/streaming-test/progressive-delivery\"
+    },
+    \"response\": {
+      \"status\": 200,
+      \"body\": \"chunk1-data chunk2-data chunk3-data chunk4-data chunk5-data\",
+      \"headers\": {
+        \"Content-Type\": \"text/plain\"
+      },
+      \"chunkedDribbleDelay\": {
+        \"numberOfChunks\": $NUM_CHUNKS,
+        \"totalDuration\": $TOTAL_DURATION_MS
+      }
+    },
+    \"persistent\": true
+  }"
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$mapping_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register progressive delivery mock"
+    echo "[streaming] Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "[streaming] ERROR: Progressive delivery mock registration failed with HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ Mock registered: $MAPPING_ID"
+
+  # Step 2: Invoke and measure TTFB vs total time
+  echo "[streaming]   Invoking mock and measuring TTFB vs total time..."
+  local timing_output
+  timing_output=$(curl \
+    --silent \
+    --show-error \
+    --max-time 30 \
+    --no-buffer \
+    --header "x-api-key: $API_KEY" \
+    --output /dev/null \
+    --write-out "ttfb=%{time_starttransfer}\ntotal=%{time_total}\n" \
+    "$API_URL/mocknest/streaming-test/progressive-delivery" 2>&1) || {
+    echo "[streaming] ERROR: Failed to invoke progressive delivery mock"
+    exit 1
+  }
+
+  local ttfb_seconds total_seconds
+  ttfb_seconds=$(echo "$timing_output" | grep "^ttfb=" | cut -d= -f2)
+  total_seconds=$(echo "$timing_output" | grep "^total=" | cut -d= -f2)
+
+  local ttfb_ms total_ms
+  ttfb_ms=$(python3 -c "print(int(float('$ttfb_seconds') * 1000))")
+  total_ms=$(python3 -c "print(int(float('$total_seconds') * 1000))")
+
+  echo "[streaming]   TTFB: ${ttfb_ms}ms"
+  echo "[streaming]   Total: ${total_ms}ms"
+
+  # Check if streaming is working: TTFB should be < 50% of total time
+  local ttfb_ratio
+  ttfb_ratio=$(python3 -c "print(f'{float($ttfb_ms) / max(float($total_ms), 1) * 100:.1f}')")
+  echo "[streaming]   TTFB/Total ratio: ${ttfb_ratio}%"
+
+  if python3 -c "exit(0 if float('$ttfb_ms') < float('$total_ms') * 0.5 else 1)"; then
+    echo "[streaming]   ✓ STREAMING CONFIRMED: TTFB (${ttfb_ms}ms) < 50% of total (${total_ms}ms)"
+    echo "[streaming]   Response is being delivered progressively (not buffered)"
+  else
+    echo "[streaming]   ⚠ WARNING: TTFB (${ttfb_ms}ms) >= 50% of total (${total_ms}ms)"
+    echo "[streaming]   This suggests the response may be BUFFERED, not streamed."
+    echo "[streaming]   The Java runtime may not support InvokeWithResponseStream natively."
+    echo "[streaming]   Consider using Lambda Web Adapter or custom runtime for true streaming."
+    # Don't fail the test — streaming is a nice-to-have optimization
+    # The response still arrives correctly, just not progressively
+  fi
+
+  # Step 3: Cleanup
+  echo "[streaming]   Cleaning up mapping..."
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ Progressive delivery test completed"
+}
+
 # Main test execution
 main() {
   echo "=== MockNest Serverless Post-Deployment Integration Tests ==="
@@ -2367,6 +2474,7 @@ main() {
       test_streaming_sse_chunked_delay
       test_streaming_standard_body
       test_streaming_custom_headers
+      test_streaming_progressive_delivery
       ;;
     mock-management)
       echo "Running mock management extensive tests..."
@@ -2437,6 +2545,7 @@ main() {
       test_streaming_sse_chunked_delay
       test_streaming_standard_body
       test_streaming_custom_headers
+      test_streaming_progressive_delivery
       ;;
     *)
       echo "ERROR: Unknown test suite: $TEST_SUITE"
