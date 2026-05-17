@@ -1,6 +1,7 @@
 package nl.vintik.mocknest.infra.aws.runtime.streaming
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.delay
 import java.io.OutputStream
 
 private val logger = KotlinLogging.logger {}
@@ -9,7 +10,7 @@ private val logger = KotlinLogging.logger {}
  * Splits a response body into chunks with delays between writes,
  * simulating Server-Sent Events streaming behavior.
  *
- * Uses Thread.sleep for delays since this runs in Lambda (not coroutines).
+ * Uses coroutine [delay] for inter-chunk pauses, enabling virtual time in tests.
  */
 class ChunkedResponseWriter {
 
@@ -25,7 +26,7 @@ class ChunkedResponseWriter {
      * @param totalDurationMs Total delay in milliseconds distributed between chunks
      * @param output The OutputStream to write chunks to
      */
-    fun writeChunked(body: ByteArray, numberOfChunks: Int, totalDurationMs: Long, output: OutputStream) {
+    suspend fun writeChunked(body: ByteArray, numberOfChunks: Int, totalDurationMs: Long, output: OutputStream) {
         if (totalDurationMs > IDLE_TIMEOUT_WARNING_THRESHOLD_MS) {
             logger.warn {
                 "Chunked dribble delay totalDuration ${totalDurationMs}ms exceeds ${IDLE_TIMEOUT_WARNING_THRESHOLD_MS}ms. " +
@@ -39,7 +40,7 @@ class ChunkedResponseWriter {
         var offset = 0
         chunkSizes.forEachIndexed { index, chunkSize ->
             if (index > 0 && delayBetweenChunks > 0) {
-                Thread.sleep(delayBetweenChunks)
+                delay(delayBetweenChunks)
             }
 
             if (chunkSize > 0) {

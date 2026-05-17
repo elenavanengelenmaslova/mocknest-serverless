@@ -45,6 +45,8 @@ dependencies {
     testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
     // Awaitility for async test assertions
     testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
+    // Coroutines test for virtual time in ChunkedResponseWriter tests
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
 }
 
 configurations {

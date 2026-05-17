@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler
 import com.github.tomakehurst.wiremock.WireMockServer
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.runBlocking
 import nl.vintik.mocknest.application.runtime.usecases.ADMIN_PREFIX
 import nl.vintik.mocknest.application.runtime.usecases.GetRuntimeHealth
 import nl.vintik.mocknest.application.runtime.usecases.HandleAdminRequest
@@ -226,7 +227,9 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
         protocolWriter.writeMetadataAndDelimiter(response.statusCode.value, headers, output)
 
         if (bodyBytes != null && bodyBytes.isNotEmpty()) {
-            chunkedWriter.writeChunked(bodyBytes, config.numberOfChunks, config.totalDurationMs, output)
+            runBlocking {
+                chunkedWriter.writeChunked(bodyBytes, config.numberOfChunks, config.totalDurationMs, output)
+            }
         }
         output.flush()
     }

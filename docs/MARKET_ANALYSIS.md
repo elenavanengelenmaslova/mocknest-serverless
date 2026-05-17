@@ -98,13 +98,13 @@ This creates a distinct story:
 
 ### Protocol and Streaming Comparison
 
-| Product | REST | GraphQL | SOAP | gRPC | SSE / Streaming mocks | Max response size |
-|---|---|---|---|---|---|---|
-| **MockNest Serverless** | ✅ | ✅ | ✅ | ❌ | ✅ (chunked delivery with configurable delays) | 200 MB |
-| **WireMock Cloud** | ✅ | ✅ | ✅ | ❌ | ✅ (chunked dribble delay) | Platform-dependent |
-| **Mockoon Cloud** | ✅ | ❌ | ❌ | ❌ | ❌ | Platform-dependent |
-| **Beeceptor** | ✅ | ✅ | ✅ | ✅ | ❌ | Platform-dependent |
-| **Postman Mock Servers** | ✅ | ❌ | ❌ | ❌ | ❌ (can consume SSE, not generate) | Platform-dependent |
+| Product | REST | GraphQL | SOAP | gRPC | SSE / Streaming mocks |
+|---|---|---|---|---|---|
+| **MockNest Serverless** | ✅ | ✅ | ✅ | ❌ | ✅ (chunked delivery with configurable delays) |
+| **WireMock Cloud** | ✅ | ✅ | ✅ | ❌ | ✅ (chunked dribble delay) |
+| **Mockoon Cloud** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Beeceptor** | ✅ | ✅ | ✅ | ✅ | ❌ |
+| **Postman Mock Servers** | ✅ | ❌ | ❌ | ❌ | ❌ (can consume SSE, not generate) |
 
 MockNest Serverless and WireMock Cloud both support SSE mock simulation via chunked dribble delay (both are built on WireMock core). The key differentiator for MockNest is the combination of SSE support with serverless deployment in the customer's own AWS account, 200 MB response streaming (vs platform-dependent limits on hosted SaaS), and open-source pricing.
 

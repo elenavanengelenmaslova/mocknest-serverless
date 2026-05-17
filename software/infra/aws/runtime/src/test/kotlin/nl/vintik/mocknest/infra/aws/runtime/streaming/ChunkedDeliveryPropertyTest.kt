@@ -1,5 +1,6 @@
 package nl.vintik.mocknest.infra.aws.runtime.streaming
 
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Tag
@@ -31,7 +32,7 @@ class ChunkedDeliveryPropertyTest {
         description: String,
         bodySize: Int,
         numberOfChunks: Int,
-    ) {
+    ) = runTest {
         // Given — generate deterministic body with repeating byte pattern
         val body = ByteArray(bodySize) { (it % 256).toByte() }
         val output = ByteArrayOutputStream()
