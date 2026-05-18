@@ -23,6 +23,7 @@ import nl.vintik.mocknest.infra.aws.runtime.di.runtimeModule
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimeMappingReloadHook
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimePrimingHook
 import nl.vintik.mocknest.infra.aws.runtime.streaming.ChunkedResponseWriter
+import nl.vintik.mocknest.infra.aws.runtime.streaming.S3ResponseStreamer
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.InputStream
@@ -58,6 +59,7 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
     private val handleClientRequest: HandleClientRequest by inject()
     private val handleAdminRequest: HandleAdminRequest by inject()
     private val getRuntimeHealth: GetRuntimeHealth by inject()
+    private val s3ResponseStreamer: S3ResponseStreamer by inject()
 
     private val requestParser = ApiGatewayRequestParser()
     private val protocolWriter = StreamingProtocolWriter()
@@ -75,21 +77,30 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
 
         val response = routeRequest(path, httpRequest)
 
-        // Check response body size against 200MB limit
+        // For client requests, check if chunkedDribbleDelay was captured by the transformer
+        if (path.startsWith(MOCKNEST_PREFIX)) {
+            val dribbleConfig = ChunkedDribbleDelayCapture.getAndClear()
+            if (dribbleConfig != null) {
+                if (dribbleConfig.bodyFileName != null) {
+                    // S3 streaming path with chunked dribble
+                    writeS3ChunkedResponse(response, dribbleConfig, output)
+                    return
+                }
+                // Existing: in-memory chunked path
+                val bodyBytes = response.body?.toByteArray(Charsets.UTF_8)
+                if (bodyBytes != null && bodyBytes.isNotEmpty()) {
+                    writeChunkedResponse(response, bodyBytes, dribbleConfig, output)
+                    return
+                }
+            }
+        }
+
+        // Check response body size against 200MB limit (for non-S3 path)
         val bodyBytes = response.body?.toByteArray(Charsets.UTF_8)
         if (bodyBytes != null && bodyBytes.size > MAX_RESPONSE_SIZE_BYTES) {
             logger.error { "Response body size ${bodyBytes.size} exceeds maximum supported streaming limit of ${MAX_RESPONSE_SIZE_BYTES} bytes" }
             writeErrorResponse(output, 502, "Response payload exceeds the maximum supported streaming limit of 200MB")
             return
-        }
-
-        // For client requests, check if chunkedDribbleDelay was captured by the transformer
-        if (path.startsWith(MOCKNEST_PREFIX)) {
-            val dribbleConfig = ChunkedDribbleDelayCapture.getAndClear()
-            if (dribbleConfig != null && bodyBytes != null && bodyBytes.isNotEmpty()) {
-                writeChunkedResponse(response, bodyBytes, dribbleConfig, output)
-                return
-            }
         }
 
         // Write standard streaming response
@@ -155,6 +166,67 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
             chunkedWriter.writeChunked(bodyBytes, config.numberOfChunks, config.totalDurationMs, output)
         }
         output.flush()
+    }
+
+    /**
+     * Streams response body from S3 with chunked dribble delays.
+     * Uses S3 HEAD for size validation, then streams with bounded memory
+     * via the consumer callback pattern (InputStream consumed within S3 callback scope).
+     *
+     * Uses ETag from HEAD to ensure the same object version is streamed (prevents
+     * TOCTOU issues if the object is replaced between HEAD and GET).
+     */
+    private fun writeS3ChunkedResponse(
+        response: HttpResponse,
+        config: CapturedDribbleConfig,
+        output: OutputStream,
+    ) {
+        val bodyFileName = config.bodyFileName ?: return
+        val s3Key = "__files/$bodyFileName"
+
+        runBlocking {
+            // Metadata check via HEAD request (returns contentLength + ETag)
+            val metadata = s3ResponseStreamer.getObjectMetadata(s3Key)
+            if (metadata == null) {
+                writeErrorResponse(output, 502, "Failed to retrieve S3 object metadata: $bodyFileName")
+                return@runBlocking
+            }
+            if (metadata.contentLength > MAX_RESPONSE_SIZE_BYTES) {
+                writeErrorResponse(output, 502, "Response payload exceeds the maximum supported streaming limit of 200MB")
+                return@runBlocking
+            }
+
+            // Build headers, replacing Content-Length with the actual S3 object size
+            val headers = response.headers
+                ?.flatMap { (name, values) -> values.map { name to it } }
+                ?.toMap()
+                ?.toMutableMap()
+                ?: mutableMapOf()
+            headers.keys.removeAll { it.equals("Content-Length", ignoreCase = true) }
+            headers["Content-Length"] = metadata.contentLength.toString()
+
+            // Write metadata + delimiter before streaming body
+            protocolWriter.writeMetadataAndDelimiter(response.statusCode.value, headers, output)
+
+            // Stream from S3 with chunked delays using consumer callback
+            // Pass ETag to ensure we stream the same object version we validated
+            val success = s3ResponseStreamer.streamWithConsumer(s3Key, expectedETag = metadata.eTag) { inputStream, _ ->
+                chunkedWriter.writeChunkedFromStream(
+                    input = inputStream,
+                    bodySize = metadata.contentLength,
+                    numberOfChunks = config.numberOfChunks,
+                    totalDurationMs = config.totalDurationMs,
+                    output = output,
+                )
+            }
+
+            if (!success) {
+                logger.error { "S3 streaming with chunked dribble failed for key=$s3Key" }
+                // Note: metadata+delimiter already written, can't change status code
+                // Client will receive a truncated response
+            }
+            output.flush()
+        }
     }
 
     /**

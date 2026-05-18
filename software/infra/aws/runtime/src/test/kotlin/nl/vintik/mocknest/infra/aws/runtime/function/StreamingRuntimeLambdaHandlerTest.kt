@@ -6,6 +6,8 @@ import com.github.tomakehurst.wiremock.http.ChunkedDribbleDelay
 import com.github.tomakehurst.wiremock.http.ResponseDefinition
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent
 import io.mockk.clearMocks
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -44,6 +46,7 @@ import org.koin.dsl.module
 import org.koin.test.KoinTest
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.io.OutputStream
 
 /**
@@ -545,6 +548,240 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
                 bytes.size,
             )
             assertEquals(0, bodyBytes.size, "Body should be empty for null body response")
+        }
+    }
+
+    @Nested
+    inner class S3ChunkedStreamingPath {
+
+        @Test
+        fun `Given CapturedDribbleConfig with bodyFileName When handling client request Then calls S3ResponseStreamer and writes chunked response`() {
+            // Given
+            val input = createApiGatewayRequest("/mocknest/api/large-file", "GET")
+            val output = ByteArrayOutputStream()
+            val bodyContent = "streamed-body-content-from-s3"
+            val clientResponse = HttpResponse(
+                HttpStatusCode.OK,
+                mapOf("Content-Type" to listOf("application/json")),
+                "", // empty body because transformer intercepted bodyFileName
+            )
+            // Mock handleClientRequest to set the thread-local (simulating transformer behavior)
+            every { mockHandleClientRequest.invoke(any()) } answers {
+                ChunkedDribbleDelayCapture.setForTest(
+                    CapturedDribbleConfig(numberOfChunks = 3, totalDurationMs = 300, bodyFileName = "large-response.json")
+                )
+                clientResponse
+            }
+
+            // Mock S3ResponseStreamer to return valid content length and stream content
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/large-response.json") } returns S3ResponseStreamer.ObjectMetadata(
+                contentLength = bodyContent.length.toLong(),
+                eTag = "\"etag-large-response\"",
+            )
+            coEvery {
+                mockS3ResponseStreamer.streamWithConsumer("__files/large-response.json", any(), any())
+            } coAnswers {
+                val consumer = thirdArg<suspend (InputStream, Long) -> Unit>()
+                consumer(ByteArrayInputStream(bodyContent.toByteArray()), bodyContent.length.toLong())
+                true
+            }
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then
+            coVerify(exactly = 1) { mockS3ResponseStreamer.getObjectMetadata("__files/large-response.json") }
+            coVerify(exactly = 1) { mockS3ResponseStreamer.streamWithConsumer("__files/large-response.json", any(), any()) }
+
+            val parsed = parseStreamingResponse(output.toByteArray())
+            assertEquals(200, parsed.statusCode)
+            assertEquals(bodyContent, parsed.body)
+        }
+
+        @Test
+        fun `Given getContentLength returns null When handling S3 streaming request Then writes 502 error`() {
+            // Given
+            val input = createApiGatewayRequest("/mocknest/api/missing-file", "GET")
+            val output = ByteArrayOutputStream()
+            val clientResponse = HttpResponse(
+                HttpStatusCode.OK,
+                mapOf("Content-Type" to listOf("application/json")),
+                "",
+            )
+            // Mock handleClientRequest to set the thread-local (simulating transformer behavior)
+            every { mockHandleClientRequest.invoke(any()) } answers {
+                ChunkedDribbleDelayCapture.setForTest(
+                    CapturedDribbleConfig(numberOfChunks = 3, totalDurationMs = 300, bodyFileName = "missing-file.json")
+                )
+                clientResponse
+            }
+
+            // Mock S3ResponseStreamer to return null metadata (object not found)
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/missing-file.json") } returns null
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then
+            coVerify(exactly = 1) { mockS3ResponseStreamer.getObjectMetadata("__files/missing-file.json") }
+            coVerify(exactly = 0) { mockS3ResponseStreamer.streamWithConsumer(any(), any(), any()) }
+
+            val parsed = parseStreamingResponse(output.toByteArray())
+            assertEquals(502, parsed.statusCode)
+            assertTrue(parsed.body.contains("Failed to retrieve S3 object metadata"))
+            assertTrue(parsed.body.contains("missing-file.json"))
+        }
+
+        @Test
+        fun `Given content length exceeds 200MB When handling S3 streaming request Then writes 502 error`() {
+            // Given
+            val input = createApiGatewayRequest("/mocknest/api/huge-file", "GET")
+            val output = ByteArrayOutputStream()
+            val clientResponse = HttpResponse(
+                HttpStatusCode.OK,
+                mapOf("Content-Type" to listOf("application/json")),
+                "",
+            )
+            // Mock handleClientRequest to set the thread-local (simulating transformer behavior)
+            every { mockHandleClientRequest.invoke(any()) } answers {
+                ChunkedDribbleDelayCapture.setForTest(
+                    CapturedDribbleConfig(numberOfChunks = 5, totalDurationMs = 5000, bodyFileName = "huge-file.bin")
+                )
+                clientResponse
+            }
+
+            // Mock S3ResponseStreamer to return content length exceeding 200MB
+            val oversizedLength = 200L * 1024 * 1024 + 1 // 200MB + 1 byte
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/huge-file.bin") } returns S3ResponseStreamer.ObjectMetadata(
+                contentLength = oversizedLength,
+                eTag = "\"etag-huge\"",
+            )
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then
+            coVerify(exactly = 1) { mockS3ResponseStreamer.getObjectMetadata("__files/huge-file.bin") }
+            coVerify(exactly = 0) { mockS3ResponseStreamer.streamWithConsumer(any(), any(), any()) }
+
+            val parsed = parseStreamingResponse(output.toByteArray())
+            assertEquals(502, parsed.statusCode)
+            assertTrue(parsed.body.contains("200MB"))
+        }
+
+        @Test
+        fun `Given streamWithConsumer returns false When handling S3 streaming request Then metadata already written and error logged`() {
+            // Given
+            val input = createApiGatewayRequest("/mocknest/api/stream-fail", "GET")
+            val output = ByteArrayOutputStream()
+            val clientResponse = HttpResponse(
+                HttpStatusCode.OK,
+                mapOf("Content-Type" to listOf("text/plain")),
+                "",
+            )
+            // Mock handleClientRequest to set the thread-local (simulating transformer behavior)
+            every { mockHandleClientRequest.invoke(any()) } answers {
+                ChunkedDribbleDelayCapture.setForTest(
+                    CapturedDribbleConfig(numberOfChunks = 3, totalDurationMs = 300, bodyFileName = "stream-fail.json")
+                )
+                clientResponse
+            }
+
+            // Mock S3ResponseStreamer: content length OK but streaming fails
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/stream-fail.json") } returns S3ResponseStreamer.ObjectMetadata(
+                contentLength = 1024L,
+                eTag = "\"etag-stream-fail\"",
+            )
+            coEvery { mockS3ResponseStreamer.streamWithConsumer("__files/stream-fail.json", any(), any()) } returns false
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then — metadata+delimiter already written, can't change status code
+            coVerify(exactly = 1) { mockS3ResponseStreamer.getObjectMetadata("__files/stream-fail.json") }
+            coVerify(exactly = 1) { mockS3ResponseStreamer.streamWithConsumer("__files/stream-fail.json", any(), any()) }
+
+            // The response should have metadata written (200 status from the original response)
+            // but no body content since streaming failed
+            val parsed = parseStreamingResponse(output.toByteArray())
+            assertEquals(200, parsed.statusCode)
+            // Body should be empty since streamWithConsumer returned false without writing
+            assertEquals("", parsed.body)
+        }
+
+        @Test
+        fun `Given CapturedDribbleConfig without bodyFileName When handling client request Then uses existing ByteArray path without S3 calls`() {
+            // Given
+            val input = createApiGatewayRequest("/mocknest/api/inline-body", "GET")
+            val output = ByteArrayOutputStream()
+            val inlineBody = "inline response body content"
+            val clientResponse = HttpResponse(
+                HttpStatusCode.OK,
+                mapOf("Content-Type" to listOf("text/plain")),
+                inlineBody,
+            )
+            // Mock handleClientRequest to set the thread-local WITHOUT bodyFileName (inline path)
+            every { mockHandleClientRequest.invoke(any()) } answers {
+                ChunkedDribbleDelayCapture.setForTest(
+                    CapturedDribbleConfig(numberOfChunks = 2, totalDurationMs = 200, bodyFileName = null)
+                )
+                clientResponse
+            }
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then — S3ResponseStreamer should NOT be called
+            coVerify(exactly = 0) { mockS3ResponseStreamer.getObjectMetadata(any()) }
+            coVerify(exactly = 0) { mockS3ResponseStreamer.streamWithConsumer(any(), any(), any()) }
+
+            val parsed = parseStreamingResponse(output.toByteArray())
+            assertEquals(200, parsed.statusCode)
+            assertEquals(inlineBody, parsed.body)
+        }
+
+        @Test
+        fun `Given bodyFileName intercepted by transformer When response body is empty placeholder Then proves WireMock did not load the file`() {
+            // Given — simulates the transformer having intercepted bodyFileName,
+            // so WireMock returns an empty body (the transformer cleared it)
+            val input = createApiGatewayRequest("/mocknest/api/intercepted", "GET")
+            val output = ByteArrayOutputStream()
+            val s3Content = "actual-s3-file-content-that-was-not-loaded-by-wiremock"
+            val clientResponse = HttpResponse(
+                HttpStatusCode.OK,
+                mapOf("Content-Type" to listOf("application/json")),
+                "", // empty body — proves WireMock didn't load the file
+            )
+            // Mock handleClientRequest to set the thread-local with bodyFileName (simulating transformer)
+            every { mockHandleClientRequest.invoke(any()) } answers {
+                ChunkedDribbleDelayCapture.setForTest(
+                    CapturedDribbleConfig(numberOfChunks = 2, totalDurationMs = 100, bodyFileName = "intercepted-file.json")
+                )
+                clientResponse
+            }
+
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/intercepted-file.json") } returns S3ResponseStreamer.ObjectMetadata(
+                contentLength = s3Content.length.toLong(),
+                eTag = "\"etag-intercepted\"",
+            )
+            coEvery {
+                mockS3ResponseStreamer.streamWithConsumer("__files/intercepted-file.json", any(), any())
+            } coAnswers {
+                val consumer = thirdArg<suspend (InputStream, Long) -> Unit>()
+                consumer(ByteArrayInputStream(s3Content.toByteArray()), s3Content.length.toLong())
+                true
+            }
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then — the response body comes from S3 streaming, not from WireMock's response.body
+            val parsed = parseStreamingResponse(output.toByteArray())
+            assertEquals(200, parsed.statusCode)
+            // Body is the S3 content, proving WireMock's empty body was ignored
+            assertEquals(s3Content, parsed.body)
+            // The original response.body was "" (empty), confirming WireMock didn't load the file
+            assertEquals("", clientResponse.body)
         }
     }
 

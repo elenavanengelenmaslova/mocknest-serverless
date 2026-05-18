@@ -2436,6 +2436,360 @@ test_streaming_progressive_delivery() {
   echo "[streaming] ✓ Progressive delivery test completed"
 }
 
+# Test: Zero-memory streaming — large body (>1MB) with chunkedDribbleDelay
+# Creates a persistent mock with a body larger than 1MB and chunkedDribbleDelay,
+# issues curl --no-buffer to measure incremental byte arrival, verifies the
+# complete response body matches expected content, and fails if the response
+# arrives entirely within the first 10% of the configured total duration.
+# Validates: Requirements 6.1, 6.2, 6.3, 6.4
+test_streaming_zero_memory_progressive() {
+  echo "[streaming] Testing zero-memory streaming (>1MB body with chunkedDribbleDelay)..."
+
+  local NUM_CHUNKS=5
+  local TOTAL_DURATION_MS=5000
+  local BODY_SIZE=1100000  # ~1.1MB (exceeds 1MB threshold)
+
+  # Step 1: Generate a deterministic body larger than 1MB
+  echo "[streaming]   Generating ${BODY_SIZE}-byte payload..."
+  local LARGE_BODY
+  LARGE_BODY=$(python3 -c "print('X' * $BODY_SIZE)")
+
+  # Step 2: Register persistent mock with large body and chunkedDribbleDelay
+  echo "[streaming]   Registering persistent mock (body=${BODY_SIZE} bytes, chunks=$NUM_CHUNKS, totalDuration=${TOTAL_DURATION_MS}ms)..."
+  local mapping_body
+  mapping_body=$(python3 -c "
+import json
+body_content = 'X' * $BODY_SIZE
+mapping = {
+    'request': {
+        'method': 'GET',
+        'urlPath': '/streaming-test/zero-memory-progressive'
+    },
+    'response': {
+        'status': 200,
+        'body': body_content,
+        'headers': {
+            'Content-Type': 'application/octet-stream'
+        },
+        'chunkedDribbleDelay': {
+            'numberOfChunks': $NUM_CHUNKS,
+            'totalDuration': $TOTAL_DURATION_MS
+        }
+    },
+    'persistent': True
+}
+print(json.dumps(mapping))
+")
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$mapping_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register zero-memory streaming mock"
+    echo "[streaming] Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "[streaming] ERROR: Zero-memory streaming mock registration failed with HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ Mock registered: $MAPPING_ID"
+
+  # Allow time for body externalization to S3
+  sleep 2
+
+  # Step 3: Invoke with --no-buffer and measure TTFB vs total time for progressive delivery
+  echo "[streaming]   Invoking mock with --no-buffer and measuring timing..."
+  local timing_output
+  timing_output=$(curl \
+    --silent \
+    --show-error \
+    --max-time 60 \
+    --no-buffer \
+    --header "x-api-key: $API_KEY" \
+    --output /tmp/zero-memory-streaming-response.bin \
+    --write-out "ttfb=%{time_starttransfer}\ntotal=%{time_total}\nsize=%{size_download}\n" \
+    "$API_URL/mocknest/streaming-test/zero-memory-progressive" 2>&1) || {
+    echo "[streaming] ERROR: Failed to invoke zero-memory streaming mock"
+    exit 1
+  }
+
+  local ttfb_seconds total_seconds received_bytes
+  ttfb_seconds=$(echo "$timing_output" | grep "^ttfb=" | cut -d= -f2)
+  total_seconds=$(echo "$timing_output" | grep "^total=" | cut -d= -f2)
+  received_bytes=$(echo "$timing_output" | grep "^size=" | cut -d= -f2)
+
+  local ttfb_ms total_ms
+  ttfb_ms=$(python3 -c "print(int(float('$ttfb_seconds') * 1000))")
+  total_ms=$(python3 -c "print(int(float('$total_seconds') * 1000))")
+
+  echo "[streaming]   TTFB: ${ttfb_ms}ms"
+  echo "[streaming]   Total: ${total_ms}ms"
+  echo "[streaming]   Received: ${received_bytes} bytes (expected: $BODY_SIZE)"
+
+  # Step 4: Verify complete response body matches expected content
+  echo "[streaming]   Verifying response body content..."
+  local actual_size
+  actual_size=$(wc -c < /tmp/zero-memory-streaming-response.bin | tr -d ' ')
+  if [ "$actual_size" -ne "$BODY_SIZE" ]; then
+    echo "[streaming] ERROR: Response size mismatch — expected $BODY_SIZE bytes, got $actual_size bytes"
+    rm -f /tmp/zero-memory-streaming-response.bin
+    curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+    exit 1
+  fi
+
+  # Verify content is all 'X' characters (our deterministic payload)
+  local content_valid
+  content_valid=$(python3 -c "
+with open('/tmp/zero-memory-streaming-response.bin', 'r') as f:
+    content = f.read()
+    if content == 'X' * $BODY_SIZE:
+        print('true')
+    else:
+        print('false')
+")
+  if [ "$content_valid" != "true" ]; then
+    echo "[streaming] ERROR: Response body content does not match expected payload"
+    rm -f /tmp/zero-memory-streaming-response.bin
+    curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+    exit 1
+  fi
+  echo "[streaming]   ✓ Response body matches expected content (${BODY_SIZE} bytes of 'X')"
+
+  # Step 5: Verify progressive delivery — fail if response arrives within first 10% of duration
+  # If total_ms < 10% of TOTAL_DURATION_MS, the response arrived all at once (not progressive)
+  local ten_percent_ms
+  ten_percent_ms=$((TOTAL_DURATION_MS / 10))
+  echo "[streaming]   Progressive delivery check: total_ms=${total_ms}ms vs 10% threshold=${ten_percent_ms}ms"
+
+  if [ "$total_ms" -lt "$ten_percent_ms" ]; then
+    echo "[streaming] ERROR: Response arrived entirely within first 10% of configured duration (${total_ms}ms < ${ten_percent_ms}ms)"
+    echo "[streaming] This indicates progressive delivery is NOT working — response was delivered all at once"
+    rm -f /tmp/zero-memory-streaming-response.bin
+    curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+    exit 1
+  fi
+  echo "[streaming]   ✓ Progressive delivery confirmed: response took ${total_ms}ms (> ${ten_percent_ms}ms threshold)"
+
+  # Additional check: TTFB should be significantly less than total time for true streaming
+  local ttfb_ratio
+  ttfb_ratio=$(python3 -c "print(f'{float($ttfb_ms) / max(float($total_ms), 1) * 100:.1f}')")
+  echo "[streaming]   TTFB/Total ratio: ${ttfb_ratio}% (lower = more progressive)"
+
+  if python3 -c "exit(0 if float('$ttfb_ms') < float('$total_ms') * 0.5 else 1)"; then
+    echo "[streaming]   ✓ STREAMING CONFIRMED: TTFB (${ttfb_ms}ms) < 50% of total (${total_ms}ms)"
+  else
+    echo "[streaming]   ⚠ NOTE: TTFB (${ttfb_ms}ms) >= 50% of total (${total_ms}ms)"
+    echo "[streaming]   Response delivery timing suggests possible buffering at the edge layer"
+    # Don't fail — the 10% check above is the hard requirement
+  fi
+
+  # Step 6: Cleanup
+  echo "[streaming]   Cleaning up..."
+  rm -f /tmp/zero-memory-streaming-response.bin
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ Zero-memory streaming progressive delivery test passed"
+}
+
+# Tests client-visible progressive streaming using SSE (Server-Sent Events).
+# Creates a mock with multiple "data:" lines and chunkedDribbleDelay, then uses
+# curl --no-buffer to timestamp each received line. Fails if:
+# - The first event arrives only near the end (>80% of total duration elapsed)
+# - All events arrive together (spread < 30% of total duration)
+# Validates: Requirements 6.1, 6.2, 6.3, 6.4
+test_streaming_sse_progressive_lines() {
+  echo "[streaming] Testing SSE line-based progressive streaming..."
+
+  local NUM_CHUNKS=5
+  local TOTAL_DURATION_MS=5000
+  local NUM_EVENTS=5
+
+  # Step 1: Build SSE body with multiple "data:" lines
+  local sse_body=""
+  for i in $(seq 1 $NUM_EVENTS); do
+    sse_body="${sse_body}data: event-${i}\n"
+  done
+
+  # Step 2: Register persistent mock with SSE body and chunkedDribbleDelay
+  echo "[streaming]   Registering SSE mock (${NUM_EVENTS} events, ${NUM_CHUNKS} chunks, ${TOTAL_DURATION_MS}ms)..."
+  local mapping_body
+  mapping_body=$(python3 -c "
+import json
+sse_lines = ''.join([f'data: event-{i}\n' for i in range(1, $NUM_EVENTS + 1)])
+mapping = {
+    'request': {
+        'method': 'GET',
+        'urlPath': '/streaming-test/sse-progressive'
+    },
+    'response': {
+        'status': 200,
+        'body': sse_lines,
+        'headers': {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache'
+        },
+        'chunkedDribbleDelay': {
+            'numberOfChunks': $NUM_CHUNKS,
+            'totalDuration': $TOTAL_DURATION_MS
+        }
+    },
+    'persistent': True
+}
+print(json.dumps(mapping))
+")
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$mapping_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register SSE progressive mock"
+    echo "[streaming] Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "[streaming] ERROR: SSE progressive mock registration failed with HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ Mock registered: $MAPPING_ID"
+
+  # Allow time for body externalization to S3
+  sleep 2
+
+  # Step 3: Use curl --no-buffer and timestamp each received "data:" line
+  echo "[streaming]   Invoking SSE mock with --no-buffer, timestamping each line..."
+  local timestamp_script='/tmp/sse-timestamp-lines.py'
+  cat > "$timestamp_script" << 'PYTHON_SCRIPT'
+import subprocess
+import time
+import sys
+import os
+
+api_url = sys.argv[1]
+api_key = sys.argv[2]
+
+curl_cmd = [
+    'curl', '--silent', '--show-error', '--no-buffer', '--max-time', '30',
+    '--header', f'x-api-key: {api_key}',
+    api_url
+]
+
+start_time = time.time()
+timestamps = []
+lines_received = []
+
+proc = subprocess.Popen(curl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
+
+# Read line by line as they arrive
+for raw_line in iter(proc.stdout.readline, b''):
+    line = raw_line.decode('utf-8', errors='replace').rstrip('\n').rstrip('\r')
+    now = time.time()
+    elapsed_ms = int((now - start_time) * 1000)
+    if line.startswith('data:'):
+        timestamps.append(elapsed_ms)
+        lines_received.append(line)
+
+proc.wait()
+
+# Output results
+for i, (ts, line) in enumerate(zip(timestamps, lines_received)):
+    print(f"LINE {i+1}: {ts}ms — {line}")
+
+if timestamps:
+    print(f"FIRST_EVENT_MS={timestamps[0]}")
+    print(f"LAST_EVENT_MS={timestamps[-1]}")
+    print(f"SPREAD_MS={timestamps[-1] - timestamps[0]}")
+    print(f"TOTAL_EVENTS={len(timestamps)}")
+else:
+    print("FIRST_EVENT_MS=0")
+    print("LAST_EVENT_MS=0")
+    print("SPREAD_MS=0")
+    print("TOTAL_EVENTS=0")
+PYTHON_SCRIPT
+
+  local timing_output
+  timing_output=$(python3 "$timestamp_script" \
+    "$API_URL/mocknest/streaming-test/sse-progressive" \
+    "$API_KEY" 2>&1) || {
+    echo "[streaming] ERROR: Failed to invoke SSE progressive mock"
+    rm -f "$timestamp_script"
+    curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+    exit 1
+  }
+
+  echo "[streaming]   Line timestamps:"
+  echo "$timing_output" | grep "^LINE" | while read -r line; do
+    echo "[streaming]     $line"
+  done
+
+  local first_event_ms last_event_ms spread_ms total_events
+  first_event_ms=$(echo "$timing_output" | grep "^FIRST_EVENT_MS=" | cut -d= -f2)
+  last_event_ms=$(echo "$timing_output" | grep "^LAST_EVENT_MS=" | cut -d= -f2)
+  spread_ms=$(echo "$timing_output" | grep "^SPREAD_MS=" | cut -d= -f2)
+  total_events=$(echo "$timing_output" | grep "^TOTAL_EVENTS=" | cut -d= -f2)
+
+  echo "[streaming]   First event at: ${first_event_ms}ms"
+  echo "[streaming]   Last event at: ${last_event_ms}ms"
+  echo "[streaming]   Spread: ${spread_ms}ms"
+  echo "[streaming]   Events received: ${total_events}"
+
+  # Step 4: Validate all events were received
+  if [ "$total_events" -lt "$NUM_EVENTS" ]; then
+    echo "[streaming] ERROR: Expected $NUM_EVENTS events, only received $total_events"
+    rm -f "$timestamp_script"
+    curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+    exit 1
+  fi
+  echo "[streaming]   ✓ All $NUM_EVENTS events received"
+
+  # Step 5: Fail if first event arrives only near the end (>80% of total duration elapsed)
+  local eighty_percent_ms=$((TOTAL_DURATION_MS * 80 / 100))
+  if [ "$first_event_ms" -gt "$eighty_percent_ms" ]; then
+    echo "[streaming] ERROR: First event arrived at ${first_event_ms}ms — after 80% of ${TOTAL_DURATION_MS}ms (${eighty_percent_ms}ms)"
+    echo "[streaming] This indicates the response is being buffered and delivered all at once near the end"
+    rm -f "$timestamp_script"
+    curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+    exit 1
+  fi
+  echo "[streaming]   ✓ First event arrived early (${first_event_ms}ms < ${eighty_percent_ms}ms threshold)"
+
+  # Step 6: Fail if all events arrive together (spread < 30% of total duration)
+  local thirty_percent_ms=$((TOTAL_DURATION_MS * 30 / 100))
+  if [ "$spread_ms" -lt "$thirty_percent_ms" ]; then
+    echo "[streaming] ERROR: All events arrived within ${spread_ms}ms spread — less than 30% of ${TOTAL_DURATION_MS}ms (${thirty_percent_ms}ms)"
+    echo "[streaming] This indicates events are NOT being delivered progressively"
+    rm -f "$timestamp_script"
+    curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+    exit 1
+  fi
+  echo "[streaming]   ✓ Events spread across ${spread_ms}ms (> ${thirty_percent_ms}ms threshold) — progressive delivery confirmed"
+
+  # Step 7: Cleanup
+  echo "[streaming]   Cleaning up..."
+  rm -f "$timestamp_script"
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ SSE line-based progressive streaming test passed"
+}
+
 # Test: Unmatched mock returns 404 with no body
 # Verifies that calling a path with no matching mock returns HTTP 404
 # and does not return a body from a different mock.
@@ -2615,6 +2969,8 @@ main() {
       test_streaming_standard_body
       test_streaming_custom_headers
       test_streaming_progressive_delivery
+      test_streaming_zero_memory_progressive
+      test_streaming_sse_progressive_lines
       test_streaming_unmatched_returns_404
       test_streaming_multiple_mocks_correct_match
       ;;
@@ -2688,6 +3044,8 @@ main() {
       test_streaming_standard_body
       test_streaming_custom_headers
       test_streaming_progressive_delivery
+      test_streaming_zero_memory_progressive
+      test_streaming_sse_progressive_lines
       test_streaming_unmatched_returns_404
       test_streaming_multiple_mocks_correct_match
       ;;
