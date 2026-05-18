@@ -54,7 +54,8 @@ class ChunkedDribbleDelayCapturePropertyTest {
      */
     @ParameterizedTest
     @MethodSource("bodyFileNameWithDribbleProvider")
-    @Tag("Feature: zero-memory-streaming, Property 1: Transformer captures bodyFileName and removes it from ResponseDefinition")
+    @Tag("Feature-zero-memory-streaming")
+    @Tag("Property-1-Transformer-captures-bodyFileName-and-removes-it-from-ResponseDefinition")
     fun `Given bodyFileName and dribble config When transform Then captures bodyFileName and returns modified ResponseDefinition`(
         testCase: BodyFileNameDribbleTestCase,
     ) {
@@ -99,7 +100,8 @@ class ChunkedDribbleDelayCapturePropertyTest {
      */
     @ParameterizedTest
     @MethodSource("inlineDribbleProvider")
-    @Tag("Feature: zero-memory-streaming, Property 2: Transformer preserves response unchanged for inline dribble mocks")
+    @Tag("Feature-zero-memory-streaming")
+    @Tag("Property-2-Transformer-preserves-response-unchanged-for-inline-dribble-mocks")
     fun `Given inline body with dribble config When transform Then preserves response and stores dribble params only`(
         testCase: InlineDribbleTestCase,
     ) {
@@ -140,7 +142,8 @@ class ChunkedDribbleDelayCapturePropertyTest {
      */
     @ParameterizedTest
     @MethodSource("noDribbleProvider")
-    @Tag("Feature: zero-memory-streaming, Property 3: Transformer is no-op when no dribble is configured")
+    @Tag("Feature-zero-memory-streaming")
+    @Tag("Property-3-Transformer-is-no-op-when-no-dribble-is-configured")
     fun `Given response without chunkedDribbleDelay When transform Then returns unchanged and no thread-local stored`(
         testCase: NoDribbleTestCase,
     ) {

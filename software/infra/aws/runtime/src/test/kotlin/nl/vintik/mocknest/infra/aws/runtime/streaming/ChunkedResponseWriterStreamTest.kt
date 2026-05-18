@@ -196,6 +196,61 @@ class ChunkedResponseWriterStreamTest {
     }
 
     @Nested
+    inner class PrematureEof {
+
+        @Test
+        fun `Given bodySize larger than actual stream content When writeChunkedFromStream Then throws PrematureEofException`() = runTest {
+            // Given - stream has 500 bytes but bodySize claims 1024
+            val actualData = ByteArray(500) { (it % 256).toByte() }
+            val input = ByteArrayInputStream(actualData)
+            val output = ByteArrayOutputStream()
+            val claimedSize = 1024L
+
+            // When / Then
+            val exception = org.junit.jupiter.api.assertThrows<PrematureEofException> {
+                writer.writeChunkedFromStream(input, claimedSize, 3, 0L, output)
+            }
+            assertTrue(exception.message!!.contains("expected 1024 bytes"))
+            assertTrue(exception.message!!.contains("only received 500 bytes"))
+        }
+
+        @Test
+        fun `Given bodySize much larger than actual stream When writeChunkedFromStream Then fails fast without looping`() = runTest {
+            // Given - stream has 100 bytes but bodySize claims 10MB
+            val actualData = ByteArray(100) { (it % 256).toByte() }
+            val input = ByteArrayInputStream(actualData)
+            val output = ByteArrayOutputStream()
+            val claimedSize = 10L * 1024 * 1024
+
+            // When / Then - should throw immediately, not loop forever
+            val startTime = System.currentTimeMillis()
+            val exception = org.junit.jupiter.api.assertThrows<PrematureEofException> {
+                writer.writeChunkedFromStream(input, claimedSize, 5, 0L, output)
+            }
+            val elapsed = System.currentTimeMillis() - startTime
+
+            assertTrue(exception.message!!.contains("expected ${claimedSize} bytes"))
+            assertTrue(exception.message!!.contains("only received 100 bytes"))
+            // Should complete almost instantly (well under 1 second), not loop
+            assertTrue(elapsed < 1000) { "Method took ${elapsed}ms — likely looping instead of failing fast" }
+        }
+
+        @Test
+        fun `Given empty stream with non-zero bodySize When writeChunkedFromStream Then throws PrematureEofException`() = runTest {
+            // Given - empty stream but bodySize claims 512
+            val input = ByteArrayInputStream(ByteArray(0))
+            val output = ByteArrayOutputStream()
+
+            // When / Then
+            val exception = org.junit.jupiter.api.assertThrows<PrematureEofException> {
+                writer.writeChunkedFromStream(input, 512L, 2, 0L, output)
+            }
+            assertTrue(exception.message!!.contains("expected 512 bytes"))
+            assertTrue(exception.message!!.contains("only received 0 bytes"))
+        }
+    }
+
+    @Nested
     inner class CalculateStreamChunkSize {
 
         @Test

@@ -172,6 +172,9 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
      * Streams response body from S3 with chunked dribble delays.
      * Uses S3 HEAD for size validation, then streams with bounded memory
      * via the consumer callback pattern (InputStream consumed within S3 callback scope).
+     *
+     * Uses ETag from HEAD to ensure the same object version is streamed (prevents
+     * TOCTOU issues if the object is replaced between HEAD and GET).
      */
     private fun writeS3ChunkedResponse(
         response: HttpResponse,
@@ -182,30 +185,35 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
         val s3Key = "__files/$bodyFileName"
 
         runBlocking {
-            // Size check via HEAD request
-            val contentLength = s3ResponseStreamer.getContentLength(s3Key)
-            if (contentLength == null) {
+            // Metadata check via HEAD request (returns contentLength + ETag)
+            val metadata = s3ResponseStreamer.getObjectMetadata(s3Key)
+            if (metadata == null) {
                 writeErrorResponse(output, 502, "Failed to retrieve S3 object metadata: $bodyFileName")
                 return@runBlocking
             }
-            if (contentLength > MAX_RESPONSE_SIZE_BYTES) {
+            if (metadata.contentLength > MAX_RESPONSE_SIZE_BYTES) {
                 writeErrorResponse(output, 502, "Response payload exceeds the maximum supported streaming limit of 200MB")
                 return@runBlocking
             }
 
-            // Write metadata + delimiter before streaming body
+            // Build headers, replacing Content-Length with the actual S3 object size
             val headers = response.headers
                 ?.flatMap { (name, values) -> values.map { name to it } }
                 ?.toMap()
-                ?: emptyMap()
+                ?.toMutableMap()
+                ?: mutableMapOf()
+            headers.keys.removeAll { it.equals("Content-Length", ignoreCase = true) }
+            headers["Content-Length"] = metadata.contentLength.toString()
+
+            // Write metadata + delimiter before streaming body
             protocolWriter.writeMetadataAndDelimiter(response.statusCode.value, headers, output)
 
             // Stream from S3 with chunked delays using consumer callback
-            // The InputStream is only valid inside the S3 callback scope
-            val success = s3ResponseStreamer.streamWithConsumer(s3Key) { inputStream, _ ->
+            // Pass ETag to ensure we stream the same object version we validated
+            val success = s3ResponseStreamer.streamWithConsumer(s3Key, expectedETag = metadata.eTag) { inputStream, _ ->
                 chunkedWriter.writeChunkedFromStream(
                     input = inputStream,
-                    bodySize = contentLength,
+                    bodySize = metadata.contentLength,
                     numberOfChunks = config.numberOfChunks,
                     totalDurationMs = config.totalDurationMs,
                     output = output,

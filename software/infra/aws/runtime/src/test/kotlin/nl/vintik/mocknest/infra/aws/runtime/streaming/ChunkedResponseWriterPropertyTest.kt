@@ -39,7 +39,8 @@ class ChunkedResponseWriterPropertyTest {
      *
      * **Validates: Requirements 3.1, 3.2, 3.3**
      */
-    @Tag("Feature: zero-memory-streaming, Property 6: Bounded memory during InputStream-based streaming")
+    @Tag("Feature-zero-memory-streaming")
+    @Tag("Property-6-Bounded-memory-during-InputStream-based-streaming")
     @ParameterizedTest(name = "Property 6: size={0} bytes, chunks={1}")
     @MethodSource("boundedMemoryTestCases")
     fun `Given InputStream of varying size When writeChunkedFromStream Then buffer never exceeds STREAM_BUFFER_SIZE`(
@@ -75,7 +76,8 @@ class ChunkedResponseWriterPropertyTest {
      *
      * **Validates: Requirements 3.1, 3.2, 3.3**
      */
-    @Tag("Feature: zero-memory-streaming, Property 6: Bounded memory during InputStream-based streaming")
+    @Tag("Feature-zero-memory-streaming")
+    @Tag("Property-6-Bounded-memory-during-InputStream-based-streaming")
     @ParameterizedTest(name = "Property 6 (large): size={0} bytes, chunks={1}")
     @MethodSource("boundedMemoryLargeTestCases")
     fun `Given large InputStream When writeChunkedFromStream Then buffer never exceeds STREAM_BUFFER_SIZE without full output comparison`(
@@ -116,7 +118,8 @@ class ChunkedResponseWriterPropertyTest {
      *
      * **Validates: Requirements 7.2, 7.4**
      */
-    @Tag("Feature: zero-memory-streaming, Property 7: Streaming round-trip preserves body content byte-for-byte")
+    @Tag("Feature-zero-memory-streaming")
+    @Tag("Property-7-Streaming-round-trip-preserves-body-content-byte-for-byte")
     @ParameterizedTest(name = "Property 7: {0}")
     @MethodSource("roundTripTestCases")
     fun `Given random body content When writeChunkedFromStream Then output matches input byte-for-byte`(
@@ -154,7 +157,8 @@ class ChunkedResponseWriterPropertyTest {
      *
      * **Validates: Requirements 7.3**
      */
-    @Tag("Feature: zero-memory-streaming, Property 8: Chunked delivery distributes bytes across configured number of chunks")
+    @Tag("Feature-zero-memory-streaming")
+    @Tag("Property-8-Chunked-delivery-distributes-bytes-across-configured-number-of-chunks")
     @ParameterizedTest(name = "Property 8: {0}")
     @MethodSource("chunkDistributionTestCases")
     fun `Given body size and chunk count When writeChunkedFromStream Then flush count equals numberOfChunks`(

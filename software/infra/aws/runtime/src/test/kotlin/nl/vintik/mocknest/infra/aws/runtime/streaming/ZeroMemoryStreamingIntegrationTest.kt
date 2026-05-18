@@ -141,6 +141,11 @@ class ZeroMemoryStreamingIntegrationTest : KoinTest {
         val resetOutput = ByteArrayOutputStream()
         handler.handleRequest(resetInput, resetOutput, mockContext)
 
+        val resetResponse = parseStreamingResponse(resetOutput.toByteArray())
+        check(resetResponse.statusCode == 200) {
+            "tearDown: DELETE /__admin/mappings failed with status ${resetResponse.statusCode}: ${resetResponse.body}"
+        }
+
         runBlocking {
             val keys = storage.list().toList()
             keys.forEach { key -> storage.delete(key) }
@@ -333,8 +338,21 @@ class ZeroMemoryStreamingIntegrationTest : KoinTest {
         body: String,
         numberOfChunks: Int,
         totalDuration: Int,
-    ): String =
-        """{"request":{"url":"$url","method":"GET"},"response":{"status":200,"body":"$body","headers":{"Content-Type":"text/plain"},"chunkedDribbleDelay":{"numberOfChunks":$numberOfChunks,"totalDuration":$totalDuration}}}"""
+    ): String {
+        val mapping = mapOf(
+            "request" to mapOf("url" to url, "method" to "GET"),
+            "response" to mapOf(
+                "status" to numberOfChunks.let { 200 },
+                "body" to body,
+                "headers" to mapOf("Content-Type" to "text/plain"),
+                "chunkedDribbleDelay" to mapOf(
+                    "numberOfChunks" to numberOfChunks,
+                    "totalDuration" to totalDuration,
+                ),
+            ),
+        )
+        return mapper.writeValueAsString(mapping)
+    }
 
     private fun createApiGatewayRequest(
         path: String,

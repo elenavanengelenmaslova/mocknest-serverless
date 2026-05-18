@@ -30,6 +30,36 @@ class S3ResponseStreamer(
     }
 
     /**
+     * Metadata about an S3 object retrieved via HeadObject.
+     *
+     * @param contentLength Size of the object in bytes
+     * @param eTag Entity tag identifying the specific version of the object
+     */
+    data class ObjectMetadata(val contentLength: Long, val eTag: String)
+
+    /**
+     * Gets metadata (content length and ETag) of an S3 object without downloading it.
+     * Uses HeadObject to retrieve metadata only.
+     *
+     * @param s3Key The S3 object key
+     * @return Object metadata, or null if the object doesn't exist or an error occurs
+     */
+    suspend fun getObjectMetadata(s3Key: String): ObjectMetadata? =
+        runCatching {
+            val response = s3Client.headObject(HeadObjectRequest {
+                bucket = bucketName
+                key = s3Key
+            })
+            val length = response.contentLength ?: return@runCatching null
+            val etag = response.eTag ?: return@runCatching null
+            ObjectMetadata(length, etag)
+        }.onFailure { exception ->
+            logger.error(exception) {
+                "Failed to get metadata for S3 object: key=$s3Key, bucket=$bucketName"
+            }
+        }.getOrNull()
+
+    /**
      * Gets the content length of an S3 object without downloading it.
      * Uses HeadObject to retrieve metadata only.
      *
@@ -92,18 +122,24 @@ class S3ResponseStreamer(
      * the Kotlin AWS SDK's getObject callback scope.
      *
      * @param s3Key The S3 object key
+     * @param expectedETag If provided, the request uses If-Match to ensure the object
+     *                     has not been replaced since the HEAD request. A mismatch
+     *                     causes S3 to return 412 Precondition Failed, which is caught
+     *                     and returns false.
      * @param consumer Callback that receives the InputStream and content length.
      *                 Must consume the stream before returning.
      * @return true if streaming completed successfully, false on error
      */
     suspend fun streamWithConsumer(
         s3Key: String,
+        expectedETag: String? = null,
         consumer: suspend (inputStream: InputStream, contentLength: Long) -> Unit,
     ): Boolean =
         runCatching {
             s3Client.getObject(GetObjectRequest {
                 bucket = bucketName
                 key = s3Key
+                ifMatch = expectedETag
             }) { response ->
                 val body = response.body
                     ?: throw S3StreamingException("S3 object body is null for key: $s3Key")

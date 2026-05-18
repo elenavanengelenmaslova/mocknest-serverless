@@ -59,7 +59,8 @@ import java.util.stream.Stream
  */
 @Isolated
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Tag("Feature: zero-memory-streaming, Property 4: Handler routes to S3 streaming when bodyFileName is present")
+@Tag("Feature-zero-memory-streaming")
+@Tag("Property-4-Handler-routes-to-S3-streaming-when-bodyFileName-is-present")
 class StreamingRuntimeLambdaHandlerPropertyTest : KoinTest {
 
     private val mockHandleClientRequest: HandleClientRequest = mockk(relaxed = true)
@@ -119,13 +120,13 @@ class StreamingRuntimeLambdaHandlerPropertyTest : KoinTest {
      * **Validates: Requirements 2.1, 2.2**
      *
      * For any CapturedDribbleConfig containing a non-null bodyFileName, the handler SHALL:
-     * 1. Call S3ResponseStreamer.getContentLength with the correct S3 key (__files/{bodyFileName})
-     * 2. Call S3ResponseStreamer.streamWithConsumer with the correct S3 key
+     * 1. Call S3ResponseStreamer.getObjectMetadata with the correct S3 key (__files/{bodyFileName})
+     * 2. Call S3ResponseStreamer.streamWithConsumer with the correct S3 key and ETag
      * 3. Write metadata+delimiter before the body content in the output
      */
     @ParameterizedTest(name = "Property 4: bodyFileName={0}, chunks={1}, durationMs={2}")
     @MethodSource("s3RoutingTestCases")
-    @Tag("Feature: zero-memory-streaming, Property 4: Handler routes to S3 streaming when bodyFileName is present")
+    @Tag("Property-4-Handler-routes-to-S3-streaming-when-bodyFileName-is-present")
     fun `Given CapturedDribbleConfig with bodyFileName When handling client request Then routes to S3 streaming with metadata before body`(
         bodyFileName: String,
         numberOfChunks: Int,
@@ -154,11 +155,14 @@ class StreamingRuntimeLambdaHandlerPropertyTest : KoinTest {
             clientResponse
         }
 
-        coEvery { mockS3ResponseStreamer.getContentLength(s3Key) } returns bodyBytes.size.toLong()
+        coEvery { mockS3ResponseStreamer.getObjectMetadata(s3Key) } returns S3ResponseStreamer.ObjectMetadata(
+            contentLength = bodyBytes.size.toLong(),
+            eTag = "\"test-etag-$bodyFileName\"",
+        )
         coEvery {
-            mockS3ResponseStreamer.streamWithConsumer(s3Key, any())
+            mockS3ResponseStreamer.streamWithConsumer(s3Key, any(), any())
         } coAnswers {
-            val consumer = secondArg<suspend (InputStream, Long) -> Unit>()
+            val consumer = thirdArg<suspend (InputStream, Long) -> Unit>()
             consumer(ByteArrayInputStream(bodyBytes), bodyBytes.size.toLong())
             true
         }
@@ -167,8 +171,8 @@ class StreamingRuntimeLambdaHandlerPropertyTest : KoinTest {
         handler.handleRequest(input, output, mockContext)
 
         // Then — S3ResponseStreamer is called with correct S3 key
-        coVerify(exactly = 1) { mockS3ResponseStreamer.getContentLength(s3Key) }
-        coVerify(exactly = 1) { mockS3ResponseStreamer.streamWithConsumer(s3Key, any()) }
+        coVerify(exactly = 1) { mockS3ResponseStreamer.getObjectMetadata(s3Key) }
+        coVerify(exactly = 1) { mockS3ResponseStreamer.streamWithConsumer(s3Key, any(), any()) }
 
         // Then — output contains metadata+delimiter before body content
         val bytes = output.toByteArray()

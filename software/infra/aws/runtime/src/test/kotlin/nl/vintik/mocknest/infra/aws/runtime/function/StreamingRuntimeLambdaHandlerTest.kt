@@ -574,11 +574,14 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
             }
 
             // Mock S3ResponseStreamer to return valid content length and stream content
-            coEvery { mockS3ResponseStreamer.getContentLength("__files/large-response.json") } returns bodyContent.length.toLong()
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/large-response.json") } returns S3ResponseStreamer.ObjectMetadata(
+                contentLength = bodyContent.length.toLong(),
+                eTag = "\"etag-large-response\"",
+            )
             coEvery {
-                mockS3ResponseStreamer.streamWithConsumer("__files/large-response.json", any())
+                mockS3ResponseStreamer.streamWithConsumer("__files/large-response.json", any(), any())
             } coAnswers {
-                val consumer = secondArg<suspend (InputStream, Long) -> Unit>()
+                val consumer = thirdArg<suspend (InputStream, Long) -> Unit>()
                 consumer(ByteArrayInputStream(bodyContent.toByteArray()), bodyContent.length.toLong())
                 true
             }
@@ -587,8 +590,8 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
             handler.handleRequest(input, output, mockContext)
 
             // Then
-            coVerify(exactly = 1) { mockS3ResponseStreamer.getContentLength("__files/large-response.json") }
-            coVerify(exactly = 1) { mockS3ResponseStreamer.streamWithConsumer("__files/large-response.json", any()) }
+            coVerify(exactly = 1) { mockS3ResponseStreamer.getObjectMetadata("__files/large-response.json") }
+            coVerify(exactly = 1) { mockS3ResponseStreamer.streamWithConsumer("__files/large-response.json", any(), any()) }
 
             val parsed = parseStreamingResponse(output.toByteArray())
             assertEquals(200, parsed.statusCode)
@@ -613,15 +616,15 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
                 clientResponse
             }
 
-            // Mock S3ResponseStreamer to return null content length (object not found)
-            coEvery { mockS3ResponseStreamer.getContentLength("__files/missing-file.json") } returns null
+            // Mock S3ResponseStreamer to return null metadata (object not found)
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/missing-file.json") } returns null
 
             // When
             handler.handleRequest(input, output, mockContext)
 
             // Then
-            coVerify(exactly = 1) { mockS3ResponseStreamer.getContentLength("__files/missing-file.json") }
-            coVerify(exactly = 0) { mockS3ResponseStreamer.streamWithConsumer(any(), any()) }
+            coVerify(exactly = 1) { mockS3ResponseStreamer.getObjectMetadata("__files/missing-file.json") }
+            coVerify(exactly = 0) { mockS3ResponseStreamer.streamWithConsumer(any(), any(), any()) }
 
             val parsed = parseStreamingResponse(output.toByteArray())
             assertEquals(502, parsed.statusCode)
@@ -649,14 +652,17 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
 
             // Mock S3ResponseStreamer to return content length exceeding 200MB
             val oversizedLength = 200L * 1024 * 1024 + 1 // 200MB + 1 byte
-            coEvery { mockS3ResponseStreamer.getContentLength("__files/huge-file.bin") } returns oversizedLength
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/huge-file.bin") } returns S3ResponseStreamer.ObjectMetadata(
+                contentLength = oversizedLength,
+                eTag = "\"etag-huge\"",
+            )
 
             // When
             handler.handleRequest(input, output, mockContext)
 
             // Then
-            coVerify(exactly = 1) { mockS3ResponseStreamer.getContentLength("__files/huge-file.bin") }
-            coVerify(exactly = 0) { mockS3ResponseStreamer.streamWithConsumer(any(), any()) }
+            coVerify(exactly = 1) { mockS3ResponseStreamer.getObjectMetadata("__files/huge-file.bin") }
+            coVerify(exactly = 0) { mockS3ResponseStreamer.streamWithConsumer(any(), any(), any()) }
 
             val parsed = parseStreamingResponse(output.toByteArray())
             assertEquals(502, parsed.statusCode)
@@ -682,15 +688,18 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
             }
 
             // Mock S3ResponseStreamer: content length OK but streaming fails
-            coEvery { mockS3ResponseStreamer.getContentLength("__files/stream-fail.json") } returns 1024L
-            coEvery { mockS3ResponseStreamer.streamWithConsumer("__files/stream-fail.json", any()) } returns false
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/stream-fail.json") } returns S3ResponseStreamer.ObjectMetadata(
+                contentLength = 1024L,
+                eTag = "\"etag-stream-fail\"",
+            )
+            coEvery { mockS3ResponseStreamer.streamWithConsumer("__files/stream-fail.json", any(), any()) } returns false
 
             // When
             handler.handleRequest(input, output, mockContext)
 
             // Then — metadata+delimiter already written, can't change status code
-            coVerify(exactly = 1) { mockS3ResponseStreamer.getContentLength("__files/stream-fail.json") }
-            coVerify(exactly = 1) { mockS3ResponseStreamer.streamWithConsumer("__files/stream-fail.json", any()) }
+            coVerify(exactly = 1) { mockS3ResponseStreamer.getObjectMetadata("__files/stream-fail.json") }
+            coVerify(exactly = 1) { mockS3ResponseStreamer.streamWithConsumer("__files/stream-fail.json", any(), any()) }
 
             // The response should have metadata written (200 status from the original response)
             // but no body content since streaming failed
@@ -723,8 +732,8 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
             handler.handleRequest(input, output, mockContext)
 
             // Then — S3ResponseStreamer should NOT be called
-            coVerify(exactly = 0) { mockS3ResponseStreamer.getContentLength(any()) }
-            coVerify(exactly = 0) { mockS3ResponseStreamer.streamWithConsumer(any(), any()) }
+            coVerify(exactly = 0) { mockS3ResponseStreamer.getObjectMetadata(any()) }
+            coVerify(exactly = 0) { mockS3ResponseStreamer.streamWithConsumer(any(), any(), any()) }
 
             val parsed = parseStreamingResponse(output.toByteArray())
             assertEquals(200, parsed.statusCode)
@@ -751,11 +760,14 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
                 clientResponse
             }
 
-            coEvery { mockS3ResponseStreamer.getContentLength("__files/intercepted-file.json") } returns s3Content.length.toLong()
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/intercepted-file.json") } returns S3ResponseStreamer.ObjectMetadata(
+                contentLength = s3Content.length.toLong(),
+                eTag = "\"etag-intercepted\"",
+            )
             coEvery {
-                mockS3ResponseStreamer.streamWithConsumer("__files/intercepted-file.json", any())
+                mockS3ResponseStreamer.streamWithConsumer("__files/intercepted-file.json", any(), any())
             } coAnswers {
-                val consumer = secondArg<suspend (InputStream, Long) -> Unit>()
+                val consumer = thirdArg<suspend (InputStream, Long) -> Unit>()
                 consumer(ByteArrayInputStream(s3Content.toByteArray()), s3Content.length.toLong())
                 true
             }

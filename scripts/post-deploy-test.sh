@@ -2601,6 +2601,195 @@ with open('/tmp/zero-memory-streaming-response.bin', 'r') as f:
   echo "[streaming] ✓ Zero-memory streaming progressive delivery test passed"
 }
 
+# Tests client-visible progressive streaming using SSE (Server-Sent Events).
+# Creates a mock with multiple "data:" lines and chunkedDribbleDelay, then uses
+# curl --no-buffer to timestamp each received line. Fails if:
+# - The first event arrives only near the end (>80% of total duration elapsed)
+# - All events arrive together (spread < 30% of total duration)
+# Validates: Requirements 6.1, 6.2, 6.3, 6.4
+test_streaming_sse_progressive_lines() {
+  echo "[streaming] Testing SSE line-based progressive streaming..."
+
+  local NUM_CHUNKS=5
+  local TOTAL_DURATION_MS=5000
+  local NUM_EVENTS=5
+
+  # Step 1: Build SSE body with multiple "data:" lines
+  local sse_body=""
+  for i in $(seq 1 $NUM_EVENTS); do
+    sse_body="${sse_body}data: event-${i}\n"
+  done
+
+  # Step 2: Register persistent mock with SSE body and chunkedDribbleDelay
+  echo "[streaming]   Registering SSE mock (${NUM_EVENTS} events, ${NUM_CHUNKS} chunks, ${TOTAL_DURATION_MS}ms)..."
+  local mapping_body
+  mapping_body=$(python3 -c "
+import json
+sse_lines = ''.join([f'data: event-{i}\n' for i in range(1, $NUM_EVENTS + 1)])
+mapping = {
+    'request': {
+        'method': 'GET',
+        'urlPath': '/streaming-test/sse-progressive'
+    },
+    'response': {
+        'status': 200,
+        'body': sse_lines,
+        'headers': {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache'
+        },
+        'chunkedDribbleDelay': {
+            'numberOfChunks': $NUM_CHUNKS,
+            'totalDuration': $TOTAL_DURATION_MS
+        }
+    },
+    'persistent': True
+}
+print(json.dumps(mapping))
+")
+
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data "$mapping_body" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register SSE progressive mock"
+    echo "[streaming] Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "[streaming] ERROR: SSE progressive mock registration failed with HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ Mock registered: $MAPPING_ID"
+
+  # Allow time for body externalization to S3
+  sleep 2
+
+  # Step 3: Use curl --no-buffer and timestamp each received "data:" line
+  echo "[streaming]   Invoking SSE mock with --no-buffer, timestamping each line..."
+  local timestamp_script='/tmp/sse-timestamp-lines.py'
+  cat > "$timestamp_script" << 'PYTHON_SCRIPT'
+import subprocess
+import time
+import sys
+import os
+
+api_url = sys.argv[1]
+api_key = sys.argv[2]
+
+curl_cmd = [
+    'curl', '--silent', '--show-error', '--no-buffer', '--max-time', '30',
+    '--header', f'x-api-key: {api_key}',
+    api_url
+]
+
+start_time = time.time()
+timestamps = []
+lines_received = []
+
+proc = subprocess.Popen(curl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
+
+# Read line by line as they arrive
+for raw_line in iter(proc.stdout.readline, b''):
+    line = raw_line.decode('utf-8', errors='replace').rstrip('\n').rstrip('\r')
+    now = time.time()
+    elapsed_ms = int((now - start_time) * 1000)
+    if line.startswith('data:'):
+        timestamps.append(elapsed_ms)
+        lines_received.append(line)
+
+proc.wait()
+
+# Output results
+for i, (ts, line) in enumerate(zip(timestamps, lines_received)):
+    print(f"LINE {i+1}: {ts}ms — {line}")
+
+if timestamps:
+    print(f"FIRST_EVENT_MS={timestamps[0]}")
+    print(f"LAST_EVENT_MS={timestamps[-1]}")
+    print(f"SPREAD_MS={timestamps[-1] - timestamps[0]}")
+    print(f"TOTAL_EVENTS={len(timestamps)}")
+else:
+    print("FIRST_EVENT_MS=0")
+    print("LAST_EVENT_MS=0")
+    print("SPREAD_MS=0")
+    print("TOTAL_EVENTS=0")
+PYTHON_SCRIPT
+
+  local timing_output
+  timing_output=$(python3 "$timestamp_script" \
+    "$API_URL/mocknest/streaming-test/sse-progressive" \
+    "$API_KEY" 2>&1) || {
+    echo "[streaming] ERROR: Failed to invoke SSE progressive mock"
+    rm -f "$timestamp_script"
+    curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+    exit 1
+  }
+
+  echo "[streaming]   Line timestamps:"
+  echo "$timing_output" | grep "^LINE" | while read -r line; do
+    echo "[streaming]     $line"
+  done
+
+  local first_event_ms last_event_ms spread_ms total_events
+  first_event_ms=$(echo "$timing_output" | grep "^FIRST_EVENT_MS=" | cut -d= -f2)
+  last_event_ms=$(echo "$timing_output" | grep "^LAST_EVENT_MS=" | cut -d= -f2)
+  spread_ms=$(echo "$timing_output" | grep "^SPREAD_MS=" | cut -d= -f2)
+  total_events=$(echo "$timing_output" | grep "^TOTAL_EVENTS=" | cut -d= -f2)
+
+  echo "[streaming]   First event at: ${first_event_ms}ms"
+  echo "[streaming]   Last event at: ${last_event_ms}ms"
+  echo "[streaming]   Spread: ${spread_ms}ms"
+  echo "[streaming]   Events received: ${total_events}"
+
+  # Step 4: Validate all events were received
+  if [ "$total_events" -lt "$NUM_EVENTS" ]; then
+    echo "[streaming] ERROR: Expected $NUM_EVENTS events, only received $total_events"
+    rm -f "$timestamp_script"
+    curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+    exit 1
+  fi
+  echo "[streaming]   ✓ All $NUM_EVENTS events received"
+
+  # Step 5: Fail if first event arrives only near the end (>80% of total duration elapsed)
+  local eighty_percent_ms=$((TOTAL_DURATION_MS * 80 / 100))
+  if [ "$first_event_ms" -gt "$eighty_percent_ms" ]; then
+    echo "[streaming] ERROR: First event arrived at ${first_event_ms}ms — after 80% of ${TOTAL_DURATION_MS}ms (${eighty_percent_ms}ms)"
+    echo "[streaming] This indicates the response is being buffered and delivered all at once near the end"
+    rm -f "$timestamp_script"
+    curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+    exit 1
+  fi
+  echo "[streaming]   ✓ First event arrived early (${first_event_ms}ms < ${eighty_percent_ms}ms threshold)"
+
+  # Step 6: Fail if all events arrive together (spread < 30% of total duration)
+  local thirty_percent_ms=$((TOTAL_DURATION_MS * 30 / 100))
+  if [ "$spread_ms" -lt "$thirty_percent_ms" ]; then
+    echo "[streaming] ERROR: All events arrived within ${spread_ms}ms spread — less than 30% of ${TOTAL_DURATION_MS}ms (${thirty_percent_ms}ms)"
+    echo "[streaming] This indicates events are NOT being delivered progressively"
+    rm -f "$timestamp_script"
+    curl "${CURL_OPTS[@]}" --request DELETE "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+    exit 1
+  fi
+  echo "[streaming]   ✓ Events spread across ${spread_ms}ms (> ${thirty_percent_ms}ms threshold) — progressive delivery confirmed"
+
+  # Step 7: Cleanup
+  echo "[streaming]   Cleaning up..."
+  rm -f "$timestamp_script"
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ SSE line-based progressive streaming test passed"
+}
+
 # Test: Unmatched mock returns 404 with no body
 # Verifies that calling a path with no matching mock returns HTTP 404
 # and does not return a body from a different mock.
@@ -2781,6 +2970,7 @@ main() {
       test_streaming_custom_headers
       test_streaming_progressive_delivery
       test_streaming_zero_memory_progressive
+      test_streaming_sse_progressive_lines
       test_streaming_unmatched_returns_404
       test_streaming_multiple_mocks_correct_match
       ;;
@@ -2855,6 +3045,7 @@ main() {
       test_streaming_custom_headers
       test_streaming_progressive_delivery
       test_streaming_zero_memory_progressive
+      test_streaming_sse_progressive_lines
       test_streaming_unmatched_returns_404
       test_streaming_multiple_mocks_correct_match
       ;;

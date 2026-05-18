@@ -8,6 +8,12 @@ import java.io.OutputStream
 private val logger = KotlinLogging.logger {}
 
 /**
+ * Thrown when the InputStream ends before the expected number of bytes have been read.
+ * This prevents infinite loops when bodySize is larger than the actual stream content.
+ */
+class PrematureEofException(message: String) : java.io.IOException(message)
+
+/**
  * Splits a response body into chunks with delays between writes,
  * simulating Server-Sent Events streaming behavior.
  *
@@ -116,7 +122,8 @@ class ChunkedResponseWriter {
 
         val chunkSize = calculateStreamChunkSize(bodySize, numberOfChunks)
         val delayBetweenChunks = totalDurationMs / numberOfChunks
-        val buffer = ByteArray(minOf(chunkSize.toInt(), STREAM_BUFFER_SIZE))
+        val bufferSize = minOf(chunkSize, STREAM_BUFFER_SIZE.toLong()).toInt()
+        val buffer = ByteArray(bufferSize)
 
         var totalBytesWritten = 0L
         var chunkIndex = 0
@@ -138,7 +145,11 @@ class ChunkedResponseWriter {
                 if (toRead <= 0) break
 
                 val bytesRead = input.read(buffer, 0, toRead)
-                if (bytesRead == -1) break
+                if (bytesRead == -1) {
+                    throw PrematureEofException(
+                        "InputStream ended prematurely: expected $bodySize bytes but only received $totalBytesWritten bytes"
+                    )
+                }
 
                 output.write(buffer, 0, bytesRead)
                 chunkBytesWritten += bytesRead
