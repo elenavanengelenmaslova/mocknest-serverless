@@ -159,8 +159,9 @@ class StreamingRuntimeLambdaHandlerPropertyTest : KoinTest {
             contentLength = bodyBytes.size.toLong(),
             eTag = "\"test-etag-$bodyFileName\"",
         )
+        val expectedETag = "\"test-etag-$bodyFileName\""
         coEvery {
-            mockS3ResponseStreamer.streamWithConsumer(s3Key, any(), any())
+            mockS3ResponseStreamer.streamWithConsumer(s3Key, expectedETag, any())
         } coAnswers {
             val consumer = thirdArg<suspend (InputStream, Long) -> Unit>()
             consumer(ByteArrayInputStream(bodyBytes), bodyBytes.size.toLong())
@@ -170,9 +171,9 @@ class StreamingRuntimeLambdaHandlerPropertyTest : KoinTest {
         // When
         handler.handleRequest(input, output, mockContext)
 
-        // Then — S3ResponseStreamer is called with correct S3 key
+        // Then — S3ResponseStreamer is called with correct S3 key and exact ETag
         coVerify(exactly = 1) { mockS3ResponseStreamer.getObjectMetadata(s3Key) }
-        coVerify(exactly = 1) { mockS3ResponseStreamer.streamWithConsumer(s3Key, any(), any()) }
+        coVerify(exactly = 1) { mockS3ResponseStreamer.streamWithConsumer(s3Key, expectedETag, any()) }
 
         // Then — output contains metadata+delimiter before body content
         val bytes = output.toByteArray()
