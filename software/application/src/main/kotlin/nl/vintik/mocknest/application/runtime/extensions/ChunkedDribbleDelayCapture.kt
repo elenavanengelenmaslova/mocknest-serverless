@@ -1,5 +1,6 @@
 package nl.vintik.mocknest.application.runtime.extensions
 
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import com.github.tomakehurst.wiremock.extension.ResponseDefinitionTransformerV2
 import com.github.tomakehurst.wiremock.http.ResponseDefinition
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent
@@ -35,8 +36,24 @@ class ChunkedDribbleDelayCapture : ResponseDefinitionTransformerV2 {
             val totalDuration = chunkedDribbleDelay.totalDuration.toLong()
 
             if (numberOfChunks >= 2 && totalDuration >= 0) {
-                logger.debug { "Captured chunkedDribbleDelay: numberOfChunks=$numberOfChunks, totalDuration=$totalDuration" }
-                capturedConfig.set(CapturedDribbleConfig(numberOfChunks, totalDuration))
+                val bodyFileName = responseDefinition.bodyFileName
+
+                if (bodyFileName != null) {
+                    // S3 streaming path: capture bodyFileName and return modified response
+                    logger.debug { "Captured chunkedDribbleDelay with bodyFileName: $bodyFileName" }
+                    capturedConfig.set(
+                        CapturedDribbleConfig(numberOfChunks, totalDuration, bodyFileName)
+                    )
+                    // Return a ResponseDefinition without bodyFileName to prevent WireMock from loading S3
+                    return ResponseDefinitionBuilder.like(responseDefinition)
+                        .withBodyFile(null)
+                        .withBody("")
+                        .build()
+                } else {
+                    // Inline body path: existing behavior
+                    logger.debug { "Captured chunkedDribbleDelay: numberOfChunks=$numberOfChunks, totalDuration=$totalDuration" }
+                    capturedConfig.set(CapturedDribbleConfig(numberOfChunks, totalDuration))
+                }
             } else {
                 capturedConfig.remove()
             }
@@ -44,7 +61,6 @@ class ChunkedDribbleDelayCapture : ResponseDefinitionTransformerV2 {
             capturedConfig.remove()
         }
 
-        // Return the response definition unchanged — we only capture, don't modify
         return responseDefinition
     }
 
@@ -81,4 +97,5 @@ class ChunkedDribbleDelayCapture : ResponseDefinitionTransformerV2 {
 data class CapturedDribbleConfig(
     val numberOfChunks: Int,
     val totalDurationMs: Long,
+    val bodyFileName: String? = null,
 )

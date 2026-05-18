@@ -2,6 +2,7 @@ package nl.vintik.mocknest.infra.aws.runtime.streaming
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
+import java.io.InputStream
 import java.io.OutputStream
 
 private val logger = KotlinLogging.logger {}
@@ -16,6 +17,7 @@ class ChunkedResponseWriter {
 
     companion object {
         private const val IDLE_TIMEOUT_WARNING_THRESHOLD_MS = 270_000L
+        const val STREAM_BUFFER_SIZE = 1024 * 1024 // 1MB
     }
 
     /**
@@ -85,5 +87,77 @@ class ChunkedResponseWriter {
                 baseChunkSize
             }
         }
+    }
+
+    /**
+     * Streams from an InputStream in bounded chunks with delays.
+     * Reads at most [STREAM_BUFFER_SIZE] (1MB) at a time, writes to output,
+     * then delays before the next chunk.
+     *
+     * @param input The InputStream to read from (e.g., S3 object stream)
+     * @param bodySize Total size of the body in bytes (from S3 HEAD)
+     * @param numberOfChunks Number of chunks to deliver
+     * @param totalDurationMs Total delay distributed between chunks
+     * @param output The OutputStream to write chunks to
+     */
+    suspend fun writeChunkedFromStream(
+        input: InputStream,
+        bodySize: Long,
+        numberOfChunks: Int,
+        totalDurationMs: Long,
+        output: OutputStream,
+    ) {
+        if (totalDurationMs > IDLE_TIMEOUT_WARNING_THRESHOLD_MS) {
+            logger.warn {
+                "Chunked dribble delay totalDuration ${totalDurationMs}ms exceeds ${IDLE_TIMEOUT_WARNING_THRESHOLD_MS}ms. " +
+                    "This may exceed the 5-minute streaming idle timeout."
+            }
+        }
+
+        val chunkSize = calculateStreamChunkSize(bodySize, numberOfChunks)
+        val delayBetweenChunks = totalDurationMs / numberOfChunks
+        val buffer = ByteArray(minOf(chunkSize.toInt(), STREAM_BUFFER_SIZE))
+
+        var totalBytesWritten = 0L
+        var chunkIndex = 0
+
+        while (totalBytesWritten < bodySize) {
+            if (chunkIndex > 0 && delayBetweenChunks > 0) {
+                delay(delayBetweenChunks)
+            }
+
+            var chunkBytesWritten = 0L
+            val targetChunkBytes = chunkSize
+
+            while (chunkBytesWritten < targetChunkBytes) {
+                val toRead = minOf(
+                    buffer.size.toLong(),
+                    targetChunkBytes - chunkBytesWritten,
+                    bodySize - totalBytesWritten
+                ).toInt()
+                if (toRead <= 0) break
+
+                val bytesRead = input.read(buffer, 0, toRead)
+                if (bytesRead == -1) break
+
+                output.write(buffer, 0, bytesRead)
+                chunkBytesWritten += bytesRead
+                totalBytesWritten += bytesRead
+            }
+            output.flush()
+            chunkIndex++
+        }
+    }
+
+    /**
+     * Calculates the target chunk size for stream-based chunking using ceiling division.
+     *
+     * @param bodySize Total body size in bytes
+     * @param numberOfChunks Number of chunks to divide into
+     * @return Target chunk size in bytes, or 0 if bodySize is 0 or numberOfChunks <= 0
+     */
+    internal fun calculateStreamChunkSize(bodySize: Long, numberOfChunks: Int): Long {
+        if (bodySize == 0L || numberOfChunks <= 0) return 0L
+        return (bodySize + numberOfChunks - 1) / numberOfChunks // ceiling division
     }
 }

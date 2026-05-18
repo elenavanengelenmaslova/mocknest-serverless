@@ -3,16 +3,21 @@ package nl.vintik.mocknest.infra.aws.runtime.streaming
 import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.model.GetObjectRequest
 import aws.sdk.kotlin.services.s3.model.GetObjectResponse
+import aws.sdk.kotlin.services.s3.model.HeadObjectRequest
+import aws.sdk.kotlin.services.s3.model.HeadObjectResponse
 import aws.smithy.kotlin.runtime.content.ByteStream
 import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -368,6 +373,126 @@ class S3ResponseStreamerTest {
             // Then
             assertFalse(result)
             assertEquals(0, output.size())
+        }
+    }
+
+    @Nested
+    inner class GetContentLength {
+
+        @Test
+        fun `Given existing S3 object When getContentLength Then returns correct size`() = runTest {
+            // Given
+            val s3Key = "__files/existing-object.json"
+            val expectedLength = 12345L
+
+            coEvery { mockS3Client.headObject(any<HeadObjectRequest>()) } returns HeadObjectResponse {
+                contentLength = expectedLength
+            }
+
+            // When
+            val result = streamer.getContentLength(s3Key)
+
+            // Then
+            assertNotNull(result)
+            assertEquals(expectedLength, result)
+            coVerify {
+                mockS3Client.headObject(match<HeadObjectRequest> {
+                    it.bucket == bucketName && it.key == s3Key
+                })
+            }
+        }
+
+        @Test
+        fun `Given non-existing S3 object When getContentLength Then returns null`() = runTest {
+            // Given
+            val s3Key = "__files/non-existing-object.json"
+
+            coEvery { mockS3Client.headObject(any<HeadObjectRequest>()) } throws
+                RuntimeException("NoSuchKey: The specified key does not exist.")
+
+            // When
+            val result = streamer.getContentLength(s3Key)
+
+            // Then
+            assertNull(result)
+        }
+    }
+
+    @Nested
+    inner class StreamWithConsumer {
+
+        @Test
+        fun `Given existing S3 object When streamWithConsumer Then invokes consumer with readable InputStream`() = runTest {
+            // Given
+            val s3Key = "__files/consumer-test.json"
+            val content = """{"status":"ok"}""".toByteArray()
+            var receivedBytes: ByteArray? = null
+
+            coEvery { mockS3Client.getObject(any<GetObjectRequest>(), any<suspend (GetObjectResponse) -> Boolean>()) } coAnswers {
+                val block = secondArg<suspend (GetObjectResponse) -> Boolean>()
+                val response = GetObjectResponse {
+                    body = ByteStream.fromBytes(content)
+                    contentLength = content.size.toLong()
+                }
+                block(response)
+            }
+
+            // When
+            val result = streamer.streamWithConsumer(s3Key) { inputStream, _ ->
+                receivedBytes = inputStream.readAllBytes()
+            }
+
+            // Then
+            assertTrue(result)
+            assertNotNull(receivedBytes)
+            assertArrayEquals(content, receivedBytes)
+        }
+
+        @Test
+        fun `Given non-existing S3 object When streamWithConsumer Then returns false`() = runTest {
+            // Given
+            val s3Key = "__files/missing-object.json"
+            var consumerCalled = false
+
+            coEvery { mockS3Client.getObject(any<GetObjectRequest>(), any<suspend (GetObjectResponse) -> Boolean>()) } throws
+                RuntimeException("NoSuchKey: The specified key does not exist.")
+
+            // When
+            val result = streamer.streamWithConsumer(s3Key) { _, _ ->
+                consumerCalled = true
+            }
+
+            // Then
+            assertFalse(result)
+            assertFalse(consumerCalled, "Consumer should not be called when object doesn't exist")
+        }
+
+        @Test
+        fun `Given existing S3 object When streamWithConsumer Then consumer receives correct contentLength`() = runTest {
+            // Given
+            val s3Key = "__files/length-test.bin"
+            val content = ByteArray(5000) { (it % 256).toByte() }
+            val expectedContentLength = content.size.toLong()
+            var receivedContentLength: Long? = null
+
+            coEvery { mockS3Client.getObject(any<GetObjectRequest>(), any<suspend (GetObjectResponse) -> Boolean>()) } coAnswers {
+                val block = secondArg<suspend (GetObjectResponse) -> Boolean>()
+                val response = GetObjectResponse {
+                    body = ByteStream.fromBytes(content)
+                    contentLength = expectedContentLength
+                }
+                block(response)
+            }
+
+            // When
+            val result = streamer.streamWithConsumer(s3Key) { _, contentLength ->
+                receivedContentLength = contentLength
+            }
+
+            // Then
+            assertTrue(result)
+            assertNotNull(receivedContentLength)
+            assertEquals(expectedContentLength, receivedContentLength)
         }
     }
 
