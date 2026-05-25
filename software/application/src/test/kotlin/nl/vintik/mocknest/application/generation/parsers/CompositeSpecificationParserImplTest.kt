@@ -250,7 +250,7 @@ class CompositeSpecificationParserImplTest {
     }
 
     @Test
-    suspend fun `Should throw error with format name when no parser for unsupported format`() {
+    suspend fun `Given no parsers When parsing unsupported format Then throws with format name`() {
         val composite = CompositeSpecificationParserImpl(emptyList())
         val exception = assertThrows<IllegalArgumentException> {
             composite.parse("content", SpecificationFormat.WSDL)
@@ -260,13 +260,13 @@ class CompositeSpecificationParserImplTest {
     }
 
     @Test
-    suspend fun `Should delegate to parser whose supports method returns true for given format`() {
+    suspend fun `Given two parsers When one supports the format Then delegates to supporting parser`() {
         // Given - two parsers, only one supports GRAPHQL
-        val openApiParser = mockk<SpecificationParserInterface>()
+        val openApiParser = mockk<SpecificationParserInterface>(relaxed = true)
         every { openApiParser.supports(any()) } returns false
         every { openApiParser.supports(SpecificationFormat.OPENAPI_3) } returns true
 
-        val graphqlParser = mockk<SpecificationParserInterface>()
+        val graphqlParser = mockk<SpecificationParserInterface>(relaxed = true)
         every { graphqlParser.supports(any()) } returns false
         every { graphqlParser.supports(SpecificationFormat.GRAPHQL) } returns true
 

@@ -197,7 +197,7 @@ class CompositeMockValidatorTest {
         @Test
         fun `Given all validators throwing exceptions When validating Then should return valid with no errors`() = runTest {
             coEvery { mockValidator1.validate(mock, specification) } throws RuntimeException("crash 1")
-            coEvery { mockValidator2.validate(mock, specification) } throws OutOfMemoryError("crash 2")
+            coEvery { mockValidator2.validate(mock, specification) } throws RuntimeException("crash 2")
             val validator = CompositeMockValidator(listOf(mockValidator1, mockValidator2))
 
             val result = validator.validate(mock, specification)

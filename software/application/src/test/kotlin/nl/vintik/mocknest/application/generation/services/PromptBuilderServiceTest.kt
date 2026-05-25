@@ -678,11 +678,12 @@ class PromptBuilderServiceTest {
             val cause = exception.cause
             assertNotNull(cause)
             assertTrue(cause is IllegalStateException)
-            val message = cause?.message
-            assertNotNull(message)
+            val messageNonNull = requireNotNull(cause?.message) {
+                "Expected exception message to be non-null when resource '$missingPath' is missing"
+            }
             assertTrue(
-                message!!.contains(missingPath),
-                "Exception message should contain the missing resource path '$missingPath', but was: $message"
+                messageNonNull.contains(missingPath),
+                "Exception message should contain the missing resource path '$missingPath', but was: $messageNonNull"
             )
         }
     }

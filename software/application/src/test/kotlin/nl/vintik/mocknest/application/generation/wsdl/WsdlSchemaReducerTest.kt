@@ -1,6 +1,5 @@
 package nl.vintik.mocknest.application.generation.wsdl
 
-import nl.vintik.mocknest.domain.generation.SoapVersion
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -202,7 +201,7 @@ class WsdlSchemaReducerTest {
         fun `Given diverse WSDL files When reducing Then CompactWsdl preserves soapVersion`(filename: String) {
             val parsed = parser.parse(loadTestDataWsdl(filename))
             val reduced = reducer.reduce(parsed)
-            assertEquals(SoapVersion.SOAP_1_2, reduced.soapVersion)
+            assertEquals(parsed.soapVersion, reduced.soapVersion)
         }
     }
 

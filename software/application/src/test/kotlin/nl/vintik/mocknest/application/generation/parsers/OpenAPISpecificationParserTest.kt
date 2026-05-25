@@ -1155,16 +1155,14 @@ class OpenAPISpecificationParserTest {
         }
 
         @Test
-        fun `Given Swagger 2_0 orders spec When parsing via URL Then should extract 3 endpoints with correct paths and methods`() = runTest {
-            // Given - Swagger 2.0 requires URL-based parsing for auto-conversion by the swagger-parser library
-            // The OpenAPIV3Parser.readContents() does not handle inline Swagger 2.0 conversion
+        fun `Given inline Swagger 2_0 spec When validating Then returns invalid result`() = runTest {
+            // Given - inline Swagger 2.0 content (OpenAPIV3Parser.readContents() does not convert inline Swagger 2.0)
             val content = loadTestData("orders-swagger2.yaml")
 
-            // When - validate the spec is parseable (the parser will fail for inline Swagger 2.0)
+            // When - validate the inline spec
             val result = parser.validate(content, SpecificationFormat.SWAGGER_2)
 
-            // Then - inline Swagger 2.0 is not supported by OpenAPIV3Parser.readContents()
-            // This verifies the parser handles the unsupported case gracefully
+            // Then - inline Swagger 2.0 is unsupported; parser returns invalid result gracefully
             assertFalse(result.isValid)
         }
 
