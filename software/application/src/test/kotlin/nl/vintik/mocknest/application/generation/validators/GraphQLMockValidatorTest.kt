@@ -1269,6 +1269,82 @@ class GraphQLMockValidatorTest {
         }
 
         @Test
+        fun `Given mock with variables matcher first and operationName matcher second When validating Then should extract operationName`() = runTest {
+            // Given — variables bodyPattern comes before operationName bodyPattern (real model output order)
+            val specification = createTestSpecification()
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "urlPath": "/graphql",
+                    "bodyPatterns": [
+                      {
+                        "matchesJsonPath": "$[?(@.variables.id == '123')]"
+                      },
+                      {
+                        "matchesJsonPath": "$[?(@.operationName == 'getUser')]"
+                      }
+                    ]
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "data": {
+                        "id": "123",
+                        "name": "John Doe",
+                        "email": "john@example.com",
+                        "status": "ACTIVE"
+                      }
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("variables-first-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then — operationName should be found even when variables matcher is first
+            assertTrue(result.isValid, "Should pass when operationName matcher is second. Errors: ${result.errors}")
+        }
+
+        @Test
+        fun `Given mock with only variables bodyPattern and no operationName When validating Then should fail to extract`() = runTest {
+            // Given — no operationName matcher at all, only a variables matcher
+            val specification = createTestSpecification()
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "urlPath": "/graphql",
+                    "bodyPatterns": [
+                      {
+                        "matchesJsonPath": "$[?(@.variables.status == 'IN_PROGRESS')]"
+                      }
+                    ]
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "data": { "result": "test" }
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("variables-only-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then — no operationName means extraction must fail
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Failed to extract GraphQL operation") },
+                "Should report extraction failure. Errors: ${result.errors}"
+            )
+        }
+
+        @Test
         fun `Given mock with body field instead of jsonBody When validating Then should validate it`() = runTest {
             // Given
             val specification = createTestSpecification()

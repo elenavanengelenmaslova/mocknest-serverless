@@ -1,0 +1,475 @@
+---
+openapi: 3.0.4
+info:
+  title: Paddle Billing API
+  description: |-
+    Paddle Billing API for managing customers, products, prices, subscriptions, and transactions.
+    All responses are wrapped in a `data` envelope. IDs use a prefixed format (ctm_, pro_, pri_, sub_, txn_).
+  version: 1.0.0
+servers:
+  - url: https://api.paddle.com
+tags:
+  - name: customers
+    description: Manage customers
+  - name: products
+    description: Manage products
+  - name: subscriptions
+    description: Manage subscriptions
+  - name: transactions
+    description: Manage transactions
+paths:
+  /customers:
+    get:
+      tags:
+        - customers
+      summary: List customers
+      description: Returns a paginated list of all customers.
+      operationId: listCustomers
+      parameters:
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum: [active, archived]
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerListResponse'
+    post:
+      tags:
+        - customers
+      summary: Create a customer
+      operationId: createCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /customers/{customer_id}:
+    get:
+      tags:
+        - customers
+      summary: Get a customer
+      operationId: getCustomer
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: ctm_01abc123def456ghi789jkl012
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /products:
+    get:
+      tags:
+        - products
+      summary: List products
+      operationId: listProducts
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, archived]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+  /products/{product_id}:
+    get:
+      tags:
+        - products
+      summary: Get a product
+      operationId: getProduct
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: pro_01abc123def456ghi789jkl012
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /subscriptions:
+    get:
+      tags:
+        - subscriptions
+      summary: List subscriptions
+      operationId: listSubscriptions
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, canceled, past_due, paused, trialing]
+        - name: customer_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionListResponse'
+  /subscriptions/{subscription_id}:
+    get:
+      tags:
+        - subscriptions
+      summary: Get a subscription
+      operationId: getSubscription
+      parameters:
+        - name: subscription_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: sub_01abc123def456ghi789jkl012
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /transactions:
+    get:
+      tags:
+        - transactions
+      summary: List transactions
+      operationId: listTransactions
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, ready, billed, paid, completed, canceled, past_due]
+        - name: customer_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListResponse'
+  /transactions/{transaction_id}:
+    get:
+      tags:
+        - transactions
+      summary: Get a transaction
+      operationId: getTransaction
+      parameters:
+        - name: transaction_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: txn_01abc123def456ghi789jkl012
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    Customer:
+      type: object
+      required: [id, name, email, status, created_at]
+      properties:
+        id:
+          type: string
+          example: ctm_01abc123def456ghi789jkl012
+          description: Customer ID, always prefixed with ctm_
+        name:
+          type: string
+          example: Alice Johnson
+        email:
+          type: string
+          format: email
+          example: alice@example.com
+        status:
+          type: string
+          enum: [active, archived]
+          example: active
+        custom_data:
+          type: object
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+    CustomerCreateRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+    CustomerResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Customer'
+    CustomerListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    Product:
+      type: object
+      required: [id, name, status, created_at]
+      properties:
+        id:
+          type: string
+          example: pro_01abc123def456ghi789jkl012
+          description: Product ID, always prefixed with pro_
+        name:
+          type: string
+          example: Pro Plan
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, archived]
+          example: active
+        created_at:
+          type: string
+          format: date-time
+    ProductResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Product'
+    ProductListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    Subscription:
+      type: object
+      required: [id, customer_id, status, created_at, current_billing_period]
+      properties:
+        id:
+          type: string
+          example: sub_01abc123def456ghi789jkl012
+          description: Subscription ID, always prefixed with sub_
+        customer_id:
+          type: string
+          example: ctm_01abc123def456ghi789jkl012
+        status:
+          type: string
+          enum: [active, canceled, past_due, paused, trialing]
+          example: active
+        current_billing_period:
+          $ref: '#/components/schemas/BillingPeriod'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    BillingPeriod:
+      type: object
+      required: [starts_at, ends_at]
+      properties:
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+    SubscriptionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Subscription'
+    SubscriptionListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subscription'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    Transaction:
+      type: object
+      required: [id, customer_id, status, currency_code, created_at]
+      properties:
+        id:
+          type: string
+          example: txn_01abc123def456ghi789jkl012
+          description: Transaction ID, always prefixed with txn_
+        customer_id:
+          type: string
+          example: ctm_01abc123def456ghi789jkl012
+        status:
+          type: string
+          enum: [draft, ready, billed, paid, completed, canceled, past_due]
+          example: completed
+        currency_code:
+          type: string
+          example: USD
+        details:
+          $ref: '#/components/schemas/TransactionDetails'
+        created_at:
+          type: string
+          format: date-time
+    TransactionDetails:
+      type: object
+      properties:
+        totals:
+          $ref: '#/components/schemas/TransactionTotals'
+    TransactionTotals:
+      type: object
+      properties:
+        subtotal:
+          type: string
+          example: "1999"
+          description: Amount in lowest denomination (e.g. cents)
+        total:
+          type: string
+          example: "1999"
+        tax:
+          type: string
+          example: "0"
+    TransactionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Transaction'
+    TransactionListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    PaginationMeta:
+      type: object
+      required: [pagination]
+      properties:
+        pagination:
+          type: object
+          required: [per_page, has_more]
+          properties:
+            per_page:
+              type: integer
+              example: 50
+            next:
+              type: string
+              nullable: true
+            has_more:
+              type: boolean
+              example: false
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [type, code, detail]
+          properties:
+            type:
+              type: string
+              example: request_error
+            code:
+              type: string
+              example: entity_not_found
+            detail:
+              type: string
+              example: Entity not found.
+            documentation_url:
+              type: string
+              example: https://developer.paddle.com/errors/entities/entity_not_found

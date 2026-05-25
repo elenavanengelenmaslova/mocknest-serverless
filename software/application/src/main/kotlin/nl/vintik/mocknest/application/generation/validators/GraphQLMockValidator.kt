@@ -97,27 +97,20 @@ class GraphQLMockValidator : MockValidatorInterface {
                 )
             }
 
-            // Fallback: matchesJsonPath — extract operation name from JSONPath expression
-            val matchesJsonPath = bodyPatterns
+            // Fallback: matchesJsonPath — search all entries for operationName pattern
+            // (order-independent: variables matcher may appear before operationName matcher)
+            val allMatchesJsonPath = bodyPatterns
                 .mapNotNull { it.jsonObject["matchesJsonPath"]?.jsonPrimitive?.contentOrNull }
-                .firstOrNull()
 
-            if (matchesJsonPath != null) {
-                // Try operationName equality (single or double quotes)
-                val operationNameRegex = """operationName\s*==\s*['"]([^'"]+)['"]""".toRegex()
-                val match = operationNameRegex.find(matchesJsonPath)
-                if (match != null) {
-                    return@runCatching GraphQLOperationInfo(match.groupValues[1], "", emptyMap())
+            val operationNameRegex = """operationName\s*==\s*['"]([^'"]+)['"]""".toRegex()
+            val queryRegex = """(?:query|mutation)\s+(\w+)""".toRegex()
+            for (path in allMatchesJsonPath) {
+                operationNameRegex.find(path)?.let {
+                    return@runCatching GraphQLOperationInfo(it.groupValues[1], "", emptyMap())
                 }
-
-                // Try extracting operation name from embedded query/mutation pattern
-                val queryRegex = """(?:query|mutation)\s+(\w+)""".toRegex()
-                val queryMatch = queryRegex.find(matchesJsonPath)
-                if (queryMatch != null) {
-                    return@runCatching GraphQLOperationInfo(queryMatch.groupValues[1], "", emptyMap())
+                queryRegex.find(path)?.let {
+                    return@runCatching GraphQLOperationInfo(it.groupValues[1], "", emptyMap())
                 }
-
-                return@runCatching null
             }
 
             null

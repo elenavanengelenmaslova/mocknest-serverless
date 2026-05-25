@@ -147,15 +147,15 @@ See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslov
 
 ### Generation Quality
 
-Generation quality is measured using a 52-scenario eval suite across 14 API specifications, with automated structural validation and LLM-as-a-judge semantic checks.
+Generation quality is measured using a 55-scenario eval suite across 15 API specifications, with automated structural validation and LLM-as-a-judge semantic checks.
 
-| Protocol | Scenarios | Valid (no retries) | Valid (1 retry) | Valid (2 retries) | Semantic pass | Avg cost | Avg latency |
-|----------|-----------|-------------------|-----------------|-------------------|---------------|----------|-------------|
-| REST     | 22        | 93%               | 100%            | 100%              | 100%          | $0.005   | 2.5s        |
-| GraphQL  | 15        | 81%               | 93%             | 100%              | 100%          | $0.007   | 2.3s        |
-| SOAP     | 15        | 100%              | 100%            | 100%              | 93%           | $0.006   | 3.2s        |
+| Protocol | Scenarios | Valid (no retries) | Valid (1 retry) | Semantic pass | Avg cost | Avg latency |
+|----------|-----------|-------------------|-----------------|---------------|----------|-------------|
+| REST     | 25        | 94%               | 100%            | 100%          | $0.005   | 2.8s        |
+| GraphQL  | 15        | 88%               | 100%            | 100%          | $0.006   | 3.9s        |
+| SOAP     | 15        | 100%              | 100%            | 100%          | $0.006   | 3.4s        |
 
-*Tested with Amazon Nova Pro (`eu-west-1`). Self-correction retries are configurable (0–2 via `BedrockGenerationMaxRetries`, default 1). Invalid mocks are filtered out — only valid mocks are returned. For full methodology see the [Prompt Eval Guide](docs/PROMPT_EVAL.md).*
+*Tested with Amazon Nova Pro (`eu-west-1`), 1 iteration per scenario. Self-correction retries are configurable (0–2 via `BedrockGenerationMaxRetries`, default 1). Invalid mocks are filtered out — only valid mocks are returned. For full methodology see the [Prompt Eval Guide](docs/PROMPT_EVAL.md).*
 
 ## Architecture Overview
 
