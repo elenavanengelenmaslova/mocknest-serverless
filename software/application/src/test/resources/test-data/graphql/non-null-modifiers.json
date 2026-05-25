@@ -1,0 +1,75 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "user",
+              "description": "Get user by ID",
+              "args": [
+                { "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } }
+            },
+            {
+              "name": "users",
+              "description": "Get all users",
+              "args": [
+                { "name": "ids", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } } } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            {
+              "name": "updateUser",
+              "description": "Update user profile",
+              "args": [
+                { "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+                { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "UpdateUserInput", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "User",
+          "description": "User with strict non-null fields",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "username", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "email", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "roles", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } } },
+            { "name": "bio", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "UpdateUserInput",
+          "description": "Input for updating user",
+          "inputFields": [
+            { "name": "username", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "email", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "roles", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } } },
+            { "name": "bio", "description": null, "type": { "kind": "SCALAR", "name": "String", "ofType": null } }
+          ]
+        },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "ID", "description": "Built-in ID scalar" },
+        { "kind": "SCALAR", "name": "Boolean", "description": "Built-in Boolean scalar" }
+      ]
+    }
+  }
+}

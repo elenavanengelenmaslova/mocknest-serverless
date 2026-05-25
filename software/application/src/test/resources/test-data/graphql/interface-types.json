@@ -1,0 +1,151 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "node",
+              "description": "Get any node by ID",
+              "args": [
+                { "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "INTERFACE", "name": "Node", "ofType": null }
+            },
+            {
+              "name": "vehicles",
+              "description": "Get all vehicles",
+              "args": [
+                { "name": "type", "description": null, "type": { "kind": "ENUM", "name": "VehicleType", "ofType": null } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INTERFACE", "name": "Vehicle", "ofType": null } } } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            {
+              "name": "registerCar",
+              "description": "Register a car",
+              "args": [
+                { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CarInput", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Car", "ofType": null } }
+            }
+          ]
+        },
+        {
+          "kind": "INTERFACE",
+          "name": "Node",
+          "description": "Relay-style node interface",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+          ],
+          "possibleTypes": [
+            { "name": "Car" },
+            { "name": "Truck" },
+            { "name": "Motorcycle" }
+          ]
+        },
+        {
+          "kind": "INTERFACE",
+          "name": "Vehicle",
+          "description": "Vehicle interface",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "make", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "model", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "year", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } }
+          ],
+          "possibleTypes": [
+            { "name": "Car" },
+            { "name": "Truck" },
+            { "name": "Motorcycle" }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Car",
+          "description": "Car type implementing Vehicle and Node",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "make", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "model", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "year", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "doors", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "fuelType", "description": null, "args": [], "type": { "kind": "ENUM", "name": "FuelType", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Truck",
+          "description": "Truck type implementing Vehicle and Node",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "make", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "model", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "year", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "payloadCapacity", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Motorcycle",
+          "description": "Motorcycle type implementing Vehicle and Node",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "make", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "model", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "year", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "engineCC", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "CarInput",
+          "description": "Input for registering a car",
+          "inputFields": [
+            { "name": "make", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "model", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "year", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "doors", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "fuelType", "description": null, "type": { "kind": "ENUM", "name": "FuelType", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "VehicleType",
+          "description": "Vehicle type filter",
+          "enumValues": [
+            { "name": "CAR", "description": null },
+            { "name": "TRUCK", "description": null },
+            { "name": "MOTORCYCLE", "description": null }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "FuelType",
+          "description": "Fuel type",
+          "enumValues": [
+            { "name": "GASOLINE", "description": null },
+            { "name": "DIESEL", "description": null },
+            { "name": "ELECTRIC", "description": null },
+            { "name": "HYBRID", "description": null }
+          ]
+        },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "ID", "description": "Built-in ID scalar" },
+        { "kind": "SCALAR", "name": "Int", "description": "Built-in Int scalar" },
+        { "kind": "SCALAR", "name": "Float", "description": "Built-in Float scalar" }
+      ]
+    }
+  }
+}

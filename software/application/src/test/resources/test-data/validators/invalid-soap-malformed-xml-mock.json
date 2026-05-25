@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/hello",
+    "headers": {
+      "SOAPAction": { "equalTo": "http://example.com/hello/SayHello" }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "text/xml" },
+    "body": "this is not valid XML at all"
+  }
+}

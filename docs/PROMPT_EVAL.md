@@ -21,6 +21,38 @@ This before/after comparison gives you concrete data on the impact of your chang
 - The `eu.amazon.nova-pro-v1:0` model (or your configured model) must be enabled in your Bedrock console
 - These tests incur a small cost per run (see [Cost Considerations](#cost-considerations))
 
+### How to authenticate
+
+The eval tests use the AWS SDK for Kotlin (JVM), which reads credentials directly from the standard AWS credential chain — no separate CLI login is needed.
+
+**Option 1 — Static credentials in `~/.aws/credentials` (simplest):**
+```
+[default]
+aws_access_key_id     = YOUR_ACCESS_KEY_ID
+aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
+```
+With `~/.aws/config` setting the region:
+```
+[default]
+region = eu-west-1
+```
+Run the eval directly — no extra setup needed.
+
+**Option 2 — AWS SSO:**
+```bash
+aws sso login --profile <your-profile>
+AWS_PROFILE=<your-profile> BEDROCK_EVAL_ENABLED=true \
+  ./gradlew :software:infra:aws:generation:bedrockEval
+```
+
+**Option 3 — Environment variables (CI or temporary credentials):**
+```bash
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_SESSION_TOKEN=...   # required for temporary/STS credentials
+BEDROCK_EVAL_ENABLED=true ./gradlew :software:infra:aws:generation:bedrockEval
+```
+
 ## Running the Eval Suite
 
 ```bash
@@ -94,11 +126,11 @@ Each scenario in the eval dataset goes through:
 
 ## Protocol Breakdown
 
-The eval suite covers 46 scenarios across 3 protocols and 12 API specifications:
+The eval suite covers 55 scenarios across 3 protocols and 15 API specifications:
 
 | Protocol | Scenarios | API Specifications |
 |----------|-----------|-------------------|
-| REST | 16 | Petstore (20+ endpoints), Bored API (3 endpoints), Social Content (8-10 endpoints), Payment Financial (6-8 endpoints), Weather Utility (2-3 endpoints) |
+| REST | 25 | Petstore (20+ endpoints), Bored API (3 endpoints), Social Content (8-10 endpoints), Payment Financial (6-8 endpoints), Weather Utility (2-3 endpoints), Stripe Payment (4 endpoints), Twilio Messaging (3 endpoints), Paddle Billing (9 endpoints) |
 | GraphQL | 15 | Pokemon (2 queries), Books (3 queries), E-commerce (4 queries + 4 mutations), Task Management (4 queries + 3 mutations) |
 | SOAP | 15 | Calculator (3 operations), Banking Service (5 operations), Inventory Warehouse (6 operations), Notification Messaging (4 operations) |
 
@@ -156,11 +188,11 @@ Example output format:
 ╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
 ║ Protocol  │ Runs │ 1st-pass valid │ After retry valid │ Scenario pass │ Gen cost │ Judge cost │ Avg cost/run │ Avg lat║
 ╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ REST      │ 16   │ 77%            │ 98%               │ 85%           │ $0.0480  │ $0.0240    │ $0.0045      │ 3.8s   ║
+║ REST      │ 22   │ 77%            │ 98%               │ 85%           │ $0.0480  │ $0.0240    │ $0.0045      │ 3.8s   ║
 ║ GraphQL   │ 15   │ 50%            │ 100%              │ 100%          │ $0.0750  │ $0.0390    │ $0.0053      │ 2.6s   ║
 ║ SOAP      │ 15   │ 100%           │ 100%              │ 100%          │ $0.0480  │ $0.0210    │ $0.0046      │ 3.2s   ║
 ╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ TOTAL     │ 46   │                │                   │               │ $0.1710  │ $0.0840    │ $0.0048      │        ║
+║ TOTAL     │ 52   │                │                   │               │ $0.1710  │ $0.0840    │ $0.0048      │        ║
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 ```
 
@@ -227,6 +259,8 @@ Each scenario specifies:
 | `banking-service-soap12.wsdl` | SOAP | Banking | 5 operations, nested types, enumerated TransactionStatus, cross-entity relationships |
 | `inventory-warehouse-soap12.wsdl` | SOAP | Inventory/Warehouse | 6 operations, nested types, enumerated fields (ItemCategory, StockStatus), multi-field types |
 | `notification-messaging-soap12.wsdl` | SOAP | Notification/Messaging | 4 operations, cross-entity relationships, multiple message types |
+| `stripe-payment-openapi-3.0.yaml` | REST | Payment Processing | 4 |
+| `twilio-messaging-openapi-3.0.yaml` | REST | Messaging | 3 |
 
 ### Adding New Scenarios
 
@@ -279,8 +313,8 @@ Each eval run makes multiple Bedrock API calls per scenario:
 
 | Suite | Scenarios | Estimated cost (1 iteration) | Estimated cost (3 iterations) |
 |-------|-----------|------------------------------|-------------------------------|
-| Full suite (all protocols) | 46 | $0.18–$0.32 | $0.55–$0.97 |
-| REST only | 16 | $0.06–$0.11 | $0.19–$0.34 |
+| Full suite (all protocols) | 55 | $0.22–$0.39 | $0.66–$1.16 |
+| REST only | 25 | $0.10–$0.18 | $0.30–$0.53 |
 | GraphQL only | 15 | $0.06–$0.11 | $0.18–$0.32 |
 | SOAP only | 15 | $0.06–$0.11 | $0.18–$0.32 |
 

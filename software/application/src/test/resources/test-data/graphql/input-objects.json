@@ -1,0 +1,137 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "searchProducts",
+              "description": "Search products with filters",
+              "args": [
+                { "name": "filter", "description": "Search filter", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "ProductSearchFilter", "ofType": null } } },
+                { "name": "pagination", "description": "Pagination options", "type": { "kind": "INPUT_OBJECT", "name": "PaginationInput", "ofType": null } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "ProductConnection", "ofType": null } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            {
+              "name": "createProduct",
+              "description": "Create a product",
+              "args": [
+                { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CreateProductInput", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Product", "ofType": null } }
+            },
+            {
+              "name": "updateProduct",
+              "description": "Update a product",
+              "args": [
+                { "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+                { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "UpdateProductInput", "ofType": null } } }
+              ],
+              "type": { "kind": "OBJECT", "name": "Product", "ofType": null }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Product",
+          "description": "Product entity",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "price", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } },
+            { "name": "category", "description": null, "args": [], "type": { "kind": "ENUM", "name": "Category", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "ProductConnection",
+          "description": "Paginated product results",
+          "fields": [
+            { "name": "items", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Product", "ofType": null } } } } },
+            { "name": "totalCount", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "hasNextPage", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Boolean", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "ProductSearchFilter",
+          "description": "Filter for product search",
+          "inputFields": [
+            { "name": "nameContains", "description": null, "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "category", "description": null, "type": { "kind": "ENUM", "name": "Category", "ofType": null } },
+            { "name": "priceRange", "description": null, "type": { "kind": "INPUT_OBJECT", "name": "PriceRangeInput", "ofType": null } },
+            { "name": "inStock", "description": null, "type": { "kind": "SCALAR", "name": "Boolean", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "PriceRangeInput",
+          "description": "Price range filter",
+          "inputFields": [
+            { "name": "min", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } },
+            { "name": "max", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "PaginationInput",
+          "description": "Pagination options",
+          "inputFields": [
+            { "name": "page", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "pageSize", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "CreateProductInput",
+          "description": "Input for creating a product",
+          "inputFields": [
+            { "name": "name", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "price", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } },
+            { "name": "category", "description": null, "type": { "kind": "ENUM", "name": "Category", "ofType": null } },
+            { "name": "tags", "description": null, "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "UpdateProductInput",
+          "description": "Input for updating a product",
+          "inputFields": [
+            { "name": "name", "description": null, "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "price", "description": null, "type": { "kind": "SCALAR", "name": "Float", "ofType": null } },
+            { "name": "category", "description": null, "type": { "kind": "ENUM", "name": "Category", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "Category",
+          "description": "Product category",
+          "enumValues": [
+            { "name": "ELECTRONICS", "description": null },
+            { "name": "CLOTHING", "description": null },
+            { "name": "FOOD", "description": null },
+            { "name": "BOOKS", "description": null }
+          ]
+        },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "ID", "description": "Built-in ID scalar" },
+        { "kind": "SCALAR", "name": "Int", "description": "Built-in Int scalar" },
+        { "kind": "SCALAR", "name": "Float", "description": "Built-in Float scalar" },
+        { "kind": "SCALAR", "name": "Boolean", "description": "Built-in Boolean scalar" }
+      ]
+    }
+  }
+}

@@ -5,6 +5,8 @@ import nl.vintik.mocknest.domain.generation.GraphQLSchemaParsingException
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -529,6 +531,350 @@ class GraphQLSchemaReducerTest {
             val orderType = result.types["Order"]!!
             val itemsField = orderType.fields.first { it.name == "items" }
             assertEquals("[OrderItem]", itemsField.type)
+        }
+    }
+
+    @Nested
+    inner class ParameterizedSchemaReduction {
+
+        private fun loadParameterizedTestData(filename: String): String {
+            return this::class.java.getResource("/test-data/graphql/$filename")?.readText()
+                ?: throw IllegalArgumentException("Test data file not found: $filename")
+        }
+
+        @ParameterizedTest(name = "Schema: {0}")
+        @ValueSource(strings = [
+            "simple-schema.json",
+            "complex-nested-types.json",
+            "list-types.json",
+            "non-null-modifiers.json",
+            "input-objects.json",
+            "multiple-enums.json",
+            "deep-nesting.json",
+            "union-types.json",
+            "interface-types.json",
+            "mixed-modifiers.json",
+            "large-schema.json",
+            "queries-only.json",
+            "mutations-only.json",
+            "all-features-combined.json"
+        ])
+        fun `Given diverse schemas When reducing Then should extract at least one query or mutation`(
+            filename: String
+        ) = runTest {
+            // Given
+            val introspectionJson = loadParameterizedTestData(filename)
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+
+            // Then
+            assertTrue(
+                result.queries.isNotEmpty() || result.mutations.isNotEmpty(),
+                "Schema $filename must have at least one query or mutation"
+            )
+        }
+
+        @ParameterizedTest(name = "Schema: {0}")
+        @ValueSource(strings = [
+            "simple-schema.json",
+            "complex-nested-types.json",
+            "list-types.json",
+            "non-null-modifiers.json",
+            "input-objects.json",
+            "multiple-enums.json",
+            "deep-nesting.json",
+            "union-types.json",
+            "interface-types.json",
+            "mixed-modifiers.json",
+            "large-schema.json",
+            "queries-only.json",
+            "mutations-only.json",
+            "all-features-combined.json"
+        ])
+        fun `Given diverse schemas When reducing Then should exclude built-in scalars and introspection types`(
+            filename: String
+        ) = runTest {
+            // Given
+            val introspectionJson = loadParameterizedTestData(filename)
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+
+            // Then
+            val builtInScalars = setOf("String", "ID", "Int", "Float", "Boolean")
+            builtInScalars.forEach { scalar ->
+                assertFalse(result.types.containsKey(scalar), "Built-in scalar $scalar should be excluded from $filename")
+            }
+            assertFalse(result.types.containsKey("__Schema"), "__Schema should be excluded from $filename")
+            assertFalse(result.types.containsKey("__Type"), "__Type should be excluded from $filename")
+        }
+
+        @ParameterizedTest(name = "Schema: {0}")
+        @ValueSource(strings = [
+            "simple-schema.json",
+            "complex-nested-types.json",
+            "list-types.json",
+            "non-null-modifiers.json",
+            "input-objects.json",
+            "multiple-enums.json",
+            "deep-nesting.json",
+            "union-types.json",
+            "interface-types.json",
+            "mixed-modifiers.json",
+            "large-schema.json",
+            "queries-only.json",
+            "mutations-only.json",
+            "all-features-combined.json"
+        ])
+        fun `Given diverse schemas When reducing Then all type references should be well-formed`(
+            filename: String
+        ) = runTest {
+            // Given
+            val introspectionJson = loadParameterizedTestData(filename)
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+
+            // Then - Collect all type references
+            val allTypeRefs = mutableListOf<String>()
+            result.queries.forEach { op ->
+                allTypeRefs.add(op.returnType)
+                allTypeRefs.addAll(op.arguments.map { it.type })
+            }
+            result.mutations.forEach { op ->
+                allTypeRefs.add(op.returnType)
+                allTypeRefs.addAll(op.arguments.map { it.type })
+            }
+            result.types.values.forEach { type ->
+                allTypeRefs.addAll(type.fields.map { it.type })
+            }
+
+            // Verify all type references are well-formed
+            allTypeRefs.forEach { typeRef ->
+                assertTrue(typeRef.isNotBlank(), "Type reference should not be blank in $filename")
+                assertFalse(typeRef.contains("Unknown"), "Type reference should not contain 'Unknown' in $filename: $typeRef")
+
+                // Verify balanced brackets for list types
+                if (typeRef.contains("[") || typeRef.contains("]")) {
+                    val openCount = typeRef.count { it == '[' }
+                    val closeCount = typeRef.count { it == ']' }
+                    assertEquals(openCount, closeCount, "Unbalanced brackets in type '$typeRef' from $filename")
+                }
+            }
+        }
+
+        @ParameterizedTest(name = "Schema: {0}")
+        @ValueSource(strings = [
+            "simple-schema.json",
+            "complex-nested-types.json",
+            "list-types.json",
+            "non-null-modifiers.json",
+            "input-objects.json",
+            "multiple-enums.json",
+            "deep-nesting.json",
+            "union-types.json",
+            "interface-types.json",
+            "mixed-modifiers.json",
+            "large-schema.json",
+            "queries-only.json",
+            "mutations-only.json",
+            "all-features-combined.json"
+        ])
+        fun `Given diverse schemas When reducing Then all operations should have valid signatures`(
+            filename: String
+        ) = runTest {
+            // Given
+            val introspectionJson = loadParameterizedTestData(filename)
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+
+            // Then - Verify query signatures
+            result.queries.forEach { query ->
+                assertTrue(query.name.isNotBlank(), "Query name should not be blank in $filename")
+                assertTrue(query.returnType.isNotBlank(), "Query return type should not be blank in $filename")
+                query.arguments.forEach { arg ->
+                    assertTrue(arg.name.isNotBlank(), "Query argument name should not be blank in $filename")
+                    assertTrue(arg.type.isNotBlank(), "Query argument type should not be blank in $filename")
+                }
+            }
+
+            // Then - Verify mutation signatures
+            result.mutations.forEach { mutation ->
+                assertTrue(mutation.name.isNotBlank(), "Mutation name should not be blank in $filename")
+                assertTrue(mutation.returnType.isNotBlank(), "Mutation return type should not be blank in $filename")
+                mutation.arguments.forEach { arg ->
+                    assertTrue(arg.name.isNotBlank(), "Mutation argument name should not be blank in $filename")
+                    assertTrue(arg.type.isNotBlank(), "Mutation argument type should not be blank in $filename")
+                }
+            }
+        }
+
+        @ParameterizedTest(name = "Schema: {0}")
+        @ValueSource(strings = [
+            "simple-schema.json",
+            "complex-nested-types.json",
+            "list-types.json",
+            "non-null-modifiers.json",
+            "input-objects.json",
+            "multiple-enums.json",
+            "deep-nesting.json",
+            "union-types.json",
+            "interface-types.json",
+            "mixed-modifiers.json",
+            "large-schema.json",
+            "queries-only.json",
+            "mutations-only.json",
+            "all-features-combined.json"
+        ])
+        fun `Given diverse schemas When reducing Then all extracted types should have valid fields`(
+            filename: String
+        ) = runTest {
+            // Given
+            val introspectionJson = loadParameterizedTestData(filename)
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+
+            // Then
+            result.types.values.forEach { type ->
+                assertTrue(type.name.isNotBlank(), "Type name should not be blank in $filename")
+                assertTrue(type.fields.isNotEmpty(), "Type ${type.name} should have at least one field in $filename")
+                type.fields.forEach { field ->
+                    assertTrue(field.name.isNotBlank(), "Field name in ${type.name} should not be blank in $filename")
+                    assertTrue(field.type.isNotBlank(), "Field type in ${type.name} should not be blank in $filename")
+                }
+            }
+        }
+
+        @ParameterizedTest(name = "Schema: {0}")
+        @ValueSource(strings = [
+            "simple-schema.json",
+            "complex-nested-types.json",
+            "list-types.json",
+            "non-null-modifiers.json",
+            "input-objects.json",
+            "multiple-enums.json",
+            "deep-nesting.json",
+            "union-types.json",
+            "interface-types.json",
+            "mixed-modifiers.json",
+            "large-schema.json",
+            "queries-only.json",
+            "mutations-only.json",
+            "all-features-combined.json"
+        ])
+        fun `Given diverse schemas When reducing Then all extracted enums should have valid values`(
+            filename: String
+        ) = runTest {
+            // Given
+            val introspectionJson = loadParameterizedTestData(filename)
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+
+            // Then
+            result.enums.values.forEach { enum ->
+                assertTrue(enum.name.isNotBlank(), "Enum name should not be blank in $filename")
+                assertTrue(enum.values.isNotEmpty(), "Enum ${enum.name} should have at least one value in $filename")
+                enum.values.forEach { value ->
+                    assertTrue(value.isNotBlank(), "Enum value in ${enum.name} should not be blank in $filename")
+                }
+            }
+        }
+
+        @ParameterizedTest(name = "Schema: {0}")
+        @ValueSource(strings = [
+            "simple-schema.json",
+            "complex-nested-types.json",
+            "list-types.json",
+            "non-null-modifiers.json",
+            "input-objects.json",
+            "multiple-enums.json",
+            "deep-nesting.json",
+            "union-types.json",
+            "interface-types.json",
+            "mixed-modifiers.json",
+            "large-schema.json",
+            "queries-only.json",
+            "mutations-only.json",
+            "all-features-combined.json"
+        ])
+        fun `Given diverse schemas When reducing Then should achieve size reduction`(
+            filename: String
+        ) = runTest {
+            // Given
+            val introspectionJson = loadParameterizedTestData(filename)
+            val originalSize = introspectionJson.length
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+            val compactSize = result.prettyPrint().length
+
+            // Then
+            assertTrue(
+                originalSize > compactSize,
+                "Compact size ($compactSize) should be smaller than original ($originalSize) for $filename"
+            )
+        }
+
+        @ParameterizedTest(name = "Schema: {0}")
+        @ValueSource(strings = [
+            "simple-schema.json",
+            "complex-nested-types.json",
+            "list-types.json",
+            "non-null-modifiers.json",
+            "input-objects.json",
+            "multiple-enums.json",
+            "deep-nesting.json",
+            "union-types.json",
+            "interface-types.json",
+            "mixed-modifiers.json",
+            "large-schema.json",
+            "queries-only.json",
+            "mutations-only.json",
+            "all-features-combined.json"
+        ])
+        fun `Given diverse schemas When reducing Then type modifiers should be correctly resolved`(
+            filename: String
+        ) = runTest {
+            // Given
+            val introspectionJson = loadParameterizedTestData(filename)
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+
+            // Then - Collect all type references and verify modifiers
+            val allTypeRefs = mutableListOf<String>()
+            result.queries.forEach { op ->
+                allTypeRefs.add(op.returnType)
+                allTypeRefs.addAll(op.arguments.map { it.type })
+            }
+            result.mutations.forEach { op ->
+                allTypeRefs.add(op.returnType)
+                allTypeRefs.addAll(op.arguments.map { it.type })
+            }
+            result.types.values.forEach { type ->
+                allTypeRefs.addAll(type.fields.map { it.type })
+            }
+
+            // Verify NON_NULL modifier (!) is present in at least one type reference
+            assertTrue(
+                allTypeRefs.any { it.contains("!") },
+                "Schema $filename should contain at least one NON_NULL type (with '!')"
+            )
+
+            // Verify ! modifier only appears at the end of a type name or after ]
+            allTypeRefs.filter { it.contains("!") }.forEach { typeRef ->
+                // Valid patterns: Type!, [Type]!, [Type!]!, [Type!]
+                val stripped = typeRef.replace("[", "").replace("]", "")
+                // After stripping brackets, ! should only appear after a type name
+                assertFalse(
+                    stripped.startsWith("!"),
+                    "Type reference '$typeRef' has invalid ! placement in $filename"
+                )
+            }
         }
     }
 }

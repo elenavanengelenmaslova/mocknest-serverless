@@ -1,0 +1,123 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "search",
+              "description": "Search across all content types",
+              "args": [
+                { "name": "query", "description": "Search query", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "UNION", "name": "SearchResult", "ofType": null } } } }
+            },
+            {
+              "name": "feed",
+              "description": "Get activity feed",
+              "args": [
+                { "name": "limit", "description": null, "type": { "kind": "SCALAR", "name": "Int", "ofType": null } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "UNION", "name": "FeedItem", "ofType": null } } } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            {
+              "name": "createArticle",
+              "description": "Create an article",
+              "args": [
+                { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "ArticleInput", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Article", "ofType": null } }
+            }
+          ]
+        },
+        {
+          "kind": "UNION",
+          "name": "SearchResult",
+          "description": "Union of searchable content",
+          "possibleTypes": [
+            { "name": "Article" },
+            { "name": "Video" },
+            { "name": "Podcast" }
+          ]
+        },
+        {
+          "kind": "UNION",
+          "name": "FeedItem",
+          "description": "Union of feed items",
+          "possibleTypes": [
+            { "name": "Article" },
+            { "name": "Video" },
+            { "name": "Comment" }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Article",
+          "description": "Article content",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "title", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "body", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "author", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Video",
+          "description": "Video content",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "title", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "url", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "duration", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Podcast",
+          "description": "Podcast content",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "title", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "episodeNumber", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "host", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Comment",
+          "description": "User comment",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "text", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "author", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "ArticleInput",
+          "description": "Input for creating an article",
+          "inputFields": [
+            { "name": "title", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "body", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ]
+        },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "ID", "description": "Built-in ID scalar" },
+        { "kind": "SCALAR", "name": "Int", "description": "Built-in Int scalar" }
+      ]
+    }
+  }
+}

@@ -6,6 +6,8 @@ import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -1267,6 +1269,82 @@ class GraphQLMockValidatorTest {
         }
 
         @Test
+        fun `Given mock with variables matcher first and operationName matcher second When validating Then should extract operationName`() = runTest {
+            // Given — variables bodyPattern comes before operationName bodyPattern (real model output order)
+            val specification = createTestSpecification()
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "urlPath": "/graphql",
+                    "bodyPatterns": [
+                      {
+                        "matchesJsonPath": "$[?(@.variables.id == '123')]"
+                      },
+                      {
+                        "matchesJsonPath": "$[?(@.operationName == 'getUser')]"
+                      }
+                    ]
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "data": {
+                        "id": "123",
+                        "name": "John Doe",
+                        "email": "john@example.com",
+                        "status": "ACTIVE"
+                      }
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("variables-first-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then — operationName should be found even when variables matcher is first
+            assertTrue(result.isValid, "Should pass when operationName matcher is second. Errors: ${result.errors}")
+        }
+
+        @Test
+        fun `Given mock with only variables bodyPattern and no operationName When validating Then should fail to extract`() = runTest {
+            // Given — no operationName matcher at all, only a variables matcher
+            val specification = createTestSpecification()
+            val mockJson = """
+                {
+                  "request": {
+                    "method": "POST",
+                    "urlPath": "/graphql",
+                    "bodyPatterns": [
+                      {
+                        "matchesJsonPath": "$[?(@.variables.status == 'IN_PROGRESS')]"
+                      }
+                    ]
+                  },
+                  "response": {
+                    "status": 200,
+                    "jsonBody": {
+                      "data": { "result": "test" }
+                    }
+                  }
+                }
+            """.trimIndent()
+            val mock = createGeneratedMock("variables-only-mock", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then — no operationName means extraction must fail
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Failed to extract GraphQL operation") },
+                "Should report extraction failure. Errors: ${result.errors}"
+            )
+        }
+
+        @Test
         fun `Given mock with body field instead of jsonBody When validating Then should validate it`() = runTest {
             // Given
             val specification = createTestSpecification()
@@ -1295,6 +1373,67 @@ class GraphQLMockValidatorTest {
 
             // Then
             assertTrue(result.isValid, "Should handle body field. Errors: ${result.errors}")
+        }
+    }
+
+    @Nested
+    inner class TestDataFileValidation {
+
+        private fun loadTestData(filename: String): String {
+            return this::class.java.getResource("/test-data/validators/$filename")?.readText()
+                ?: throw IllegalArgumentException("Test data file not found: $filename")
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = ["valid-graphql-query-mock.json", "valid-graphql-mutation-mock.json"])
+        fun `Given valid GraphQL mapping from test data file When validating Then should pass`(filename: String) = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = loadTestData(filename)
+            val mock = createGeneratedMock("file-$filename", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertTrue(result.isValid, "Mock from $filename should be valid. Errors: ${result.errors}")
+            assertTrue(result.errors.isEmpty())
+        }
+
+        @Test
+        fun `Given invalid GraphQL mapping with wrong argument type from test data file When validating Then should identify specific error`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = loadTestData("invalid-graphql-wrong-arg-type-mock.json")
+            val mock = createGeneratedMock("invalid-arg-type", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Argument 'id' must be a string") },
+                "Should identify argument type mismatch. Actual errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given invalid GraphQL mapping with unknown operation from test data file When validating Then should identify specific error`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = loadTestData("invalid-graphql-unknown-operation-mock.json")
+            val mock = createGeneratedMock("invalid-unknown-op", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Operation 'nonExistentOperation' not found in schema") },
+                "Should identify unknown operation error. Actual errors: ${result.errors}"
+            )
         }
     }
 }

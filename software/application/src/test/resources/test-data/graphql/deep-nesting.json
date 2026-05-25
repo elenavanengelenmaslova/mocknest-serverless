@@ -1,0 +1,114 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "continent",
+              "description": "Get continent by code",
+              "args": [
+                { "name": "code", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+              ],
+              "type": { "kind": "OBJECT", "name": "Continent", "ofType": null }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            {
+              "name": "addCity",
+              "description": "Add a city",
+              "args": [
+                { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CityInput", "ofType": null } } }
+              ],
+              "type": { "kind": "OBJECT", "name": "City", "ofType": null }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Continent",
+          "description": "Level 1: Continent",
+          "fields": [
+            { "name": "code", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "countries", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Country", "ofType": null } } } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Country",
+          "description": "Level 2: Country",
+          "fields": [
+            { "name": "code", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "regions", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Region", "ofType": null } } } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Region",
+          "description": "Level 3: Region",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "cities", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "City", "ofType": null } } } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "City",
+          "description": "Level 4: City",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "population", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "Int", "ofType": null } },
+            { "name": "districts", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "District", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "District",
+          "description": "Level 5: District",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "landmarks", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "Landmark", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Landmark",
+          "description": "Level 6: Landmark",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "description", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "CityInput",
+          "description": "Input for adding a city",
+          "inputFields": [
+            { "name": "name", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "regionId", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "population", "description": null, "type": { "kind": "SCALAR", "name": "Int", "ofType": null } }
+          ]
+        },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "ID", "description": "Built-in ID scalar" },
+        { "kind": "SCALAR", "name": "Int", "description": "Built-in Int scalar" }
+      ]
+    }
+  }
+}

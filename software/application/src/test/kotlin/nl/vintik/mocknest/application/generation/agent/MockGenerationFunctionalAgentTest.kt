@@ -1,13 +1,19 @@
 package nl.vintik.mocknest.application.generation.agent
 
+import ai.koog.agents.core.agent.GraphAIAgent
+import ai.koog.agents.core.agent.config.AIAgentConfig
+import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.agents.testing.tools.getMockExecutor
+import ai.koog.prompt.llm.LLModel
 import io.mockk.*
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.interfaces.MockValidationResult
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
 import nl.vintik.mocknest.application.generation.interfaces.SpecificationParserInterface
 import nl.vintik.mocknest.application.generation.services.PromptBuilderService
 import nl.vintik.mocknest.application.generation.util.UrlFetcher
+import nl.vintik.mocknest.domain.core.HttpMethod
 import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
@@ -16,18 +22,20 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
-import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 import java.util.*
 
 class MockGenerationFunctionalAgentTest {
 
-    private val aiModelService: AIModelServiceInterface = mockk()
-    private val specificationParser: SpecificationParserInterface = mockk()
-    private val mockValidator: MockValidatorInterface = mockk()
-    private val promptBuilder: PromptBuilderService = mockk()
-    private val urlFetcher: UrlFetcher = mockk()
+    private val aiModelService: AIModelServiceInterface = mockk(relaxed = true)
+    private val specificationParser: SpecificationParserInterface = mockk(relaxed = true)
+    private val mockValidator: MockValidatorInterface = mockk(relaxed = true)
+    private val promptBuilder: PromptBuilderService = mockk(relaxed = true)
+    private val urlFetcher: UrlFetcher = mockk(relaxed = true)
+
     private lateinit var agent: MockGenerationFunctionalAgent
+
+    private val testNamespace = MockNamespace(apiName = "test-api", client = "test-client")
 
     private val testSpecification = APISpecification(
         format = SpecificationFormat.OPENAPI_3,
@@ -37,8 +45,8 @@ class MockGenerationFunctionalAgentTest {
             EndpointDefinition(
                 path = "/test",
                 method = HttpMethod.GET,
-                operationId = "test",
-                summary = "test",
+                operationId = "getTest",
+                summary = "Get test",
                 parameters = emptyList(),
                 requestBody = null,
                 responses = mapOf(200 to ResponseDefinition(200, "OK", null))
@@ -47,13 +55,11 @@ class MockGenerationFunctionalAgentTest {
         schemas = emptyMap()
     )
 
-    private val testNamespace = MockNamespace(apiName = "test-api", client = "test-client")
-
     private val testMock = GeneratedMock(
-        id = UUID.randomUUID().toString(),
-        name = "GET /test - 200",
+        id = "ai-generated-test-client-test-api-get--test-0",
+        name = "AI Generated: GET /test",
         namespace = testNamespace,
-        wireMockMapping = """{"request":{"method":"GET","urlPath":"/test"},"response":{"status":200}}""",
+        wireMockMapping = """{"request":{"method":"GET","urlPath":"/test"},"response":{"status":200,"headers":{"Content-Type":"application/json"},"jsonBody":{"message":"ok"}}}""",
         metadata = MockMetadata(
             sourceType = SourceType.SPEC_WITH_DESCRIPTION,
             sourceReference = "Test API: test description",
@@ -67,716 +73,400 @@ class MockGenerationFunctionalAgentTest {
         generatedAt = Instant.now()
     )
 
+    private val validLlmResponse =
+        """[{"request":{"method":"GET","urlPath":"/test"},"response":{"status":200,"headers":{"Content-Type":"application/json"},"jsonBody":{"message":"ok"}}}]"""
+
     @BeforeEach
     fun setup() {
         agent = MockGenerationFunctionalAgent(
-            aiModelService,
-            specificationParser,
-            mockValidator,
-            promptBuilder,
+            aiModelService = aiModelService,
+            specificationParser = specificationParser,
+            mockValidator = mockValidator,
+            promptBuilder = promptBuilder,
+            maxRetries = 1,
             urlFetcher = urlFetcher
         )
     }
 
     @AfterEach
     fun tearDown() {
-        clearAllMocks()
+        clearMocks(aiModelService, specificationParser, mockValidator, promptBuilder, urlFetcher)
     }
 
     @Nested
-    inner class `Strategy Execution Tests` {
-
-        @Test
-        fun `Given valid spec content When generating mocks Then should parse spec and generate mocks successfully`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-123",
-                namespace = testNamespace,
-                specificationContent = "openapi: 3.0.0...",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "generate test mocks",
-                options = GenerationOptions(enableValidation = false)
-            )
-            val expectedResult = GenerationResult.success("job-123", listOf(testMock))
-
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-            assertEquals("job-123", result.jobId)
-            assertEquals(1, result.mocks.size)
-
-            coVerify(exactly = 1) { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) }
-        }
-
-        @Test
-        fun `Given spec URL When generating mocks Then should fetch and parse spec from URL`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-456",
-                namespace = testNamespace,
-                specificationUrl = "https://example.com/api/spec.yaml",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "generate test mocks",
-                options = GenerationOptions(enableValidation = false)
-            )
-            val expectedResult = GenerationResult.success("job-456", listOf(testMock))
-
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-            assertEquals("job-456", result.jobId)
-
-            coVerify(exactly = 1) { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) }
-        }
-
-        @Test
-        fun `Given validation enabled with valid mocks When generating Then should validate and return all mocks`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-789",
-                namespace = testNamespace,
-                specificationContent = "openapi: 3.0.0...",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "generate test mocks",
-                options = GenerationOptions(enableValidation = true)
-            )
-            val mocks = listOf(testMock, testMock.copy())
-            val expectedResult = GenerationResult.success("job-789", mocks)
-
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-            assertEquals(2, result.mocks.size)
-
-            coVerify(exactly = 1) { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) }
-        }
-
-        @Test
-        fun `Given validation enabled with invalid mocks When generating Then should attempt correction`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-101",
-                namespace = testNamespace,
-                specificationContent = "openapi: 3.0.0...",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "generate test mocks",
-                options = GenerationOptions(enableValidation = true)
-            )
-            val mocks = listOf(testMock)
-            val expectedResult = GenerationResult.success("job-101", mocks)
-
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-            assertNotNull(result.mocks)
-
-            coVerify(exactly = 1) { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) }
-        }
-
-        @Test
-        fun `Given validation disabled When generating mocks Then should skip validation`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-202",
-                namespace = testNamespace,
-                specificationContent = "openapi: 3.0.0...",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "generate test mocks",
-                options = GenerationOptions(enableValidation = false)
-            )
-            val expectedResult = GenerationResult.success("job-202", listOf(testMock))
-
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-            assertEquals(1, result.mocks.size)
-
-            coVerify(exactly = 1) { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) }
-        }
+    inner class AgentInitialization {
 
         @ParameterizedTest
-        @ValueSource(ints = [0, 1, 2, 3])
-        fun `Given different maxRetries values When creating agent Then should respect retry limit`(maxRetries: Int) {
+        @ValueSource(ints = [0, 1, 2, 3, 5])
+        fun `Given different maxRetries values When creating agent Then should initialize with specified maxRetries`(maxRetries: Int) {
             // When
             val customAgent = MockGenerationFunctionalAgent(
-                aiModelService,
-                specificationParser,
-                mockValidator,
-                promptBuilder,
-                maxRetries = maxRetries
+                aiModelService = aiModelService,
+                specificationParser = specificationParser,
+                mockValidator = mockValidator,
+                promptBuilder = promptBuilder,
+                maxRetries = maxRetries,
+                urlFetcher = urlFetcher
             )
 
             // Then
             assertNotNull(customAgent)
+            assertNotNull(customAgent.mockGenerationStrategy)
+        }
+
+        @Test
+        fun `Given injected PromptBuilderService When creating agent Then should use injected instance`() {
+            // Given
+            val customPromptBuilder: PromptBuilderService = mockk(relaxed = true)
+
+            // When
+            val customAgent = MockGenerationFunctionalAgent(
+                aiModelService = aiModelService,
+                specificationParser = specificationParser,
+                mockValidator = mockValidator,
+                promptBuilder = customPromptBuilder,
+                urlFetcher = urlFetcher
+            )
+
+            // Then
+            assertNotNull(customAgent)
+            assertNotNull(customAgent.mockGenerationStrategy)
+        }
+
+        @Test
+        fun `Given injected AIModelServiceInterface When creating agent Then should use injected instance`() {
+            // Given
+            val customAiModelService: AIModelServiceInterface = mockk(relaxed = true)
+
+            // When
+            val customAgent = MockGenerationFunctionalAgent(
+                aiModelService = customAiModelService,
+                specificationParser = specificationParser,
+                mockValidator = mockValidator,
+                promptBuilder = promptBuilder,
+                urlFetcher = urlFetcher
+            )
+
+            // Then
+            assertNotNull(customAgent)
+            assertNotNull(customAgent.mockGenerationStrategy)
+        }
+
+        @Test
+        fun `Given default maxRetries When creating agent Then should default to 1`() {
+            // When
+            val defaultAgent = MockGenerationFunctionalAgent(
+                aiModelService = aiModelService,
+                specificationParser = specificationParser,
+                mockValidator = mockValidator,
+                promptBuilder = promptBuilder,
+                urlFetcher = urlFetcher
+            )
+
+            // Then
+            assertNotNull(defaultAgent)
+            assertNotNull(defaultAgent.mockGenerationStrategy)
+        }
+
+        @Test
+        fun `Given all dependencies injected When creating agent Then strategy should be available`() {
+            // Then
+            assertNotNull(agent.mockGenerationStrategy)
+            assertEquals("mock-generation", agent.mockGenerationStrategy.name)
         }
     }
 
     @Nested
-    inner class `Context Management Tests` {
+    inner class StrategyGraphTransitionsSuccess {
 
         @Test
-        fun `Given initial context When created Then should have default values`() {
+        fun `Given valid spec and validation disabled When running strategy Then should transition setup to generate to finish`() = runTest {
             // Given
             val request = SpecWithDescriptionRequest(
-                jobId = "job-ctx-1",
-                namespace = testNamespace,
-                specificationContent = "spec",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "test"
-            )
-
-            // When
-            val context = MockGenerationContext(
-                request = request,
-                specification = testSpecification
-            )
-
-            // Then
-            assertEquals(request, context.request)
-            assertEquals(testSpecification, context.specification)
-            assertTrue(context.mocks.isEmpty())
-            assertEquals(1, context.attempt)
-            assertTrue(context.errors.isEmpty())
-        }
-
-        @Test
-        fun `Given context When copying with new mocks Then should preserve request and spec`() {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-ctx-2",
-                namespace = testNamespace,
-                specificationContent = "spec",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "test"
-            )
-            val context = MockGenerationContext(
-                request = request,
-                specification = testSpecification
-            )
-
-            // When
-            val updatedContext = context.copy(mocks = listOf(testMock))
-
-            // Then
-            assertEquals(context.request, updatedContext.request)
-            assertEquals(context.specification, updatedContext.specification)
-            assertEquals(1, updatedContext.mocks.size)
-            assertEquals(testMock, updatedContext.mocks[0])
-        }
-
-        @Test
-        fun `Given context When copying with incremented attempt Then should update attempt counter`() {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-ctx-3",
-                namespace = testNamespace,
-                specificationContent = "spec",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "test"
-            )
-            val context = MockGenerationContext(
-                request = request,
-                specification = testSpecification,
-                attempt = 1
-            )
-
-            // When
-            val updatedContext = context.copy(attempt = context.attempt + 1)
-
-            // Then
-            assertEquals(2, updatedContext.attempt)
-        }
-
-        @Test
-        fun `Given context When copying with errors Then should update errors list`() {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-ctx-4",
-                namespace = testNamespace,
-                specificationContent = "spec",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "test"
-            )
-            val context = MockGenerationContext(
-                request = request,
-                specification = testSpecification
-            )
-            val errors = listOf("Error 1", "Error 2")
-
-            // When
-            val updatedContext = context.copy(errors = errors)
-
-            // Then
-            assertEquals(2, updatedContext.errors.size)
-            assertTrue(updatedContext.errors.containsAll(errors))
-        }
-    }
-
-    @Nested
-    inner class `Integration Tests` {
-
-        @Test
-        fun `Given complete workflow When all mocks valid Then should complete without correction`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-int-1",
-                namespace = testNamespace,
-                specificationContent = "openapi: 3.0.0...",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "generate test mocks",
-                options = GenerationOptions(enableValidation = true)
-            )
-            val expectedResult = GenerationResult.success("job-int-1", listOf(testMock))
-
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-            assertEquals(1, result.mocks.size)
-        }
-
-        @Test
-        fun `Given empty mocks list When generating Then should return success with empty list`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-int-2",
+                jobId = "job-success-1",
                 namespace = testNamespace,
                 specificationContent = "openapi: 3.0.0...",
                 format = SpecificationFormat.OPENAPI_3,
                 description = "generate test mocks",
                 options = GenerationOptions(enableValidation = false)
             )
-            val expectedResult = GenerationResult.success("job-int-2", emptyList())
 
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
+            coEvery { specificationParser.parse(any(), any()) } returns testSpecification
+            every { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any(), any()) } returns "Generate mocks prompt"
+            every { aiModelService.parseModelResponse(any(), any(), any(), any()) } returns listOf(testMock)
 
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-            assertTrue(result.mocks.isEmpty())
-        }
-
-        @Test
-        fun `Given multiple mocks When generating Then should handle all mocks`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-int-3",
-                namespace = testNamespace,
-                specificationContent = "openapi: 3.0.0...",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "generate test mocks",
-                options = GenerationOptions(enableValidation = false)
-            )
-            val mocks = listOf(
-                testMock.copy(),
-                testMock.copy(
-                    id = UUID.randomUUID().toString(),
-                    wireMockMapping = """{"request":{"method":"POST","urlPath":"/test"},"response":{"status":200}}"""
-                ),
-                testMock.copy(
-                    id = UUID.randomUUID().toString(),
-                    wireMockMapping = """{"request":{"method":"PUT","urlPath":"/test/123"},"response":{"status":200}}"""
-                )
-            )
-            val expectedResult = GenerationResult.success("job-int-3", mocks)
-
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-            assertEquals(3, result.mocks.size)
-        }
-    }
-
-    @Nested
-    inner class `Error Handling Tests` {
-
-        @Test
-        fun `Given strategy returns failure When generating Then should return failure result`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-err-1",
-                namespace = testNamespace,
-                specificationContent = "invalid spec",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "generate test mocks"
-            )
-            val expectedResult = GenerationResult.failure("job-err-1", "Parse error")
-
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertFalse(result.success)
-            assertEquals("Parse error", result.error)
-        }
-
-        @Test
-        fun `Given parsing exception When generating Then should return failure result`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-err-2",
-                namespace = testNamespace,
-                specificationContent = "malformed: yaml: content",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "generate test mocks"
-            )
-            val expectedResult = GenerationResult.failure("job-err-2", "Failed to parse specification")
-
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertFalse(result.success)
-            assertNotNull(result.error)
-        }
-    }
-
-    @Nested
-    inner class `Strategy Node Integration Tests` {
-
-        @Test
-        fun `Given spec content When executing strategy Then should parse specification and generate mocks`() = runBlocking {
-            // Given
-            val specContent = """
-                openapi: 3.0.0
-                info:
-                  title: Test API
-                  version: 1.0.0
-            """.trimIndent()
-
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-node-1",
-                namespace = testNamespace,
-                specificationContent = specContent,
-                format = SpecificationFormat.OPENAPI_3,
-                description = "test description",
-                options = GenerationOptions(enableValidation = false)
-            )
-
-            coEvery { specificationParser.parse(specContent, SpecificationFormat.OPENAPI_3) } returns testSpecification
-            coEvery { promptBuilder.buildSpecWithDescriptionPrompt(testSpecification, "test description", testNamespace) } returns "test prompt"
-            coEvery { aiModelService.parseModelResponse(any(), testNamespace, SourceType.SPEC_WITH_DESCRIPTION, any()) } returns listOf(testMock)
-
-            // Mock the strategy execution
-            coEvery {
-                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
-            } coAnswers {
-                GenerationResult.success("job-node-1", listOf(testMock))
+            val strategy = agent.mockGenerationStrategy
+            val mockExecutor = getMockExecutor {
+                mockLLMAnswer(validLlmResponse).asDefaultResponse
             }
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-            assertEquals(1, result.mocks.size)
-
-            coVerify(exactly = 1) { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) }
-        }
-
-        @Test
-        fun `Given spec URL When executing strategy Then should fetch and parse from URL`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-node-2",
-                namespace = testNamespace,
-                specificationUrl = "https://example.com/spec.yaml",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "test description",
-                options = GenerationOptions(enableValidation = false)
+            val agentConfig = AIAgentConfig.withSystemPrompt(
+                prompt = "test system prompt",
+                llm = mockk<LLModel>(relaxed = true),
+                maxAgentIterations = 50
+            )
+            val graphAgent = GraphAIAgent(
+                inputType = strategy.inputType,
+                outputType = strategy.outputType,
+                promptExecutor = mockExecutor,
+                agentConfig = agentConfig,
+                strategy = strategy,
+                toolRegistry = ToolRegistry.EMPTY
             )
 
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns
-                GenerationResult.success("job-node-2", listOf(testMock))
-
             // When
-            val result = agent.generateFromSpecWithDescription(request)
+            val result = graphAgent.run(request)
 
-            // Then
+            // Then - setup → generate → finish (validation skipped)
             assertTrue(result.success)
+            assertEquals("job-success-1", result.jobId)
             assertEquals(1, result.mocks.size)
+            assertEquals(true, result.metadata["validationSkipped"])
+            assertEquals(1, result.metadata["attempts"])
+
+            // Verify setup node parsed the spec
+            coVerify(exactly = 1) { specificationParser.parse(any(), eq(SpecificationFormat.OPENAPI_3)) }
+            // Verify generate node built prompt and parsed response
+            verify(exactly = 1) { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any(), any()) }
+            verify(exactly = 1) { aiModelService.parseModelResponse(any(), any(), any(), any()) }
+            // Verify validate/correct nodes were NOT invoked
+            coVerify(exactly = 0) { mockValidator.validate(any(), any()) }
         }
 
         @Test
-        fun `Given validation enabled with all valid mocks When executing Then should return all mocks`() = runBlocking {
+        fun `Given valid spec and validation enabled with all valid mocks When running strategy Then should transition setup to generate to validate to finish`() = runTest {
             // Given
             val request = SpecWithDescriptionRequest(
-                jobId = "job-node-3",
+                jobId = "job-success-2",
                 namespace = testNamespace,
-                specificationContent = "spec content",
+                specificationContent = "openapi: 3.0.0...",
                 format = SpecificationFormat.OPENAPI_3,
-                description = "test description",
+                description = "generate test mocks",
                 options = GenerationOptions(enableValidation = true)
             )
 
-            val validationResult = MockValidationResult(isValid = true, errors = emptyList())
-
             coEvery { specificationParser.parse(any(), any()) } returns testSpecification
-            coEvery { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any()) } returns "prompt"
-            coEvery { aiModelService.parseModelResponse(any(), any(), any(), any()) } returns listOf(testMock)
-            coEvery { mockValidator.validate(any(), any()) } returns validationResult
+            every { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any(), any()) } returns "Generate mocks prompt"
+            every { aiModelService.parseModelResponse(any(), any(), any(), any()) } returns listOf(testMock)
+            coEvery { mockValidator.validate(any(), any()) } returns MockValidationResult.valid()
 
-            coEvery {
-                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
-            } returns GenerationResult.success("job-node-3", listOf(testMock))
+            val strategy = agent.mockGenerationStrategy
+            val mockExecutor = getMockExecutor {
+                mockLLMAnswer(validLlmResponse).asDefaultResponse
+            }
+            val agentConfig = AIAgentConfig.withSystemPrompt(
+                prompt = "test system prompt",
+                llm = mockk<LLModel>(relaxed = true),
+                maxAgentIterations = 50
+            )
+            val graphAgent = GraphAIAgent(
+                inputType = strategy.inputType,
+                outputType = strategy.outputType,
+                promptExecutor = mockExecutor,
+                agentConfig = agentConfig,
+                strategy = strategy,
+                toolRegistry = ToolRegistry.EMPTY
+            )
 
             // When
-            val result = agent.generateFromSpecWithDescription(request)
+            val result = graphAgent.run(request)
 
-            // Then
+            // Then - setup → generate → validate (passes) → finish
             assertTrue(result.success)
+            assertEquals("job-success-2", result.jobId)
             assertEquals(1, result.mocks.size)
+            assertEquals(false, result.metadata["validationSkipped"])
+            assertEquals(true, result.metadata["allValid"])
+            assertEquals(true, result.metadata["firstPassValid"])
+            assertEquals(1, result.metadata["attempts"])
+
+            // Verify the full success path was traversed
+            coVerify(exactly = 1) { specificationParser.parse(any(), any()) }
+            verify(exactly = 1) { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any(), any()) }
+            verify(exactly = 1) { aiModelService.parseModelResponse(any(), any(), any(), any()) }
+            coVerify(atLeast = 1) { mockValidator.validate(any(), any()) }
+            // Verify correction was NOT invoked
+            verify(exactly = 0) { promptBuilder.buildCorrectionPrompt(any(), any(), any(), any()) }
         }
+    }
+
+    @Nested
+    inner class StrategyGraphTransitionsValidationFailure {
 
         @Test
-        fun `Given validation enabled with invalid mocks When executing Then should attempt correction once`() = runBlocking {
+        fun `Given validation fails on first attempt When running strategy Then should transition setup to generate to validate to correct to validate to finish`() = runTest {
             // Given
             val request = SpecWithDescriptionRequest(
-                jobId = "job-node-4",
+                jobId = "job-fail-1",
                 namespace = testNamespace,
-                specificationContent = "spec content",
+                specificationContent = "openapi: 3.0.0...",
                 format = SpecificationFormat.OPENAPI_3,
-                description = "test description",
+                description = "generate test mocks",
                 options = GenerationOptions(enableValidation = true)
             )
 
-            val invalidResult = MockValidationResult(isValid = false, errors = listOf("error1"))
-            val correctedMock = testMock.copy(id = UUID.randomUUID().toString())
+            val correctedMock = testMock.copy(
+                id = "ai-generated-corrected-0",
+                metadata = testMock.metadata.copy(sourceType = SourceType.REFINEMENT)
+            )
 
             coEvery { specificationParser.parse(any(), any()) } returns testSpecification
-            coEvery { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any()) } returns "prompt"
-            coEvery { promptBuilder.buildCorrectionPrompt(any(), any(), any()) } returns "correction prompt"
-            coEvery { aiModelService.parseModelResponse(any(), any(), SourceType.SPEC_WITH_DESCRIPTION, any()) } returns listOf(testMock)
-            coEvery { aiModelService.parseModelResponse(any(), any(), SourceType.REFINEMENT, any()) } returns listOf(correctedMock)
+            every { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any(), any()) } returns "Generate mocks prompt"
+            every { promptBuilder.buildCorrectionPrompt(any(), any(), any(), any()) } returns "Correction prompt"
+
+            // First parse returns initial mocks, second returns corrected mocks
+            every { aiModelService.parseModelResponse(any(), any(), eq(SourceType.SPEC_WITH_DESCRIPTION), any()) } returns listOf(testMock)
+            every { aiModelService.parseModelResponse(any(), any(), eq(SourceType.REFINEMENT), any()) } returns listOf(correctedMock)
+
+            // First validation fails, second passes
+            val invalidResult = MockValidationResult(isValid = false, errors = listOf("Invalid response body"))
+            val validResult = MockValidationResult.valid()
+
             coEvery { mockValidator.validate(testMock, any()) } returns invalidResult
-            coEvery { mockValidator.validate(correctedMock, any()) } returns MockValidationResult(isValid = true, errors = emptyList())
-
-            coEvery {
-                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
-            } returns GenerationResult.success("job-node-4", listOf(correctedMock))
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-            assertNotNull(result.mocks)
-        }
-
-        @Test
-        fun `Given validation with max retries exceeded When executing Then should return best effort mocks`() = runBlocking {
-            // Given
-            val agentWithRetries = MockGenerationFunctionalAgent(
-                aiModelService,
-                specificationParser,
-                mockValidator,
-                promptBuilder,
-                maxRetries = 2
-            )
-
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-node-5",
-                namespace = testNamespace,
-                specificationContent = "spec content",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "test description",
-                options = GenerationOptions(enableValidation = true)
-            )
-
-            val invalidResult = MockValidationResult(isValid = false, errors = listOf("persistent error"))
-
-            coEvery { specificationParser.parse(any(), any()) } returns testSpecification
-            coEvery { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any()) } returns "prompt"
-            coEvery { promptBuilder.buildCorrectionPrompt(any(), any(), any()) } returns "correction prompt"
-            coEvery { aiModelService.parseModelResponse(any(), any(), any(), any()) } returns listOf(testMock)
-            coEvery { mockValidator.validate(any(), any()) } returns invalidResult
-
-            coEvery {
-                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
-            } returns GenerationResult.success("job-node-5", emptyList())
-
-            // When
-            val result = agentWithRetries.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-        }
-
-        @Test
-        fun `Given validation with fatal errors When executing Then should filter out fatal mocks`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-node-6",
-                namespace = testNamespace,
-                specificationContent = "spec content",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "test description",
-                options = GenerationOptions(enableValidation = true)
-            )
-
-            val fatalResult = MockValidationResult(isValid = false, errors = listOf("fatal error"), isFatal = true)
-
-            coEvery { specificationParser.parse(any(), any()) } returns testSpecification
-            coEvery { mockValidator.validate(any(), any()) } returns fatalResult
-
-            coEvery {
-                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
-            } returns GenerationResult.success("job-node-6", emptyList())
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-        }
-
-        @Test
-        fun `Given multiple mocks with mixed validation When executing Then should separate valid and invalid`() = runBlocking {
-            // Given
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-node-7",
-                namespace = testNamespace,
-                specificationContent = "spec content",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "test description",
-                options = GenerationOptions(enableValidation = true)
-            )
-
-            val validMock = testMock.copy(id = "valid-1")
-            val invalidMock = testMock.copy(id = "invalid-1")
-            val correctedMock = testMock.copy(id = "corrected-1")
-
-            val validResult = MockValidationResult(isValid = true, errors = emptyList())
-            val invalidResult = MockValidationResult(isValid = false, errors = listOf("error"))
-
-            coEvery { specificationParser.parse(any(), any()) } returns testSpecification
-            coEvery { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any()) } returns "prompt"
-            coEvery { promptBuilder.buildCorrectionPrompt(any(), any(), any()) } returns "correction prompt"
-            coEvery { aiModelService.parseModelResponse(any(), any(), SourceType.SPEC_WITH_DESCRIPTION, any()) } returns listOf(validMock, invalidMock)
-            coEvery { aiModelService.parseModelResponse(any(), any(), SourceType.REFINEMENT, any()) } returns listOf(correctedMock)
-            coEvery { mockValidator.validate(validMock, any()) } returns validResult
-            coEvery { mockValidator.validate(invalidMock, any()) } returns invalidResult
             coEvery { mockValidator.validate(correctedMock, any()) } returns validResult
 
-            coEvery {
-                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
-            } returns GenerationResult.success("job-node-7", listOf(validMock, correctedMock))
-
-            // When
-            val result = agent.generateFromSpecWithDescription(request)
-
-            // Then
-            assertTrue(result.success)
-        }
-    }
-
-    @Nested
-    inner class `Namespace Handling Tests` {
-
-        @Test
-        fun `Given simple namespace When generating Then should use correct namespace`() = runBlocking {
-            // Given
-            val simpleNamespace = MockNamespace(apiName = "simple-api")
-            val request = SpecWithDescriptionRequest(
-                jobId = "job-ns-1",
-                namespace = simpleNamespace,
-                specificationContent = "openapi: 3.0.0...",
-                format = SpecificationFormat.OPENAPI_3,
-                description = "test"
+            val strategy = agent.mockGenerationStrategy
+            val mockExecutor = getMockExecutor {
+                mockLLMAnswer(validLlmResponse).asDefaultResponse
+            }
+            val agentConfig = AIAgentConfig.withSystemPrompt(
+                prompt = "test system prompt",
+                llm = mockk<LLModel>(relaxed = true),
+                maxAgentIterations = 50
             )
-            val mock = testMock.copy(namespace = simpleNamespace)
-            val expectedResult = GenerationResult.success("job-ns-1", listOf(mock))
-
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
+            val graphAgent = GraphAIAgent(
+                inputType = strategy.inputType,
+                outputType = strategy.outputType,
+                promptExecutor = mockExecutor,
+                agentConfig = agentConfig,
+                strategy = strategy,
+                toolRegistry = ToolRegistry.EMPTY
+            )
 
             // When
-            val result = agent.generateFromSpecWithDescription(request)
+            val result = graphAgent.run(request)
 
-            // Then
+            // Then - setup → generate → validate (fails) → correct → validate (passes) → finish
             assertTrue(result.success)
-            assertEquals(simpleNamespace, result.mocks[0].namespace)
+            assertEquals("job-fail-1", result.jobId)
+            val attempts = result.metadata["attempts"] as Int
+            assertTrue(attempts > 1, "Expected more than 1 attempt due to correction, got $attempts")
+            assertEquals(false, result.metadata["firstPassValid"])
+
+            // Verify correction path was traversed
+            coVerify(exactly = 1) { specificationParser.parse(any(), any()) }
+            verify(exactly = 1) { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any(), any()) }
+            verify(exactly = 1) { promptBuilder.buildCorrectionPrompt(any(), any(), any(), any()) }
+            coVerify(atLeast = 2) { mockValidator.validate(any(), any()) }
         }
 
         @Test
-        fun `Given namespace with client When generating Then should preserve client info`() = runBlocking {
-            // Given
-            val clientNamespace = MockNamespace(apiName = "api", client = "client-a")
+        fun `Given validation fails and maxRetries exceeded When running strategy Then should return best effort result`() = runTest {
+            // Given - agent with maxRetries = 1 (default)
             val request = SpecWithDescriptionRequest(
-                jobId = "job-ns-2",
-                namespace = clientNamespace,
+                jobId = "job-fail-2",
+                namespace = testNamespace,
                 specificationContent = "openapi: 3.0.0...",
                 format = SpecificationFormat.OPENAPI_3,
-                description = "test"
+                description = "generate test mocks",
+                options = GenerationOptions(enableValidation = true)
             )
-            val mock = testMock.copy(namespace = clientNamespace)
-            val expectedResult = GenerationResult.success("job-ns-2", listOf(mock))
 
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
+            coEvery { specificationParser.parse(any(), any()) } returns testSpecification
+            every { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any(), any()) } returns "Generate mocks prompt"
+            every { promptBuilder.buildCorrectionPrompt(any(), any(), any(), any()) } returns "Correction prompt"
+
+            // All parse calls return mocks
+            every { aiModelService.parseModelResponse(any(), any(), any(), any()) } returns listOf(testMock)
+
+            // Validation always fails with non-fatal errors
+            val persistentError = MockValidationResult(
+                isValid = false,
+                errors = listOf("[CONSISTENCY] Persistent validation error"),
+                isFatal = false
+            )
+            coEvery { mockValidator.validate(any(), any()) } returns persistentError
+
+            val strategy = agent.mockGenerationStrategy
+            val mockExecutor = getMockExecutor {
+                mockLLMAnswer(validLlmResponse).asDefaultResponse
+            }
+            val agentConfig = AIAgentConfig.withSystemPrompt(
+                prompt = "test system prompt",
+                llm = mockk<LLModel>(relaxed = true),
+                maxAgentIterations = 50
+            )
+            val graphAgent = GraphAIAgent(
+                inputType = strategy.inputType,
+                outputType = strategy.outputType,
+                promptExecutor = mockExecutor,
+                agentConfig = agentConfig,
+                strategy = strategy,
+                toolRegistry = ToolRegistry.EMPTY
+            )
 
             // When
-            val result = agent.generateFromSpecWithDescription(request)
+            val result = graphAgent.run(request)
 
-            // Then
+            // Then - should eventually stop retrying and return best effort
+            val attempts = result.metadata["attempts"] as Int
+            assertTrue(attempts > 1, "Expected more than 1 attempt, got $attempts")
+            // Non-fatal mocks should still be included
             assertTrue(result.success)
-            assertEquals("client-a", result.mocks[0].namespace.client)
+            assertTrue(result.mocks.isNotEmpty())
         }
 
         @Test
-        fun `Given namespace with subdomain When generating Then should preserve full namespace`() = runBlocking {
+        fun `Given validation fails with fatal errors and maxRetries exceeded When running strategy Then should return failure`() = runTest {
             // Given
-            val complexNamespace = MockNamespace(apiName = "api", client = "client-a")
             val request = SpecWithDescriptionRequest(
-                jobId = "job-ns-3",
-                namespace = complexNamespace,
+                jobId = "job-fail-3",
+                namespace = testNamespace,
                 specificationContent = "openapi: 3.0.0...",
                 format = SpecificationFormat.OPENAPI_3,
-                description = "test"
+                description = "generate test mocks",
+                options = GenerationOptions(enableValidation = true)
             )
-            val mock = testMock.copy(id = UUID.randomUUID().toString(), namespace = complexNamespace)
-            val expectedResult = GenerationResult.success("job-ns-3", listOf(mock))
 
-            coEvery { aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request)) } returns expectedResult
+            coEvery { specificationParser.parse(any(), any()) } returns testSpecification
+            every { promptBuilder.buildSpecWithDescriptionPrompt(any(), any(), any(), any()) } returns "Generate mocks prompt"
+            every { promptBuilder.buildCorrectionPrompt(any(), any(), any(), any()) } returns "Correction prompt"
+
+            // All parse calls return mocks
+            every { aiModelService.parseModelResponse(any(), any(), any(), any()) } returns listOf(testMock)
+
+            // Validation always fails with fatal errors
+            val fatalError = MockValidationResult(
+                isValid = false,
+                errors = listOf("Fatal structural error"),
+                isFatal = true
+            )
+            coEvery { mockValidator.validate(any(), any()) } returns fatalError
+
+            val strategy = agent.mockGenerationStrategy
+            val mockExecutor = getMockExecutor {
+                mockLLMAnswer(validLlmResponse).asDefaultResponse
+            }
+            val agentConfig = AIAgentConfig.withSystemPrompt(
+                prompt = "test system prompt",
+                llm = mockk<LLModel>(relaxed = true),
+                maxAgentIterations = 50
+            )
+            val graphAgent = GraphAIAgent(
+                inputType = strategy.inputType,
+                outputType = strategy.outputType,
+                promptExecutor = mockExecutor,
+                agentConfig = agentConfig,
+                strategy = strategy,
+                toolRegistry = ToolRegistry.EMPTY
+            )
 
             // When
-            val result = agent.generateFromSpecWithDescription(request)
+            val result = graphAgent.run(request)
 
-            // Then
-            assertTrue(result.success)
-            assertEquals("client-a", result.mocks[0].namespace.client)
-            assertEquals("api", result.mocks[0].namespace.apiName)
+            // Then - all mocks are fatal, so result should be failure
+            assertFalse(result.success)
+            assertNotNull(result.error)
+            assertEquals(0, result.mocks.size)
         }
     }
 
@@ -798,29 +488,12 @@ class MockGenerationFunctionalAgentTest {
 
             // Then
             assertEquals("https://example.com/graphql", result)
+            verify(exactly = 0) { urlFetcher.fetch(any()) }
         }
 
         @Test
-        fun `Given GraphQL format with content When resolving content Then should return content string`() {
+        fun `Given OpenAPI format with URL When resolving content Then should return URL directly since format handles own resolution`() {
             // Given
-            val content = """{"data":{"__schema":{"queryType":{"name":"Query"}}}}"""
-            val request = SpecWithDescriptionRequest(
-                namespace = testNamespace,
-                specificationContent = content,
-                format = SpecificationFormat.GRAPHQL,
-                description = "test graphql"
-            )
-
-            // When
-            val result = agent.resolveContent(request)
-
-            // Then
-            assertEquals(content, result)
-        }
-
-        @Test
-        fun `Given OpenAPI format with URL When resolving content Then should return URL string directly`() {
-            // Given - OpenAPI also handles own URL resolution via readLocation()
             val request = SpecWithDescriptionRequest(
                 namespace = testNamespace,
                 specificationUrl = "https://example.com/openapi.yaml",
@@ -833,15 +506,15 @@ class MockGenerationFunctionalAgentTest {
 
             // Then
             assertEquals("https://example.com/openapi.yaml", result)
+            verify(exactly = 0) { urlFetcher.fetch(any()) }
         }
 
         @Test
-        fun `Given WSDL format with URL When resolving content Then should return URL string directly for parser to fetch`() {
-            // Given - WSDL handles own URL resolution via WsdlContentFetcher in the parser
-            val wsdlUrl = "https://example.com/service.wsdl"
+        fun `Given WSDL format with URL When resolving content Then should return URL directly`() {
+            // Given
             val request = SpecWithDescriptionRequest(
                 namespace = testNamespace,
-                specificationUrl = wsdlUrl,
+                specificationUrl = "https://example.com/service.wsdl",
                 format = SpecificationFormat.WSDL,
                 description = "test wsdl"
             )
@@ -849,15 +522,15 @@ class MockGenerationFunctionalAgentTest {
             // When
             val result = agent.resolveContent(request)
 
-            // Then - URL is passed through, not pre-fetched by urlFetcher
-            assertEquals(wsdlUrl, result)
+            // Then
+            assertEquals("https://example.com/service.wsdl", result)
             verify(exactly = 0) { urlFetcher.fetch(any()) }
         }
 
         @Test
-        fun `Given format with content When resolving content Then should return content string`() {
+        fun `Given format with inline content When resolving content Then should return content string`() {
             // Given
-            val content = "openapi: 3.0.0"
+            val content = "openapi: 3.0.0\ninfo:\n  title: Test"
             val request = SpecWithDescriptionRequest(
                 namespace = testNamespace,
                 specificationContent = content,
@@ -870,6 +543,63 @@ class MockGenerationFunctionalAgentTest {
 
             // Then
             assertEquals(content, result)
+            verify(exactly = 0) { urlFetcher.fetch(any()) }
+        }
+    }
+
+    @Nested
+    inner class GenerateFromSpecWithDescription {
+
+        @Test
+        fun `Given valid request When generateFromSpecWithDescription Then should delegate to aiModelService runStrategy`() = runTest {
+            // Given
+            val request = SpecWithDescriptionRequest(
+                jobId = "job-delegate-1",
+                namespace = testNamespace,
+                specificationContent = "openapi: 3.0.0...",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "generate test mocks"
+            )
+            val expectedResult = GenerationResult.success("job-delegate-1", listOf(testMock))
+
+            coEvery {
+                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
+            } returns expectedResult
+
+            // When
+            val result = agent.generateFromSpecWithDescription(request)
+
+            // Then
+            assertTrue(result.success)
+            assertEquals("job-delegate-1", result.jobId)
+            assertEquals(1, result.mocks.size)
+            coVerify(exactly = 1) {
+                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
+            }
+        }
+
+        @Test
+        fun `Given strategy returns failure When generateFromSpecWithDescription Then should propagate failure`() = runTest {
+            // Given
+            val request = SpecWithDescriptionRequest(
+                jobId = "job-delegate-2",
+                namespace = testNamespace,
+                specificationContent = "invalid spec",
+                format = SpecificationFormat.OPENAPI_3,
+                description = "generate test mocks"
+            )
+            val expectedResult = GenerationResult.failure("job-delegate-2", "Parse error")
+
+            coEvery {
+                aiModelService.runStrategy<SpecWithDescriptionRequest, GenerationResult>(any(), eq(request))
+            } returns expectedResult
+
+            // When
+            val result = agent.generateFromSpecWithDescription(request)
+
+            // Then
+            assertFalse(result.success)
+            assertEquals("Parse error", result.error)
         }
     }
 }

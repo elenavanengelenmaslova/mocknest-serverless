@@ -18,7 +18,7 @@ Requirements:
 - CRITICAL: Every mapping MUST include `"persistent": true` at the top level of the mapping object.
 
 GraphQL-specific corrections (IMPORTANT):
-- If the error is `Failed to extract GraphQL operation from WireMock mapping`: ensure the request contains `bodyPatterns` with a `matchesJsonPath` matcher for the exact GraphQL operation name.
+- If the error is `Failed to extract GraphQL operation from WireMock mapping`: the mock is missing the operationName matcher. Add `{ "matchesJsonPath": "$[?(@.operationName == 'ExactOperationName')]" }` as a bodyPattern entry (where ExactOperationName is the exact name from the schema). CRITICAL: keep any existing variable matchers — the operationName matcher is ADDITIONAL, not a replacement. The corrected bodyPatterns must contain BOTH the operationName entry AND any existing variable entries.
 - If the error is `Operation '...' not found in schema`: verify the operation name matches exactly (case-sensitive) a query or mutation defined in the schema, and update both the `bodyPatterns` matcher and the response `data` key accordingly.
 - If the error is `Missing required argument: '...'`: add the missing argument in the request body matcher with the correct type.
 - If the error is `Unexpected argument: '...' not defined in schema`: remove that argument from the request body matcher.

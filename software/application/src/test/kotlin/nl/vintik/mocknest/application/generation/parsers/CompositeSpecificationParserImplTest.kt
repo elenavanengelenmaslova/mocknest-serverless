@@ -250,6 +250,58 @@ class CompositeSpecificationParserImplTest {
     }
 
     @Test
+    suspend fun `Given no parsers When parsing unsupported format Then throws with format name`() {
+        val composite = CompositeSpecificationParserImpl(emptyList())
+        val exception = assertThrows<IllegalArgumentException> {
+            composite.parse("content", SpecificationFormat.WSDL)
+        }
+        assertTrue(exception.message?.contains("WSDL") == true,
+            "Error message should contain the unsupported format name")
+    }
+
+    @Test
+    suspend fun `Given two parsers When one supports the format Then delegates to supporting parser`() {
+        // Given - two parsers, only one supports GRAPHQL
+        val openApiParser = mockk<SpecificationParserInterface>(relaxed = true)
+        every { openApiParser.supports(any()) } returns false
+        every { openApiParser.supports(SpecificationFormat.OPENAPI_3) } returns true
+
+        val graphqlParser = mockk<SpecificationParserInterface>(relaxed = true)
+        every { graphqlParser.supports(any()) } returns false
+        every { graphqlParser.supports(SpecificationFormat.GRAPHQL) } returns true
+
+        val graphqlSpec = APISpecification(
+            format = SpecificationFormat.GRAPHQL,
+            version = "1.0",
+            title = "GraphQL API",
+            endpoints = listOf(
+                nl.vintik.mocknest.domain.generation.EndpointDefinition(
+                    path = "/graphql",
+                    method = nl.vintik.mocknest.domain.core.HttpMethod.POST,
+                    operationId = "getUser",
+                    summary = null,
+                    parameters = emptyList(),
+                    requestBody = null,
+                    responses = mapOf(
+                        200 to nl.vintik.mocknest.domain.generation.ResponseDefinition(200, "OK", null)
+                    )
+                )
+            ),
+            schemas = emptyMap()
+        )
+        coEvery { graphqlParser.parse("graphql-content", SpecificationFormat.GRAPHQL) } returns graphqlSpec
+
+        val composite = CompositeSpecificationParserImpl(listOf(openApiParser, graphqlParser))
+
+        // When
+        val result = composite.parse("graphql-content", SpecificationFormat.GRAPHQL)
+
+        // Then - should have delegated to graphqlParser
+        assertEquals("GraphQL API", result.title)
+        assertEquals(SpecificationFormat.GRAPHQL, result.format)
+    }
+
+    @Test
     fun `Should initialize with multiple parsers covering all formats`() {
         val parser1 = mockk<SpecificationParserInterface>()
         every { parser1.supports(any()) } returns false

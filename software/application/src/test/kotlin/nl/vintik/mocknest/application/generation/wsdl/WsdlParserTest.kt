@@ -5,6 +5,9 @@ import nl.vintik.mocknest.domain.generation.WsdlParsingException
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
@@ -19,6 +22,129 @@ class WsdlParserTest {
     private fun loadWsdl(filename: String): String =
         this::class.java.getResource("/wsdl/$filename")?.readText()
             ?: throw IllegalArgumentException("WSDL test file not found: $filename")
+
+    private fun loadTestDataWsdl(filename: String): String =
+        this::class.java.getResource("/test-data/wsdl/$filename")?.readText()
+            ?: throw IllegalArgumentException("WSDL test data file not found: $filename")
+
+    @Nested
+    inner class ParsedWsdlFieldExtraction {
+
+        @ParameterizedTest
+        @ValueSource(strings = [
+            "simple-greeting-soap12.wsdl",
+            "calculator-multi-op-soap12.wsdl",
+            "inventory-nested-types-soap12.wsdl"
+        ])
+        fun `Given diverse WSDL files When parsing Then ParsedWsdl contains non-blank serviceName`(filename: String) {
+            val result = parser.parse(loadTestDataWsdl(filename))
+            assertTrue(result.serviceName.isNotBlank(), "serviceName should not be blank for $filename")
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = [
+            "simple-greeting-soap12.wsdl",
+            "calculator-multi-op-soap12.wsdl",
+            "inventory-nested-types-soap12.wsdl"
+        ])
+        fun `Given diverse WSDL files When parsing Then ParsedWsdl contains non-blank targetNamespace`(filename: String) {
+            val result = parser.parse(loadTestDataWsdl(filename))
+            assertTrue(result.targetNamespace.isNotBlank(), "targetNamespace should not be blank for $filename")
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = [
+            "simple-greeting-soap12.wsdl",
+            "calculator-multi-op-soap12.wsdl",
+            "inventory-nested-types-soap12.wsdl"
+        ])
+        fun `Given diverse WSDL files When parsing Then ParsedWsdl contains SOAP_1_2 soapVersion`(filename: String) {
+            val result = parser.parse(loadTestDataWsdl(filename))
+            assertEquals(SoapVersion.SOAP_1_2, result.soapVersion, "soapVersion should be SOAP_1_2 for $filename")
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = [
+            "simple-greeting-soap12.wsdl",
+            "calculator-multi-op-soap12.wsdl",
+            "inventory-nested-types-soap12.wsdl"
+        ])
+        fun `Given diverse WSDL files When parsing Then ParsedWsdl contains at least one operation with non-blank name and soapAction`(filename: String) {
+            val result = parser.parse(loadTestDataWsdl(filename))
+            assertTrue(result.operations.isNotEmpty(), "operations should not be empty for $filename")
+            result.operations.forEach { op ->
+                assertTrue(op.name.isNotBlank(), "operation name should not be blank for $filename")
+                assertTrue(op.soapAction.isNotBlank(), "soapAction should not be blank for operation ${op.name} in $filename")
+            }
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = [
+            "simple-greeting-soap12.wsdl",
+            "calculator-multi-op-soap12.wsdl",
+            "inventory-nested-types-soap12.wsdl"
+        ])
+        fun `Given diverse WSDL files When parsing Then ParsedWsdl contains at least one message entry`(filename: String) {
+            val result = parser.parse(loadTestDataWsdl(filename))
+            assertTrue(result.messages.isNotEmpty(), "messages should not be empty for $filename")
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = [
+            "simple-greeting-soap12.wsdl",
+            "calculator-multi-op-soap12.wsdl",
+            "inventory-nested-types-soap12.wsdl"
+        ])
+        fun `Given diverse WSDL files When parsing Then ParsedWsdl contains at least one xsdType entry`(filename: String) {
+            val result = parser.parse(loadTestDataWsdl(filename))
+            assertTrue(result.xsdTypes.isNotEmpty(), "xsdTypes should not be empty for $filename")
+        }
+
+        @Test
+        fun `Given simple greeting WSDL When parsing Then should extract expected service name`() {
+            val result = parser.parse(loadTestDataWsdl("simple-greeting-soap12.wsdl"))
+            assertEquals("GreetingService", result.serviceName)
+            assertEquals("http://example.com/greeting", result.targetNamespace)
+            assertEquals(1, result.operations.size)
+            assertEquals("SayHello", result.operations.first().name)
+        }
+
+        @Test
+        fun `Given calculator WSDL When parsing Then should extract all four operations`() {
+            val result = parser.parse(loadTestDataWsdl("calculator-multi-op-soap12.wsdl"))
+            assertEquals("CalculatorService", result.serviceName)
+            assertEquals(4, result.operations.size)
+            val opNames = result.operations.map { it.name }.toSet()
+            assertTrue(opNames.containsAll(setOf("Add", "Subtract", "Multiply", "Divide")))
+        }
+
+        @Test
+        fun `Given inventory WSDL When parsing Then should extract multiple messages`() {
+            val result = parser.parse(loadTestDataWsdl("inventory-nested-types-soap12.wsdl"))
+            assertEquals("InventoryService", result.serviceName)
+            assertEquals(4, result.messages.size)
+            assertTrue(result.messages.containsKey("GetProductRequest"))
+            assertTrue(result.messages.containsKey("GetProductResponse"))
+            assertTrue(result.messages.containsKey("UpdateStockRequest"))
+            assertTrue(result.messages.containsKey("UpdateStockResponse"))
+        }
+
+        @Test
+        fun `Given inventory WSDL When parsing Then should extract all xsd types including nested`() {
+            val result = parser.parse(loadTestDataWsdl("inventory-nested-types-soap12.wsdl"))
+            // Should include all defined types (reachable and unreachable)
+            assertTrue(result.xsdTypes.containsKey("Product"))
+            assertTrue(result.xsdTypes.containsKey("Category"))
+            assertTrue(result.xsdTypes.containsKey("Department"))
+            assertTrue(result.xsdTypes.containsKey("Supplier"))
+            assertTrue(result.xsdTypes.containsKey("ContactInfo"))
+            assertTrue(result.xsdTypes.containsKey("Address"))
+            assertTrue(result.xsdTypes.containsKey("Warehouse"))
+            // Unreachable types are still parsed (reduction happens in WsdlSchemaReducer)
+            assertTrue(result.xsdTypes.containsKey("AuditLog"))
+            assertTrue(result.xsdTypes.containsKey("DiscountPolicy"))
+        }
+    }
 
     @Nested
     inner class Soap11Parsing {
@@ -143,13 +269,8 @@ class WsdlParserTest {
 
         @Test
         fun `Given top-level element with type reference When parsing Then should copy fields from referenced type`() {
-            // Given: WSDL with top-level element referencing a named complexType
             val result = parser.parse(loadWsdl("element-with-type-ref-soap12.wsdl"))
-
-            // When: Extracting the top-level element
             val getPersonType = result.xsdTypes["GetPerson"]
-
-            // Then: Element should have fields from referenced PersonType
             assertNotNull(getPersonType, "GetPerson element should be captured")
             assertEquals(3, getPersonType.fields.size, "GetPerson should have 3 fields from PersonType")
             assertTrue(
@@ -168,10 +289,7 @@ class WsdlParserTest {
 
         @Test
         fun `Given mixed named complexTypes and top-level elements When parsing Then should capture both`() {
-            // Given: WSDL with both named complexTypes and top-level elements
             val result = parser.parse(loadWsdl("mixed-types-soap12.wsdl"))
-
-            // Then: Should capture named complexTypes
             assertTrue(
                 result.xsdTypes.containsKey("Address"),
                 "Should capture named complexType 'Address'. Found types: ${result.xsdTypes.keys}"
@@ -180,8 +298,6 @@ class WsdlParserTest {
                 result.xsdTypes.containsKey("UserInfo"),
                 "Should capture named complexType 'UserInfo'. Found types: ${result.xsdTypes.keys}"
             )
-
-            // And: Should capture top-level elements
             assertTrue(
                 result.xsdTypes.containsKey("CreateUser"),
                 "Should capture top-level element 'CreateUser'. Found types: ${result.xsdTypes.keys}"
@@ -190,20 +306,13 @@ class WsdlParserTest {
                 result.xsdTypes.containsKey("CreateUserResponse"),
                 "Should capture top-level element 'CreateUserResponse'. Found types: ${result.xsdTypes.keys}"
             )
-
-            // And: Should have all 4 types
             assertEquals(4, result.xsdTypes.size, "Should have 4 types total (2 named + 2 elements)")
         }
 
         @Test
         fun `Given top-level element with inline complexType When parsing Then should extract fields correctly`() {
-            // Given: WSDL with top-level element containing inline complexType
             val result = parser.parse(loadWsdl("mixed-types-soap12.wsdl"))
-
-            // When: Extracting the CreateUser element
             val createUserType = result.xsdTypes["CreateUser"]
-
-            // Then: Should have fields from inline complexType
             assertNotNull(createUserType, "CreateUser element should be captured")
             assertEquals(3, createUserType.fields.size, "CreateUser should have 3 fields")
             assertTrue(
@@ -222,13 +331,8 @@ class WsdlParserTest {
 
         @Test
         fun `Given empty top-level element When parsing Then should handle gracefully`() {
-            // Given: WSDL with empty element (no complexType, no type attribute)
             val wsdl = loadWsdl("empty-element-soap12.wsdl")
-
-            // When: Parsing the WSDL
             val result = parser.parse(wsdl)
-
-            // Then: Should capture Ping element but not EmptyElement (no type info)
             assertTrue(
                 result.xsdTypes.containsKey("Ping"),
                 "Should capture Ping element with inline complexType"
@@ -241,13 +345,8 @@ class WsdlParserTest {
 
         @Test
         fun `Given top-level element with missing type reference When parsing Then should not capture element`() {
-            // Given: WSDL with element referencing non-existent type
             val wsdl = loadWsdl("missing-type-ref-soap12.wsdl")
-
-            // When: Parsing the WSDL
             val result = parser.parse(wsdl)
-
-            // Then: Should capture GoodElement but not BadElement (missing type reference)
             assertTrue(
                 result.xsdTypes.containsKey("GoodElement"),
                 "Should capture GoodElement with inline complexType"
@@ -260,10 +359,11 @@ class WsdlParserTest {
     }
 
     @Nested
-    inner class ErrorHandling {
+    inner class MalformedXmlAndMissingElements {
 
         @Test
-        fun `Given malformed XML When parsing Then should throw WsdlParsingException`() {
+        @Timeout(2)
+        fun `Given malformed XML When parsing Then should throw WsdlParsingException within 2 seconds`() {
             val ex = assertFailsWith<WsdlParsingException> {
                 parser.parse(loadWsdl("malformed.wsdl"))
             }
@@ -271,16 +371,34 @@ class WsdlParserTest {
         }
 
         @Test
-        fun `Given XML without wsdl definitions root When parsing Then should throw WsdlParsingException`() {
+        @Timeout(2)
+        fun `Given malformed XML with unclosed tags When parsing Then should throw WsdlParsingException within 2 seconds`() {
+            val ex = assertFailsWith<WsdlParsingException> {
+                parser.parse(loadTestDataWsdl("malformed-unclosed-tag.wsdl"))
+            }
+            val message = ex.message
+            assertNotNull(message)
+            assertTrue(
+                message.contains("Malformed XML") || message.contains("line"),
+                "Exception should indicate malformed XML, got: $message"
+            )
+        }
+
+        @Test
+        @Timeout(2)
+        fun `Given XML without wsdl definitions root When parsing Then should throw WsdlParsingException within 2 seconds`() {
             val xml = """<?xml version="1.0"?><root><child/></root>"""
             val ex = assertFailsWith<WsdlParsingException> {
                 parser.parse(xml)
             }
-            assertTrue(ex.message?.contains("definitions") == true)
+            val message = ex.message
+            assertNotNull(message)
+            assertTrue(message.contains("definitions"))
         }
 
         @Test
-        fun `Given WSDL without targetNamespace When parsing Then should throw WsdlParsingException`() {
+        @Timeout(2)
+        fun `Given WSDL without targetNamespace When parsing Then should throw WsdlParsingException within 2 seconds`() {
             val xml = """<?xml version="1.0"?>
 <wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" name="Test">
   <wsdl:portType name="TestPortType">
@@ -293,18 +411,64 @@ class WsdlParserTest {
             val ex = assertFailsWith<WsdlParsingException> {
                 parser.parse(xml)
             }
-            assertTrue(ex.message?.contains("targetNamespace") == true)
+            val message = ex.message
+            assertNotNull(message)
+            assertTrue(message.contains("targetNamespace"))
         }
 
         @Test
-        fun `Given WSDL with no operations When parsing Then should throw WsdlParsingException`() {
+        @Timeout(2)
+        fun `Given WSDL missing portType with no operations When parsing Then should throw WsdlParsingException within 2 seconds`() {
+            val ex = assertFailsWith<WsdlParsingException> {
+                parser.parse(loadTestDataWsdl("missing-porttype.wsdl"))
+            }
+            val message = ex.message
+            assertNotNull(message)
+            assertTrue(
+                message.contains("no operations") || message.contains("No SOAP binding") || message.contains("SOAP 1.2"),
+                "Exception should indicate missing operations or binding issue, got: $message"
+            )
+        }
+
+        @Test
+        @Timeout(2)
+        fun `Given WSDL with no operations When parsing Then should throw WsdlParsingException within 2 seconds`() {
             val ex = assertFailsWith<WsdlParsingException> {
                 parser.parse(loadWsdl("invalid-no-operations.wsdl"))
             }
-            // WSDL uses SOAP 1.1 binding, so it fails with "Only SOAP 1.2 is supported"
+            val message = ex.message
+            assertNotNull(message)
             assertTrue(
-                ex.message?.contains("SOAP 1.2") == true,
-                "Exception should mention SOAP 1.2 requirement, got: ${ex.message}"
+                message.contains("SOAP 1.2") == true,
+                "Exception should mention SOAP 1.2 requirement, got: $message"
+            )
+        }
+
+        @Test
+        @Timeout(2)
+        fun `Given completely invalid content When parsing Then should throw WsdlParsingException within 2 seconds`() {
+            val ex = assertFailsWith<WsdlParsingException> {
+                parser.parse("this is not XML at all { } [ ]")
+            }
+            val message = ex.message
+            assertNotNull(message)
+            assertTrue(
+                message.contains("Malformed XML"),
+                "Exception should indicate malformed XML, got: $message"
+            )
+        }
+
+        @Test
+        @Timeout(2)
+        fun `Given empty string When parsing Then should throw WsdlParsingException within 2 seconds`() {
+            val ex = assertFailsWith<WsdlParsingException> {
+                parser.parse("")
+            }
+            val message = ex.message
+            assertNotNull(message)
+            assertTrue(
+                message.contains("Malformed XML"),
+                "Exception should indicate malformed XML, got: $message"
             )
         }
     }
@@ -314,48 +478,30 @@ class WsdlParserTest {
 
         @Test
         fun `Given WSDL with multiple SOAP 1_2 bindings and different service addresses When parsing Then operationBindings map should be populated`() {
-            // Given
             val wsdl = loadWsdl("multi-porttype-soap12.wsdl")
-
-            // When
             val result = parser.parse(wsdl)
-
-            // Then
             assertTrue(result.operationBindings.isNotEmpty(), "operationBindings should be populated")
             assertEquals(2, result.operationBindings.size, "Should have 2 operation bindings")
         }
 
         @Test
         fun `Given WSDL with multiple SOAP 1_2 bindings When parsing Then each operation should map to correct binding`() {
-            // Given
             val wsdl = loadWsdl("multi-porttype-soap12.wsdl")
-
-            // When
             val result = parser.parse(wsdl)
-
-            // Then
             val getUserBinding = result.operationBindings["UserPortType#GetUser"]
             val getProductBinding = result.operationBindings["ProductPortType#GetProduct"]
-
             assertNotNull(getUserBinding, "GetUser operation should have binding")
             assertNotNull(getProductBinding, "GetProduct operation should have binding")
         }
 
         @Test
         fun `Given WSDL with multiple SOAP 1_2 bindings When parsing Then each binding should have correct service address`() {
-            // Given
             val wsdl = loadWsdl("multi-porttype-soap12.wsdl")
-
-            // When
             val result = parser.parse(wsdl)
-
-            // Then
             val getUserBinding = result.operationBindings["UserPortType#GetUser"]
             val getProductBinding = result.operationBindings["ProductPortType#GetProduct"]
-
             assertNotNull(getUserBinding)
             assertNotNull(getProductBinding)
-
             assertEquals(
                 "http://example.com/multiport/user",
                 getUserBinding.serviceAddress,
@@ -370,13 +516,8 @@ class WsdlParserTest {
 
         @Test
         fun `Given WSDL with single SOAP 1_2 binding When parsing Then operationBindings should still be populated`() {
-            // Given
             val wsdl = loadWsdl("simple-soap12.wsdl")
-
-            // When
             val result = parser.parse(wsdl)
-
-            // Then
             assertTrue(result.operationBindings.isNotEmpty(), "operationBindings should be populated even for single binding")
         }
     }

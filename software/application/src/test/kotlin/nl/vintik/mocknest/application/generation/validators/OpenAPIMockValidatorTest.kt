@@ -6,6 +6,8 @@ import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -1450,6 +1452,62 @@ class OpenAPIMockValidatorTest {
             val result = validator.validate(createGeneratedMock("types", mockJson), specification)
             assertFalse(result.isValid)
             assertTrue(result.errors.any { it.contains("Expected boolean") })
+        }
+    }
+
+    @Nested
+    inner class TestDataFileValidation {
+
+        @ParameterizedTest
+        @ValueSource(strings = ["valid-rest-get-user-mock.json", "valid-rest-post-order-mock.json"])
+        fun `Given valid REST mapping from test data file When validating Then should pass`(filename: String) = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = loadTestData(filename)
+            val mock = createGeneratedMock("file-$filename", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertTrue(result.isValid, "Mock from $filename should be valid. Errors: ${result.errors}")
+            assertTrue(result.errors.isEmpty())
+        }
+
+        @Test
+        fun `Given invalid REST mapping with missing method from test data file When validating Then should identify specific error`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = loadTestData("invalid-rest-missing-method-mock.json")
+            val mock = createGeneratedMock("invalid-missing-method", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Missing method") },
+                "Should identify missing method error. Actual errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given invalid REST mapping with undefined query params from test data file When validating Then should identify specific error`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = loadTestData("invalid-rest-undefined-query-param-mock.json")
+            val mock = createGeneratedMock("invalid-query-params", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Query parameter") && it.contains("not defined") },
+                "Should identify undefined query parameter error. Actual errors: ${result.errors}"
+            )
         }
     }
 }

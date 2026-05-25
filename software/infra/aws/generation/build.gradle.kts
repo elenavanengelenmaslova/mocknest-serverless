@@ -72,6 +72,9 @@ dependencies {
     testImplementation("dev.dokimos:dokimos-kotlin:$dokimosVersion")
     testImplementation("dev.dokimos:dokimos-junit:$dokimosVersion")
     testImplementation("dev.dokimos:dokimos-koog:$dokimosVersion")
+
+    // Logging for eval tests — eval report output uses KotlinLogging (SLF4J), requires an impl
+    testImplementation("ch.qos.logback:logback-classic:1.5.32")
 }
 
 configurations {
@@ -126,6 +129,9 @@ tasks.register<Test>("bedrockEval") {
         junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/bedrockEval"))
     }
     failFast = false
+    testLogging {
+        showStandardStreams = true
+    }
     // Forward eval-related environment variables to the forked test JVM
     listOf("BEDROCK_EVAL_ENABLED", "BEDROCK_EVAL_ITERATIONS", "BEDROCK_EVAL_FILTER", "BEDROCK_EVAL_MAX_RETRIES", "AWS_REGION").forEach { key ->
         System.getenv(key)?.let { environment(key, it) }

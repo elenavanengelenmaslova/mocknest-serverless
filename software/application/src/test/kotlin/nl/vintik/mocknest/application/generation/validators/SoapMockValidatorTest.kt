@@ -18,6 +18,8 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -1878,6 +1880,89 @@ class SoapMockValidatorTest {
                 result2.isValid,
                 "Namespace-prefixed path '/test-namespace/weather.asmx' should be accepted. " +
                 "Errors: ${result2.errors}"
+            )
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Test data file-based validation
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class TestDataFileValidation {
+
+        private fun loadTestData(filename: String): String {
+            return this::class.java.getResource("/test-data/validators/$filename")?.readText()
+                ?: throw IllegalArgumentException("Test data file not found: $filename")
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = ["valid-soap11-mock.json", "valid-soap12-mock.json"])
+        fun `Given valid SOAP mapping from test data file When validating Then should pass`(filename: String) = runTest {
+            // Given
+            val spec = if (filename.contains("soap12")) soap12Specification() else soap11Specification()
+            val mockJson = loadTestData(filename)
+            val mock = createMock("file-$filename", mockJson)
+
+            // When
+            val result = validator.validate(mock, spec)
+
+            // Then
+            assertTrue(result.isValid, "Mock from $filename should be valid. Errors: ${result.errors}")
+            assertTrue(result.errors.isEmpty())
+        }
+
+        @Test
+        fun `Given invalid SOAP mapping with wrong method from test data file When validating Then should identify specific error`() = runTest {
+            // Given
+            val spec = soap11Specification()
+            val mockJson = loadTestData("invalid-soap-wrong-method-mock.json")
+            val mock = createMock("invalid-wrong-method", mockJson)
+
+            // When
+            val result = validator.validate(mock, spec)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Request method must be POST, found: GET") },
+                "Should identify wrong method error. Actual errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given invalid SOAP mapping with wrong action from test data file When validating Then should identify specific error`() = runTest {
+            // Given
+            val spec = soap11Specification()
+            val mockJson = loadTestData("invalid-soap-wrong-action-mock.json")
+            val mock = createMock("invalid-wrong-action", mockJson)
+
+            // When
+            val result = validator.validate(mock, spec)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("does not match any operation in the WSDL") },
+                "Should identify wrong SOAPAction error. Actual errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given invalid SOAP mapping with malformed XML from test data file When validating Then should identify specific error`() = runTest {
+            // Given
+            val spec = soap11Specification()
+            val mockJson = loadTestData("invalid-soap-malformed-xml-mock.json")
+            val mock = createMock("invalid-malformed-xml", mockJson)
+
+            // When
+            val result = validator.validate(mock, spec)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.startsWith("Response body is not well-formed XML") },
+                "Should identify malformed XML error. Actual errors: ${result.errors}"
             )
         }
     }

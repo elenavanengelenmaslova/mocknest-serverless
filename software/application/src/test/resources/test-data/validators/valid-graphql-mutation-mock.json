@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/graphql",
+    "bodyPatterns": [
+      {
+        "equalToJson": "{\"query\":\"mutation createUser($name: String!, $email: String!, $age: Int) { createUser(name: $name, email: $email, age: $age) { id name email } }\",\"operationName\":\"createUser\",\"variables\":{\"name\":\"Jane\",\"email\":\"jane@example.com\",\"age\":25}}"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "data": {
+        "id": "456",
+        "name": "Jane",
+        "email": "jane@example.com"
+      }
+    }
+  }
+}

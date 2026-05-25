@@ -1,0 +1,61 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": null,
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            {
+              "name": "sendEmail",
+              "description": "Send an email",
+              "args": [
+                { "name": "to", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+                { "name": "subject", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+                { "name": "body", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "EmailResult", "ofType": null } }
+            },
+            {
+              "name": "sendBulkEmail",
+              "description": "Send bulk emails",
+              "args": [
+                { "name": "recipients", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } } },
+                { "name": "subject", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+                { "name": "body", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "EmailResult", "ofType": null } } } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "EmailResult",
+          "description": "Email send result",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "status", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "EmailStatus", "ofType": null } } },
+            { "name": "recipient", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "EmailStatus",
+          "description": "Email delivery status",
+          "enumValues": [
+            { "name": "QUEUED", "description": null },
+            { "name": "SENT", "description": null },
+            { "name": "DELIVERED", "description": null },
+            { "name": "BOUNCED", "description": null },
+            { "name": "FAILED", "description": null }
+          ]
+        },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "ID", "description": "Built-in ID scalar" }
+      ]
+    }
+  }
+}

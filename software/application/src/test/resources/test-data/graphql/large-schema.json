@@ -1,0 +1,214 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            { "name": "user", "description": "Get user", "args": [{ "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }], "type": { "kind": "OBJECT", "name": "User", "ofType": null } },
+            { "name": "users", "description": "List users", "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } } } } },
+            { "name": "project", "description": "Get project", "args": [{ "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }], "type": { "kind": "OBJECT", "name": "Project", "ofType": null } },
+            { "name": "projects", "description": "List projects", "args": [{ "name": "filter", "description": null, "type": { "kind": "INPUT_OBJECT", "name": "ProjectFilter", "ofType": null } }], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Project", "ofType": null } } } } },
+            { "name": "sprint", "description": "Get sprint", "args": [{ "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }], "type": { "kind": "OBJECT", "name": "Sprint", "ofType": null } },
+            { "name": "ticket", "description": "Get ticket", "args": [{ "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }], "type": { "kind": "OBJECT", "name": "Ticket", "ofType": null } },
+            { "name": "team", "description": "Get team", "args": [{ "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }], "type": { "kind": "OBJECT", "name": "Team", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            { "name": "createUser", "description": "Create user", "args": [{ "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CreateUserInput", "ofType": null } } }], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } } },
+            { "name": "createProject", "description": "Create project", "args": [{ "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CreateProjectInput", "ofType": null } } }], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Project", "ofType": null } } },
+            { "name": "createTicket", "description": "Create ticket", "args": [{ "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CreateTicketInput", "ofType": null } } }], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Ticket", "ofType": null } } },
+            { "name": "updateTicket", "description": "Update ticket", "args": [{ "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }, { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "UpdateTicketInput", "ofType": null } } }], "type": { "kind": "OBJECT", "name": "Ticket", "ofType": null } },
+            { "name": "addComment", "description": "Add comment", "args": [{ "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "AddCommentInput", "ofType": null } } }], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Comment", "ofType": null } } }
+          ]
+        },
+        { "kind": "OBJECT", "name": "User", "description": "User entity", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "email", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "role", "description": null, "args": [], "type": { "kind": "ENUM", "name": "UserRole", "ofType": null } },
+            { "name": "profile", "description": null, "args": [], "type": { "kind": "OBJECT", "name": "UserProfile", "ofType": null } },
+            { "name": "teams", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "Team", "ofType": null } } }
+          ] },
+        { "kind": "OBJECT", "name": "UserProfile", "description": "User profile", "fields": [
+            { "name": "avatar", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "bio", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "timezone", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } }
+          ] },
+        { "kind": "OBJECT", "name": "Team", "description": "Team entity", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "members", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } } } } },
+            { "name": "lead", "description": null, "args": [], "type": { "kind": "OBJECT", "name": "User", "ofType": null } }
+          ] },
+        { "kind": "OBJECT", "name": "Project", "description": "Project entity", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "description", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "status", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "ProjectStatus", "ofType": null } } },
+            { "name": "team", "description": null, "args": [], "type": { "kind": "OBJECT", "name": "Team", "ofType": null } },
+            { "name": "sprints", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "Sprint", "ofType": null } } },
+            { "name": "settings", "description": null, "args": [], "type": { "kind": "OBJECT", "name": "ProjectSettings", "ofType": null } }
+          ] },
+        { "kind": "OBJECT", "name": "ProjectSettings", "description": "Project settings", "fields": [
+            { "name": "isPublic", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Boolean", "ofType": null } } },
+            { "name": "defaultPriority", "description": null, "args": [], "type": { "kind": "ENUM", "name": "TicketPriority", "ofType": null } },
+            { "name": "sprintDuration", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "Int", "ofType": null } }
+          ] },
+        { "kind": "OBJECT", "name": "Sprint", "description": "Sprint entity", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "status", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "SprintStatus", "ofType": null } } },
+            { "name": "tickets", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Ticket", "ofType": null } } } } },
+            { "name": "velocity", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "Int", "ofType": null } }
+          ] },
+        { "kind": "OBJECT", "name": "Ticket", "description": "Ticket entity", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "title", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "description", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "status", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "TicketStatus", "ofType": null } } },
+            { "name": "priority", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "TicketPriority", "ofType": null } } },
+            { "name": "type", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "TicketType", "ofType": null } } },
+            { "name": "assignee", "description": null, "args": [], "type": { "kind": "OBJECT", "name": "User", "ofType": null } },
+            { "name": "reporter", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } } },
+            { "name": "comments", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "Comment", "ofType": null } } },
+            { "name": "labels", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "Label", "ofType": null } } },
+            { "name": "attachments", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "Attachment", "ofType": null } } },
+            { "name": "storyPoints", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "Int", "ofType": null } }
+          ] },
+        { "kind": "OBJECT", "name": "Comment", "description": "Comment entity", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "text", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "author", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } } },
+            { "name": "reactions", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "Reaction", "ofType": null } } }
+          ] },
+        { "kind": "OBJECT", "name": "Reaction", "description": "Reaction entity", "fields": [
+            { "name": "emoji", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "user", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } } }
+          ] },
+        { "kind": "OBJECT", "name": "Label", "description": "Label entity", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "color", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ] },
+        { "kind": "OBJECT", "name": "Attachment", "description": "Attachment entity", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "filename", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "url", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "size", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "mimeType", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ] },
+        { "kind": "OBJECT", "name": "Notification", "description": "Notification entity", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "message", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "read", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Boolean", "ofType": null } } },
+            { "name": "type", "description": null, "args": [], "type": { "kind": "ENUM", "name": "NotificationType", "ofType": null } }
+          ] },
+        { "kind": "OBJECT", "name": "AuditLog", "description": "Audit log entry", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "action", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "actor", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } } },
+            { "name": "details", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } }
+          ] },
+        { "kind": "OBJECT", "name": "Milestone", "description": "Milestone entity", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "title", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "dueDate", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "progress", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } }
+          ] },
+        { "kind": "OBJECT", "name": "TimeEntry", "description": "Time tracking entry", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "hours", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } },
+            { "name": "description", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "user", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "User", "ofType": null } } }
+          ] },
+        { "kind": "OBJECT", "name": "Integration", "description": "External integration", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "enabled", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Boolean", "ofType": null } } },
+            { "name": "config", "description": null, "args": [], "type": { "kind": "OBJECT", "name": "IntegrationConfig", "ofType": null } }
+          ] },
+        { "kind": "OBJECT", "name": "IntegrationConfig", "description": "Integration config", "fields": [
+            { "name": "webhookUrl", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "events", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } }
+          ] },
+        { "kind": "OBJECT", "name": "Dashboard", "description": "Dashboard entity", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "widgets", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Widget", "ofType": null } } } } }
+          ] },
+        { "kind": "OBJECT", "name": "Widget", "description": "Dashboard widget", "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "type", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "title", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ] },
+        { "kind": "INPUT_OBJECT", "name": "CreateUserInput", "description": "Create user input", "inputFields": [
+            { "name": "name", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "email", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "role", "description": null, "type": { "kind": "ENUM", "name": "UserRole", "ofType": null } }
+          ] },
+        { "kind": "INPUT_OBJECT", "name": "CreateProjectInput", "description": "Create project input", "inputFields": [
+            { "name": "name", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "description", "description": null, "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "teamId", "description": null, "type": { "kind": "SCALAR", "name": "ID", "ofType": null } }
+          ] },
+        { "kind": "INPUT_OBJECT", "name": "CreateTicketInput", "description": "Create ticket input", "inputFields": [
+            { "name": "title", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "description", "description": null, "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "priority", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "TicketPriority", "ofType": null } } },
+            { "name": "type", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "TicketType", "ofType": null } } },
+            { "name": "assigneeId", "description": null, "type": { "kind": "SCALAR", "name": "ID", "ofType": null } },
+            { "name": "labels", "description": null, "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } }
+          ] },
+        { "kind": "INPUT_OBJECT", "name": "UpdateTicketInput", "description": "Update ticket input", "inputFields": [
+            { "name": "title", "description": null, "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "status", "description": null, "type": { "kind": "ENUM", "name": "TicketStatus", "ofType": null } },
+            { "name": "priority", "description": null, "type": { "kind": "ENUM", "name": "TicketPriority", "ofType": null } },
+            { "name": "assigneeId", "description": null, "type": { "kind": "SCALAR", "name": "ID", "ofType": null } }
+          ] },
+        { "kind": "INPUT_OBJECT", "name": "AddCommentInput", "description": "Add comment input", "inputFields": [
+            { "name": "ticketId", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "text", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ] },
+        { "kind": "INPUT_OBJECT", "name": "ProjectFilter", "description": "Project filter", "inputFields": [
+            { "name": "status", "description": null, "type": { "kind": "ENUM", "name": "ProjectStatus", "ofType": null } },
+            { "name": "teamId", "description": null, "type": { "kind": "SCALAR", "name": "ID", "ofType": null } }
+          ] },
+        { "kind": "ENUM", "name": "UserRole", "description": "User role", "enumValues": [
+            { "name": "ADMIN", "description": null }, { "name": "DEVELOPER", "description": null }, { "name": "DESIGNER", "description": null }, { "name": "QA", "description": null }, { "name": "PM", "description": null }
+          ] },
+        { "kind": "ENUM", "name": "ProjectStatus", "description": "Project status", "enumValues": [
+            { "name": "ACTIVE", "description": null }, { "name": "ARCHIVED", "description": null }, { "name": "ON_HOLD", "description": null }
+          ] },
+        { "kind": "ENUM", "name": "SprintStatus", "description": "Sprint status", "enumValues": [
+            { "name": "PLANNING", "description": null }, { "name": "ACTIVE", "description": null }, { "name": "COMPLETED", "description": null }
+          ] },
+        { "kind": "ENUM", "name": "TicketStatus", "description": "Ticket status", "enumValues": [
+            { "name": "OPEN", "description": null }, { "name": "IN_PROGRESS", "description": null }, { "name": "IN_REVIEW", "description": null }, { "name": "DONE", "description": null }, { "name": "CLOSED", "description": null }
+          ] },
+        { "kind": "ENUM", "name": "TicketPriority", "description": "Ticket priority", "enumValues": [
+            { "name": "CRITICAL", "description": null }, { "name": "HIGH", "description": null }, { "name": "MEDIUM", "description": null }, { "name": "LOW", "description": null }
+          ] },
+        { "kind": "ENUM", "name": "TicketType", "description": "Ticket type", "enumValues": [
+            { "name": "BUG", "description": null }, { "name": "FEATURE", "description": null }, { "name": "TASK", "description": null }, { "name": "EPIC", "description": null }
+          ] },
+        { "kind": "ENUM", "name": "NotificationType", "description": "Notification type", "enumValues": [
+            { "name": "MENTION", "description": null }, { "name": "ASSIGNMENT", "description": null }, { "name": "STATUS_CHANGE", "description": null }, { "name": "COMMENT", "description": null }
+          ] },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "ID", "description": "Built-in ID scalar" },
+        { "kind": "SCALAR", "name": "Int", "description": "Built-in Int scalar" },
+        { "kind": "SCALAR", "name": "Float", "description": "Built-in Float scalar" },
+        { "kind": "SCALAR", "name": "Boolean", "description": "Built-in Boolean scalar" }
+      ]
+    }
+  }
+}

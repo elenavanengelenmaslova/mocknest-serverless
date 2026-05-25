@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/missing-porttype"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/missing-porttype"
+                  name="MissingPortTypeService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/missing-porttype">
+      <xsd:complexType name="SomeRequest">
+        <xsd:sequence>
+          <xsd:element name="value" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="SomeRequestMsg">
+    <wsdl:part name="parameters" element="tns:SomeRequest"/>
+  </wsdl:message>
+  <!-- No portType defined - missing required element -->
+  <wsdl:binding name="SomeBinding" type="tns:SomePortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+  </wsdl:binding>
+  <wsdl:service name="MissingPortTypeService">
+    <wsdl:port name="SomePort" binding="tns:SomeBinding">
+      <soap12:address location="http://example.com/missing-porttype"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
