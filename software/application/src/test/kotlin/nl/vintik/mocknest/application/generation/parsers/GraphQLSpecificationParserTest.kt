@@ -671,4 +671,61 @@ class GraphQLSpecificationParserTest {
             }
         }
     }
+
+    @Nested
+    inner class UrlVsInlineContentParsing {
+
+        // Use a parser without SSRF validation for URL-based tests
+        private val urlParser = GraphQLSpecificationParser(mockIntrospectionClient, mockReducer, urlSafetyValidator = {})
+
+        @Test
+        fun `Given URL content When parsing Then should call introspection client`() = runTest {
+            // Given
+            val endpointUrl = "https://api.example.com/graphql"
+            val introspectionJson = loadTestData("simple-schema.json")
+            val mockSchema = createMockCompactSchema()
+            coEvery { mockIntrospectionClient.introspect(endpointUrl, any(), any()) } returns introspectionJson
+            coEvery { mockReducer.reduce(introspectionJson) } returns mockSchema
+
+            // When
+            val result = urlParser.parse(endpointUrl, SpecificationFormat.GRAPHQL)
+
+            // Then
+            assertNotNull(result)
+            io.mockk.coVerify(exactly = 1) { mockIntrospectionClient.introspect(endpointUrl, any(), any()) }
+        }
+
+        @Test
+        fun `Given inline JSON content When parsing Then should NOT call introspection client`() = runTest {
+            // Given
+            val introspectionJson = loadTestData("simple-schema.json")
+            val mockSchema = createMockCompactSchema()
+            coEvery { mockReducer.reduce(introspectionJson) } returns mockSchema
+
+            // When
+            val result = parser.parse(introspectionJson, SpecificationFormat.GRAPHQL)
+
+            // Then
+            assertNotNull(result)
+            io.mockk.coVerify(exactly = 0) { mockIntrospectionClient.introspect(any(), any(), any()) }
+        }
+
+        @Test
+        fun `Given HTTP URL When parsing Then should use introspection client for content resolution`() = runTest {
+            // Given
+            val endpointUrl = "http://api.example.com/graphql"
+            val introspectionJson = loadTestData("simple-schema.json")
+            val mockSchema = createMockCompactSchema()
+            coEvery { mockIntrospectionClient.introspect(endpointUrl, any(), any()) } returns introspectionJson
+            coEvery { mockReducer.reduce(introspectionJson) } returns mockSchema
+
+            // When
+            val result = urlParser.parse(endpointUrl, SpecificationFormat.GRAPHQL)
+
+            // Then
+            assertNotNull(result)
+            assertEquals(SpecificationFormat.GRAPHQL, result.format)
+            io.mockk.coVerify(exactly = 1) { mockIntrospectionClient.introspect(endpointUrl, any(), any()) }
+        }
+    }
 }

@@ -1,0 +1,114 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "inventory",
+              "description": "Get inventory items",
+              "args": [
+                { "name": "warehouseId", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+                { "name": "categories", "description": null, "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "ItemCategory", "ofType": null } } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "InventoryItem", "ofType": null } } } }
+            },
+            {
+              "name": "warehouses",
+              "description": "Get all warehouses",
+              "args": [],
+              "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "Warehouse", "ofType": null } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            {
+              "name": "addInventoryItem",
+              "description": "Add item to inventory",
+              "args": [
+                { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "AddInventoryInput", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "InventoryItem", "ofType": null } }
+            },
+            {
+              "name": "bulkUpdate",
+              "description": "Bulk update items",
+              "args": [
+                { "name": "items", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "BulkUpdateInput", "ofType": null } } } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "InventoryItem", "ofType": null } } } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "InventoryItem",
+          "description": "Inventory item",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "quantity", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "category", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "ItemCategory", "ofType": null } } },
+            { "name": "tags", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } },
+            { "name": "warehouse", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Warehouse", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Warehouse",
+          "description": "Warehouse location",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "location", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "AddInventoryInput",
+          "description": "Input for adding inventory",
+          "inputFields": [
+            { "name": "name", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "quantity", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "category", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "ItemCategory", "ofType": null } } },
+            { "name": "warehouseId", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "tags", "description": null, "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "BulkUpdateInput",
+          "description": "Input for bulk update",
+          "inputFields": [
+            { "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "quantity", "description": null, "type": { "kind": "SCALAR", "name": "Int", "ofType": null } },
+            { "name": "category", "description": null, "type": { "kind": "ENUM", "name": "ItemCategory", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "ItemCategory",
+          "description": "Item category",
+          "enumValues": [
+            { "name": "RAW_MATERIAL", "description": null },
+            { "name": "FINISHED_GOOD", "description": null },
+            { "name": "PACKAGING", "description": null },
+            { "name": "SPARE_PART", "description": null }
+          ]
+        },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "ID", "description": "Built-in ID scalar" },
+        { "kind": "SCALAR", "name": "Int", "description": "Built-in Int scalar" }
+      ]
+    }
+  }
+}

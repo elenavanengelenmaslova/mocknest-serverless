@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/inventory"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/inventory"
+                  name="InventoryService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/inventory">
+      <!-- Request/Response wrappers -->
+      <xsd:complexType name="GetProduct">
+        <xsd:sequence>
+          <xsd:element name="productId" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="GetProductResponse">
+        <xsd:sequence>
+          <xsd:element name="product" type="tns:Product"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="UpdateStock">
+        <xsd:sequence>
+          <xsd:element name="productId" type="xsd:string"/>
+          <xsd:element name="quantity" type="xsd:int"/>
+          <xsd:element name="warehouse" type="tns:Warehouse"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="UpdateStockResponse">
+        <xsd:sequence>
+          <xsd:element name="success" type="xsd:boolean"/>
+          <xsd:element name="updatedProduct" type="tns:Product"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <!-- Nested type hierarchy: Product -> Category -> Department -->
+      <xsd:complexType name="Product">
+        <xsd:sequence>
+          <xsd:element name="id" type="xsd:string"/>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="price" type="xsd:decimal"/>
+          <xsd:element name="category" type="tns:Category"/>
+          <xsd:element name="supplier" type="tns:Supplier"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="Category">
+        <xsd:sequence>
+          <xsd:element name="code" type="xsd:string"/>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="department" type="tns:Department"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="Department">
+        <xsd:sequence>
+          <xsd:element name="id" type="xsd:int"/>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="manager" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="Supplier">
+        <xsd:sequence>
+          <xsd:element name="supplierId" type="xsd:string"/>
+          <xsd:element name="companyName" type="xsd:string"/>
+          <xsd:element name="contactInfo" type="tns:ContactInfo"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="ContactInfo">
+        <xsd:sequence>
+          <xsd:element name="email" type="xsd:string"/>
+          <xsd:element name="phone" type="xsd:string"/>
+          <xsd:element name="address" type="tns:Address"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="Address">
+        <xsd:sequence>
+          <xsd:element name="street" type="xsd:string"/>
+          <xsd:element name="city" type="xsd:string"/>
+          <xsd:element name="country" type="xsd:string"/>
+          <xsd:element name="postalCode" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="Warehouse">
+        <xsd:sequence>
+          <xsd:element name="warehouseId" type="xsd:string"/>
+          <xsd:element name="location" type="tns:Address"/>
+          <xsd:element name="capacity" type="xsd:int"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <!-- Unreachable types (not referenced by any operation) -->
+      <xsd:complexType name="AuditLog">
+        <xsd:sequence>
+          <xsd:element name="timestamp" type="xsd:dateTime"/>
+          <xsd:element name="action" type="xsd:string"/>
+          <xsd:element name="userId" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="DiscountPolicy">
+        <xsd:sequence>
+          <xsd:element name="policyId" type="xsd:string"/>
+          <xsd:element name="percentage" type="xsd:decimal"/>
+          <xsd:element name="validUntil" type="xsd:date"/>
+        </xsd:sequence>
+      </xsd:complexType>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="GetProductRequest"><wsdl:part name="parameters" element="tns:GetProduct"/></wsdl:message>
+  <wsdl:message name="GetProductResponse"><wsdl:part name="parameters" element="tns:GetProductResponse"/></wsdl:message>
+  <wsdl:message name="UpdateStockRequest"><wsdl:part name="parameters" element="tns:UpdateStock"/></wsdl:message>
+  <wsdl:message name="UpdateStockResponse"><wsdl:part name="parameters" element="tns:UpdateStockResponse"/></wsdl:message>
+  <wsdl:portType name="InventoryPortType">
+    <wsdl:operation name="GetProduct">
+      <wsdl:input message="tns:GetProductRequest"/>
+      <wsdl:output message="tns:GetProductResponse"/>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateStock">
+      <wsdl:input message="tns:UpdateStockRequest"/>
+      <wsdl:output message="tns:UpdateStockResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="InventoryBinding" type="tns:InventoryPortType">
+    <soap12:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="GetProduct">
+      <soap12:operation soapAction="http://example.com/inventory/GetProduct"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateStock">
+      <soap12:operation soapAction="http://example.com/inventory/UpdateStock"/>
+      <wsdl:input><soap12:body use="literal"/></wsdl:input>
+      <wsdl:output><soap12:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="InventoryService">
+    <wsdl:port name="InventoryPort" binding="tns:InventoryBinding">
+      <soap12:address location="http://example.com/inventory"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

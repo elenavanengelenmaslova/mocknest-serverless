@@ -73,6 +73,30 @@ class WsdlSpecificationParserTest {
             // Then
             coVerify(exactly = 0) { contentFetcher.fetch(any()) }
         }
+
+        @Test
+        fun `Given calculator WSDL with multiple operations When parsing Then should extract all operations with distinct soapAction metadata`() =
+            runTest {
+                // Given
+                val wsdlXml = loadWsdl("calculator-soap12.wsdl")
+
+                // When
+                val spec = parser.parse(wsdlXml, SpecificationFormat.WSDL)
+
+                // Then
+                assertTrue(spec.endpoints.size >= 2, "Calculator WSDL should have multiple operations")
+                spec.endpoints.forEach { endpoint ->
+                    assertEquals(HttpMethod.POST, endpoint.method)
+                    val soapAction = endpoint.metadata["soapAction"]
+                    assertNotNull(soapAction, "Each WSDL endpoint should have soapAction metadata")
+                    assertTrue(soapAction.isNotBlank(), "soapAction should not be blank")
+                }
+
+                // Verify each operation has a unique soapAction
+                val soapActions = spec.endpoints.map { it.metadata["soapAction"] }
+                assertEquals(soapActions.size, soapActions.distinct().size,
+                    "Each operation should have a unique soapAction")
+            }
     }
 
     @Nested
@@ -170,6 +194,42 @@ class WsdlSpecificationParserTest {
 
             // Then
             coVerify(exactly = 0) { contentFetcher.fetch(any()) }
+        }
+    }
+
+    @Nested
+    inner class UrlBasedParsing {
+
+        @Test
+        fun `Given URL content When parsing Then should call content fetcher`() = runTest {
+            // Given
+            val wsdlUrl = "https://example.com/service.wsdl"
+            val wsdlXml = loadWsdl("simple-soap12.wsdl")
+            io.mockk.coEvery { contentFetcher.fetch(wsdlUrl) } returns wsdlXml
+
+            // When
+            val spec = parser.parse(wsdlUrl, SpecificationFormat.WSDL)
+
+            // Then
+            coVerify(exactly = 1) { contentFetcher.fetch(wsdlUrl) }
+            assertEquals("GreetService", spec.title)
+            assertTrue(spec.endpoints.isNotEmpty())
+        }
+
+        @Test
+        fun `Given HTTP URL When parsing Then should delegate to content fetcher for resolution`() = runTest {
+            // Given
+            val wsdlUrl = "http://api.example.com/services/calculator?wsdl"
+            val wsdlXml = loadWsdl("calculator-soap12.wsdl")
+            io.mockk.coEvery { contentFetcher.fetch(wsdlUrl) } returns wsdlXml
+
+            // When
+            val spec = parser.parse(wsdlUrl, SpecificationFormat.WSDL)
+
+            // Then
+            coVerify(exactly = 1) { contentFetcher.fetch(wsdlUrl) }
+            assertEquals("CalculatorService", spec.title)
+            assertTrue(spec.endpoints.size >= 2)
         }
     }
 

@@ -1,0 +1,124 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "company",
+              "description": "Get company details",
+              "args": [
+                { "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "OBJECT", "name": "Company", "ofType": null }
+            },
+            {
+              "name": "employee",
+              "description": "Get employee by ID",
+              "args": [
+                { "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "OBJECT", "name": "Employee", "ofType": null }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            {
+              "name": "createCompany",
+              "description": "Create a new company",
+              "args": [
+                { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CreateCompanyInput", "ofType": null } } }
+              ],
+              "type": { "kind": "OBJECT", "name": "Company", "ofType": null }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Company",
+          "description": "Company with nested departments",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "departments", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "Department", "ofType": null } } },
+            { "name": "headquarters", "description": null, "args": [], "type": { "kind": "OBJECT", "name": "Address", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Department",
+          "description": "Department within a company",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "manager", "description": null, "args": [], "type": { "kind": "OBJECT", "name": "Employee", "ofType": null } },
+            { "name": "employees", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "Employee", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Employee",
+          "description": "Employee record",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "email", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "address", "description": null, "args": [], "type": { "kind": "OBJECT", "name": "Address", "ofType": null } },
+            { "name": "role", "description": null, "args": [], "type": { "kind": "ENUM", "name": "EmployeeRole", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Address",
+          "description": "Physical address",
+          "fields": [
+            { "name": "street", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "city", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "country", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "CreateCompanyInput",
+          "description": "Input for creating a company",
+          "inputFields": [
+            { "name": "name", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "address", "description": null, "type": { "kind": "INPUT_OBJECT", "name": "AddressInput", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "AddressInput",
+          "description": "Address input",
+          "inputFields": [
+            { "name": "street", "description": null, "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "city", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "country", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "EmployeeRole",
+          "description": "Employee role",
+          "enumValues": [
+            { "name": "ENGINEER", "description": null },
+            { "name": "MANAGER", "description": null },
+            { "name": "DIRECTOR", "description": null },
+            { "name": "VP", "description": null }
+          ]
+        },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "ID", "description": "Built-in ID scalar" }
+      ]
+    }
+  }
+}

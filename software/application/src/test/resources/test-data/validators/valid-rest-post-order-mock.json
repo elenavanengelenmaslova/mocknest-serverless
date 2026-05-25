@@ -1,0 +1,25 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/api/orders"
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "orderId": "order-001",
+      "customer": {
+        "id": "cust-123",
+        "name": "Jane Smith"
+      },
+      "items": [
+        {
+          "productId": "prod-456",
+          "quantity": 2
+        }
+      ]
+    }
+  }
+}

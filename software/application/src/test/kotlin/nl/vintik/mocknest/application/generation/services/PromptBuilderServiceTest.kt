@@ -520,6 +520,131 @@ class PromptBuilderServiceTest {
     }
 
     @Nested
+    inner class ParsingCorrectionPromptBuilding {
+
+        @Test
+        fun `Given parsing error When building parsing correction prompt Then should inject all parameters`() {
+            val specification = createTestSpecification()
+            val namespace = MockNamespace("petstore", "mobile-app")
+            val parsingError = "Expected JSON array but found string at line 5"
+
+            val prompt = promptBuilder.buildParsingCorrectionPrompt(parsingError, namespace, specification)
+
+            assertTrue(prompt.contains("Expected JSON array but found string at line 5"))
+            assertTrue(prompt.contains("Petstore API"))
+            assertTrue(prompt.contains("1.0.0"))
+            assertTrue(prompt.contains("3"))
+            assertTrue(prompt.contains("petstore"))
+            assertTrue(prompt.contains("- Client: mobile-app"))
+        }
+
+        @Test
+        fun `Given null specification When building parsing correction prompt Then should use defaults`() {
+            val namespace = MockNamespace("petstore", null)
+            val parsingError = "Invalid JSON"
+
+            val prompt = promptBuilder.buildParsingCorrectionPrompt(parsingError, namespace, null)
+
+            assertTrue(prompt.contains("Invalid JSON"))
+            assertTrue(prompt.contains("Unknown"))
+            assertTrue(prompt.contains("0"))
+            assertFalse(prompt.contains("- Client:"))
+        }
+
+        @Test
+        fun `Given parsing correction prompt When building Then should not contain unreplaced placeholders`() {
+            val specification = createTestSpecification()
+            val namespace = MockNamespace("petstore", null)
+            val parsingError = "Parse error"
+
+            val prompt = promptBuilder.buildParsingCorrectionPrompt(parsingError, namespace, specification)
+
+            val placeholderPattern = Regex("\\{\\{[A-Z_]+\\}\\}")
+            val matches = placeholderPattern.findAll(prompt).toList()
+            assertTrue(matches.isEmpty(), "Prompt should not contain unreplaced template placeholders, found: ${matches.map { it.value }}")
+        }
+    }
+
+    @Nested
+    inner class PlaceholderSubstitutionCompleteness {
+
+        private val placeholderPattern = Regex("\\{\\{[A-Z_]+\\}\\}")
+
+        @Test
+        fun `Given OPENAPI_3 spec When building spec prompt Then no template placeholders remain`() {
+            val specification = createTestSpecification(SpecificationFormat.OPENAPI_3)
+            val namespace = MockNamespace("petstore", "client-a")
+            val description = "Generate mocks"
+
+            val prompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, description, namespace)
+
+            val matches = placeholderPattern.findAll(prompt).toList()
+            assertTrue(matches.isEmpty(), "OPENAPI_3 prompt should not contain unreplaced template placeholders, found: ${matches.map { it.value }}")
+        }
+
+        @Test
+        fun `Given SWAGGER_2 spec When building spec prompt Then no template placeholders remain`() {
+            val specification = createTestSpecification(SpecificationFormat.SWAGGER_2)
+            val namespace = MockNamespace("petstore", "client-b")
+            val description = "Generate mocks"
+
+            val prompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, description, namespace)
+
+            val matches = placeholderPattern.findAll(prompt).toList()
+            assertTrue(matches.isEmpty(), "SWAGGER_2 prompt should not contain unreplaced template placeholders, found: ${matches.map { it.value }}")
+        }
+
+        @Test
+        fun `Given GRAPHQL spec When building spec prompt Then no template placeholders remain`() {
+            val specification = createTestGraphQLSpecification()
+            val namespace = MockNamespace("myapi", "web-client")
+            val description = "Generate mocks"
+
+            val prompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, description, namespace, SpecificationFormat.GRAPHQL)
+
+            val matches = placeholderPattern.findAll(prompt).toList()
+            assertTrue(matches.isEmpty(), "GRAPHQL prompt should not contain unreplaced template placeholders, found: ${matches.map { it.value }}")
+        }
+
+        @Test
+        fun `Given WSDL spec When building spec prompt Then no template placeholders remain`() {
+            val specification = createTestWsdlSpecification()
+            val namespace = MockNamespace("soapapi", "soap-client")
+            val description = "Generate mocks"
+
+            val prompt = promptBuilder.buildSpecWithDescriptionPrompt(specification, description, namespace, SpecificationFormat.WSDL)
+
+            val matches = placeholderPattern.findAll(prompt).toList()
+            assertTrue(matches.isEmpty(), "WSDL prompt should not contain unreplaced template placeholders, found: ${matches.map { it.value }}")
+        }
+
+        @Test
+        fun `Given correction prompt for each format When building Then no template placeholders remain`() {
+            val namespace = MockNamespace("api", "client")
+            val invalidMocks = listOf(createTestMock("mock-1", namespace) to listOf("Error"))
+            val specification = createTestSpecification()
+
+            for (format in SpecificationFormat.entries) {
+                val prompt = promptBuilder.buildCorrectionPrompt(invalidMocks, namespace, specification, format)
+                val matches = placeholderPattern.findAll(prompt).toList()
+                assertTrue(matches.isEmpty(), "Correction prompt for $format should not contain unreplaced template placeholders, found: ${matches.map { it.value }}")
+            }
+        }
+
+        @Test
+        fun `Given parsing correction prompt When building Then no template placeholders remain`() {
+            val specification = createTestSpecification()
+            val namespace = MockNamespace("petstore", "client-a")
+            val parsingError = "Parse error"
+
+            val prompt = promptBuilder.buildParsingCorrectionPrompt(parsingError, namespace, specification)
+
+            val matches = placeholderPattern.findAll(prompt).toList()
+            assertTrue(matches.isEmpty(), "Parsing correction prompt should not contain unreplaced template placeholders, found: ${matches.map { it.value }}")
+        }
+    }
+
+    @Nested
     inner class TemplateLoadingErrors {
 
         @Test
@@ -537,6 +662,28 @@ class PromptBuilderServiceTest {
             assertNotNull(cause)
             assertTrue(cause is IllegalStateException)
             assertTrue(cause?.message?.contains("Template not found") == true)
+        }
+
+        @Test
+        fun `Given non-existent template When loading Then exception message should contain the resource path`() {
+            val service = PromptBuilderService()
+            val method = service.javaClass.getDeclaredMethod("loadTemplate", String::class.java)
+            method.isAccessible = true
+
+            val missingPath = "/prompts/does-not-exist/missing-template.txt"
+            val exception = assertThrows(java.lang.reflect.InvocationTargetException::class.java) {
+                method.invoke(service, missingPath)
+            }
+
+            val cause = exception.cause
+            assertNotNull(cause)
+            assertTrue(cause is IllegalStateException)
+            val message = cause?.message
+            assertNotNull(message)
+            assertTrue(
+                message!!.contains(missingPath),
+                "Exception message should contain the missing resource path '$missingPath', but was: $message"
+            )
         }
     }
 

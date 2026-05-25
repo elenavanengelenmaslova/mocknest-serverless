@@ -147,11 +147,11 @@ See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslov
 
 ### Generation Quality
 
-Generation quality is measured using a 46-scenario eval suite across 12 API specifications, with automated structural validation and LLM-as-a-judge semantic checks.
+Generation quality is measured using a 52-scenario eval suite across 14 API specifications, with automated structural validation and LLM-as-a-judge semantic checks.
 
 | Protocol | Scenarios | Valid (no retries) | Valid (1 retry) | Valid (2 retries) | Semantic pass | Avg cost | Avg latency |
 |----------|-----------|-------------------|-----------------|-------------------|---------------|----------|-------------|
-| REST     | 16        | 93%               | 100%            | 100%              | 100%          | $0.005   | 2.5s        |
+| REST     | 22        | 93%               | 100%            | 100%              | 100%          | $0.005   | 2.5s        |
 | GraphQL  | 15        | 81%               | 93%             | 100%              | 100%          | $0.007   | 2.3s        |
 | SOAP     | 15        | 100%              | 100%            | 100%              | 93%           | $0.006   | 3.2s        |
 

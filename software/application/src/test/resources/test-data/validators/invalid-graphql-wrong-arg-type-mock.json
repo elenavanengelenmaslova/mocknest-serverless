@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/graphql",
+    "bodyPatterns": [
+      {
+        "equalToJson": "{\"query\":\"query getUser($id: String!) { user(id: $id) { id name email status } }\",\"operationName\":\"getUser\",\"variables\":{\"id\":123}}"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "data": {
+        "id": "123",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "status": "ACTIVE"
+      }
+    }
+  }
+}

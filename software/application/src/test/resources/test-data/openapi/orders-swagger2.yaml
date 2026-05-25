@@ -1,0 +1,135 @@
+swagger: "2.0"
+info:
+  title: Order Management API
+  version: 1.0.0
+  description: A Swagger 2.0 API for managing orders
+host: api.orders.example.com
+basePath: /v1
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /orders:
+    get:
+      operationId: listOrders
+      summary: List all orders
+      parameters:
+        - name: status
+          in: query
+          type: string
+          enum:
+            - pending
+            - confirmed
+            - shipped
+            - delivered
+            - cancelled
+        - name: limit
+          in: query
+          type: integer
+          default: 20
+      responses:
+        "200":
+          description: List of orders
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Order'
+    post:
+      operationId: createOrder
+      summary: Create a new order
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateOrderRequest'
+      responses:
+        "201":
+          description: Order created
+          schema:
+            $ref: '#/definitions/Order'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/Error'
+  /orders/{orderId}:
+    get:
+      operationId: getOrderById
+      summary: Get order by ID
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Order details
+          schema:
+            $ref: '#/definitions/Order'
+        "404":
+          description: Order not found
+          schema:
+            $ref: '#/definitions/Error'
+definitions:
+  Order:
+    type: object
+    required:
+      - id
+      - customerId
+      - status
+    properties:
+      id:
+        type: string
+      customerId:
+        type: string
+      status:
+        type: string
+        enum:
+          - pending
+          - confirmed
+          - shipped
+          - delivered
+          - cancelled
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/OrderItem'
+      totalAmount:
+        type: number
+        format: double
+      createdAt:
+        type: string
+        format: date-time
+  OrderItem:
+    type: object
+    properties:
+      productId:
+        type: string
+      quantity:
+        type: integer
+        minimum: 1
+      price:
+        type: number
+        format: double
+  CreateOrderRequest:
+    type: object
+    required:
+      - customerId
+      - items
+    properties:
+      customerId:
+        type: string
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/OrderItem'
+  Error:
+    type: object
+    properties:
+      code:
+        type: integer
+      message:
+        type: string

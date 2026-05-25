@@ -509,6 +509,72 @@
         "description": "Generate mocks for all GET endpoints in the Payment Financial API.",
         "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /payment-eval/. Response data is inside 'response.jsonBody'. Additional response fields beyond those listed are acceptable. Verify: 1) There must be mocks for GET endpoints covering customers, payments, and invoices (URLs containing /customers, /payments, and /invoices with namespace prefix). 2) Customer response data must include at least: id, name or email. 3) Payment response data must include at least: id, amount (number), status (string). 4) Invoice response data must include at least: id, lineItems (array), and a total or totalAmount field. 5) All mocks must return HTTP 200. Score 0 only if an entire resource type (customers, payments, or invoices) has no GET mock."
       }
+    },
+    {
+      "input": "rest-stripe-payment-intent-basic",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/stripe-payment-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "stripe-eval",
+        "description": "Generate mocks for POST /v1/payment_intents (create a payment intent) and GET /v1/payment_intents/{intent} (retrieve a payment intent). The payment intent response must include id, amount, currency, status, customer, payment_method, and latest_charge fields. Use Stripe-style IDs: payment intent IDs start with 'pi_', charge IDs with 'ch_', customer IDs with 'cus_', and payment method IDs with 'pm_', each followed by 14 to 27 alphanumeric characters.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /stripe-eval/. Response data is inside 'response.jsonBody'. Additional response fields beyond those listed are acceptable.\n\nStrictly verify: 1) There must be mocks for POST /v1/payment_intents and GET /v1/payment_intents/{intent} (URLs containing /v1/payment_intents with namespace prefix). 2) All payment intent id fields must match the pattern pi_ followed by 14 to 27 alphanumeric characters. 3) All customer fields must match the pattern cus_ followed by 14 to 27 alphanumeric characters. 4) All payment_method fields must match the pattern pm_ followed by 14 to 27 alphanumeric characters. 5) All latest_charge fields must match the pattern ch_ followed by 14 to 27 alphanumeric characters. 6) The response must include non-empty amount (number), currency (string), and status fields. Score 0 if any ID field does not use the correct Stripe prefix pattern or if either endpoint mock is missing."
+      }
+    },
+    {
+      "input": "rest-stripe-payment-intent-consistency",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/stripe-payment-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "stripe-eval",
+        "description": "Generate mocks for GET /v1/payment_intents/{intent}, GET /v1/charges, and a customer retrieval scenario. The payment intent must reference a customer ID and a latest_charge ID. The charges endpoint must return a charge object whose id matches the latest_charge value from the payment intent. The customer ID in the payment intent must be consistent with a customer object. Ensure cross-reference consistency between payment intent, customer, and charge resources.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /stripe-eval/. Response data is inside 'response.jsonBody'. Additional response fields beyond those listed are acceptable.\n\nStrictly verify: 1) There must be a mock for GET /v1/payment_intents/{intent} whose response contains a payment intent with id (pi_ prefix), customer (cus_ prefix), and latest_charge (ch_ prefix) fields. 2) There must be a mock for GET /v1/charges whose response contains at least one charge object with an id field matching the ch_ prefix pattern. 3) The latest_charge value in the payment intent response must match a charge id present in the charges response. 4) The customer field in the payment intent must use the cus_ prefix followed by 14 to 27 alphanumeric characters. 5) All ID fields must use correct Stripe prefixes (pi_ for payment intents, ch_ for charges, cus_ for customers, pm_ for payment methods). Score 0 if the latest_charge in the payment intent does not match any charge id in the charges response, or if any required endpoint mock is missing."
+      }
+    },
+    {
+      "input": "rest-stripe-payment-card-declined",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/stripe-payment-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "stripe-eval",
+        "description": "Generate an error mock for POST /v1/payment_intents/{intent}/confirm that simulates a card declined scenario. The response must return HTTP status 402 with a JSON body containing an 'error' object. The error object must include non-empty 'type', 'code', and 'message' string fields. Use type 'card_error', code 'card_declined', and a descriptive message.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /stripe-eval/. Response data is inside 'response.jsonBody'. Additional response fields beyond those listed are acceptable.\n\nStrictly verify: 1) There must be a mock for POST /v1/payment_intents/{intent}/confirm (URL containing /v1/payment_intents and /confirm with namespace prefix). 2) The response status must be 402. 3) The response body must contain an 'error' object at the top level. 4) The error object must include a 'type' field with a non-empty string value. 5) The error object must include a 'code' field with a non-empty string value. 6) The error object must include a 'message' field with a non-empty string value. Score 0 if the confirm endpoint mock is missing, if the HTTP status is not 402, or if the error object is missing any of the required fields (type, code, message)."
+      }
+    },
+    {
+      "input": "rest-twilio-message-basic",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/twilio-messaging-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "twilio-eval",
+        "description": "Generate mocks for POST /2010-04-01/Accounts/{AccountSid}/Messages.json to create a message and GET /2010-04-01/Accounts/{AccountSid}/Messages/{MessageSid}.json to retrieve a message. The response must include valid Twilio SIDs: account_sid matching pattern AC followed by 32 lowercase hex characters (34 chars total), and message sid matching pattern SM followed by 32 lowercase hex characters (34 chars total). Include body, from, to, status, and date_created fields.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /twilio-eval/. Response data is inside 'response.jsonBody'. Verify: 1) There must be at least one POST mock for creating a message (URL containing /Messages.json) and at least one GET mock for retrieving a message (URL containing /Messages/ with a SID path segment). 2) The response jsonBody must contain a 'sid' field matching the regex SM[0-9a-f]{32} (exactly 34 characters starting with SM followed by 32 hex chars). 3) The response jsonBody must contain an 'account_sid' field matching the regex AC[0-9a-f]{32} (exactly 34 characters starting with AC followed by 32 hex chars). 4) The response must include non-empty 'body', 'from', 'to', 'status', and 'date_created' fields. Score 0 if SID formats do not match the required patterns or if either the POST or GET mock is missing."
+      }
+    },
+    {
+      "input": "rest-twilio-message-status-consistency",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/twilio-messaging-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "twilio-eval",
+        "description": "Generate mocks for GET /2010-04-01/Accounts/{AccountSid}/Messages.json returning a list of messages with different statuses. Each message must have a valid status from the Twilio status enum (queued, sending, sent, delivered, undelivered, failed), phone numbers in E.164 format (+ followed by 1 to 15 digits), and valid Twilio SIDs (account_sid matching AC[0-9a-f]{32}, sid matching SM[0-9a-f]{32}). Return at least 3 messages with different statuses.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /twilio-eval/. Response data is inside 'response.jsonBody'. Verify: 1) There must be at least one GET mock for listing messages (URL containing /Messages.json without a specific MessageSid path segment). 2) The response must contain a messages array with at least 3 message objects. 3) Each message 'status' field must be one of: queued, sending, sent, delivered, undelivered, failed. 4) Each message 'from' and 'to' fields must match E.164 phone number format: a '+' followed by 1 to 15 digits (regex \\+[1-9]\\d{0,14}). 5) Each message must have 'sid' matching SM[0-9a-f]{32} and 'account_sid' matching AC[0-9a-f]{32}. 6) At least 2 different status values must be present across the messages. Score 0 if status values are not from the valid enum or if phone numbers do not match E.164 format."
+      }
+    },
+    {
+      "input": "rest-twilio-message-invalid-number",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/twilio-messaging-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "twilio-eval",
+        "description": "Generate an error mock for POST /2010-04-01/Accounts/{AccountSid}/Messages.json when sending to an invalid phone number. The response must return an HTTP 4xx status code (400 or 404) with a JSON error body containing non-empty 'status' (integer HTTP status code), 'message' (string error description), 'code' (integer Twilio error code), and 'more_info' (string URI to Twilio error documentation).",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /twilio-eval/. Response data is inside 'response.jsonBody'. Verify: 1) There must be at least one POST mock for the Messages.json endpoint that returns an HTTP 4xx status code (status field in response between 400 and 499 inclusive). 2) The error response jsonBody must contain a 'status' field with an integer HTTP status code (400-499). 3) The error response jsonBody must contain a 'message' field with a non-empty string describing the error. 4) The error response jsonBody must contain a 'code' field with a non-zero integer Twilio error code. 5) The error response jsonBody must contain a 'more_info' field with a non-empty string URI (should start with http:// or https://). Score 0 if the response is not an HTTP 4xx error or if any of the required error fields (status, message, code, more_info) are missing or empty."
+      }
     }
   ]
 }

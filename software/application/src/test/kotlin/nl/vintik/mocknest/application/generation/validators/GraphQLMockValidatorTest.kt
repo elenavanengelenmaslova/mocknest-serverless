@@ -6,6 +6,8 @@ import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -1295,6 +1297,67 @@ class GraphQLMockValidatorTest {
 
             // Then
             assertTrue(result.isValid, "Should handle body field. Errors: ${result.errors}")
+        }
+    }
+
+    @Nested
+    inner class TestDataFileValidation {
+
+        private fun loadTestData(filename: String): String {
+            return this::class.java.getResource("/test-data/validators/$filename")?.readText()
+                ?: throw IllegalArgumentException("Test data file not found: $filename")
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = ["valid-graphql-query-mock.json", "valid-graphql-mutation-mock.json"])
+        fun `Given valid GraphQL mapping from test data file When validating Then should pass`(filename: String) = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = loadTestData(filename)
+            val mock = createGeneratedMock("file-$filename", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertTrue(result.isValid, "Mock from $filename should be valid. Errors: ${result.errors}")
+            assertTrue(result.errors.isEmpty())
+        }
+
+        @Test
+        fun `Given invalid GraphQL mapping with wrong argument type from test data file When validating Then should identify specific error`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = loadTestData("invalid-graphql-wrong-arg-type-mock.json")
+            val mock = createGeneratedMock("invalid-arg-type", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Argument 'id' must be a string") },
+                "Should identify argument type mismatch. Actual errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given invalid GraphQL mapping with unknown operation from test data file When validating Then should identify specific error`() = runTest {
+            // Given
+            val specification = createTestSpecification()
+            val mockJson = loadTestData("invalid-graphql-unknown-operation-mock.json")
+            val mock = createGeneratedMock("invalid-unknown-op", mockJson)
+
+            // When
+            val result = validator.validate(mock, specification)
+
+            // Then
+            assertFalse(result.isValid)
+            assertTrue(
+                result.errors.any { it.contains("Operation 'nonExistentOperation' not found in schema") },
+                "Should identify unknown operation error. Actual errors: ${result.errors}"
+            )
         }
     }
 }

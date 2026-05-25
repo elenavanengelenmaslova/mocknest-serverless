@@ -1,0 +1,132 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "task",
+              "description": "Get task by ID",
+              "args": [
+                { "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "OBJECT", "name": "Task", "ofType": null }
+            },
+            {
+              "name": "tasks",
+              "description": "List tasks by status",
+              "args": [
+                { "name": "status", "description": null, "type": { "kind": "ENUM", "name": "TaskStatus", "ofType": null } },
+                { "name": "priority", "description": null, "type": { "kind": "ENUM", "name": "Priority", "ofType": null } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Task", "ofType": null } } } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            {
+              "name": "createTask",
+              "description": "Create a task",
+              "args": [
+                { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CreateTaskInput", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Task", "ofType": null } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Task",
+          "description": "Task entity",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "title", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "status", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "TaskStatus", "ofType": null } } },
+            { "name": "priority", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "Priority", "ofType": null } } },
+            { "name": "category", "description": null, "args": [], "type": { "kind": "ENUM", "name": "TaskCategory", "ofType": null } },
+            { "name": "visibility", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "Visibility", "ofType": null } } },
+            { "name": "size", "description": null, "args": [], "type": { "kind": "ENUM", "name": "TaskSize", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "CreateTaskInput",
+          "description": "Input for creating a task",
+          "inputFields": [
+            { "name": "title", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "priority", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "Priority", "ofType": null } } },
+            { "name": "category", "description": null, "type": { "kind": "ENUM", "name": "TaskCategory", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "TaskStatus",
+          "description": "Task status",
+          "enumValues": [
+            { "name": "TODO", "description": null },
+            { "name": "IN_PROGRESS", "description": null },
+            { "name": "IN_REVIEW", "description": null },
+            { "name": "DONE", "description": null },
+            { "name": "CANCELLED", "description": null }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "Priority",
+          "description": "Task priority level",
+          "enumValues": [
+            { "name": "CRITICAL", "description": null },
+            { "name": "HIGH", "description": null },
+            { "name": "MEDIUM", "description": null },
+            { "name": "LOW", "description": null }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "TaskCategory",
+          "description": "Task category",
+          "enumValues": [
+            { "name": "BUG", "description": null },
+            { "name": "FEATURE", "description": null },
+            { "name": "IMPROVEMENT", "description": null },
+            { "name": "DOCUMENTATION", "description": null },
+            { "name": "TESTING", "description": null }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "Visibility",
+          "description": "Task visibility",
+          "enumValues": [
+            { "name": "PUBLIC", "description": null },
+            { "name": "PRIVATE", "description": null },
+            { "name": "TEAM_ONLY", "description": null }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "TaskSize",
+          "description": "Task size estimate",
+          "enumValues": [
+            { "name": "XS", "description": null },
+            { "name": "S", "description": null },
+            { "name": "M", "description": null },
+            { "name": "L", "description": null },
+            { "name": "XL", "description": null }
+          ]
+        },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "ID", "description": "Built-in ID scalar" }
+      ]
+    }
+  }
+}

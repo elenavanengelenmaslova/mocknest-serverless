@@ -94,11 +94,11 @@ Each scenario in the eval dataset goes through:
 
 ## Protocol Breakdown
 
-The eval suite covers 46 scenarios across 3 protocols and 12 API specifications:
+The eval suite covers 52 scenarios across 3 protocols and 14 API specifications:
 
 | Protocol | Scenarios | API Specifications |
 |----------|-----------|-------------------|
-| REST | 16 | Petstore (20+ endpoints), Bored API (3 endpoints), Social Content (8-10 endpoints), Payment Financial (6-8 endpoints), Weather Utility (2-3 endpoints) |
+| REST | 22 | Petstore (20+ endpoints), Bored API (3 endpoints), Social Content (8-10 endpoints), Payment Financial (6-8 endpoints), Weather Utility (2-3 endpoints), Stripe Payment (4 endpoints), Twilio Messaging (3 endpoints) |
 | GraphQL | 15 | Pokemon (2 queries), Books (3 queries), E-commerce (4 queries + 4 mutations), Task Management (4 queries + 3 mutations) |
 | SOAP | 15 | Calculator (3 operations), Banking Service (5 operations), Inventory Warehouse (6 operations), Notification Messaging (4 operations) |
 
@@ -156,11 +156,11 @@ Example output format:
 ╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
 ║ Protocol  │ Runs │ 1st-pass valid │ After retry valid │ Scenario pass │ Gen cost │ Judge cost │ Avg cost/run │ Avg lat║
 ╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ REST      │ 16   │ 77%            │ 98%               │ 85%           │ $0.0480  │ $0.0240    │ $0.0045      │ 3.8s   ║
+║ REST      │ 22   │ 77%            │ 98%               │ 85%           │ $0.0480  │ $0.0240    │ $0.0045      │ 3.8s   ║
 ║ GraphQL   │ 15   │ 50%            │ 100%              │ 100%          │ $0.0750  │ $0.0390    │ $0.0053      │ 2.6s   ║
 ║ SOAP      │ 15   │ 100%           │ 100%              │ 100%          │ $0.0480  │ $0.0210    │ $0.0046      │ 3.2s   ║
 ╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
-║ TOTAL     │ 46   │                │                   │               │ $0.1710  │ $0.0840    │ $0.0048      │        ║
+║ TOTAL     │ 52   │                │                   │               │ $0.1710  │ $0.0840    │ $0.0048      │        ║
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 ```
 
@@ -227,6 +227,8 @@ Each scenario specifies:
 | `banking-service-soap12.wsdl` | SOAP | Banking | 5 operations, nested types, enumerated TransactionStatus, cross-entity relationships |
 | `inventory-warehouse-soap12.wsdl` | SOAP | Inventory/Warehouse | 6 operations, nested types, enumerated fields (ItemCategory, StockStatus), multi-field types |
 | `notification-messaging-soap12.wsdl` | SOAP | Notification/Messaging | 4 operations, cross-entity relationships, multiple message types |
+| `stripe-payment-openapi-3.0.yaml` | REST | Payment Processing | 4 |
+| `twilio-messaging-openapi-3.0.yaml` | REST | Messaging | 3 |
 
 ### Adding New Scenarios
 
@@ -279,8 +281,8 @@ Each eval run makes multiple Bedrock API calls per scenario:
 
 | Suite | Scenarios | Estimated cost (1 iteration) | Estimated cost (3 iterations) |
 |-------|-----------|------------------------------|-------------------------------|
-| Full suite (all protocols) | 46 | $0.18–$0.32 | $0.55–$0.97 |
-| REST only | 16 | $0.06–$0.11 | $0.19–$0.34 |
+| Full suite (all protocols) | 52 | $0.21–$0.36 | $0.62–$1.09 |
+| REST only | 22 | $0.09–$0.15 | $0.26–$0.46 |
 | GraphQL only | 15 | $0.06–$0.11 | $0.18–$0.32 |
 | SOAP only | 15 | $0.06–$0.11 | $0.18–$0.32 |
 

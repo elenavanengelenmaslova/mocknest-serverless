@@ -1,0 +1,71 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": null,
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "weather",
+              "description": "Get current weather",
+              "args": [
+                { "name": "city", "description": "City name", "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Weather", "ofType": null } }
+            },
+            {
+              "name": "forecast",
+              "description": "Get weather forecast",
+              "args": [
+                { "name": "city", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+                { "name": "days", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "DailyForecast", "ofType": null } } } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Weather",
+          "description": "Current weather data",
+          "fields": [
+            { "name": "temperature", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } },
+            { "name": "humidity", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } },
+            { "name": "condition", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "WeatherCondition", "ofType": null } } },
+            { "name": "windSpeed", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "Float", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "DailyForecast",
+          "description": "Daily forecast",
+          "fields": [
+            { "name": "date", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "high", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } },
+            { "name": "low", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Float", "ofType": null } } },
+            { "name": "condition", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "WeatherCondition", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "WeatherCondition",
+          "description": "Weather condition",
+          "enumValues": [
+            { "name": "SUNNY", "description": null },
+            { "name": "CLOUDY", "description": null },
+            { "name": "RAINY", "description": null },
+            { "name": "SNOWY", "description": null },
+            { "name": "STORMY", "description": null }
+          ]
+        },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "Int", "description": "Built-in Int scalar" },
+        { "kind": "SCALAR", "name": "Float", "description": "Built-in Float scalar" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,824 @@
+---
+openapi: "3.0.0"
+info:
+  title: Stripe Payment Intents API (Subset)
+  description: |-
+    A minimal faithful subset of the Stripe Payment Intents API for eval scenarios.
+    Covers payment intent creation, retrieval, confirmation, and charge listing.
+    Models Stripe-style prefixed IDs, status enums, nested objects, and nullable fields.
+  version: "2024-06-20"
+servers:
+  - url: https://api.stripe.com
+tags:
+  - name: payment_intents
+    description: Payment Intent operations
+  - name: charges
+    description: Charge operations
+paths:
+  /v1/payment_intents:
+    post:
+      tags:
+        - payment_intents
+      summary: Create a PaymentIntent.
+      description: |-
+        Creates a PaymentIntent object. After the PaymentIntent is created,
+        attach a payment method and confirm to continue the payment.
+      operationId: createPaymentIntent
+      requestBody:
+        description: Parameters for creating a payment intent
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentIntentRequest"
+      responses:
+        "200":
+          description: Successfully created payment intent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentIntent"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/payment_intents/{intent}:
+    get:
+      tags:
+        - payment_intents
+      summary: Retrieve a PaymentIntent.
+      description: Retrieves the details of a PaymentIntent that has previously been created.
+      operationId: getPaymentIntent
+      parameters:
+        - name: intent
+          in: path
+          description: The ID of the PaymentIntent to retrieve (starts with pi_)
+          required: true
+          schema:
+            type: string
+            pattern: "^pi_[a-zA-Z0-9]{14,27}$"
+      responses:
+        "200":
+          description: The requested payment intent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentIntent"
+        "404":
+          description: Payment intent not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/payment_intents/{intent}/confirm:
+    post:
+      tags:
+        - payment_intents
+      summary: Confirm a PaymentIntent.
+      description: |-
+        Confirm that your customer intends to pay with current or provided payment method.
+        Upon confirmation, the PaymentIntent will attempt to initiate a payment.
+      operationId: confirmPaymentIntent
+      parameters:
+        - name: intent
+          in: path
+          description: The ID of the PaymentIntent to confirm (starts with pi_)
+          required: true
+          schema:
+            type: string
+            pattern: "^pi_[a-zA-Z0-9]{14,27}$"
+      requestBody:
+        description: Parameters for confirming the payment intent
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/ConfirmPaymentIntentRequest"
+      responses:
+        "200":
+          description: Successfully confirmed payment intent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentIntent"
+        "402":
+          description: Payment failed (e.g., card declined)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/charges:
+    get:
+      tags:
+        - charges
+      summary: List all charges.
+      description: Returns a list of charges you have previously created.
+      operationId: listCharges
+      parameters:
+        - name: payment_intent
+          in: query
+          description: Filter charges by PaymentIntent ID
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of charges to return (1-100)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: A list of charges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargeList"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    PaymentIntent:
+      type: object
+      description: A PaymentIntent guides you through the process of collecting a payment from your customer.
+      required:
+        - id
+        - object
+        - amount
+        - currency
+        - status
+        - created
+        - livemode
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the object (starts with pi_)
+          pattern: "^pi_[a-zA-Z0-9]{14,27}$"
+          example: "pi_3MtwBwLkdIwHu7ix28a3tqPa"
+        object:
+          type: string
+          description: String representing the object's type
+          enum:
+            - payment_intent
+          example: "payment_intent"
+        amount:
+          type: integer
+          description: Amount intended to be collected by this PaymentIntent in the smallest currency unit
+          example: 2000
+        amount_received:
+          type: integer
+          description: Amount that was collected by this PaymentIntent
+          example: 2000
+        currency:
+          type: string
+          description: Three-letter ISO currency code in lowercase
+          example: "usd"
+        status:
+          type: string
+          description: Status of this PaymentIntent
+          enum:
+            - requires_payment_method
+            - requires_confirmation
+            - requires_action
+            - processing
+            - succeeded
+            - canceled
+          example: "succeeded"
+        capture_method:
+          type: string
+          description: Controls when the funds will be captured from the customer's account
+          enum:
+            - automatic
+            - automatic_async
+            - manual
+          example: "automatic"
+        confirmation_method:
+          type: string
+          description: Describes whether the PaymentIntent can be confirmed automatically or requires explicit confirmation
+          enum:
+            - automatic
+            - manual
+          example: "automatic"
+        customer:
+          type: string
+          description: ID of the Customer this PaymentIntent belongs to (starts with cus_)
+          nullable: true
+          pattern: "^cus_[a-zA-Z0-9]{14,27}$"
+          example: "cus_9s6XKzkNRiz8i3"
+        payment_method:
+          type: string
+          description: ID of the payment method used in this PaymentIntent (starts with pm_)
+          nullable: true
+          pattern: "^pm_[a-zA-Z0-9]{14,27}$"
+          example: "pm_1MtwBwLkdIwHu7ixkGNpXs2Q"
+        latest_charge:
+          type: string
+          description: The latest charge created by this PaymentIntent (starts with ch_)
+          nullable: true
+          pattern: "^ch_[a-zA-Z0-9]{14,27}$"
+          example: "ch_3MtwBwLkdIwHu7ix28a3tqPa"
+        description:
+          type: string
+          description: An arbitrary string attached to the object
+          nullable: true
+          example: "Payment for order #1234"
+        receipt_email:
+          type: string
+          description: Email address that the receipt for the resulting payment will be sent to
+          nullable: true
+          format: email
+          example: "customer@example.com"
+        shipping:
+          description: Shipping information for this PaymentIntent
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Shipping"
+        payment_method_options:
+          description: Payment-method-specific configuration for this PaymentIntent
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/PaymentMethodOptions"
+        last_payment_error:
+          description: The payment error encountered in the previous PaymentIntent confirmation
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/PaymentError"
+        metadata:
+          type: object
+          description: Set of key-value pairs for storing additional information
+          additionalProperties:
+            type: string
+          example:
+            order_id: "order_1234"
+            integration_check: "accept_a_payment"
+        created:
+          type: integer
+          description: Time at which the object was created (Unix timestamp)
+          example: 1680800504
+        livemode:
+          type: boolean
+          description: Whether the object exists in live mode or test mode
+          example: false
+    Charge:
+      type: object
+      description: A Charge object represents a single attempt to move money into your Stripe account.
+      required:
+        - id
+        - object
+        - amount
+        - currency
+        - status
+        - created
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the object (starts with ch_)
+          pattern: "^ch_[a-zA-Z0-9]{14,27}$"
+          example: "ch_3MtwBwLkdIwHu7ix28a3tqPa"
+        object:
+          type: string
+          description: String representing the object's type
+          enum:
+            - charge
+          example: "charge"
+        amount:
+          type: integer
+          description: Amount charged in the smallest currency unit
+          example: 2000
+        currency:
+          type: string
+          description: Three-letter ISO currency code in lowercase
+          example: "usd"
+        status:
+          type: string
+          description: The status of the charge
+          enum:
+            - succeeded
+            - pending
+            - failed
+          example: "succeeded"
+        paid:
+          type: boolean
+          description: Whether the charge has been paid
+          example: true
+        captured:
+          type: boolean
+          description: Whether the charge has been captured
+          example: true
+        payment_intent:
+          type: string
+          description: ID of the PaymentIntent associated with this charge (starts with pi_)
+          nullable: true
+          pattern: "^pi_[a-zA-Z0-9]{14,27}$"
+          example: "pi_3MtwBwLkdIwHu7ix28a3tqPa"
+        customer:
+          type: string
+          description: ID of the customer this charge is for (starts with cus_)
+          nullable: true
+          pattern: "^cus_[a-zA-Z0-9]{14,27}$"
+          example: "cus_9s6XKzkNRiz8i3"
+        payment_method:
+          type: string
+          description: ID of the payment method used (starts with pm_)
+          nullable: true
+          pattern: "^pm_[a-zA-Z0-9]{14,27}$"
+          example: "pm_1MtwBwLkdIwHu7ixkGNpXs2Q"
+        description:
+          type: string
+          description: An arbitrary string attached to the object
+          nullable: true
+          example: "Payment for order #1234"
+        failure_code:
+          type: string
+          description: Error code explaining reason for charge failure
+          nullable: true
+          enum:
+            - card_declined
+            - expired_card
+            - incorrect_cvc
+            - processing_error
+            - insufficient_funds
+          example: null
+        failure_message:
+          type: string
+          description: Message to user further explaining reason for charge failure
+          nullable: true
+          example: null
+        payment_method_details:
+          description: Details about the payment method at the time of the transaction
+          allOf:
+            - $ref: "#/components/schemas/PaymentMethodDetails"
+        billing_details:
+          description: Billing information associated with the payment method
+          allOf:
+            - $ref: "#/components/schemas/BillingDetails"
+        outcome:
+          description: Details about whether the payment was accepted and why
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ChargeOutcome"
+        metadata:
+          type: object
+          description: Set of key-value pairs for storing additional information
+          additionalProperties:
+            type: string
+          example:
+            order_id: "order_1234"
+        created:
+          type: integer
+          description: Time at which the object was created (Unix timestamp)
+          example: 1680800504
+        livemode:
+          type: boolean
+          description: Whether the object exists in live mode or test mode
+          example: false
+    PaymentMethodDetails:
+      type: object
+      description: Details about the payment method at the time of the transaction
+      properties:
+        type:
+          type: string
+          description: The type of payment method
+          enum:
+            - card
+            - bank_transfer
+            - us_bank_account
+          example: "card"
+        card:
+          description: Card-specific payment method details
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/CardDetails"
+    CardDetails:
+      type: object
+      description: Card payment method details
+      properties:
+        brand:
+          type: string
+          description: Card brand
+          enum:
+            - visa
+            - mastercard
+            - amex
+            - discover
+            - diners
+            - jcb
+            - unionpay
+          example: "visa"
+        last4:
+          type: string
+          description: The last four digits of the card
+          example: "4242"
+        exp_month:
+          type: integer
+          description: Two-digit number representing the card's expiration month
+          example: 12
+        exp_year:
+          type: integer
+          description: Four-digit number representing the card's expiration year
+          example: 2025
+        funding:
+          type: string
+          description: Card funding type
+          enum:
+            - credit
+            - debit
+            - prepaid
+            - unknown
+          example: "credit"
+        country:
+          type: string
+          description: Two-letter ISO code representing the country of the card
+          nullable: true
+          example: "US"
+        fingerprint:
+          type: string
+          description: Uniquely identifies this particular card number
+          nullable: true
+          example: "Xt5EWLLDS7FJjR1c"
+    BillingDetails:
+      type: object
+      description: Billing information associated with the payment method
+      properties:
+        name:
+          type: string
+          description: Full name
+          nullable: true
+          example: "Jenny Rosen"
+        email:
+          type: string
+          description: Email address
+          nullable: true
+          format: email
+          example: "jenny@example.com"
+        phone:
+          type: string
+          description: Billing phone number
+          nullable: true
+          example: "+15555555555"
+        address:
+          description: Billing address
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Address"
+    Address:
+      type: object
+      description: A physical address
+      properties:
+        line1:
+          type: string
+          description: Address line 1
+          nullable: true
+          example: "123 Main St"
+        line2:
+          type: string
+          description: Address line 2
+          nullable: true
+          example: "Apt 4B"
+        city:
+          type: string
+          description: City, district, suburb, town, or village
+          nullable: true
+          example: "San Francisco"
+        state:
+          type: string
+          description: State, county, province, or region
+          nullable: true
+          example: "CA"
+        postal_code:
+          type: string
+          description: ZIP or postal code
+          nullable: true
+          example: "94111"
+        country:
+          type: string
+          description: Two-letter country code (ISO 3166-1 alpha-2)
+          nullable: true
+          example: "US"
+    Shipping:
+      type: object
+      description: Shipping information for the payment
+      properties:
+        name:
+          type: string
+          description: Recipient name
+          example: "Jenny Rosen"
+        phone:
+          type: string
+          description: Recipient phone number
+          nullable: true
+          example: "+15555555555"
+        carrier:
+          type: string
+          description: The delivery service that shipped a physical product
+          nullable: true
+          example: "FedEx"
+        tracking_number:
+          type: string
+          description: The tracking number for a physical product
+          nullable: true
+          example: "1Z999AA10123456784"
+        address:
+          description: Shipping address
+          allOf:
+            - $ref: "#/components/schemas/Address"
+    PaymentMethodOptions:
+      type: object
+      description: Payment-method-specific configuration
+      properties:
+        card:
+          description: Card-specific payment method options
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/CardPaymentMethodOptions"
+    CardPaymentMethodOptions:
+      type: object
+      description: Card-specific payment method options
+      properties:
+        request_three_d_secure:
+          type: string
+          description: Whether to request 3D Secure
+          enum:
+            - automatic
+            - any
+            - challenge
+          example: "automatic"
+        installments:
+          type: object
+          description: Installment configuration
+          nullable: true
+          properties:
+            enabled:
+              type: boolean
+              description: Whether installments are enabled
+              example: false
+    PaymentError:
+      type: object
+      description: The payment error encountered in the previous PaymentIntent confirmation
+      properties:
+        type:
+          type: string
+          description: The type of error
+          enum:
+            - api_error
+            - card_error
+            - idempotency_error
+            - invalid_request_error
+          example: "card_error"
+        code:
+          type: string
+          description: For some errors that could be handled programmatically, a short string indicating the error code
+          nullable: true
+          example: "card_declined"
+        message:
+          type: string
+          description: A human-readable message providing more details about the error
+          example: "Your card was declined."
+        param:
+          type: string
+          description: If the error is parameter-specific, the parameter related to the error
+          nullable: true
+          example: "payment_method"
+        decline_code:
+          type: string
+          description: For card errors resulting from a card issuer decline
+          nullable: true
+          enum:
+            - generic_decline
+            - insufficient_funds
+            - lost_card
+            - stolen_card
+            - expired_card
+            - incorrect_cvc
+            - processing_error
+            - do_not_honor
+          example: "generic_decline"
+        charge:
+          type: string
+          description: The ID of the failed charge (starts with ch_)
+          nullable: true
+          pattern: "^ch_[a-zA-Z0-9]{14,27}$"
+          example: null
+        payment_method:
+          description: The PaymentMethod object for errors returned on a request involving a PaymentMethod
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/PaymentMethodReference"
+    PaymentMethodReference:
+      type: object
+      description: A reference to a payment method
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the payment method (starts with pm_)
+          pattern: "^pm_[a-zA-Z0-9]{14,27}$"
+          example: "pm_1MtwBwLkdIwHu7ixkGNpXs2Q"
+        type:
+          type: string
+          description: The type of the PaymentMethod
+          enum:
+            - card
+            - bank_transfer
+            - us_bank_account
+          example: "card"
+    ChargeOutcome:
+      type: object
+      description: Details about whether the payment was accepted and why
+      properties:
+        network_status:
+          type: string
+          description: The network status of the outcome
+          enum:
+            - approved_by_network
+            - declined_by_network
+            - not_sent_to_network
+            - reversed_after_approval
+          example: "approved_by_network"
+        risk_level:
+          type: string
+          description: Stripe Radar's evaluation of the riskiness of the payment
+          enum:
+            - normal
+            - elevated
+            - highest
+            - not_assessed
+          example: "normal"
+        risk_score:
+          type: integer
+          description: Stripe Radar's risk score (0-100)
+          nullable: true
+          example: 12
+        seller_message:
+          type: string
+          description: A human-readable description of the outcome
+          nullable: true
+          example: "Payment complete."
+        type:
+          type: string
+          description: The type of the outcome
+          enum:
+            - authorized
+            - manual_review
+            - issuer_declined
+            - blocked
+            - invalid
+          example: "authorized"
+        reason:
+          type: string
+          description: The reason for the outcome
+          nullable: true
+          example: null
+    ErrorResponse:
+      type: object
+      description: Stripe API error response wrapper
+      properties:
+        error:
+          $ref: "#/components/schemas/Error"
+    Error:
+      type: object
+      description: Stripe API error object
+      required:
+        - type
+        - message
+      properties:
+        type:
+          type: string
+          description: The type of error returned
+          enum:
+            - api_error
+            - card_error
+            - idempotency_error
+            - invalid_request_error
+          example: "card_error"
+        code:
+          type: string
+          description: For some errors that could be handled programmatically, a short string indicating the error code
+          nullable: true
+          example: "card_declined"
+        message:
+          type: string
+          description: A human-readable message providing more details about the error
+          example: "Your card was declined."
+        param:
+          type: string
+          description: If the error is parameter-specific, the parameter related to the error
+          nullable: true
+          example: "payment_method"
+        charge:
+          type: string
+          description: For card errors, the ID of the failed charge (starts with ch_)
+          nullable: true
+          pattern: "^ch_[a-zA-Z0-9]{14,27}$"
+          example: "ch_3MtwBwLkdIwHu7ix28a3tqPa"
+        decline_code:
+          type: string
+          description: For card errors resulting from a card issuer decline
+          nullable: true
+          enum:
+            - generic_decline
+            - insufficient_funds
+            - lost_card
+            - stolen_card
+            - expired_card
+            - incorrect_cvc
+            - processing_error
+            - do_not_honor
+          example: "generic_decline"
+        doc_url:
+          type: string
+          description: A URL to more information about the error code reported
+          nullable: true
+          format: uri
+          example: "https://stripe.com/docs/error-codes/card-declined"
+    ChargeList:
+      type: object
+      description: A list of charges
+      properties:
+        object:
+          type: string
+          description: String representing the object's type
+          enum:
+            - list
+          example: "list"
+        data:
+          type: array
+          description: The list of charges
+          items:
+            $ref: "#/components/schemas/Charge"
+        has_more:
+          type: boolean
+          description: Whether there are more results available
+          example: false
+        url:
+          type: string
+          description: The URL where this list can be accessed
+          example: "/v1/charges"
+    CreatePaymentIntentRequest:
+      type: object
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          type: integer
+          description: Amount intended to be collected in the smallest currency unit
+          example: 2000
+        currency:
+          type: string
+          description: Three-letter ISO currency code in lowercase
+          example: "usd"
+        customer:
+          type: string
+          description: ID of the Customer this PaymentIntent belongs to
+          example: "cus_9s6XKzkNRiz8i3"
+        payment_method:
+          type: string
+          description: ID of the payment method to attach to this PaymentIntent
+          example: "pm_1MtwBwLkdIwHu7ixkGNpXs2Q"
+        description:
+          type: string
+          description: An arbitrary string attached to the object
+          example: "Payment for order #1234"
+        receipt_email:
+          type: string
+          description: Email address that the receipt will be sent to
+          format: email
+          example: "customer@example.com"
+        capture_method:
+          type: string
+          description: Controls when the funds will be captured
+          enum:
+            - automatic
+            - automatic_async
+            - manual
+          example: "automatic"
+        confirm:
+          type: boolean
+          description: Set to true to attempt to confirm this PaymentIntent immediately
+          example: false
+        metadata:
+          type: object
+          description: Set of key-value pairs for storing additional information
+          additionalProperties:
+            type: string
+    ConfirmPaymentIntentRequest:
+      type: object
+      properties:
+        payment_method:
+          type: string
+          description: ID of the payment method to use for this PaymentIntent
+          example: "pm_1MtwBwLkdIwHu7ixkGNpXs2Q"
+        return_url:
+          type: string
+          description: The URL to redirect your customer back to after authentication
+          format: uri
+          example: "https://example.com/return"

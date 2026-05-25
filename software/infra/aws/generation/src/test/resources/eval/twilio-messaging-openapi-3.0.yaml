@@ -1,0 +1,349 @@
+---
+openapi: "3.0.0"
+info:
+  title: Twilio Messaging API
+  description: |-
+    A minimal subset of the Twilio Messaging REST API for sending and retrieving SMS/MMS messages.
+    Supports Twilio-style SIDs, message status tracking, direction classification, and RFC 2822 date formatting.
+  version: "2010-04-01"
+servers:
+  - url: https://api.twilio.com
+tags:
+  - name: messages
+    description: SMS and MMS message operations
+paths:
+  /2010-04-01/Accounts/{AccountSid}/Messages.json:
+    post:
+      tags:
+        - messages
+      summary: Send a message.
+      description: Send an SMS or MMS message from a Twilio phone number.
+      operationId: createMessage
+      parameters:
+        - name: AccountSid
+          in: path
+          description: The SID of the Account creating the Message resource
+          required: true
+          schema:
+            type: string
+            pattern: "^AC[0-9a-f]{32}$"
+            example: "AC00000000000000000000000000000000"
+      requestBody:
+        description: Message creation parameters
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/CreateMessageRequest"
+      responses:
+        "201":
+          description: Message created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      tags:
+        - messages
+      summary: List messages.
+      description: Retrieve a list of messages associated with the account.
+      operationId: listMessages
+      parameters:
+        - name: AccountSid
+          in: path
+          description: The SID of the Account requesting the Message resources
+          required: true
+          schema:
+            type: string
+            pattern: "^AC[0-9a-f]{32}$"
+            example: "AC00000000000000000000000000000000"
+        - name: To
+          in: query
+          description: Filter by recipient phone number in E.164 format
+          required: false
+          schema:
+            type: string
+            example: "+15558675310"
+        - name: From
+          in: query
+          description: Filter by sender phone number in E.164 format
+          required: false
+          schema:
+            type: string
+            example: "+15017122661"
+        - name: DateSent
+          in: query
+          description: Filter by date sent in YYYY-MM-DD format
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: PageSize
+          in: query
+          description: Number of resources to return per page (max 1000)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 50
+      responses:
+        "200":
+          description: A list of messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageList"
+        "401":
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /2010-04-01/Accounts/{AccountSid}/Messages/{MessageSid}.json:
+    get:
+      tags:
+        - messages
+      summary: Fetch a message.
+      description: Retrieve a single message resource by its SID.
+      operationId: fetchMessage
+      parameters:
+        - name: AccountSid
+          in: path
+          description: The SID of the Account that created the Message resource
+          required: true
+          schema:
+            type: string
+            pattern: "^AC[0-9a-f]{32}$"
+            example: "AC00000000000000000000000000000000"
+        - name: MessageSid
+          in: path
+          description: The SID of the Message resource to fetch
+          required: true
+          schema:
+            type: string
+            pattern: "^SM[0-9a-f]{32}$"
+            example: "SM00000000000000000000000000000000"
+      responses:
+        "200":
+          description: The requested message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "404":
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    CreateMessageRequest:
+      type: object
+      required:
+        - To
+        - Body
+      properties:
+        To:
+          type: string
+          description: The recipient phone number in E.164 format
+          example: "+15558675310"
+        From:
+          type: string
+          description: The sender Twilio phone number in E.164 format
+          example: "+15017122661"
+        Body:
+          type: string
+          description: The text content of the message (max 1600 characters)
+          maxLength: 1600
+          example: "Hello from MockNest!"
+        MediaUrl:
+          type: array
+          description: URLs of media to include with the message
+          items:
+            type: string
+            format: uri
+          maxItems: 10
+    Message:
+      type: object
+      description: A Twilio Message resource representing an SMS or MMS message
+      properties:
+        sid:
+          type: string
+          description: The unique identifier for this message (SM prefix followed by 32 hex characters)
+          pattern: "^SM[0-9a-f]{32}$"
+          example: "SMaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        account_sid:
+          type: string
+          description: The SID of the Account that created the message
+          pattern: "^AC[0-9a-f]{32}$"
+          example: "AC00000000000000000000000000000000"
+        from:
+          type: string
+          description: The sender phone number in E.164 format
+          example: "+15017122661"
+        to:
+          type: string
+          description: The recipient phone number in E.164 format
+          example: "+15558675310"
+        body:
+          type: string
+          description: The text content of the message
+          example: "Hello from MockNest!"
+        status:
+          type: string
+          description: The current status of the message
+          enum:
+            - queued
+            - sending
+            - sent
+            - delivered
+            - undelivered
+            - failed
+          example: "sent"
+        direction:
+          type: string
+          description: The direction of the message
+          enum:
+            - inbound
+            - outbound-api
+            - outbound-call
+            - outbound-reply
+          example: "outbound-api"
+        date_created:
+          type: string
+          description: The date and time the message was created in RFC 2822 format
+          example: "Thu, 30 Jul 2015 20:12:31 +0000"
+        date_updated:
+          type: string
+          description: The date and time the message was last updated in RFC 2822 format
+          example: "Thu, 30 Jul 2015 20:12:33 +0000"
+        date_sent:
+          type: string
+          description: The date and time the message was sent in RFC 2822 format
+          nullable: true
+          example: "Thu, 30 Jul 2015 20:12:33 +0000"
+        price:
+          type: string
+          description: The cost of the message in the currency specified by price_unit
+          nullable: true
+          example: "-0.00750"
+        price_unit:
+          type: string
+          description: The currency in which price is measured (ISO 4217)
+          example: "USD"
+        uri:
+          type: string
+          description: The URI of this message resource relative to the API base
+          example: "/2010-04-01/Accounts/AC00000000000000000000000000000000/Messages/SMaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json"
+        num_segments:
+          type: string
+          description: The number of segments that make up the message
+          example: "1"
+        num_media:
+          type: string
+          description: The number of media files associated with the message
+          example: "0"
+        error_code:
+          type: integer
+          description: The error code if the message failed
+          nullable: true
+          example: null
+        error_message:
+          type: string
+          description: The error message if the message failed
+          nullable: true
+          example: null
+        subresource_uris:
+          type: object
+          description: URIs of subresources associated with this message
+          properties:
+            media:
+              type: string
+              description: URI for the media subresource
+              example: "/2010-04-01/Accounts/AC00000000000000000000000000000000/Messages/SMaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/Media.json"
+        api_version:
+          type: string
+          description: The API version used to process the message
+          example: "2010-04-01"
+    MessageList:
+      type: object
+      description: A paginated list of Message resources
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+        first_page_uri:
+          type: string
+          description: URI of the first page of results
+          example: "/2010-04-01/Accounts/AC00000000000000000000000000000000/Messages.json?PageSize=50&Page=0"
+        next_page_uri:
+          type: string
+          description: URI of the next page of results
+          nullable: true
+          example: null
+        previous_page_uri:
+          type: string
+          description: URI of the previous page of results
+          nullable: true
+          example: null
+        page:
+          type: integer
+          description: Current page number
+          example: 0
+        page_size:
+          type: integer
+          description: Number of resources per page
+          example: 50
+        uri:
+          type: string
+          description: URI of the current page
+          example: "/2010-04-01/Accounts/AC00000000000000000000000000000000/Messages.json?PageSize=50&Page=0"
+    Error:
+      type: object
+      description: A Twilio API error response
+      properties:
+        code:
+          type: integer
+          description: A Twilio-specific error code
+          example: 21211
+        message:
+          type: string
+          description: A human-readable description of the error
+          example: "The 'To' number is not a valid phone number."
+        more_info:
+          type: string
+          description: A URI to the Twilio documentation for this error
+          format: uri
+          example: "https://www.twilio.com/docs/errors/21211"
+        status:
+          type: integer
+          description: The HTTP status code
+          example: 400
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: HTTP Basic authentication using Account SID and Auth Token
+security:
+  - basicAuth: []

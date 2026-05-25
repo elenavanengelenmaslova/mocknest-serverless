@@ -1,0 +1,225 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": { "name": "Mutation" },
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "event",
+              "description": "Get event by ID",
+              "args": [
+                { "name": "id", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "OBJECT", "name": "Event", "ofType": null }
+            },
+            {
+              "name": "events",
+              "description": "List events",
+              "args": [
+                { "name": "filter", "description": null, "type": { "kind": "INPUT_OBJECT", "name": "EventFilter", "ofType": null } },
+                { "name": "limit", "description": null, "type": { "kind": "SCALAR", "name": "Int", "ofType": null } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Event", "ofType": null } } } }
+            },
+            {
+              "name": "attendees",
+              "description": "Get attendees for event",
+              "args": [
+                { "name": "eventId", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Attendee", "ofType": null } } } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Mutation",
+          "description": "Root mutation type",
+          "fields": [
+            {
+              "name": "createEvent",
+              "description": "Create an event",
+              "args": [
+                { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "CreateEventInput", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Event", "ofType": null } }
+            },
+            {
+              "name": "registerAttendee",
+              "description": "Register attendee",
+              "args": [
+                { "name": "eventId", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+                { "name": "input", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "AttendeeInput", "ofType": null } } }
+              ],
+              "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Attendee", "ofType": null } }
+            }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Event",
+          "description": "Event entity",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "title", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "status", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "EventStatus", "ofType": null } } },
+            { "name": "format", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "EventFormat", "ofType": null } } },
+            { "name": "venue", "description": null, "args": [], "type": { "kind": "OBJECT", "name": "Venue", "ofType": null } },
+            { "name": "sessions", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Session", "ofType": null } } } } },
+            { "name": "tags", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } },
+            { "name": "maxAttendees", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "Int", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Venue",
+          "description": "Event venue",
+          "fields": [
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "address", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "OBJECT", "name": "Address", "ofType": null } } },
+            { "name": "capacity", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Address",
+          "description": "Physical address",
+          "fields": [
+            { "name": "street", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "city", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "country", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "postalCode", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Session",
+          "description": "Event session",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "title", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "speaker", "description": null, "args": [], "type": { "kind": "OBJECT", "name": "Speaker", "ofType": null } },
+            { "name": "duration", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "Int", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Speaker",
+          "description": "Session speaker",
+          "fields": [
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "bio", "description": null, "args": [], "type": { "kind": "SCALAR", "name": "String", "ofType": null } },
+            { "name": "topics", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } } }
+          ]
+        },
+        {
+          "kind": "OBJECT",
+          "name": "Attendee",
+          "description": "Event attendee",
+          "fields": [
+            { "name": "id", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "ID", "ofType": null } } },
+            { "name": "name", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "email", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "ticketType", "description": null, "args": [], "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "TicketType", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "CreateEventInput",
+          "description": "Input for creating event",
+          "inputFields": [
+            { "name": "title", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "format", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "EventFormat", "ofType": null } } },
+            { "name": "venue", "description": null, "type": { "kind": "INPUT_OBJECT", "name": "VenueInput", "ofType": null } },
+            { "name": "tags", "description": null, "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } },
+            { "name": "maxAttendees", "description": null, "type": { "kind": "SCALAR", "name": "Int", "ofType": null } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "VenueInput",
+          "description": "Venue input",
+          "inputFields": [
+            { "name": "name", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "address", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "INPUT_OBJECT", "name": "AddressInput", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "AddressInput",
+          "description": "Address input",
+          "inputFields": [
+            { "name": "street", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "city", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "country", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "AttendeeInput",
+          "description": "Attendee input",
+          "inputFields": [
+            { "name": "name", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "email", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } },
+            { "name": "ticketType", "description": null, "type": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "ENUM", "name": "TicketType", "ofType": null } } }
+          ]
+        },
+        {
+          "kind": "INPUT_OBJECT",
+          "name": "EventFilter",
+          "description": "Event filter",
+          "inputFields": [
+            { "name": "status", "description": null, "type": { "kind": "ENUM", "name": "EventStatus", "ofType": null } },
+            { "name": "format", "description": null, "type": { "kind": "ENUM", "name": "EventFormat", "ofType": null } },
+            { "name": "tags", "description": null, "type": { "kind": "LIST", "name": null, "ofType": { "kind": "NON_NULL", "name": null, "ofType": { "kind": "SCALAR", "name": "String", "ofType": null } } } }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "EventStatus",
+          "description": "Event status",
+          "enumValues": [
+            { "name": "DRAFT", "description": null },
+            { "name": "PUBLISHED", "description": null },
+            { "name": "ONGOING", "description": null },
+            { "name": "COMPLETED", "description": null },
+            { "name": "CANCELLED", "description": null }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "EventFormat",
+          "description": "Event format",
+          "enumValues": [
+            { "name": "IN_PERSON", "description": null },
+            { "name": "VIRTUAL", "description": null },
+            { "name": "HYBRID", "description": null }
+          ]
+        },
+        {
+          "kind": "ENUM",
+          "name": "TicketType",
+          "description": "Ticket type",
+          "enumValues": [
+            { "name": "GENERAL", "description": null },
+            { "name": "VIP", "description": null },
+            { "name": "SPEAKER", "description": null },
+            { "name": "STUDENT", "description": null }
+          ]
+        },
+        { "kind": "SCALAR", "name": "String", "description": "Built-in String scalar" },
+        { "kind": "SCALAR", "name": "ID", "description": "Built-in ID scalar" },
+        { "kind": "SCALAR", "name": "Int", "description": "Built-in Int scalar" },
+        { "kind": "SCALAR", "name": "Boolean", "description": "Built-in Boolean scalar" },
+        { "kind": "OBJECT", "name": "__Schema", "description": "Introspection type", "fields": [
+            { "name": "types", "description": null, "args": [], "type": { "kind": "LIST", "name": null, "ofType": { "kind": "OBJECT", "name": "__Type", "ofType": null } } }
+          ] }
+      ]
+    }
+  }
+}

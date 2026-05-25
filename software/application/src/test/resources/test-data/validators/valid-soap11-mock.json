@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/hello",
+    "headers": {
+      "SOAPAction": { "equalTo": "http://example.com/hello/SayHello" }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "text/xml; charset=utf-8" },
+    "body": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:tns=\"http://example.com/hello\"><soapenv:Body><tns:SayHelloResponse><tns:greeting>Hello World</tns:greeting></tns:SayHelloResponse></soapenv:Body></soapenv:Envelope>"
+  }
+}

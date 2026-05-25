@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+                  xmlns:tns="http://example.com/broken"
+                  targetNamespace="http://example.com/broken"
+                  name="BrokenService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/broken">
+      <xsd:complexType name="Request">
+        <xsd:sequence>
+          <xsd:element name="data" type="xsd:string"/>
+        <!-- Missing closing tags intentionally -->
+  </wsdl:types>
+  <wsdl:message name="TestRequest">
+    <wsdl:part name="parameters" element="tns:Request"/>
+  </wsdl:message>
+</wsdl:definitions>
