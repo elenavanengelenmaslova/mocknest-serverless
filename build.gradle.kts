@@ -67,7 +67,7 @@ subprojects {
         implementation("org.jetbrains.kotlin:kotlin-stdlib")
 
         // Logging
-        implementation("io.github.oshai:kotlin-logging-jvm:8.0.02")
+        implementation("io.github.oshai:kotlin-logging-jvm:8.0.03")
 
         runtimeOnly("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0-0.6.x-compat")
 
