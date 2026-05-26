@@ -205,8 +205,6 @@ class MockGenerationFunctionalAgentTest {
                 maxAgentIterations = 50
             )
             val graphAgent = GraphAIAgent(
-                inputType = strategy.inputType,
-                outputType = strategy.outputType,
                 promptExecutor = mockExecutor,
                 agentConfig = agentConfig,
                 strategy = strategy,
@@ -259,8 +257,6 @@ class MockGenerationFunctionalAgentTest {
                 maxAgentIterations = 50
             )
             val graphAgent = GraphAIAgent(
-                inputType = strategy.inputType,
-                outputType = strategy.outputType,
                 promptExecutor = mockExecutor,
                 agentConfig = agentConfig,
                 strategy = strategy,
@@ -334,8 +330,6 @@ class MockGenerationFunctionalAgentTest {
                 maxAgentIterations = 50
             )
             val graphAgent = GraphAIAgent(
-                inputType = strategy.inputType,
-                outputType = strategy.outputType,
                 promptExecutor = mockExecutor,
                 agentConfig = agentConfig,
                 strategy = strategy,
@@ -396,8 +390,6 @@ class MockGenerationFunctionalAgentTest {
                 maxAgentIterations = 50
             )
             val graphAgent = GraphAIAgent(
-                inputType = strategy.inputType,
-                outputType = strategy.outputType,
                 promptExecutor = mockExecutor,
                 agentConfig = agentConfig,
                 strategy = strategy,
@@ -452,8 +444,6 @@ class MockGenerationFunctionalAgentTest {
                 maxAgentIterations = 50
             )
             val graphAgent = GraphAIAgent(
-                inputType = strategy.inputType,
-                outputType = strategy.outputType,
                 promptExecutor = mockExecutor,
                 agentConfig = agentConfig,
                 strategy = strategy,
