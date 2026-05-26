@@ -19,13 +19,13 @@ dependencies {
     // CVE-2025-58056 / GHSA-fghv-69vj-qj49: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding
     // Fixed in Netty 4.2.5.Final+
     constraints {
-        implementation("io.netty:netty-codec-http:4.2.13.Final") {
+        implementation("io.netty:netty-codec-http:4.2.14.Final") {
             because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
         }
-        implementation("io.netty:netty-codec-http2:4.2.13.Final") {
+        implementation("io.netty:netty-codec-http2:4.2.14.Final") {
             because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
         }
-        implementation("io.netty:netty-codec-http3:4.2.13.Final") {
+        implementation("io.netty:netty-codec-http3:4.2.14.Final") {
             because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
         }
     }
