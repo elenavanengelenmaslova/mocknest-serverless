@@ -60,8 +60,6 @@ class BedrockServiceAdapter(
         )
         
         val agent = GraphAIAgent(
-            inputType = strategy.inputType,
-            outputType = strategy.outputType,
             promptExecutor = executor,
             agentConfig = agentConfig,
             strategy = strategy,

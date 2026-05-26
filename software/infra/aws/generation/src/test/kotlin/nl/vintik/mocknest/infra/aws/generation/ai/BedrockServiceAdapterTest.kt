@@ -1,6 +1,5 @@
 package nl.vintik.mocknest.infra.aws.generation.ai
 
-import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import io.mockk.clearAllMocks

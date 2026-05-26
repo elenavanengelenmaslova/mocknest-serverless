@@ -1,6 +1,5 @@
 package nl.vintik.mocknest.application.generation.agent
 
-import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.prompt.message.Message
@@ -63,7 +62,7 @@ class MockGenerationFunctionalAgent(
                 appendPrompt { user(prompt) }
                 requestLLM()
             }
-            val textResponse = (response as? Message.Assistant)?.content
+            val textResponse = (response as? Message.Assistant)?.textContent()
             if (textResponse == null) {
                 val errorMsg = "Unexpected LLM response type: ${response::class.simpleName}"
                 logger.error { "Parse failure for jobId=${ctx.request.jobId}: $errorMsg" }
@@ -147,7 +146,7 @@ class MockGenerationFunctionalAgent(
                 appendPrompt { user(correctionPrompt) }
                 requestLLM()
             }
-            val textResponse = (response as? Message.Assistant)?.content
+            val textResponse = (response as? Message.Assistant)?.textContent()
             if (textResponse == null) {
                 val errorMsg = "Unexpected LLM response type during correction: ${response::class.simpleName}"
                 logger.error { "Parse failure during correction for jobId=${ctx.request.jobId}: $errorMsg" }

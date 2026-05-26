@@ -1,6 +1,10 @@
 package nl.vintik.mocknest.infra.aws.generation.ai.eval
 
-import ai.koog.agents.core.agent.AIAgent
+import ai.koog.agents.core.agent.GraphAIAgent
+import ai.koog.agents.core.agent.config.AIAgentConfig
+import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.extension.nodeLLMRequest
+import ai.koog.prompt.message.Message
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.prompt.executor.clients.bedrock.BedrockAPIMethod
 import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
@@ -118,10 +122,18 @@ class BedrockPromptEvalTest {
     }
 
     private val judgeLM = asJudge { prompt ->
-        val judgeAgent = AIAgent(
+        val judgeAgent = GraphAIAgent(
             promptExecutor = judgeExecutor,
-            llmModel = modelConfiguration.getModel(),
-            systemPrompt = "You are an evaluation judge. Respond only with a numeric score.",
+            agentConfig = AIAgentConfig.withSystemPrompt(
+                prompt = "You are an evaluation judge. Respond only with a numeric score.",
+                llm = modelConfiguration.getModel(),
+                maxAgentIterations = 5
+            ),
+            strategy = strategy<String, String>("judge") {
+                val llmNode by nodeLLMRequest("judge-llm")
+                edge(nodeStart forwardTo llmNode)
+                edge(llmNode forwardTo nodeFinish transformed { msg: Message.Assistant -> msg.textContent() })
+            },
             toolRegistry = ToolRegistry.EMPTY
         )
         judgeAgent.run(prompt)
