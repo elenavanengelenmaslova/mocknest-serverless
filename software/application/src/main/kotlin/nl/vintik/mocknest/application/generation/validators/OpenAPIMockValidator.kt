@@ -210,7 +210,6 @@ class OpenAPIMockValidator : MockValidatorInterface {
             is JsonPrimitive -> element.content == expected
             is JsonArray -> element.any { matchesExpectedValue(it, expected) }
             is JsonObject -> element.values.any { matchesExpectedValue(it, expected) }
-            else -> false
         }
     }
 }

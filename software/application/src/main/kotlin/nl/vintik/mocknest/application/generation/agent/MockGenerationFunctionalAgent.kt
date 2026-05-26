@@ -2,7 +2,6 @@ package nl.vintik.mocknest.application.generation.agent
 
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.prompt.message.Message
 import io.github.oshai.kotlinlogging.KotlinLogging
 import nl.vintik.mocknest.application.generation.interfaces.AIModelServiceInterface
 import nl.vintik.mocknest.application.generation.interfaces.MockValidatorInterface
@@ -62,8 +61,8 @@ class MockGenerationFunctionalAgent(
                 appendPrompt { user(prompt) }
                 requestLLM()
             }
-            val textResponse = (response as? Message.Assistant)?.textContent()
-            if (textResponse == null) {
+            val textResponse = response.textContent()
+            if (textResponse.isBlank()) {
                 val errorMsg = "Unexpected LLM response type: ${response::class.simpleName}"
                 logger.error { "Parse failure for jobId=${ctx.request.jobId}: $errorMsg" }
                 return@node ctx.copy(mocks = emptyList(), errors = listOf(errorMsg), parseFailure = true)
@@ -146,8 +145,8 @@ class MockGenerationFunctionalAgent(
                 appendPrompt { user(correctionPrompt) }
                 requestLLM()
             }
-            val textResponse = (response as? Message.Assistant)?.textContent()
-            if (textResponse == null) {
+            val textResponse = response.textContent()
+            if (textResponse.isBlank()) {
                 val errorMsg = "Unexpected LLM response type during correction: ${response::class.simpleName}"
                 logger.error { "Parse failure during correction for jobId=${ctx.request.jobId}: $errorMsg" }
                 return@node ctx.copy(

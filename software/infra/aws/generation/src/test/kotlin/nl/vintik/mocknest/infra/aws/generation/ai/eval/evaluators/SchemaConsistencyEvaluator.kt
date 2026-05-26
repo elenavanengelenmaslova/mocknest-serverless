@@ -63,7 +63,7 @@ class SchemaConsistencyEvaluator(private val requiredFields: List<String>) : Bas
         when {
             node.isArray -> node.flatMap { extractPetObjects(it) }
             node.isObject && node.has("id") && node.has("name") -> listOf(node)
-            node.isObject -> node.fields().asSequence().flatMap { (_, value) -> extractPetObjects(value).asSequence() }.toList()
+            node.isObject -> node.properties().flatMap { (_, value) -> extractPetObjects(value) }
             else -> emptyList()
         }
 

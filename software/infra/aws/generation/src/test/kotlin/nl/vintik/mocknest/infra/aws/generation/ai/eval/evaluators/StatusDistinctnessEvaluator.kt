@@ -63,7 +63,7 @@ class StatusDistinctnessEvaluator : BaseEvaluator(
                     statuses.add(node.get("status").asText())
                 }
                 // Continue into nested fields
-                node.fields().forEach { (_, value) -> collectStatuses(value, statuses) }
+                node.properties().forEach { (_, value) -> collectStatuses(value, statuses) }
             }
         }
     }

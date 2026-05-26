@@ -78,6 +78,7 @@ class ObjectStorageMappingsSource(
         mappings.forEach { save(it) }
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun remove(mapping: StubMapping) {
         val id = mapping.id
         val key = "$prefix$id.json"
