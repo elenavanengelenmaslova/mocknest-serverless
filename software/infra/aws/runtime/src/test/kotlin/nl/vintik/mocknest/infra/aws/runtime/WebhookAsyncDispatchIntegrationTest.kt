@@ -4,9 +4,7 @@ import aws.sdk.kotlin.services.sqs.SqsClient
 import aws.sdk.kotlin.services.sqs.model.CreateQueueRequest
 import com.amazonaws.services.lambda.runtime.events.SQSEvent
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.aResponse
-import com.github.tomakehurst.wiremock.client.WireMock.post
-import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.extension.Parameters
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -20,6 +18,7 @@ import nl.vintik.mocknest.infra.aws.runtime.runtimeasync.RuntimeAsyncHandler
 import nl.vintik.mocknest.infra.aws.runtime.webhook.WebhookHttpClient
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -27,7 +26,6 @@ import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
-import org.testcontainers.containers.wait.strategy.Wait
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
@@ -146,7 +144,7 @@ class WebhookAsyncDispatchIntegrationTest {
             val response = httpClient.newCall(
                 Request.Builder()
                     .url("http://localhost:${wireMockServer.port()}/trigger")
-                    .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                    .post(ByteArray(0).toRequestBody(null))
                     .build()
             ).execute()
             assertEquals(202, response.code)
@@ -232,7 +230,7 @@ class WebhookAsyncDispatchIntegrationTest {
             val response = httpClient.newCall(
                 Request.Builder()
                     .url("http://localhost:${wireMockServer.port()}/trigger-no-auth")
-                    .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                    .post(ByteArray(0).toRequestBody(null))
                     .build()
             ).execute()
             assertEquals(202, response.code)

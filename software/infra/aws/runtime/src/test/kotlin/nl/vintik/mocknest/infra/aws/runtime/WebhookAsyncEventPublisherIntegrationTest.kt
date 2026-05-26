@@ -1,30 +1,25 @@
 package nl.vintik.mocknest.infra.aws.runtime
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.aResponse
-import com.github.tomakehurst.wiremock.client.WireMock.post
-import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.extension.Parameters
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import nl.vintik.mocknest.application.runtime.extensions.AsyncEvent
 import nl.vintik.mocknest.application.runtime.extensions.SqsPublisherInterface
 import nl.vintik.mocknest.application.runtime.extensions.WebhookAsyncEventPublisher
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import org.awaitility.kotlin.await
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.awaitility.kotlin.await
-import org.awaitility.kotlin.untilAsserted
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 /**
  * Integration test verifying that [WebhookAsyncEventPublisher] is invoked correctly
@@ -99,7 +94,7 @@ class WebhookAsyncEventPublisherIntegrationTest {
         val response = httpClient.newCall(
             Request.Builder()
                 .url("http://localhost:${wireMockServer.port()}/trigger")
-                .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                .post(ByteArray(0).toRequestBody(null))
                 .build()
         ).execute()
         assertEquals(202, response.code)
@@ -141,7 +136,7 @@ class WebhookAsyncEventPublisherIntegrationTest {
         val response = httpClient.newCall(
             Request.Builder()
                 .url("http://localhost:${wireMockServer.port()}/trigger-no-dup")
-                .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                .post(ByteArray(0).toRequestBody(null))
                 .build()
         ).execute()
         assertEquals(202, response.code)
@@ -175,7 +170,7 @@ class WebhookAsyncEventPublisherIntegrationTest {
         val response = httpClient.newCall(
             Request.Builder()
                 .url("http://localhost:${wireMockServer.port()}/trigger-iam")
-                .post(okhttp3.RequestBody.create(null, ByteArray(0)))
+                .post(ByteArray(0).toRequestBody(null))
                 .build()
         ).execute()
         assertEquals(202, response.code)

@@ -59,7 +59,7 @@ class PetCountEvaluator(private val expectedCount: Int, private val exactMatch: 
                     petIds.add(node.get("id").asText())
                 }
                 // Continue into nested fields
-                node.fields().forEach { (_, value) -> collectPetIds(value, petIds) }
+                node.properties().forEach { (_, value) -> collectPetIds(value, petIds) }
             }
         }
     }
