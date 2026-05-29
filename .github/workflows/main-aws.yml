@@ -43,7 +43,7 @@ jobs:
     with:
       environment: staging
       aws-region: 'eu-west-1'
-      github-actions-role-name: ${{ secrets.OIDC_ROLE_NAME }}
+      github-actions-role-name: ${{ vars.OIDC_ROLE_NAME }}
       runtime-lambda-memory: 1536
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

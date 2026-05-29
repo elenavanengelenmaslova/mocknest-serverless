@@ -17,10 +17,19 @@ Parameters:
     Description: Name for the GitHub Actions role
     Default: GitHubActionsRole
 
+  ExistingOIDCProviderArn:
+    Type: String
+    Description: ARN of an existing GitHub OIDC provider (leave empty to create a new one)
+    Default: ''
+
+Conditions:
+  CreateOIDCProvider: !Equals [!Ref ExistingOIDCProviderArn, '']
+
 Resources:
-  # OIDC Identity Provider for GitHub Actions
+  # OIDC Identity Provider for GitHub Actions (only created if no existing provider ARN is given)
   GitHubOIDCProvider:
-    Type: AWS::IAM::OIDCIdentityProvider
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOIDCProvider
     Properties:
       Url: https://token.actions.githubusercontent.com
       ClientIdList:
@@ -44,7 +53,10 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Federated: !Ref GitHubOIDCProvider
+              Federated: !If
+                - CreateOIDCProvider
+                - !Ref GitHubOIDCProvider
+                - !Ref ExistingOIDCProviderArn
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringEquals:
@@ -261,7 +273,10 @@ Outputs:
 
   OIDCProviderArn:
     Description: ARN of the OIDC provider
-    Value: !Ref GitHubOIDCProvider
+    Value: !If
+      - CreateOIDCProvider
+      - !Ref GitHubOIDCProvider
+      - !Ref ExistingOIDCProviderArn
     Export:
       Name: GitHubOIDCProviderArn
 

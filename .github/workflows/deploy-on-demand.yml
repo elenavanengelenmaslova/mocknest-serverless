@@ -57,7 +57,7 @@ jobs:
     with:
       environment: default
       aws-region: ${{ inputs.aws-region }}
-      github-actions-role-name: ${{ inputs.github-actions-role-name || secrets.OIDC_ROLE_NAME }}
+      github-actions-role-name: ${{ inputs.github-actions-role-name || vars.OIDC_ROLE_NAME }}
       stack-name: ${{ inputs.stack-name }}
       auth-mode: ${{ inputs.auth-mode }}
       runtime-lambda-memory: ${{ fromJSON(inputs.runtime-lambda-memory) }}
@@ -69,7 +69,7 @@ jobs:
     uses: ./.github/workflows/workflow-integration-test.yml
     with:
       aws-region: ${{ inputs.aws-region }}
-      github-actions-role-name: ${{ inputs.github-actions-role-name || secrets.OIDC_ROLE_NAME }}
+      github-actions-role-name: ${{ inputs.github-actions-role-name || vars.OIDC_ROLE_NAME }}
       stack-name: ${{ inputs.stack-name }}
       # API_KEY mode: run all existing tests (rest, graphql, soap)
       # IAM mode: run only the webhook test
