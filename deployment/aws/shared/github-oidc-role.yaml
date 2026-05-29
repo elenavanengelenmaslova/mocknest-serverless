@@ -1,17 +1,17 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: GitHub Actions OIDC Role for MockNest Serverless deployment
+Description: GitHub Actions OIDC Role for MockNest Serverless deployment (hardened two-role pattern)
 
 Parameters:
   GitHubOrg:
     Type: String
     Description: GitHub organization or username
     Default: your-github-org
-  
+
   GitHubRepo:
     Type: String
     Description: GitHub repository name
     Default: mocknest-serverless
-  
+
   RoleName:
     Type: String
     Description: Name for the GitHub Actions role
@@ -34,7 +34,7 @@ Resources:
         - Key: Purpose
           Value: GitHub-Actions-OIDC
 
-  # IAM Role for GitHub Actions
+  # IAM Role for GitHub Actions - minimal SAM deployment permissions only
   GitHubActionsRole:
     Type: AWS::IAM::Role
     Properties:
@@ -49,31 +49,172 @@ Resources:
             Condition:
               StringEquals:
                 'token.actions.githubusercontent.com:aud': sts.amazonaws.com
-              StringLike:
-                'token.actions.githubusercontent.com:sub': 
+                'token.actions.githubusercontent.com:sub':
                   - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main'
-                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/feature/*'
-                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/bugfix/*'
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/PowerUserAccess
       Policies:
         - PolicyName: GitHubActionsDeploymentPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # CloudFormation permissions
+              # CloudFormation permissions for SAM deployment
               - Effect: Allow
                 Action:
-                  - cloudformation:*
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DeleteStack
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:ListStacks
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:GetTemplateSummary
                 Resource: '*'
-              
-              # IAM permissions for CloudFormation
+
+              # S3 permissions scoped to SAM artifact buckets
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - 'arn:aws:s3:::aws-sam-cli-managed-default-*'
+                  - 'arn:aws:s3:::aws-sam-cli-managed-default-*/*'
+                  - 'arn:aws:s3:::mocknest-sar-artifacts-*'
+                  - 'arn:aws:s3:::mocknest-sar-artifacts-*/*'
+
+              # S3 bucket creation for SAR artifact bucket
+              - Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:PutBucketPolicy
+                Resource:
+                  - 'arn:aws:s3:::aws-sam-cli-managed-default-*'
+                  - 'arn:aws:s3:::mocknest-sar-artifacts-*'
+
+              # iam:PassRole scoped to CloudFormation execution role only
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: !GetAtt MockNestCloudFormationExecutionRole.Arn
+                Condition:
+                  StringEquals:
+                    'iam:PassedToService': cloudformation.amazonaws.com
+
+              # Serverless Application Repository publishing
+              - Effect: Allow
+                Action:
+                  - serverlessrepo:*
+                Resource: '*'
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Purpose
+          Value: GitHub-Actions-Deployment
+
+  # CloudFormation Execution Role - assumed by CloudFormation to create/modify stack resources
+  MockNestCloudFormationExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: MockNestCloudFormationExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CloudFormationExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Lambda permissions (scoped)
+              - Effect: Allow
+                Action:
+                  - lambda:CreateFunction
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:DeleteFunction
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+                  - lambda:GetFunction
+                  - lambda:ListVersionsByFunction
+                  - lambda:PublishVersion
+                  - lambda:CreateAlias
+                  - lambda:UpdateAlias
+                  - lambda:DeleteAlias
+                  - lambda:GetAlias
+                  - lambda:InvokeFunction
+                  - lambda:TagResource
+                  - lambda:UntagResource
+                  - lambda:ListTags
+                  - lambda:PutFunctionEventInvokeConfig
+                Resource:
+                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*'
+
+              # API Gateway permissions scoped to account
+              - Effect: Allow
+                Action:
+                  - apigateway:GET
+                  - apigateway:POST
+                  - apigateway:PUT
+                  - apigateway:DELETE
+                  - apigateway:PATCH
+                Resource:
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis'
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis/*'
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/tags/*'
+
+              # S3 bucket management permissions
+              - Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:PutBucketPolicy
+                  - s3:DeleteBucket
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                  - s3:PutBucketNotification
+                  - s3:PutEncryptionConfiguration
+                  - s3:PutBucketVersioning
+                  - s3:PutBucketPublicAccessBlock
+                Resource: '*'
+
+              # SQS permissions
+              - Effect: Allow
+                Action:
+                  - sqs:CreateQueue
+                  - sqs:DeleteQueue
+                  - sqs:GetQueueAttributes
+                  - sqs:SetQueueAttributes
+                  - sqs:TagQueue
+                  - sqs:UntagQueue
+                  - sqs:GetQueueUrl
+                Resource:
+                  - !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:*'
+
+              # CloudWatch Logs permissions
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:DeleteLogGroup
+                  - logs:PutRetentionPolicy
+                  - logs:DescribeLogGroups
+                  - logs:TagLogGroup
+                  - logs:TagResource
+                  - logs:UntagResource
+                Resource:
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*'
+
+              # IAM role and policy management for stack resources
               - Effect: Allow
                 Action:
                   - iam:CreateRole
                   - iam:DeleteRole
                   - iam:GetRole
-                  - iam:PassRole
                   - iam:UpdateRole
                   - iam:AttachRolePolicy
                   - iam:DetachRolePolicy
@@ -85,57 +226,25 @@ Resources:
                   - iam:GetPolicy
                   - iam:GetPolicyVersion
                   - iam:ListPolicyVersions
-                  - iam:CreatePolicyVersion
-                  - iam:DeletePolicyVersion
-                  - iam:SetDefaultPolicyVersion
+                  - iam:PassRole
+                  - iam:TagRole
+                  - iam:UntagRole
+                  - iam:ListRolePolicies
+                  - iam:ListAttachedRolePolicies
                 Resource: '*'
-              
-              # S3 permissions for SAM artifacts and mock storage
+
+              # Bedrock permissions for Lambda runtime role creation
               - Effect: Allow
                 Action:
-                  - s3:*
-                Resource: '*'
-              
-              # Lambda permissions
-              - Effect: Allow
-                Action:
-                  - lambda:*
-                Resource: '*'
-              
-              # API Gateway permissions
-              - Effect: Allow
-                Action:
-                  - apigateway:*
-                Resource: '*'
-              
-              # API Gateway execute-api permissions (required for IAM auth mode validation)
-              - Effect: Allow
-                Action:
-                  - execute-api:Invoke
-                Resource: !Sub 'arn:aws:execute-api:*:${AWS::AccountId}:*'
-              
-              # SQS permissions for DLQ
-              - Effect: Allow
-                Action:
-                  - sqs:*
-                Resource: '*'
-              
-              # CloudWatch Logs permissions
-              - Effect: Allow
-                Action:
-                  - logs:*
-                Resource: '*'
-              
-              # Bedrock permissions (for AI features)
-              - Effect: Allow
-                Action:
-                  - bedrock:*
-                Resource: '*'
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource:
+                  - !Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:*'
       Tags:
         - Key: Application
           Value: MockNest-Serverless
         - Key: Purpose
-          Value: GitHub-Actions-Deployment
+          Value: CloudFormation-Execution
 
 Outputs:
   GitHubActionsRoleArn:
@@ -143,20 +252,29 @@ Outputs:
     Value: !GetAtt GitHubActionsRole.Arn
     Export:
       Name: GitHubActionsRoleArn
-  
+
+  MockNestCloudFormationExecutionRoleArn:
+    Description: ARN of the CloudFormation execution role
+    Value: !GetAtt MockNestCloudFormationExecutionRole.Arn
+    Export:
+      Name: MockNestCloudFormationExecutionRoleArn
+
   OIDCProviderArn:
     Description: ARN of the OIDC provider
     Value: !Ref GitHubOIDCProvider
     Export:
       Name: GitHubOIDCProviderArn
-  
+
   SetupInstructions:
     Description: Instructions for completing the setup
     Value: !Sub |
       1. Add this secret to your GitHub repository:
          AWS_ACCOUNT_ID: ${AWS::AccountId}
-      
+
       2. Update the GitHubOrg and GitHubRepo parameters in this template to match your repository
-      
+
       3. Your GitHub Actions workflows can now use OIDC authentication with:
          role-to-assume: ${GitHubActionsRole.Arn}
+
+      4. Use the CloudFormation execution role for SAM deployments:
+         --role-arn ${MockNestCloudFormationExecutionRole.Arn}

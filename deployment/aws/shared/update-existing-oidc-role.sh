@@ -8,6 +8,18 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+echo ""
+echo -e "${RED}╔══════════════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${RED}║                        ⚠️  SECURITY WARNING                         ║${NC}"
+echo -e "${RED}╠══════════════════════════════════════════════════════════════════════╣${NC}"
+echo -e "${RED}║ This script updates the OIDC trust policy for your AWS IAM role.   ║${NC}"
+echo -e "${RED}║ The trust policy controls which GitHub Actions workflows can        ║${NC}"
+echo -e "${RED}║ assume this role and access your AWS account.                       ║${NC}"
+echo -e "${RED}║                                                                    ║${NC}"
+echo -e "${RED}║ This hardened policy trusts ONLY the main branch.                  ║${NC}"
+echo -e "${RED}║ Feature, bugfix, hotfix branches and pull requests are excluded.   ║${NC}"
+echo -e "${RED}╚══════════════════════════════════════════════════════════════════════╝${NC}"
+echo ""
 echo -e "${BLUE}🔧 Updating existing GitHub Actions OIDC role for MockNest Serverless${NC}"
 echo ""
 
@@ -57,16 +69,8 @@ cat > "$TEMP_POLICY" << EOF
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
-        },
-        "StringLike": {
-          "token.actions.githubusercontent.com:sub": [
-            "repo:${GITHUB_ORG}/${GITHUB_REPO}:ref:refs/heads/main",
-            "repo:${GITHUB_ORG}/${GITHUB_REPO}:ref:refs/heads/feature/*",
-            "repo:${GITHUB_ORG}/${GITHUB_REPO}:ref:refs/heads/bugfix/*",
-            "repo:${GITHUB_ORG}/${GITHUB_REPO}:ref:refs/heads/hotfix/*",
-            "repo:${GITHUB_ORG}/${GITHUB_REPO}:pull_request"
-          ]
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": "repo:${GITHUB_ORG}/${GITHUB_REPO}:ref:refs/heads/main"
         }
       }
     }

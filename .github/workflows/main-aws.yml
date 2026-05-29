@@ -43,7 +43,7 @@ jobs:
     with:
       environment: staging
       aws-region: 'eu-west-1'
-      github-actions-role-name: 'GitHubOIDCAdmin'  # Change this to your existing role name
+      github-actions-role-name: ${{ secrets.OIDC_ROLE_NAME }}
       runtime-lambda-memory: 1536
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

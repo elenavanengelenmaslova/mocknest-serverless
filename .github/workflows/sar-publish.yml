@@ -15,9 +15,9 @@ on:
         default: 'eu-west-1'
         type: string
       github-actions-role-name:
-        description: 'GitHub Actions OIDC role name'
+        description: 'GitHub Actions OIDC role name (leave empty to use OIDC_ROLE_NAME secret)'
         required: false
-        default: 'GitHubOIDCAdmin'
+        default: ''
         type: string
 
 permissions:
@@ -30,7 +30,7 @@ jobs:
     with:
       version: ${{ inputs.version || github.event.release.tag_name }}
       aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
-      github-actions-role-name: ${{ inputs.github-actions-role-name || 'GitHubOIDCAdmin' }}
+      github-actions-role-name: ${{ inputs.github-actions-role-name || secrets.OIDC_ROLE_NAME }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   
