@@ -27,13 +27,13 @@ The script prompts for your GitHub org/username, repository name, and AWS region
 
 ### 2. Add GitHub secrets and variables
 
-The script outputs your AWS Account ID and role name. Add them to your repository:
+The script outputs your AWS Account ID and role name. Add them to your repository (Settings → Secrets and variables → Actions):
 
-- **Secret** (Settings → Secrets and variables → Actions → Secrets):
+- **Secret** (Secrets tab):
   - Name: `AWS_ACCOUNT_ID`
   - Value: your 12-digit AWS account ID
 
-- **Variable** (Settings → Secrets and variables → Actions → Variables):
+- **Variable** (Variables tab):
   - Name: `OIDC_ROLE_NAME`
   - Value: `GitHubActionsRole` (or whatever role name you chose)
 
