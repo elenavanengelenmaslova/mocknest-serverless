@@ -22,9 +22,9 @@ on:
         default: 'eu-west-1'
         type: string
       github-actions-role-name:
-        description: 'GitHub Actions OIDC role name'
+        description: 'GitHub Actions OIDC role name (leave empty to use OIDC_ROLE_NAME secret)'
         required: false
-        default: 'GitHubOIDCAdmin'
+        default: ''
         type: string
       runtime-lambda-memory:
         description: 'Runtime Lambda memory in MB (512-10240). Use 1536+ for 500+ mocks.'
@@ -57,7 +57,7 @@ jobs:
     with:
       environment: default
       aws-region: ${{ inputs.aws-region }}
-      github-actions-role-name: ${{ inputs.github-actions-role-name }}
+      github-actions-role-name: ${{ inputs.github-actions-role-name || secrets.OIDC_ROLE_NAME }}
       stack-name: ${{ inputs.stack-name }}
       auth-mode: ${{ inputs.auth-mode }}
       runtime-lambda-memory: ${{ fromJSON(inputs.runtime-lambda-memory) }}
@@ -69,7 +69,7 @@ jobs:
     uses: ./.github/workflows/workflow-integration-test.yml
     with:
       aws-region: ${{ inputs.aws-region }}
-      github-actions-role-name: ${{ inputs.github-actions-role-name }}
+      github-actions-role-name: ${{ inputs.github-actions-role-name || secrets.OIDC_ROLE_NAME }}
       stack-name: ${{ inputs.stack-name }}
       # API_KEY mode: run all existing tests (rest, graphql, soap)
       # IAM mode: run only the webhook test
