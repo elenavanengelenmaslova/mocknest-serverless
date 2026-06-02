@@ -73,7 +73,7 @@ subprojects {
 
         // Testing
         testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
-        testImplementation("io.mockk:mockk:1.14.9")
+        testImplementation("io.mockk:mockk:1.14.11")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.8")
