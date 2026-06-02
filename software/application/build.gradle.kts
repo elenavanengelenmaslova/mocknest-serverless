@@ -32,11 +32,11 @@ dependencies {
     implementation("ai.koog:koog-agents")
 
     // OpenAPI specification parsing
-    implementation("io.swagger.parser.v3:swagger-parser:2.1.42")
+    implementation("io.swagger.parser.v3:swagger-parser:2.1.43")
 
     // Koog testing support for agent tests
     testImplementation("ai.koog:agents-test")
 
     // Logback for tests that capture log output
-    testImplementation("ch.qos.logback:logback-classic:1.5.32")
+    testImplementation("ch.qos.logback:logback-classic:1.5.34")
 }

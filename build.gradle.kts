@@ -67,13 +67,13 @@ subprojects {
         implementation("org.jetbrains.kotlin:kotlin-stdlib")
 
         // Logging
-        implementation("io.github.oshai:kotlin-logging-jvm:8.0.03")
+        implementation("io.github.oshai:kotlin-logging-jvm:8.0.4")
 
         runtimeOnly("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0-0.6.x-compat")
 
         // Testing
         testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
-        testImplementation("io.mockk:mockk:1.14.9")
+        testImplementation("io.mockk:mockk:1.14.11")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.8")
@@ -98,7 +98,7 @@ subprojects {
             implementation("ai.koog:agents-test:$koogVersion")
 
             // Kotlin AWS SDK (versions from main)
-            val awsSdkKotlinVersion = "1.6.80"
+            val awsSdkKotlinVersion = "1.6.85"
             val smithyKotlinVersion = "1.6.14"
             implementation("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
