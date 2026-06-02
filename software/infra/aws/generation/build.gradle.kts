@@ -67,7 +67,7 @@ dependencies {
     // Dokimos LLM evaluation framework (test-scope only)
     // Verified compatible with Koog 0.8.0 — dokimos-koog 0.14.2 compiles and works
     // correctly against the Koog 0.8.0 API (MultiLLMPromptExecutor, AIAgent, etc.)
-    val dokimosVersion = "0.14.2"
+    val dokimosVersion = "0.18.0"
     testImplementation("dev.dokimos:dokimos-core:$dokimosVersion")
     testImplementation("dev.dokimos:dokimos-kotlin:$dokimosVersion")
     testImplementation("dev.dokimos:dokimos-junit:$dokimosVersion")
