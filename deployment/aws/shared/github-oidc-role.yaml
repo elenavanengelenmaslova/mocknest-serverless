@@ -26,6 +26,31 @@ Conditions:
   CreateOIDCProvider: !Equals [!Ref ExistingOIDCProviderArn, '']
 
 Resources:
+  # S3 bucket for SAM deployment artifacts (Lambda code, packaged template, SAR LICENSE/README).
+  # Owned by this bootstrap stack so the GitHub Actions role only needs object-level access
+  # (no CreateBucket/DeleteBucket/TagResource), and SAM does not need resolve_s3 managed buckets.
+  # Name is derived from account id + region for global uniqueness without hard-coding.
+  MockNestArtifactsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub 'mocknest-sam-artifacts-${AWS::AccountId}-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Purpose
+          Value: SAM-Deployment-Artifacts
+
   # OIDC Identity Provider for GitHub Actions (only created if no existing provider ARN is given)
   GitHubOIDCProvider:
     Type: AWS::IAM::OIDCProvider
@@ -95,6 +120,8 @@ Resources:
                   - 'arn:aws:s3:::aws-sam-cli-managed-default-*/*'
                   - 'arn:aws:s3:::mocknest-sar-artifacts-*'
                   - 'arn:aws:s3:::mocknest-sar-artifacts-*/*'
+                  - !GetAtt MockNestArtifactsBucket.Arn
+                  - !Sub '${MockNestArtifactsBucket.Arn}/*'
 
               # S3 bucket creation for SAR artifact bucket
               - Effect: Allow
@@ -264,6 +291,12 @@ Outputs:
     Value: !GetAtt GitHubActionsRole.Arn
     Export:
       Name: GitHubActionsRoleArn
+
+  MockNestArtifactsBucketName:
+    Description: Name of the S3 bucket used for SAM deployment artifacts
+    Value: !Ref MockNestArtifactsBucket
+    Export:
+      Name: MockNestArtifactsBucketName
 
   MockNestCloudFormationExecutionRoleArn:
     Description: ARN of the CloudFormation execution role

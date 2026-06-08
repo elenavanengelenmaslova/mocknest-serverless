@@ -91,7 +91,12 @@ jobs:
           STACK_NAME_OVERRIDE="${{ inputs.stack-name }}"
           AUTH_MODE="${{ inputs.auth-mode }}"
 
-          EXTRA_ARGS=""
+          # SAM deployment artifacts bucket (created by the bootstrap OIDC stack).
+          # Name is account+region derived for global uniqueness; the GitHub Actions
+          # role has object-level access to it (no resolve_s3 managed bucket needed).
+          ARTIFACTS_BUCKET="mocknest-sam-artifacts-${{ secrets.AWS_ACCOUNT_ID }}-${{ inputs.aws-region }}"
+
+          EXTRA_ARGS="--s3-bucket $ARTIFACTS_BUCKET"
           if [ -n "$STACK_NAME_OVERRIDE" ]; then
             EXTRA_ARGS="$EXTRA_ARGS --stack-name $STACK_NAME_OVERRIDE"
           fi
