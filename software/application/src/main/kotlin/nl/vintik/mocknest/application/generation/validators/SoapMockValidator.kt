@@ -198,8 +198,7 @@ class SoapMockValidator : MockValidatorInterface {
                     ?: element["contains"]?.jsonPrimitive?.content
                     ?: element["matches"]?.jsonPrimitive?.content
             }
-            is JsonArray -> null
-            is JsonNull -> null
+            is JsonArray, is JsonNull -> null
         }
     }
 
@@ -222,7 +221,7 @@ class SoapMockValidator : MockValidatorInterface {
     /**
      * Parses XML string using DocumentBuilder. Returns the root Element or null on failure.
      */
-    private fun parseXml(xml: String): ParsedXmlResult? {
+    internal fun parseXml(xml: String): ParsedXmlResult? {
         return runCatching {
             val factory = DocumentBuilderFactory.newInstance().apply {
                 isNamespaceAware = true
@@ -249,7 +248,7 @@ class SoapMockValidator : MockValidatorInterface {
     /**
      * Rules 3–6: Validates the SOAP envelope structure.
      */
-    private fun validateSoapEnvelope(
+    internal fun validateSoapEnvelope(
         result: ParsedXmlResult,
         soapVersion: SoapVersion,
         targetNamespace: String
@@ -353,7 +352,7 @@ class SoapMockValidator : MockValidatorInterface {
     }
 }
 
-private data class ParsedXmlResult(
+internal data class ParsedXmlResult(
     val root: Element?,
     val parseError: String?
 )

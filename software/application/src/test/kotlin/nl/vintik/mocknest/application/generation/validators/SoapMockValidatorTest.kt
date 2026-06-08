@@ -1966,4 +1966,113 @@ class SoapMockValidatorTest {
             )
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Coverage gap: SOAPAction fallback operation matching (no soapAction metadata)
+    // -------------------------------------------------------------------------
+    // Covers validateSoapAction's fallback branch (endpoint.metadata has no
+    // "soapAction" entry). Exercises:
+    //   - the `?: return@any false` path when operationId is null (R1)
+    //   - equals(ignoreCase) / endsWith("/op") / endsWith("#op") matches (R2)
+    // Tests assert only on the returned MockValidationResult.
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class SoapActionFallbackCoverage {
+
+        private fun loadMapping(filename: String): String =
+            this@SoapMockValidatorTest::class.java.getResource("/test-data/validators/$filename")?.readText()
+                ?: error("Mapping test resource not found: $filename")
+
+        /**
+         * Builds a SOAP 1.1 spec with a single endpoint on path "/hello" and no
+         * "soapAction" metadata, so validateSoapAction takes the fallback branch.
+         */
+        private fun soap11SpecWithFallbackEndpoint(operationId: String?): APISpecification = APISpecification(
+            format = SpecificationFormat.WSDL,
+            version = "1.0",
+            title = "HelloService",
+            endpoints = listOf(
+                EndpointDefinition(
+                    path = "/hello",
+                    method = HttpMethod.POST,
+                    operationId = operationId,
+                    summary = "Say Hello operation",
+                    parameters = emptyList(),
+                    requestBody = null,
+                    responses = mapOf(
+                        200 to ResponseDefinition(
+                            statusCode = 200,
+                            description = "SOAP response",
+                            schema = JsonSchema(type = JsonSchemaType.STRING)
+                        )
+                    ),
+                    metadata = emptyMap()
+                )
+            ),
+            schemas = emptyMap(),
+            metadata = mapOf(
+                "soapVersion" to "SOAP_1_1",
+                "targetNamespace" to "http://example.com/hello"
+            ),
+            rawContent = loadWsdl("simple-soap11.wsdl")
+        )
+
+        @Test
+        fun `Given null operationId and no soapAction metadata When SOAPAction does not match Then result invalid with operation-mismatch error`() = runTest {
+            // operationId is null and no "soapAction" metadata → fallback hits `?: return@any false`
+            val spec = soap11SpecWithFallbackEndpoint(operationId = null)
+            val mapping = loadMapping("soap11-fallback-no-match-mock.json")
+
+            val result = validator.validate(createMock("fallback-null-operationid", mapping), spec)
+
+            assertFalse(result.isValid, "Expected invalid result. Errors: ${result.errors}")
+            assertTrue(
+                result.errors.any { it.contains("does not match any operation in the WSDL") },
+                "Expected operation-mismatch error for null operationId fallback. Errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given non-null operationId When SOAPAction equals operationId ignoring case Then no operation-mismatch error`() = runTest {
+            // Action "sayhello" equals operationId "SayHello" ignoring case → equals(ignoreCase) branch
+            val spec = soap11SpecWithFallbackEndpoint(operationId = "SayHello")
+            val mapping = loadMapping("soap11-fallback-equals-ignorecase-mock.json")
+
+            val result = validator.validate(createMock("fallback-equals-ignorecase", mapping), spec)
+
+            assertFalse(
+                result.errors.any { it.contains("does not match any operation") },
+                "Action equal to operationId (ignoring case) should match. Errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given non-null operationId When SOAPAction ends with slash operationId Then no operation-mismatch error`() = runTest {
+            // Action "http://example.com/hello/SayHello" ends with "/SayHello" → endsWith("/op") branch
+            val spec = soap11SpecWithFallbackEndpoint(operationId = "SayHello")
+            val mapping = loadMapping("soap11-fallback-endswith-slash-mock.json")
+
+            val result = validator.validate(createMock("fallback-endswith-slash", mapping), spec)
+
+            assertFalse(
+                result.errors.any { it.contains("does not match any operation") },
+                "Action ending with '/operationId' should match. Errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given non-null operationId When SOAPAction ends with hash operationId Then no operation-mismatch error`() = runTest {
+            // Action "http://example.com/hello#SayHello" ends with "#SayHello" → endsWith("#op") branch
+            val spec = soap11SpecWithFallbackEndpoint(operationId = "SayHello")
+            val mapping = loadMapping("soap11-fallback-endswith-hash-mock.json")
+
+            val result = validator.validate(createMock("fallback-endswith-hash", mapping), spec)
+
+            assertFalse(
+                result.errors.any { it.contains("does not match any operation") },
+                "Action ending with '#operationId' should match. Errors: ${result.errors}"
+            )
+        }
+    }
 }
