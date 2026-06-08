@@ -192,13 +192,16 @@ class SoapMockValidator : MockValidatorInterface {
      */
     private fun extractMatcherValue(element: JsonElement): String? {
         return when (element) {
+            // JsonNull is a subtype of JsonPrimitive, so it must be matched first;
+            // otherwise it would resolve to the literal string "null" via element.content.
+            is JsonNull -> null
             is JsonPrimitive -> element.content
             is JsonObject -> {
                 element["equalTo"]?.jsonPrimitive?.content
                     ?: element["contains"]?.jsonPrimitive?.content
                     ?: element["matches"]?.jsonPrimitive?.content
             }
-            is JsonArray, is JsonNull -> null
+            is JsonArray -> null
         }
     }
 

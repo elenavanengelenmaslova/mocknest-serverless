@@ -11,6 +11,7 @@ import nl.vintik.mocknest.domain.generation.JsonSchemaType
 import nl.vintik.mocknest.domain.generation.MockMetadata
 import nl.vintik.mocknest.domain.generation.MockNamespace
 import nl.vintik.mocknest.domain.generation.ResponseDefinition
+import nl.vintik.mocknest.domain.generation.SoapVersion
 import nl.vintik.mocknest.domain.generation.SourceType
 import nl.vintik.mocknest.domain.generation.SpecificationFormat
 import org.junit.jupiter.api.AfterEach
@@ -24,6 +25,7 @@ import nl.vintik.mocknest.domain.core.HttpMethod
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -2072,6 +2074,129 @@ class SoapMockValidatorTest {
             assertFalse(
                 result.errors.any { it.contains("does not match any operation") },
                 "Action ending with '#operationId' should match. Errors: ${result.errors}"
+            )
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Coverage: extractMatcherValue collapsed `is JsonArray, is JsonNull -> null`
+    // branch via the public validate() path. When the SOAPAction header value
+    // resolves to null, SOAP 1.1 validation reports "Missing SOAPAction header".
+    // **Validates: Requirements 3.1, 3.2, 3.3, 3.4**
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class MatcherValueCoverage {
+
+        private fun loadMapping(filename: String): String =
+            this@SoapMockValidatorTest::class.java.getResource("/test-data/validators/$filename")?.readText()
+                ?: error("Mapping test resource not found: $filename")
+
+        @Test
+        fun `Given SOAP 1_1 mock with SOAPAction header as JSON array When validating Then result invalid with missing-action error`() = runTest {
+            // SOAPAction value is a JSON array → extractMatcherValue hits `is JsonArray, is JsonNull -> null`
+            val spec = soap11Specification()
+            val mapping = loadMapping("soap11-soapaction-jsonarray-mock.json")
+
+            val result = validator.validate(createMock("soapaction-jsonarray", mapping), spec)
+
+            assertFalse(result.isValid, "Expected invalid result. Errors: ${result.errors}")
+            assertTrue(
+                result.errors.any { it == "Missing SOAPAction header" },
+                "Expected missing SOAPAction error for JSON-array header value. Errors: ${result.errors}"
+            )
+        }
+
+        @Test
+        fun `Given SOAP 1_1 mock with SOAPAction header as JSON null When validating Then result invalid with missing-action error`() = runTest {
+            // SOAPAction value is JSON null → extractMatcherValue hits `is JsonArray, is JsonNull -> null`
+            val spec = soap11Specification()
+            val mapping = loadMapping("soap11-soapaction-jsonnull-mock.json")
+
+            val result = validator.validate(createMock("soapaction-jsonnull", mapping), spec)
+
+            assertFalse(result.isValid, "Expected invalid result. Errors: ${result.errors}")
+            assertTrue(
+                result.errors.any { it == "Missing SOAPAction header" },
+                "Expected missing SOAPAction error for JSON-null header value. Errors: ${result.errors}"
+            )
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Coverage: directly exercise the structurally-unreachable XML-parsing
+    // branches now that parseXml/validateSoapEnvelope/ParsedXmlResult are
+    // internal (and therefore visible from the test source set of this module).
+    //
+    // Two branches are targeted:
+    //   * validate()'s `xmlResult == null -> "unable to parse response body"`
+    //     branch (Rule 3) — reachable only if parseXml(...) returns null.
+    //   * validateSoapEnvelope()'s `root == null -> "empty document"` branch
+    //     (Rules 3-6) — reachable only with a ParsedXmlResult whose root and
+    //     parseError are both null.
+    //
+    // **Validates: Requirements 4, 5**
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class XmlParsingCoverage {
+
+        // Test A (R4): Demonstrate the real, observable behaviour of parseXml for
+        // inputs that have no document element. With a secure DocumentBuilderFactory
+        // every such input throws during parsing, so parseXml returns a *non-null*
+        // ParsedXmlResult carrying the parse error rather than null. There is no
+        // string input for which DocumentBuilder.parse succeeds yet yields a null
+        // documentElement, so parseXml can never return null — which is exactly why
+        // validate()'s `xmlResult == null` ("unable to parse response body") branch
+        // is structurally unreachable through the public path.
+        @Test
+        fun `Given inputs with no document element When parseXml Then never returns null but reports a parse error`() {
+            val candidates = listOf(
+                "",
+                "   ",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+                "<?xml version=\"1.0\"?><!-- only a comment, no root element -->"
+            )
+
+            candidates.forEach { input ->
+                val result = validator.parseXml(input)
+                assertNotNull(result, "parseXml unexpectedly returned null for input: '$input'")
+                assertNull(
+                    result.root,
+                    "Expected null root for input with no document element: '$input'"
+                )
+                assertNotNull(
+                    result.parseError,
+                    "Expected a non-null parse error for input: '$input'"
+                )
+            }
+        }
+
+        @Test
+        fun `Given well-formed XML When parseXml Then returns result with non-null root and no parse error`() {
+            val result = validator.parseXml("<root><child>value</child></root>")
+
+            assertNotNull(result, "parseXml should return a result for well-formed XML")
+            val root = result.root
+            assertNotNull(root, "Well-formed XML should yield a non-null document element")
+            assertEquals("root", root.nodeName)
+            assertNull(result.parseError, "Well-formed XML should have no parse error")
+        }
+
+        // Test B (R5): Directly exercise the otherwise-unreachable "empty document"
+        // branch of validateSoapEnvelope by passing a ParsedXmlResult whose root and
+        // parseError are both null.
+        @Test
+        fun `Given ParsedXmlResult with null root and null parseError When validateSoapEnvelope Then reports empty document`() {
+            val errors = validator.validateSoapEnvelope(
+                ParsedXmlResult(root = null, parseError = null),
+                SoapVersion.SOAP_1_1,
+                "http://example.com/hello"
+            )
+
+            assertTrue(
+                errors.contains("Response body is not well-formed XML: empty document"),
+                "Expected the empty-document error. Actual errors: $errors"
             )
         }
     }
