@@ -157,6 +157,17 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*'
 
+              # IAM auth mode: the API uses a caller-credentials (response-streaming) Lambda
+              # integration, so API Gateway invokes the runtime/generation functions AS the
+              # calling identity. The caller therefore needs lambda:InvokeFunction on those
+              # functions (and their aliases). Not required in API_KEY mode, which uses the
+              # function's resource-based policy for the apigateway principal instead.
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:mocknest-serverless*'
+
               # IAM auth mode: the webhook integration test polls the S3 request journal
               # (list-objects-v2 + get-object under requests/) on the stack's mock-storage bucket.
               - Effect: Allow
