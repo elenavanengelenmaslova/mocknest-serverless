@@ -193,6 +193,17 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*'
 
+              # Lambda event source mappings (SQS -> RuntimeAsync webhook consumer).
+              # CreateEventSourceMapping does not support resource-level scoping.
+              - Effect: Allow
+                Action:
+                  - lambda:CreateEventSourceMapping
+                  - lambda:GetEventSourceMapping
+                  - lambda:UpdateEventSourceMapping
+                  - lambda:DeleteEventSourceMapping
+                  - lambda:ListEventSourceMappings
+                Resource: '*'
+
               # API Gateway permissions scoped to account
               - Effect: Allow
                 Action:
@@ -202,9 +213,7 @@ Resources:
                   - apigateway:DELETE
                   - apigateway:PATCH
                 Resource:
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis'
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis/*'
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/tags/*'
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/*'
 
               # S3 bucket management permissions
               - Effect: Allow
@@ -279,6 +288,15 @@ Resources:
                   - bedrock:InvokeModelWithResponseStream
                 Resource:
                   - !Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:*'
+
+              # Required to expand the SAM (Serverless) transform during stack operations.
+              # CloudFormation, acting as this execution role, calls CreateChangeSet
+              # against the managed transform macro to process `Transform: AWS::Serverless-2016-10-31`.
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                Resource:
+                  - !Sub 'arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31'
       Tags:
         - Key: Application
           Value: MockNest-Serverless
