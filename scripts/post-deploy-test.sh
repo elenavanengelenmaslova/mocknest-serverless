@@ -149,8 +149,8 @@ curl_no_fail() {
 test_runtime_health() {
   echo "Testing runtime health..."
 
-  local attempts="${HEALTH_CHECK_ATTEMPTS:-18}"
-  local interval="${HEALTH_CHECK_INTERVAL_SECS:-10}"
+  local attempts="${HEALTH_CHECK_ATTEMPTS:-3}"
+  local interval="${HEALTH_CHECK_INTERVAL_SECS:-5}"
   local attempt=0
 
   while [ "$attempt" -lt "$attempts" ]; do
