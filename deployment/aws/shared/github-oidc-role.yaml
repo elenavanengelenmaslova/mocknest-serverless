@@ -169,27 +169,13 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # Lambda permissions (scoped)
+              # Lambda permissions (scoped to functions in this account/region).
+              # Broad action set on the function resource keeps SAM operations
+              # (versions, aliases, SnapStart, event-invoke config, tags) working
+              # without per-action churn; resource scope still limits blast radius.
               - Effect: Allow
                 Action:
-                  - lambda:CreateFunction
-                  - lambda:UpdateFunctionCode
-                  - lambda:UpdateFunctionConfiguration
-                  - lambda:DeleteFunction
-                  - lambda:AddPermission
-                  - lambda:RemovePermission
-                  - lambda:GetFunction
-                  - lambda:ListVersionsByFunction
-                  - lambda:PublishVersion
-                  - lambda:CreateAlias
-                  - lambda:UpdateAlias
-                  - lambda:DeleteAlias
-                  - lambda:GetAlias
-                  - lambda:InvokeFunction
-                  - lambda:TagResource
-                  - lambda:UntagResource
-                  - lambda:ListTags
-                  - lambda:PutFunctionEventInvokeConfig
+                  - lambda:*
                 Resource:
                   - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*'
 
