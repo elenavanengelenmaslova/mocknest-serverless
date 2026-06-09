@@ -6,7 +6,7 @@ This directory contains the CloudFormation template and helper scripts for confi
 
 MockNest Serverless uses a two-role pattern:
 
-- **GitHubActionsRole** — assumed by GitHub Actions via OIDC. Has minimal permissions to orchestrate SAM deployments (CloudFormation operations, object-level S3 access to the artifacts bucket, `iam:PassRole` to the execution role).
+- **GitHubActionsRole** — assumed by GitHub Actions via OIDC. Has minimal permissions to orchestrate SAM deployments (CloudFormation operations, object-level S3 access to the artifacts bucket, `iam:PassRole` to the execution role, `apigateway:GET` on `/apikeys/*` to read the API key during post-deploy tests, and `serverlessrepo:*` for SAR publishing). For **IAM auth mode** integration tests it also has `execute-api:Invoke` (SigV4-signed requests to the deployed API) and `s3:GetObject`/`s3:ListBucket` on the stack's mock-storage bucket (`mocknest-serverless*mockstorage*`) for webhook request-journal polling.
 - **MockNestCloudFormationExecutionRole** — assumed by CloudFormation (via `--role-arn`) to create actual stack resources (Lambda, API Gateway, S3, SQS, IAM roles, log groups, Bedrock access).
 
 This bootstrap stack also provisions the **SAM deployment artifacts bucket** (`MockNestArtifactsBucket`, named `mocknest-sam-artifacts-<account-id>-<region>`). SAM uploads packaged Lambda code, the packaged template, and the SAR `LicenseUrl`/`ReadmeUrl` artifacts there during `sam deploy`. Because the bucket is owned by this stack, the deploy pipeline never needs `resolve_s3` (no SAM-managed bucket) and `GitHubActionsRole` only needs object-level access (no `CreateBucket`/`DeleteBucket`).

@@ -141,6 +141,32 @@ Resources:
                   StringEquals:
                     'iam:PassedToService': cloudformation.amazonaws.com
 
+              # Read the generated API key value during post-deploy integration tests
+              # (the integration-test job calls `aws apigateway get-api-key --include-value`).
+              - Effect: Allow
+                Action:
+                  - apigateway:GET
+                Resource:
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/apikeys/*'
+
+              # IAM auth mode: integration tests sign requests to the deployed API with SigV4
+              # (--aws-sigv4 ...:execute-api). Not used in API_KEY mode (api-key header instead).
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                Resource:
+                  - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*'
+
+              # IAM auth mode: the webhook integration test polls the S3 request journal
+              # (list-objects-v2 + get-object under requests/) on the stack's mock-storage bucket.
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - 'arn:aws:s3:::mocknest-serverless*mockstorage*'
+                  - 'arn:aws:s3:::mocknest-serverless*mockstorage*/*'
+
               # Serverless Application Repository publishing
               - Effect: Allow
                 Action:
