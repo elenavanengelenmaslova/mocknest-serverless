@@ -91,10 +91,13 @@ This updates the stack in-place — hardens the trust policy, removes `PowerUser
 
 ### 2. Pass the execution role to SAM deploy
 
-Your `sam deploy` command needs `--role-arn` so CloudFormation uses the execution role:
+CloudFormation must use the execution role to create stack resources, so `sam deploy` needs `--role-arn`. **The reusable workflow `workflow-deploy-aws.yml` already does this automatically** — it derives the ARN as `arn:aws:iam::${AWS_ACCOUNT_ID}:role/MockNestCloudFormationExecutionRole` (account id from the `AWS_ACCOUNT_ID` secret) and passes both `--role-arn` and `--s3-bucket` (the artifacts bucket). It also passes `--s3-bucket mocknest-sam-artifacts-<account-id>-<region>` so no `resolve_s3`-managed bucket is needed.
+
+For a manual deploy outside CI, pass it yourself:
 
 ```bash
-sam deploy --role-arn <MockNestCloudFormationExecutionRoleArn>
+sam deploy --role-arn <MockNestCloudFormationExecutionRoleArn> \
+           --s3-bucket mocknest-sam-artifacts-<account-id>-<region>
 ```
 
 Get the ARN from the stack outputs:
