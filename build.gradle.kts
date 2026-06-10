@@ -79,7 +79,7 @@ subprojects {
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.8")
 
         // Jackson 2.x BOM for consistent Jackson versions
-        implementation(platform("com.fasterxml.jackson:jackson-bom:2.21.3"))
+        implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.0"))
 
         // Explicit version constraints for managed dependencies
         constraints {

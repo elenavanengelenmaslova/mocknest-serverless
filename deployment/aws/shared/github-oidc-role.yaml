@@ -26,6 +26,31 @@ Conditions:
   CreateOIDCProvider: !Equals [!Ref ExistingOIDCProviderArn, '']
 
 Resources:
+  # S3 bucket for SAM deployment artifacts (Lambda code, packaged template, SAR LICENSE/README).
+  # Owned by this bootstrap stack so the GitHub Actions role only needs object-level access
+  # (no CreateBucket/DeleteBucket/TagResource), and SAM does not need resolve_s3 managed buckets.
+  # Name is derived from account id + region for global uniqueness without hard-coding.
+  MockNestArtifactsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub 'mocknest-sam-artifacts-${AWS::AccountId}-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Purpose
+          Value: SAM-Deployment-Artifacts
+
   # OIDC Identity Provider for GitHub Actions (only created if no existing provider ARN is given)
   GitHubOIDCProvider:
     Type: AWS::IAM::OIDCProvider
@@ -95,6 +120,8 @@ Resources:
                   - 'arn:aws:s3:::aws-sam-cli-managed-default-*/*'
                   - 'arn:aws:s3:::mocknest-sar-artifacts-*'
                   - 'arn:aws:s3:::mocknest-sar-artifacts-*/*'
+                  - !GetAtt MockNestArtifactsBucket.Arn
+                  - !Sub '${MockNestArtifactsBucket.Arn}/*'
 
               # S3 bucket creation for SAR artifact bucket
               - Effect: Allow
@@ -113,6 +140,52 @@ Resources:
                 Condition:
                   StringEquals:
                     'iam:PassedToService': cloudformation.amazonaws.com
+
+              # Read the generated API key value during post-deploy integration tests
+              # (the integration-test job calls `aws apigateway get-api-key --include-value`).
+              - Effect: Allow
+                Action:
+                  - apigateway:GET
+                Resource:
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/apikeys/*'
+
+              # IAM auth mode: integration tests sign requests to the deployed API with SigV4
+              # (--aws-sigv4 ...:execute-api). Not used in API_KEY mode (api-key header instead).
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                Resource:
+                  - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*'
+
+              # IAM auth mode: the API uses a caller-credentials (response-streaming) Lambda
+              # integration, so API Gateway invokes the runtime/generation functions AS the
+              # calling identity. The caller therefore needs lambda:InvokeFunction on those
+              # functions (and their aliases). Not required in API_KEY mode, which uses the
+              # function's resource-based policy for the apigateway principal instead.
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:mocknest-serverless*'
+
+              # IAM auth mode: the webhook integration test polls the S3 request journal
+              # under the requests/ prefix only (list-objects-v2 + get-object).
+              # ListBucket is scoped to the requests/ prefix; GetObject to requests/* objects.
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - 'arn:aws:s3:::mocknest-serverless*mockstorage*'
+                Condition:
+                  StringLike:
+                    's3:prefix':
+                      - 'requests/'
+                      - 'requests/*'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - 'arn:aws:s3:::mocknest-serverless*mockstorage*/requests/*'
 
               # Serverless Application Repository publishing
               - Effect: Allow
@@ -142,7 +215,10 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # Lambda permissions (scoped)
+              # Lambda permissions (explicit action list — no service-level wildcard,
+              # per the OIDC least-privilege policy enforced by scripts/check-oidc-policy.sh).
+              # Covers the full SAM lifecycle including SnapStart version/alias creation,
+              # which reads runtime-management and code-signing config on the version.
               - Effect: Allow
                 Action:
                   - lambda:CreateFunction
@@ -151,7 +227,12 @@ Resources:
                   - lambda:DeleteFunction
                   - lambda:AddPermission
                   - lambda:RemovePermission
+                  - lambda:GetPolicy
                   - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:GetFunctionCodeSigningConfig
+                  - lambda:GetRuntimeManagementConfig
+                  - lambda:PutRuntimeManagementConfig
                   - lambda:ListVersionsByFunction
                   - lambda:PublishVersion
                   - lambda:CreateAlias
@@ -163,8 +244,22 @@ Resources:
                   - lambda:UntagResource
                   - lambda:ListTags
                   - lambda:PutFunctionEventInvokeConfig
+                  - lambda:GetFunctionEventInvokeConfig
+                  - lambda:UpdateFunctionEventInvokeConfig
+                  - lambda:DeleteFunctionEventInvokeConfig
                 Resource:
                   - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*'
+
+              # Lambda event source mappings (SQS -> RuntimeAsync webhook consumer).
+              # CreateEventSourceMapping does not support resource-level scoping.
+              - Effect: Allow
+                Action:
+                  - lambda:CreateEventSourceMapping
+                  - lambda:GetEventSourceMapping
+                  - lambda:UpdateEventSourceMapping
+                  - lambda:DeleteEventSourceMapping
+                  - lambda:ListEventSourceMappings
+                Resource: '*'
 
               # API Gateway permissions scoped to account
               - Effect: Allow
@@ -175,9 +270,7 @@ Resources:
                   - apigateway:DELETE
                   - apigateway:PATCH
                 Resource:
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis'
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis/*'
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/tags/*'
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/*'
 
               # S3 bucket management permissions
               - Effect: Allow
@@ -252,6 +345,15 @@ Resources:
                   - bedrock:InvokeModelWithResponseStream
                 Resource:
                   - !Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:*'
+
+              # Required to expand the SAM (Serverless) transform during stack operations.
+              # CloudFormation, acting as this execution role, calls CreateChangeSet
+              # against the managed transform macro to process `Transform: AWS::Serverless-2016-10-31`.
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                Resource:
+                  - !Sub 'arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31'
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -264,6 +366,12 @@ Outputs:
     Value: !GetAtt GitHubActionsRole.Arn
     Export:
       Name: GitHubActionsRoleArn
+
+  MockNestArtifactsBucketName:
+    Description: Name of the S3 bucket used for SAM deployment artifacts
+    Value: !Ref MockNestArtifactsBucket
+    Export:
+      Name: MockNestArtifactsBucketName
 
   MockNestCloudFormationExecutionRoleArn:
     Description: ARN of the CloudFormation execution role
