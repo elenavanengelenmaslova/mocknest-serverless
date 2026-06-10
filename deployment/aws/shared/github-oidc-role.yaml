@@ -169,14 +169,23 @@ Resources:
                   - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:mocknest-serverless*'
 
               # IAM auth mode: the webhook integration test polls the S3 request journal
-              # (list-objects-v2 + get-object under requests/) on the stack's mock-storage bucket.
+              # under the requests/ prefix only (list-objects-v2 + get-object).
+              # ListBucket is scoped to the requests/ prefix; GetObject to requests/* objects.
               - Effect: Allow
                 Action:
-                  - s3:GetObject
                   - s3:ListBucket
                 Resource:
                   - 'arn:aws:s3:::mocknest-serverless*mockstorage*'
-                  - 'arn:aws:s3:::mocknest-serverless*mockstorage*/*'
+                Condition:
+                  StringLike:
+                    's3:prefix':
+                      - 'requests/'
+                      - 'requests/*'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - 'arn:aws:s3:::mocknest-serverless*mockstorage*/requests/*'
 
               # Serverless Application Repository publishing
               - Effect: Allow
