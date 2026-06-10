@@ -1,0 +1,7 @@
+{
+  "data": {
+    "someOtherKey": {
+      "note": "Valid JSON but no __schema element, forcing a GraphQLSchemaParsingException"
+    }
+  }
+}
