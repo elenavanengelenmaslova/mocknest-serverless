@@ -1,0 +1,23 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": null,
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "items",
+              "description": "A list wrapper whose ofType is explicitly JSON null",
+              "args": [],
+              "type": { "kind": "LIST", "name": null, "ofType": null }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": null,
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            { "name": "user", "description": "A user with no declared return type", "args": [] }
+          ]
+        }
+      ]
+    }
+  }
+}
