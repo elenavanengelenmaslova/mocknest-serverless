@@ -142,54 +142,42 @@ curl_no_fail() {
 # Test Functions
 
 # Test runtime health check
-# Validates that the core MockNest runtime is operational
+# Validates that the core MockNest runtime is operational.
+# Uses a bounded retry loop: immediately after a deploy the API stage / first
+# SnapStart invocation can briefly return 5xx before settling, so we retry
+# instead of failing on a single transient response.
 test_runtime_health() {
   echo "Testing runtime health..."
-  
-  # Debug: verbose request to see full HTTP exchange
-  echo "  [debug] Requesting: $API_URL/__admin/health"
-  local debug_response
-  debug_response=$(curl \
-    --silent \
-    --show-error \
-    --max-time 30 \
-    --include \
-    --header "x-api-key: $API_KEY" \
-    --header "Content-Type: application/json" \
-    "$API_URL/__admin/health" 2>&1) || true
-  echo "  [debug] Full response (headers + body):"
-  echo "$debug_response" | head -30
-  echo "  [debug] Response bytes (hex, first 200):"
-  echo "$debug_response" | tail -1 | xxd | head -15
-  echo "  [debug] ---"
 
-  local response
-  response=$(curl "${CURL_OPTS[@]}" \
-    --write-out "\n%{http_code}" \
-    "$API_URL/__admin/health" 2>&1) || {
-    echo "ERROR: Runtime health check request failed"
-    echo "Response: $response"
-    exit 1
-  }
-  
-  parse_response "$response"
-  
-  if [ "$HTTP_CODE" != "200" ]; then
-    echo "ERROR: Runtime health check failed with HTTP $HTTP_CODE"
-    echo "Response: $BODY"
-    exit 1
-  fi
-  
-  if ! echo "$BODY" | grep -q '"status"[[:space:]]*:[[:space:]]*"healthy"'; then
-    echo "ERROR: Runtime health check response missing 'status: healthy'"
-    echo "Response: $BODY"
-    echo "  [debug] Body length: ${#BODY}"
-    echo "  [debug] Body hex (first 100 bytes):"
-    echo "$BODY" | xxd | head -10
-    exit 1
-  fi
-  
-  echo "✓ Runtime health check passed"
+  local attempts="${HEALTH_CHECK_ATTEMPTS:-3}"
+  local interval="${HEALTH_CHECK_INTERVAL_SECS:-5}"
+  local attempt=0
+
+  while [ "$attempt" -lt "$attempts" ]; do
+    attempt=$((attempt + 1))
+
+    # curl_no_fail reuses CURL_OPTS (incl. SigV4 in IAM mode) but drops --fail,
+    # so we can inspect the HTTP code instead of aborting on a 5xx.
+    local response
+    response=$(curl_no_fail \
+      --write-out "\n%{http_code}" \
+      "$API_URL/__admin/health" 2>&1)
+
+    parse_response "$response"
+
+    if [ "$HTTP_CODE" = "200" ] && echo "$BODY" | grep -q '"status"[[:space:]]*:[[:space:]]*"healthy"'; then
+      echo "✓ Runtime health check passed (attempt $attempt/$attempts)"
+      return 0
+    fi
+
+    echo "  Health check attempt $attempt/$attempts: HTTP $HTTP_CODE (retrying in ${interval}s)"
+    echo "  [debug] Body: $(echo "$BODY" | head -c 300)"
+    sleep "$interval"
+  done
+
+  echo "ERROR: Runtime health check failed after $attempts attempts (last HTTP $HTTP_CODE)"
+  echo "Response: $BODY"
+  exit 1
 }
 
 
