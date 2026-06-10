@@ -192,6 +192,9 @@ class SoapMockValidator : MockValidatorInterface {
      */
     private fun extractMatcherValue(element: JsonElement): String? {
         return when (element) {
+            // JsonNull is a subtype of JsonPrimitive, so it must be matched first;
+            // otherwise it would resolve to the literal string "null" via element.content.
+            is JsonNull -> null
             is JsonPrimitive -> element.content
             is JsonObject -> {
                 element["equalTo"]?.jsonPrimitive?.content
@@ -199,7 +202,6 @@ class SoapMockValidator : MockValidatorInterface {
                     ?: element["matches"]?.jsonPrimitive?.content
             }
             is JsonArray -> null
-            is JsonNull -> null
         }
     }
 
@@ -222,7 +224,7 @@ class SoapMockValidator : MockValidatorInterface {
     /**
      * Parses XML string using DocumentBuilder. Returns the root Element or null on failure.
      */
-    private fun parseXml(xml: String): ParsedXmlResult? {
+    internal fun parseXml(xml: String): ParsedXmlResult? {
         return runCatching {
             val factory = DocumentBuilderFactory.newInstance().apply {
                 isNamespaceAware = true
@@ -249,7 +251,7 @@ class SoapMockValidator : MockValidatorInterface {
     /**
      * Rules 3–6: Validates the SOAP envelope structure.
      */
-    private fun validateSoapEnvelope(
+    internal fun validateSoapEnvelope(
         result: ParsedXmlResult,
         soapVersion: SoapVersion,
         targetNamespace: String
@@ -353,7 +355,7 @@ class SoapMockValidator : MockValidatorInterface {
     }
 }
 
-private data class ParsedXmlResult(
+internal data class ParsedXmlResult(
     val root: Element?,
     val parseError: String?
 )
