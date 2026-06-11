@@ -106,7 +106,11 @@ fun generationModule() = module {
     // Composite specification parser — aggregates OpenAPI, GraphQL, and WSDL parsers
     single<CompositeSpecificationParser> {
         CompositeSpecificationParserImpl(
-            listOf(get<OpenAPISpecificationParser>(), get(named("graphql")), get(named("wsdl")))
+            listOf<SpecificationParserInterface>(
+                get<OpenAPISpecificationParser>(),
+                get(named("graphql")),
+                get(named("wsdl"))
+            )
         )
     }
 
