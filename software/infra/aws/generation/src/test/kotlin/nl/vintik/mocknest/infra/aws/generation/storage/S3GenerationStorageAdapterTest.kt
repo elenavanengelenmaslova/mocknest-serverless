@@ -690,4 +690,199 @@ class S3GenerationStorageAdapterTest {
             coVerify { s3Client.deleteObject(match<DeleteObjectRequest> { it.key?.contains("current.json") == true }) }
         }
     }
+
+    @Nested
+    inner class FailureAndEdgeCases {
+
+        @Test
+        fun `Given empty mock list When storing Then should throw IllegalArgumentException`() = runBlocking {
+            coEvery { s3Client.putObject(any()) } returns PutObjectResponse {}
+
+            assertFailsWith<IllegalArgumentException> {
+                adapter.storeGeneratedMocks(emptyList(), "job-empty")
+            }
+            Unit
+        }
+
+        @Test
+        fun `Given putObject failure When storing mocks Then should rethrow`() = runBlocking {
+            val mock = GeneratedMock(
+                id = "m1",
+                name = "mock",
+                namespace = MockNamespace("test-api"),
+                wireMockMapping = "{}",
+                metadata = MockMetadata(
+                    sourceType = SourceType.SPEC_WITH_DESCRIPTION,
+                    sourceReference = "ref",
+                    endpoint = EndpointInfo(HttpMethod.GET, "/t", 200, "application/json")
+                )
+            )
+            coEvery { s3Client.putObject(any()) } throws RuntimeException("S3 down")
+
+            assertFailsWith<RuntimeException> {
+                adapter.storeGeneratedMocks(listOf(mock), "job-1")
+            }
+            Unit
+        }
+
+        @Test
+        fun `Given null version When storing specification Then should use specification version`() = runBlocking {
+            val namespace = MockNamespace("test-api")
+            val spec = APISpecification(
+                format = SpecificationFormat.OPENAPI_3,
+                version = "9.9",
+                title = "Test",
+                endpoints = listOf(
+                    EndpointDefinition(
+                        path = "/test",
+                        method = HttpMethod.GET,
+                        operationId = null,
+                        summary = null,
+                        parameters = emptyList(),
+                        requestBody = null,
+                        responses = mapOf(200 to ResponseDefinition(200, "OK", null))
+                    )
+                ),
+                schemas = emptyMap()
+            )
+            coEvery { s3Client.putObject(any()) } returns PutObjectResponse {}
+
+            val result = adapter.storeSpecification(namespace, spec, null)
+
+            assertEquals("mocknest/test-api/api-specs/current.json", result)
+            // Versioned copy uses the specification's own version
+            coVerify { s3Client.putObject(match<PutObjectRequest> { it.key?.contains("versions/9.9.json") == true }) }
+        }
+
+        @Test
+        fun `Given generic S3 error When getting specification Then should return null`() = runBlocking {
+            val namespace = MockNamespace("test-api")
+            coEvery {
+                s3Client.getObject(any<GetObjectRequest>(), any<suspend (GetObjectResponse) -> Unit>())
+            } throws RuntimeException("network blip")
+
+            val result = adapter.getSpecification(namespace, null)
+
+            assertNull(result)
+        }
+
+        @Test
+        fun `Given generic S3 error When getting job Then should return null`() = runBlocking {
+            val jobId = "job-err"
+            val listResponse = ListObjectsV2Response {
+                contents = listOf(Object { key = "mocknest/test-api/jobs/$jobId/metadata.json" })
+            }
+            coEvery { s3Client.listObjectsV2(any<ListObjectsV2Request>()) } returns listResponse
+            coEvery {
+                s3Client.getObject(any<GetObjectRequest>(), any<suspend (GetObjectResponse) -> Unit>())
+            } throws RuntimeException("boom")
+
+            val result = adapter.getJob(jobId)
+
+            assertNull(result)
+        }
+
+        @Test
+        fun `Given non-existent job When updating status Then should not call putObject`() = runBlocking {
+            val emptyListResponse = ListObjectsV2Response { contents = emptyList() }
+            coEvery { s3Client.listObjectsV2(any<ListObjectsV2Request>()) } returns emptyListResponse
+
+            adapter.updateJobStatus("missing", JobStatus.COMPLETED, null)
+
+            coVerify(exactly = 0) { s3Client.putObject(any<PutObjectRequest>()) }
+        }
+
+        @Test
+        fun `Given existing job When updating status to failed Then should persist with error and completion time`() = runBlocking {
+            val jobId = "job-fail"
+            val job = GenerationJob(
+                id = jobId,
+                status = JobStatus.IN_PROGRESS,
+                request = GenerationJobRequest(
+                    type = GenerationType.SPECIFICATION,
+                    namespace = MockNamespace("test-api"),
+                    specifications = listOf(SpecificationInput("s", "c", SpecificationFormat.OPENAPI_3)),
+                    options = GenerationOptions.default()
+                ),
+                results = null,
+                createdAt = Instant.now(),
+                completedAt = null
+            )
+            val jobJson = mapper.writeValueAsString(job)
+            val listResponse = ListObjectsV2Response {
+                contents = listOf(Object { key = "mocknest/test-api/jobs/$jobId/metadata.json" })
+            }
+            coEvery { s3Client.listObjectsV2(any<ListObjectsV2Request>()) } returns listResponse
+            coEvery { s3Client.getObject(any<GetObjectRequest>(), any<suspend (GetObjectResponse) -> Unit>()) } coAnswers {
+                val handler = secondArg<suspend (GetObjectResponse) -> Unit>()
+                handler(GetObjectResponse { body = ByteStream.fromBytes(jobJson.toByteArray()) })
+            }
+            coEvery { s3Client.putObject(any<PutObjectRequest>()) } returns PutObjectResponse {}
+
+            adapter.updateJobStatus(jobId, JobStatus.FAILED, "generation crashed")
+
+            coVerify { s3Client.putObject(any<PutObjectRequest>()) }
+        }
+
+        @Test
+        fun `Given non-existent job When storing results Then should not call putObject`() = runBlocking {
+            val emptyListResponse = ListObjectsV2Response { contents = emptyList() }
+            coEvery { s3Client.listObjectsV2(any<ListObjectsV2Request>()) } returns emptyListResponse
+
+            val results = GenerationResults(
+                totalGenerated = 1, successful = 0, failed = 1,
+                generatedMocks = emptyList(), errors = emptyList()
+            )
+
+            adapter.storeJobResults("missing", results)
+
+            coVerify(exactly = 0) { s3Client.putObject(any<PutObjectRequest>()) }
+        }
+
+        @Test
+        fun `Given S3 error When checking health Then should return false`() = runBlocking {
+            coEvery { s3Client.listObjectsV2(any<ListObjectsV2Request>()) } throws RuntimeException("unreachable")
+
+            assertFalse(adapter.isHealthy())
+        }
+
+        @Test
+        fun `Given only non-metadata keys When listing jobs Then should return empty list`() = runBlocking {
+            val namespace = MockNamespace("test-api")
+            val listResponse = ListObjectsV2Response {
+                contents = listOf(Object { key = "mocknest/test-api/jobs/job-1/results.json" })
+            }
+            coEvery { s3Client.listObjectsV2(any<ListObjectsV2Request>()) } returns listResponse
+
+            val result = adapter.listJobs(namespace, null, 10)
+
+            assertTrue(result.isEmpty())
+        }
+
+        @Test
+        fun `Given deleteObjects failure When deleting mocks Then should return false`() = runBlocking {
+            val jobId = "job-del"
+            val findJobResponse = ListObjectsV2Response {
+                contents = listOf(Object { key = "mocknest/test-api/jobs/$jobId/metadata.json" })
+            }
+            coEvery { s3Client.listObjectsV2(match<ListObjectsV2Request> { it.prefix == "mocknest/" }) } returns findJobResponse
+            val mocksListResponse = ListObjectsV2Response {
+                contents = listOf(Object { key = "mocknest/test-api/jobs/$jobId/mocks/m1.json" })
+            }
+            coEvery { s3Client.listObjectsV2(match<ListObjectsV2Request> { it.prefix?.contains("mocks/") == true }) } returns mocksListResponse
+            coEvery { s3Client.deleteObjects(any<DeleteObjectsRequest>()) } throws RuntimeException("delete failed")
+
+            val result = adapter.deleteGeneratedMocks(jobId)
+
+            assertFalse(result)
+        }
+
+        @Test
+        fun `Given deleteObject failure When deleting specification Then should return false`() = runBlocking {
+            val namespace = MockNamespace("test-api")
+            coEvery { s3Client.deleteObject(any<DeleteObjectRequest>()) } throws RuntimeException("delete failed")
+
+            assertFalse(adapter.deleteSpecification(namespace, "1.0"))
+        }
+    }
 }
