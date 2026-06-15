@@ -98,8 +98,8 @@ subprojects {
             implementation("ai.koog:agents-test:$koogVersion")
 
             // Kotlin AWS SDK (versions from main)
-            val awsSdkKotlinVersion = "1.6.90"
-            val smithyKotlinVersion = "1.6.14"
+            val awsSdkKotlinVersion = "1.6.95"
+            val smithyKotlinVersion = "1.6.15"
             implementation("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
@@ -133,7 +133,7 @@ subprojects {
             testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
 
             // Koin DI Framework
-            val koinVersion = "4.2.1"
+            val koinVersion = "4.2.2"
             implementation("io.insert-koin:koin-core:$koinVersion")
             implementation("io.insert-koin:koin-test:$koinVersion")
             implementation("io.insert-koin:koin-test-junit5:$koinVersion")
