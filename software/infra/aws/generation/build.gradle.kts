@@ -40,7 +40,7 @@ dependencies {
     api("aws.sdk.kotlin:bedrockruntime")
     
     // HTTP client for AWS SDK
-    val smithyKotlinVersion = "1.6.14"
+    val smithyKotlinVersion = "1.6.15"
     api("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
     api("com.squareup.okhttp3:okhttp:5.3.2")
 
@@ -67,7 +67,7 @@ dependencies {
     // Dokimos LLM evaluation framework (test-scope only)
     // Verified compatible with Koog 0.8.0 — dokimos-koog 0.14.2 compiles and works
     // correctly against the Koog 0.8.0 API (MultiLLMPromptExecutor, AIAgent, etc.)
-    val dokimosVersion = "0.21.0"
+    val dokimosVersion = "0.22.0"
     testImplementation("dev.dokimos:dokimos-core:$dokimosVersion")
     testImplementation("dev.dokimos:dokimos-kotlin:$dokimosVersion")
     testImplementation("dev.dokimos:dokimos-junit:$dokimosVersion")
