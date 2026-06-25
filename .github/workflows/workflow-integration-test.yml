@@ -77,7 +77,7 @@ jobs:
       auth-mode: ${{ steps.stack-name.outputs.auth-mode }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -151,7 +151,7 @@ jobs:
     if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'rest' || inputs.test-suite == '') }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -204,7 +204,7 @@ jobs:
     if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'graphql' || inputs.test-suite == '') }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -257,7 +257,7 @@ jobs:
     if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'soap' || inputs.test-suite == '') }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -310,7 +310,7 @@ jobs:
     if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'webhook') && needs.setup.outputs.auth-mode == 'IAM' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -351,7 +351,7 @@ jobs:
     if: ${{ inputs.run-extensive-tests == true && !cancelled() && !failure() }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -404,7 +404,7 @@ jobs:
     if: ${{ always() && inputs.run-extensive-tests == true }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
