@@ -1,26 +1,28 @@
 # Adding response streaming to a Kotlin Lambda behind API Gateway
 
-### How I tested large streaming HTTP responses from a JVM Lambda
+### Lessons learnt when implementing streaming HTTP responses from a JVM Lambda
 
-Mocking a typical JSON response is easy. Mocking a large response that behaves like a real download, or a response that arrives slowly like Server-Sent Events, is less straightforward.
+Most REST APIs return small JSON responses. That is the common case, and it works fine. But some REST endpoints do not. They return file downloads, bulk exports, or large generated payloads. Others use Server-Sent Events to push data progressively to the client. With AI APIs now streaming responses token by token, what used to be an edge case is becoming the expected behaviour.
 
-That was the problem I hit while working on MockNest Serverless, my open source serverless mock runtime for AWS [8]. MockNest Serverless runs in your own AWS account, exposes WireMock-compatible mock endpoints through API Gateway and AWS Lambda, and stores persistent mock definitions in S3.
+That is exactly the problem I ran into with MockNest Serverless [8], my open source cloud mock server that runs in your own AWS account. It exposes WireMock-compatible mock endpoints through API Gateway and AWS Lambda, and stores mock definitions in S3. A mock server should be able to simulate the full behaviour of the APIs it replaces — including the ones that stream. A concrete example: Salesforce Bulk API 2.0 returns large CSV result sets from endpoints such as `/services/data/vXX.X/jobs/query/{queryJobId}/results`, with locators and parallel result URLs for even larger sets [1]. If an application integrates with that kind of API, the mock needs to simulate large CSV downloads too. MockNest could not do that.
 
-MockNest is the real-life example in this article, but the topic is broader: how do you add response streaming to a Kotlin or Java Lambda running on the JVM, and how do you prove that it actually streams?
+**Can AWS Lambda do it?**
 
-I needed this because some APIs do not return small JSON documents. They return files, exports, large generated payloads, or responses that arrive progressively.
+Yes. AWS Lambda introduced response payload streaming on [April 7, 2023](https://aws.amazon.com/about-aws/whats-new/2023/04/aws-lambda-response-payload-streaming/), initially supporting Node.js 14.x and newer runtimes, plus custom runtimes, across 21 regions. The feature expanded to [all commercial AWS regions on April 7, 2026](https://aws.amazon.com/about-aws/whats-new/2026/04/aws-lambda-response-streaming/). It raises the response payload limit from 6 MB to 200 MB and improves time-to-first-byte for progressive responses.
 
-A good example is Salesforce Bulk API 2.0. Query jobs can return CSV result sets from endpoints such as `/services/data/vXX.X/jobs/query/{queryJobId}/results`. Salesforce also supports locators and parallel result URLs for retrieving larger query result sets [1]. If an application integrates with that kind of API, a mock server should be able to simulate large CSV downloads too.
+**Does it work on the JVM?**
 
-The old Lambda implementation could not.
+That is where it gets interesting. When I looked for guidance, the examples I found were almost exclusively JavaScript and TypeScript. AWS's own helpers — such as `awslambda.HttpResponseStream.from()` — are Node.js-only. For a Kotlin or Java Lambda, there was no equivalent library to reach for. I had to implement the streaming response protocol directly.
+
+That is what this article covers.
+
+The old MockNest Lambda implementation could not handle that.
 
 It used a buffered Lambda response. That means the full response had to be built before it was returned to API Gateway. API Gateway has a 10 MB payload limit for non-WebSocket APIs [2], but in the Lambda path the stricter limit is usually Lambda itself: synchronous invocation payloads are limited to 6 MB for both request and response [3].
 
 For many endpoints, 6 MB is enough.
 
 For large CSV exports, generated files, or slow streamed responses, it is not.
-
-Response streaming changes that. Lambda response streaming lets a function send bytes as they become available. It improves time-to-first-byte and supports streamed response payloads up to 200 MB instead of the 6 MB buffered response limit [4].
 
 So I added response streaming to a Kotlin Lambda running on the JVM.
 
@@ -341,6 +343,8 @@ The last test runs after deployment against the real API endpoint.
 
 This is the one that proves the infrastructure is wired correctly.
 
+Before measuring, run a warmup request first. A cold start introduces a delay that would dominate the first-byte timing and make a correctly configured streaming endpoint look slow. The warmup request brings the Lambda to a warm state so the subsequent measurements reflect streaming latency, not initialization time.
+
 I used two checks.
 
 The first check verifies a payload larger than 6 MB. The test creates a response above the buffered Lambda limit, calls the deployed endpoint, and verifies that the received payload has the expected size. If this fails, either streaming is not enabled correctly or something still buffers through the old limit.
@@ -388,8 +392,6 @@ The third lesson is that streaming at the platform boundary does not automatical
 The fourth lesson is that the HTTP status code is committed early. Validate what you can before writing metadata.
 
 The fifth lesson is that testing has to be layered. Unit tests prove byte correctness. Integration tests prove the handler can produce large and delayed responses. Post-deploy tests prove that the real API endpoint streams progressively.
-
-The sixth lesson is that writing the metadata yourself means owning its edge cases. A string-to-string header map quietly drops repeated headers like `Set-Cookie`. If your responses can carry duplicates, represent them as multi-value headers before serializing.
 
 And finally, naming matters. The `STREAM` and `RESPONSE_STREAM` distinction is not theoretical. It is the kind of small infrastructure detail that can make correct application code look broken after deployment.
 
