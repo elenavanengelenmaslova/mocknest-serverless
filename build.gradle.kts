@@ -72,7 +72,7 @@ subprojects {
         runtimeOnly("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0-0.6.x-compat")
 
         // Testing
-        testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
+        testImplementation("org.junit.jupiter:junit-jupiter:6.1.1")
         testImplementation("io.mockk:mockk:1.14.11")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
