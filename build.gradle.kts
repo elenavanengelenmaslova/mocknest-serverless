@@ -63,9 +63,10 @@ subprojects {
                 because("Fixes CVE-2026-33870 and later: HTTP Request Smuggling and other netty vulnerabilities")
             }
             // GHSA / security advisory: io.opentelemetry:opentelemetry-api affected in (,1.61.0]
-            // opentelemetry-api is a transitive dependency (via Koog). Pin all core io.opentelemetry
-            // artifacts (they share one version line) to a patched version so the resolved graph is safe.
-            if (requested.group == "io.opentelemetry") {
+            // opentelemetry-api is a transitive dependency (via Koog). Pin only the vulnerable
+            // module to a patched version; leave other io.opentelemetry artifacts (which may use a
+            // different version line, e.g. -alpha) untouched.
+            if (requested.group == "io.opentelemetry" && requested.name == "opentelemetry-api") {
                 useVersion("1.62.0")
                 because("Fixes security advisory affecting io.opentelemetry:opentelemetry-api versions <= 1.61.0")
             }
