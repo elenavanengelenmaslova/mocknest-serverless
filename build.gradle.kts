@@ -8,11 +8,17 @@ plugins {
 val releaseVersion: Provider<String> = providers.gradleProperty("releaseVersion")
 val gitVersion: Provider<String> = providers.exec {
     commandLine("git", "describe", "--tags", "--abbrev=0")
+    isIgnoreExitValue = true
 }.standardOutput.asText.map { it.trim() }
+
+val resolvedVersion: String = releaseVersion
+    .orElse(gitVersion)
+    .map { it.ifBlank { "0.0.0-SNAPSHOT" } }
+    .getOrElse("0.0.0-SNAPSHOT")
 
 allprojects {
     group = "nl.vintik.mocknest"
-    version = releaseVersion.orElse(gitVersion).get()
+    version = resolvedVersion
 
     repositories {
         mavenCentral()
@@ -56,9 +62,9 @@ subprojects {
     }
 
     dependencies {
-        val implementation by configurations
-        val testImplementation by configurations
-        val runtimeOnly by configurations
+        val implementation = configurations.getByName("implementation")
+        val testImplementation = configurations.getByName("testImplementation")
+        val runtimeOnly = configurations.getByName("runtimeOnly")
 
         // Koin BOM for consistent Koin versions
         implementation(platform("io.insert-koin:koin-bom:4.2.2"))

@@ -57,7 +57,7 @@ configurations {
 }
 
 tasks {
-    val shadowJar by getting(ShadowJar::class) {
+    val shadowJar = named<ShadowJar>("shadowJar") {
         archiveFileName.set("mocknest-serverless.jar")
         destinationDirectory.set(file("${project.rootDir}/build/dist"))
         
