@@ -66,7 +66,7 @@ subprojects {
             // opentelemetry-api is a transitive dependency (via Koog). Pin all core io.opentelemetry
             // artifacts (they share one version line) to a patched version so the resolved graph is safe.
             if (requested.group == "io.opentelemetry") {
-                useVersion("1.64.0")
+                useVersion("1.62.0")
                 because("Fixes security advisory affecting io.opentelemetry:opentelemetry-api versions <= 1.61.0")
             }
         }
