@@ -18,7 +18,9 @@ import nl.vintik.mocknest.infra.aws.core.di.KoinBootstrap
 import nl.vintik.mocknest.infra.aws.core.di.coreModule
 import nl.vintik.mocknest.infra.aws.core.streaming.ApiGatewayRequestParser
 import nl.vintik.mocknest.infra.aws.core.streaming.RequestParseException
-import nl.vintik.mocknest.infra.aws.core.streaming.StreamingProtocolWriter
+import nl.vintik.lambda.streaming.OBSERVED_MAX_PRELUDE_LEN
+import nl.vintik.lambda.streaming.ResponseMetadata
+import nl.vintik.lambda.streaming.ResponseWriter
 import nl.vintik.mocknest.infra.aws.runtime.di.runtimeModule
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimeMappingReloadHook
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimePrimingHook
@@ -37,6 +39,8 @@ private val logger = KotlinLogging.logger {}
  * Implements [RequestStreamHandler] to enable response streaming via the API Gateway
  * streaming protocol, supporting responses up to 200MB and SSE mock simulation
  * via chunked delivery with configurable delays.
+ *
+ * Uses [ResponseWriter] from the streaming-core library for protocol encoding.
  *
  * Koin is initialized once per Lambda container lifecycle in the companion object init
  * block. Priming and CRaC registration happen eagerly — before the SnapStart snapshot
@@ -62,7 +66,7 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
     private val s3ResponseStreamer: S3ResponseStreamer by inject()
 
     private val requestParser = ApiGatewayRequestParser()
-    private val protocolWriter = StreamingProtocolWriter()
+    private val writer = ResponseWriter(maxPreludeLen = OBSERVED_MAX_PRELUDE_LEN)
     private val chunkedWriter = ChunkedResponseWriter()
 
     override fun handleRequest(input: InputStream, output: OutputStream, context: Context) {
@@ -104,7 +108,11 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
         }
 
         // Write standard streaming response
-        protocolWriter.write(response, output)
+        val metadata = ResponseMetadata.fromMultiValue(
+            statusCode = response.statusCode.value,
+            headers = response.headers ?: emptyMap(),
+        )
+        writer.writeResponse(output, metadata, bodyBytes)
         output.flush()
     }
 
@@ -155,12 +163,11 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
         config: CapturedDribbleConfig,
         output: OutputStream,
     ) {
-        val headers = response.headers
-            ?.flatMap { (name, values) -> values.map { name to it } }
-            ?.toMap()
-            ?: emptyMap()
-
-        protocolWriter.writeMetadataAndDelimiter(response.statusCode.value, headers, output)
+        val metadata = ResponseMetadata.fromMultiValue(
+            statusCode = response.statusCode.value,
+            headers = response.headers ?: emptyMap(),
+        )
+        writer.writeMetadata(output, metadata)
 
         runBlocking {
             chunkedWriter.writeChunked(bodyBytes, config.numberOfChunks, config.totalDurationMs, output)
@@ -186,34 +193,36 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
 
         runBlocking {
             // Metadata check via HEAD request (returns contentLength + ETag)
-            val metadata = s3ResponseStreamer.getObjectMetadata(s3Key)
-            if (metadata == null) {
+            val s3Metadata = s3ResponseStreamer.getObjectMetadata(s3Key)
+            if (s3Metadata == null) {
                 writeErrorResponse(output, 502, "Failed to retrieve S3 object metadata: $bodyFileName")
                 return@runBlocking
             }
-            if (metadata.contentLength > MAX_RESPONSE_SIZE_BYTES) {
+            if (s3Metadata.contentLength > MAX_RESPONSE_SIZE_BYTES) {
                 writeErrorResponse(output, 502, "Response payload exceeds the maximum supported streaming limit of 200MB")
                 return@runBlocking
             }
 
             // Build headers, replacing Content-Length with the actual S3 object size
-            val headers = response.headers
-                ?.flatMap { (name, values) -> values.map { name to it } }
-                ?.toMap()
+            val responseHeaders = response.headers
                 ?.toMutableMap()
                 ?: mutableMapOf()
-            headers.keys.removeAll { it.equals("Content-Length", ignoreCase = true) }
-            headers["Content-Length"] = metadata.contentLength.toString()
+            responseHeaders.keys.removeAll { it.equals("Content-Length", ignoreCase = true) }
+            responseHeaders["Content-Length"] = listOf(s3Metadata.contentLength.toString())
 
             // Write metadata + delimiter before streaming body
-            protocolWriter.writeMetadataAndDelimiter(response.statusCode.value, headers, output)
+            val headerMetadata = ResponseMetadata.fromMultiValue(
+                statusCode = response.statusCode.value,
+                headers = responseHeaders,
+            )
+            writer.writeMetadata(output, headerMetadata)
 
             // Stream from S3 with chunked delays using consumer callback
             // Pass ETag to ensure we stream the same object version we validated
-            val success = s3ResponseStreamer.streamWithConsumer(s3Key, expectedETag = metadata.eTag) { inputStream, _ ->
+            val success = s3ResponseStreamer.streamWithConsumer(s3Key, expectedETag = s3Metadata.eTag) { inputStream, _ ->
                 chunkedWriter.writeChunkedFromStream(
                     input = inputStream,
-                    bodySize = metadata.contentLength,
+                    bodySize = s3Metadata.contentLength,
                     numberOfChunks = config.numberOfChunks,
                     totalDurationMs = config.totalDurationMs,
                     output = output,
@@ -233,12 +242,11 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
      * Writes an error response using the streaming protocol format.
      */
     private fun writeErrorResponse(output: OutputStream, statusCode: Int, message: String) {
-        val errorResponse = HttpResponse(
-            HttpStatusCode(statusCode),
-            mapOf("Content-Type" to listOf("text/plain")),
-            message
+        val metadata = ResponseMetadata(
+            statusCode = statusCode,
+            headers = mapOf("Content-Type" to "text/plain"),
         )
-        protocolWriter.write(errorResponse, output)
+        writer.writeResponse(output, metadata, message.toByteArray(Charsets.UTF_8))
         output.flush()
     }
 }

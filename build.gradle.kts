@@ -1,18 +1,25 @@
 plugins {
     kotlin("jvm") version "2.4.0" apply false
     kotlin("plugin.serialization") version "2.4.0" apply false
-    id("com.gradleup.shadow") version "9.4.2" apply false
+    id("com.gradleup.shadow") version "9.5.1" apply false
     id("org.jetbrains.kotlinx.kover") version "0.9.8"
 }
 
 val releaseVersion: Provider<String> = providers.gradleProperty("releaseVersion")
 val gitVersion: Provider<String> = providers.exec {
     commandLine("git", "describe", "--tags", "--abbrev=0")
+    isIgnoreExitValue = true
 }.standardOutput.asText.map { it.trim() }
+
+val resolvedVersion: String = releaseVersion
+    .filter { it.isNotBlank() }
+    .orElse(gitVersion)
+    .map { it.ifBlank { "0.0.0-SNAPSHOT" } }
+    .getOrElse("0.0.0-SNAPSHOT")
 
 allprojects {
     group = "nl.vintik.mocknest"
-    version = releaseVersion.orElse(gitVersion).get()
+    version = resolvedVersion
 
     repositories {
         mavenCentral()
@@ -48,17 +55,20 @@ subprojects {
             }
             // CVE-2026-33870: HTTP Request Smuggling in netty-codec-http
             // Fixed in 4.2.12.Final (enforce globally, not just in generation module)
-            if (requested.group == "io.netty" && requested.name.startsWith("netty-")) {
-                useVersion("4.2.12.Final")
-                because("Fixes CVE-2026-33870: HTTP Request Smuggling in chunked encoding parsing")
+            if (requested.group == "io.netty" &&
+                requested.name.startsWith("netty-") &&
+                !requested.name.startsWith("netty-tcnative")
+            ) {
+                useVersion("4.2.16.Final")
+                because("Fixes CVE-2026-33870 and later: HTTP Request Smuggling and other netty vulnerabilities")
             }
         }
     }
 
     dependencies {
-        val implementation by configurations
-        val testImplementation by configurations
-        val runtimeOnly by configurations
+        val implementation = configurations.getByName("implementation")
+        val testImplementation = configurations.getByName("testImplementation")
+        val runtimeOnly = configurations.getByName("runtimeOnly")
 
         // Koin BOM for consistent Koin versions
         implementation(platform("io.insert-koin:koin-bom:4.2.2"))
@@ -72,14 +82,14 @@ subprojects {
         runtimeOnly("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0-0.6.x-compat")
 
         // Testing
-        testImplementation("org.junit.jupiter:junit-jupiter:6.1.1")
+        testImplementation("org.junit.jupiter:junit-jupiter:6.1.2")
         testImplementation("io.mockk:mockk:1.14.11")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.8")
 
         // Jackson 2.x BOM for consistent Jackson versions
-        implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.0"))
+        implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.1"))
 
         // Explicit version constraints for managed dependencies
         constraints {
@@ -98,7 +108,7 @@ subprojects {
             implementation("ai.koog:agents-test:$koogVersion")
 
             // Kotlin AWS SDK (versions from main)
-            val awsSdkKotlinVersion = "1.6.102"
+            val awsSdkKotlinVersion = "1.6.107"
             val smithyKotlinVersion = "1.6.15"
             implementation("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")

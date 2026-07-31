@@ -94,8 +94,8 @@ class S3StreamingPropertyTest {
         // Then — no single write call exceeds 1MB
         assertTrue(success, "Streaming should succeed for: $description")
         assertTrue(
-            writeTracker.maxWriteSize <= S3ResponseStreamer.BUFFER_SIZE,
-            "No single write should exceed ${S3ResponseStreamer.BUFFER_SIZE} bytes (1MB), " +
+            writeTracker.maxWriteSize <= nl.vintik.lambda.streaming.BUFFER_SIZE,
+            "No single write should exceed ${nl.vintik.lambda.streaming.BUFFER_SIZE} bytes (1MB), " +
                 "but max write was ${writeTracker.maxWriteSize} bytes for: $description"
         )
         // Also verify total bytes written equals object size
