@@ -16,7 +16,7 @@ import nl.vintik.mocknest.domain.core.HttpMethod
 import nl.vintik.mocknest.domain.core.HttpResponse
 import nl.vintik.mocknest.domain.core.HttpStatusCode
 import nl.vintik.mocknest.infra.aws.core.di.KoinBootstrap
-import nl.vintik.mocknest.infra.aws.core.streaming.StreamingProtocolWriter
+import nl.vintik.lambda.streaming.DELIMITER_LEN
 import nl.vintik.mocknest.infra.aws.generation.snapstart.GenerationPrimingHook
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
@@ -283,7 +283,7 @@ class StreamingGenerationLambdaHandlerTest : KoinTest {
 
             // Verify body after the delimiter
             val bodyBytes = bytes.copyOfRange(
-                nullDelimiterIndex + StreamingProtocolWriter.NULL_DELIMITER_SIZE,
+                nullDelimiterIndex + DELIMITER_LEN,
                 bytes.size
             )
             val body = String(bodyBytes, Charsets.UTF_8)
@@ -338,7 +338,7 @@ class StreamingGenerationLambdaHandlerTest : KoinTest {
 
             // Body after delimiter should be empty
             val bodyBytes = bytes.copyOfRange(
-                nullDelimiterIndex + StreamingProtocolWriter.NULL_DELIMITER_SIZE,
+                nullDelimiterIndex + DELIMITER_LEN,
                 bytes.size
             )
             assertEquals(0, bodyBytes.size)
@@ -390,7 +390,7 @@ class StreamingGenerationLambdaHandlerTest : KoinTest {
         val metadataJson = Json.parseToJsonElement(String(metadataBytes, Charsets.UTF_8)).jsonObject
 
         val bodyBytes = bytes.copyOfRange(
-            nullDelimiterIndex + StreamingProtocolWriter.NULL_DELIMITER_SIZE,
+            nullDelimiterIndex + DELIMITER_LEN,
             bytes.size
         )
         val body = String(bodyBytes, Charsets.UTF_8)
@@ -403,9 +403,9 @@ class StreamingGenerationLambdaHandlerTest : KoinTest {
      * Returns -1 if not found.
      */
     private fun findNullDelimiter(bytes: ByteArray): Int {
-        val nullDelimiter = ByteArray(StreamingProtocolWriter.NULL_DELIMITER_SIZE)
-        for (i in 0..bytes.size - StreamingProtocolWriter.NULL_DELIMITER_SIZE) {
-            if (bytes.copyOfRange(i, i + StreamingProtocolWriter.NULL_DELIMITER_SIZE)
+        val nullDelimiter = ByteArray(DELIMITER_LEN)
+        for (i in 0..bytes.size - DELIMITER_LEN) {
+            if (bytes.copyOfRange(i, i + DELIMITER_LEN)
                     .contentEquals(nullDelimiter)
             ) {
                 return i

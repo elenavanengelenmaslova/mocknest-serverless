@@ -13,7 +13,9 @@ import nl.vintik.mocknest.infra.aws.core.di.KoinBootstrap
 import nl.vintik.mocknest.infra.aws.core.di.coreModule
 import nl.vintik.mocknest.infra.aws.core.streaming.ApiGatewayRequestParser
 import nl.vintik.mocknest.infra.aws.core.streaming.RequestParseException
-import nl.vintik.mocknest.infra.aws.core.streaming.StreamingProtocolWriter
+import nl.vintik.lambda.streaming.OBSERVED_MAX_PRELUDE_LEN
+import nl.vintik.lambda.streaming.ResponseMetadata
+import nl.vintik.lambda.streaming.ResponseWriter
 import nl.vintik.mocknest.infra.aws.generation.di.generationModule
 import nl.vintik.mocknest.infra.aws.generation.snapstart.GenerationPrimingHook
 import org.koin.core.component.KoinComponent
@@ -27,7 +29,7 @@ private val logger = KotlinLogging.logger {}
  * Streaming AWS Lambda handler for the Generation function.
  *
  * Implements [RequestStreamHandler] to support the API Gateway streaming protocol,
- * enabling responses up to 200MB. Uses [StreamingProtocolWriter] to write the
+ * enabling responses up to 200MB. Uses [ResponseWriter] to write the
  * metadata + null delimiter + body format expected by API Gateway.
  *
  * Koin is initialized once per Lambda container lifecycle in the companion object init
@@ -46,7 +48,7 @@ class StreamingGenerationLambdaHandler : RequestStreamHandler, KoinComponent {
     private val handleAIGenerationRequest: HandleAIGenerationRequest by inject()
     private val getAIHealth: GetAIHealth by inject()
     private val requestParser = ApiGatewayRequestParser()
-    private val protocolWriter = StreamingProtocolWriter()
+    private val writer = ResponseWriter(maxPreludeLen = OBSERVED_MAX_PRELUDE_LEN)
 
     override fun handleRequest(input: InputStream, output: OutputStream, context: Context) {
         val httpRequest = try {
@@ -59,12 +61,12 @@ class StreamingGenerationLambdaHandler : RequestStreamHandler, KoinComponent {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t")
-            val errorResponse = HttpResponse(
-                HttpStatusCode.BAD_REQUEST,
-                mapOf("Content-Type" to listOf("application/json")),
-                """{"error":"$escapedMessage"}"""
+            val errorBody = """{"error":"$escapedMessage"}"""
+            val errorMetadata = ResponseMetadata(
+                statusCode = 400,
+                headers = mapOf("Content-Type" to "application/json"),
             )
-            protocolWriter.write(errorResponse, output)
+            writer.writeResponse(output, errorMetadata, errorBody.toByteArray(Charsets.UTF_8))
             output.flush()
             return
         }
@@ -99,7 +101,11 @@ class StreamingGenerationLambdaHandler : RequestStreamHandler, KoinComponent {
             }
         }
 
-        protocolWriter.write(response, output)
+        val metadata = ResponseMetadata.fromMultiValue(
+            statusCode = response.statusCode.value,
+            headers = response.headers ?: emptyMap(),
+        )
+        writer.writeResponse(output, metadata, response.body?.toByteArray(Charsets.UTF_8))
         output.flush()
     }
 }
