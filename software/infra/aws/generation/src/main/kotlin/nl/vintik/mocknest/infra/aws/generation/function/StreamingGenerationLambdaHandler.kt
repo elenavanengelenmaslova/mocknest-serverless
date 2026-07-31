@@ -3,6 +3,8 @@ package nl.vintik.mocknest.infra.aws.generation.function
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import nl.vintik.mocknest.application.generation.usecases.GetAIHealth
 import nl.vintik.mocknest.application.runtime.usecases.AI_PREFIX
 import nl.vintik.mocknest.application.runtime.usecases.HandleAIGenerationRequest
@@ -55,13 +57,9 @@ class StreamingGenerationLambdaHandler : RequestStreamHandler, KoinComponent {
             requestParser.parse(input)
         } catch (e: RequestParseException) {
             logger.warn(e) { "Failed to parse API Gateway request" }
-            val escapedMessage = (e.message ?: "Unknown parse error")
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t")
-            val errorBody = """{"error":"$escapedMessage"}"""
+            val errorBody = buildJsonObject {
+                put("error", e.message ?: "Unknown parse error")
+            }.toString()
             val errorMetadata = ResponseMetadata(
                 statusCode = 400,
                 headers = mapOf("Content-Type" to "application/json"),

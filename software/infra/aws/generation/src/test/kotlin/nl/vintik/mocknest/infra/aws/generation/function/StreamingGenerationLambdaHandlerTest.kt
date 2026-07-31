@@ -237,6 +237,31 @@ class StreamingGenerationLambdaHandlerTest : KoinTest {
             assertEquals(400, metadata["statusCode"]!!.jsonPrimitive.int)
             assertTrue(body.contains("error"))
         }
+
+        @Test
+        fun `Given parse error whose message contains a control character When handling request Then should return valid JSON error body`() {
+            // Given - a valid JSON whose httpMethod decodes to a NUL control character.
+            // This produces a RequestParseException("Invalid HTTP method: <NUL>") whose
+            // message embeds a raw control character, which the error body must escape correctly.
+            val json = """{"httpMethod":"\u0000","path":"/ai/generation/health","isBase64Encoded":false}"""
+            val input = ByteArrayInputStream(json.toByteArray(Charsets.UTF_8))
+            val output = ByteArrayOutputStream()
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then
+            verify(exactly = 0) { mockGetAIHealth.invoke() }
+            verify(exactly = 0) { mockHandleAIGenerationRequest.invoke(any(), any()) }
+
+            val (metadata, body) = parseStreamingResponse(output.toByteArray())
+            assertEquals(400, metadata["statusCode"]!!.jsonPrimitive.int)
+
+            // The body must be valid, parseable JSON even though the underlying error
+            // message contains a raw control character.
+            val parsed = Json.parseToJsonElement(body).jsonObject
+            assertNotNull(parsed["error"])
+        }
     }
 
     @Nested

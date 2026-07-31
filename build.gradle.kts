@@ -54,7 +54,10 @@ subprojects {
             }
             // CVE-2026-33870: HTTP Request Smuggling in netty-codec-http
             // Fixed in 4.2.12.Final (enforce globally, not just in generation module)
-            if (requested.group == "io.netty" && requested.name.startsWith("netty-")) {
+            if (requested.group == "io.netty" &&
+                requested.name.startsWith("netty-") &&
+                !requested.name.startsWith("netty-tcnative")
+            ) {
                 useVersion("4.2.16.Final")
                 because("Fixes CVE-2026-33870 and later: HTTP Request Smuggling and other netty vulnerabilities")
             }
