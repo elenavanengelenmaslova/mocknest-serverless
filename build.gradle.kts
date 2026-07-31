@@ -12,6 +12,7 @@ val gitVersion: Provider<String> = providers.exec {
 }.standardOutput.asText.map { it.trim() }
 
 val resolvedVersion: String = releaseVersion
+    .filter { it.isNotBlank() }
     .orElse(gitVersion)
     .map { it.ifBlank { "0.0.0-SNAPSHOT" } }
     .getOrElse("0.0.0-SNAPSHOT")
