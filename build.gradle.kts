@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm") version "2.4.0" apply false
     kotlin("plugin.serialization") version "2.4.0" apply false
     id("com.gradleup.shadow") version "9.5.1" apply false
-    id("org.jetbrains.kotlinx.kover") version "0.9.8"
+    id("org.jetbrains.kotlinx.kover") version "0.9.9"
 }
 
 val releaseVersion: Provider<String> = providers.gradleProperty("releaseVersion")
