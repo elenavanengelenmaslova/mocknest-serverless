@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm") version "2.4.10" apply false
     kotlin("plugin.serialization") version "2.4.0" apply false
-    id("com.gradleup.shadow") version "9.5.1" apply false
+    id("com.gradleup.shadow") version "9.6.1" apply false
     id("org.jetbrains.kotlinx.kover") version "0.9.9"
 }
 
@@ -116,8 +116,8 @@ subprojects {
             implementation("ai.koog:agents-test:$koogVersion")
 
             // Kotlin AWS SDK (versions from main)
-            val awsSdkKotlinVersion = "1.6.107"
-            val smithyKotlinVersion = "1.6.15"
+            val awsSdkKotlinVersion = "1.8.19"
+            val smithyKotlinVersion = "1.7.3"
             implementation("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
