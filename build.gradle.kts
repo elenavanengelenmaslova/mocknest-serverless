@@ -111,7 +111,7 @@ subprojects {
             implementation("org.mozilla:rhino:1.9.1")
 
             // Koog Framework for AI Agents
-            val koogVersion = "1.0.0"
+            val koogVersion = "1.1.1"
             implementation("ai.koog:koog-agents:$koogVersion")
             implementation("ai.koog:agents-test:$koogVersion")
 
