@@ -111,13 +111,13 @@ subprojects {
             implementation("org.mozilla:rhino:1.9.1")
 
             // Koog Framework for AI Agents
-            val koogVersion = "1.0.0"
+            val koogVersion = "1.1.1"
             implementation("ai.koog:koog-agents:$koogVersion")
             implementation("ai.koog:agents-test:$koogVersion")
 
             // Kotlin AWS SDK (versions from main)
-            val awsSdkKotlinVersion = "1.8.19"
-            val smithyKotlinVersion = "1.7.3"
+            val awsSdkKotlinVersion = "1.8.25"
+            val smithyKotlinVersion = "1.7.6"
             implementation("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
