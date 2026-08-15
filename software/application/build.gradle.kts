@@ -32,7 +32,7 @@ dependencies {
     implementation("ai.koog:koog-agents")
 
     // OpenAPI specification parsing
-    implementation("io.swagger.parser.v3:swagger-parser:2.1.45")
+    implementation("io.swagger.parser.v3:swagger-parser:2.1.46")
 
     // Koog testing support for agent tests
     testImplementation("ai.koog:agents-test")
