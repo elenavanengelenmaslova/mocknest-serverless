@@ -74,7 +74,7 @@ dependencies {
     testImplementation("dev.dokimos:dokimos-koog:$dokimosVersion")
 
     // Logging for eval tests — eval report output uses KotlinLogging (SLF4J), requires an impl
-    testImplementation("ch.qos.logback:logback-classic:1.6.1")
+    testImplementation("ch.qos.logback:logback-classic:1.6.3")
 }
 
 configurations {
