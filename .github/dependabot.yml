@@ -8,6 +8,9 @@ multi-ecosystem-groups:
       day: "monday"
     labels:
       - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
 
 updates:
   # GitHub Actions dependency updates
@@ -16,13 +19,9 @@ updates:
     multi-ecosystem-group: "all-dependencies"
     patterns:
       - "*"
-    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "github-actions"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
 
   # Gradle dependency updates
   - package-ecosystem: "gradle"
@@ -30,10 +29,6 @@ updates:
     multi-ecosystem-group: "all-dependencies"
     patterns:
       - "*"
-    open-pull-requests-limit: 10
     labels:
       - "dependencies"
       - "gradle"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
