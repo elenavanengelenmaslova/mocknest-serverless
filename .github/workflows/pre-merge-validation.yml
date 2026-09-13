@@ -1,0 +1,117 @@
+name: CI - Pre-Merge Dual-Mode Validation
+
+# Manually triggered gate to validate a branch against BOTH auth modes in parallel
+# before merging to main. Deploys into two dedicated, isolated stacks
+# (mocknest-serverless-api-key and mocknest-serverless-iam), runs the full
+# integration + extensive test suites, and only succeeds when BOTH are green.
+
+on:
+  workflow_dispatch:
+    inputs:
+      aws-region:
+        description: 'AWS region for deployment and testing'
+        required: false
+        default: 'eu-west-1'
+        type: string
+      runtime-lambda-memory:
+        description: 'Runtime Lambda memory in MB'
+        required: false
+        default: 1536
+        type: number
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # ── Shared unit build/test (runs once, both chains depend on it) ──
+  build:
+    uses: ./.github/workflows/workflow-build.yml
+    with:
+      aws-region: ${{ inputs.aws-region }}
+
+  # ── API_KEY chain: deploy to mocknest-serverless-api-key, then full tests ──
+  deploy-api-key:
+    needs: build
+    uses: ./.github/workflows/workflow-deploy-aws.yml
+    with:
+      environment: default
+      aws-region: ${{ inputs.aws-region }}
+      github-actions-role-name: ${{ vars.OIDC_ROLE_NAME }}
+      stack-name: mocknest-serverless-api-key
+      auth-mode: API_KEY
+      runtime-lambda-memory: ${{ inputs.runtime-lambda-memory }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  test-api-key:
+    needs: deploy-api-key
+    uses: ./.github/workflows/workflow-integration-test.yml
+    with:
+      aws-region: ${{ inputs.aws-region }}
+      github-actions-role-name: ${{ vars.OIDC_ROLE_NAME }}
+      stack-name: mocknest-serverless-api-key
+      test-suite: all
+      run-extensive-tests: true
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  # ── IAM chain: deploy to mocknest-serverless-iam, then tests ──
+  # Runs concurrently with the API_KEY chain (no cross-dependency).
+  deploy-iam:
+    needs: build
+    uses: ./.github/workflows/workflow-deploy-aws.yml
+    with:
+      environment: default
+      aws-region: ${{ inputs.aws-region }}
+      github-actions-role-name: ${{ vars.OIDC_ROLE_NAME }}
+      stack-name: mocknest-serverless-iam
+      auth-mode: IAM
+      runtime-lambda-memory: ${{ inputs.runtime-lambda-memory }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  test-iam:
+    needs: deploy-iam
+    uses: ./.github/workflows/workflow-integration-test.yml
+    with:
+      aws-region: ${{ inputs.aws-region }}
+      github-actions-role-name: ${{ vars.OIDC_ROLE_NAME }}
+      stack-name: mocknest-serverless-iam
+      # test-suite left at default 'all'; the integration-test workflow gates
+      # IAM-mode stacks to the webhook suite automatically. Extensive tests run
+      # on top because run-extensive-tests is true.
+      run-extensive-tests: true
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  # ── Gate: succeeds only when BOTH auth-mode chains pass ──
+  gate:
+    name: Dual-Mode Validation Gate
+    needs: [test-api-key, test-iam]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate results
+        run: |
+          API_KEY_RESULT="${{ needs.test-api-key.result }}"
+          IAM_RESULT="${{ needs.test-iam.result }}"
+
+          {
+            echo "## 🔒 Pre-Merge Dual-Mode Validation"
+            echo ""
+            echo "| Auth Mode | Stack | Result |"
+            echo "|-----------|-------|--------|"
+            echo "| API_KEY | mocknest-serverless-api-key | ${API_KEY_RESULT} |"
+            echo "| IAM | mocknest-serverless-iam | ${IAM_RESULT} |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$API_KEY_RESULT" = "success" ] && [ "$IAM_RESULT" = "success" ]; then
+            echo "**Overall:** ✅ Both auth modes passed — safe to merge." >> "$GITHUB_STEP_SUMMARY"
+            echo "✅ Both auth-mode validations passed."
+          else
+            echo "**Overall:** ❌ One or more auth-mode validations failed — do NOT merge." >> "$GITHUB_STEP_SUMMARY"
+            echo "❌ Validation failed. API_KEY=$API_KEY_RESULT, IAM=$IAM_RESULT"
+            exit 1
+          fi

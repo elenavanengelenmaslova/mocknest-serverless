@@ -1,46 +1,34 @@
 version: 2
-updates:
-  # GitHub Actions dependency updates
-  - package-ecosystem: "github-actions"
-    directory: "/"
+
+# Consolidate all dependency updates (Gradle + GitHub Actions) into a single PR
+multi-ecosystem-groups:
+  all-dependencies:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 5
     labels:
       - "dependencies"
-      - "github-actions"
     commit-message:
       prefix: "chore"
       include: "scope"
 
+updates:
+  # GitHub Actions dependency updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    multi-ecosystem-group: "all-dependencies"
+    patterns:
+      - "*"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
   # Gradle dependency updates
   - package-ecosystem: "gradle"
     directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
+    multi-ecosystem-group: "all-dependencies"
+    patterns:
+      - "*"
     labels:
       - "dependencies"
       - "gradle"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    # Group dependency updates to reduce PR noise
-    groups:
-      kotlin:
-        patterns:
-          - "org.jetbrains.kotlin*"
-      spring:
-        patterns:
-          - "org.springframework*"
-      aws-sdk:
-        patterns:
-          - "aws.sdk.kotlin*"
-          - "aws.smithy.kotlin*"
-      testing:
-        patterns:
-          - "*junit*"
-          - "io.mockk*"
-          - "org.testcontainers*"
