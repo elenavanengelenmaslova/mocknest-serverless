@@ -2105,12 +2105,20 @@ test_streaming_sse_chunked_delay() {
   local elapsed_ms
   elapsed_ms=$(python3 -c "print(int(float('$elapsed_seconds') * 1000))")
 
-  echo "[streaming]   Elapsed: ${elapsed_ms}ms (expected >= ${TOTAL_DURATION_MS}ms)"
-  if [ "$elapsed_ms" -lt "$TOTAL_DURATION_MS" ]; then
-    echo "[streaming] ERROR: Elapsed time ${elapsed_ms}ms is less than totalDuration ${TOTAL_DURATION_MS}ms"
+  # The dribble delay is inserted BEFORE each chunk after the first, so the
+  # guaranteed minimum delay is (numberOfChunks - 1) * (totalDuration / numberOfChunks),
+  # NOT the full totalDuration — the first chunk is written immediately. This
+  # matches ChunkedResponseWriter: delayBetweenChunks = totalDuration / numberOfChunks.
+  # We assert against 90% of that expected minimum to tolerate scheduling jitter.
+  local expected_min_ms
+  expected_min_ms=$(python3 -c "print(int((($NUM_CHUNKS - 1) * ($TOTAL_DURATION_MS // $NUM_CHUNKS)) * 0.9))")
+
+  echo "[streaming]   Elapsed: ${elapsed_ms}ms (expected >= ${expected_min_ms}ms; ${NUM_CHUNKS} chunks over ${TOTAL_DURATION_MS}ms, delay before each chunk after the first)"
+  if [ "$elapsed_ms" -lt "$expected_min_ms" ]; then
+    echo "[streaming] ERROR: Elapsed time ${elapsed_ms}ms is less than expected minimum ${expected_min_ms}ms — dribble delay did not apply"
     exit 1
   fi
-  echo "[streaming]   ✓ Elapsed time meets or exceeds totalDuration"
+  echo "[streaming]   ✓ Elapsed time reflects chunked dribble delay"
 
   # Step 3: Cleanup
   echo "[streaming]   Cleaning up mapping..."
