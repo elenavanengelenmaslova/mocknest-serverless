@@ -47,3 +47,38 @@ jobs:
       runtime-lambda-memory: 1536
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  # Automated semantic versioning on merge to main. Analyzes Conventional
+  # Commits since the last tag and, when a releasable change is present
+  # (feat/fix/breaking), creates a bare-semver git tag + GitHub release.
+  # Publishing that release triggers sar-publish.yml (on: release: published),
+  # which packages/publishes to SAR and runs the API_KEY + IAM SAR tests.
+  #
+  # IMPORTANT: a release created with the default GITHUB_TOKEN does NOT trigger
+  # other workflows (GitHub blocks recursive triggering). To fire sar-publish.yml
+  # automatically, provide a Personal Access Token as the RELEASE_PAT secret
+  # (repo scope, or a fine-grained token with Contents: read/write). If
+  # RELEASE_PAT is absent, the release is still created but SAR publish must be
+  # started manually (sar-publish.yml also supports workflow_dispatch).
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+        run: npx --yes semantic-release
