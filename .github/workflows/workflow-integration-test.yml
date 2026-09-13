@@ -303,6 +303,60 @@ jobs:
           chmod +x scripts/post-deploy-test.sh
           ./scripts/post-deploy-test.sh soap
 
+  test-streaming:
+    name: Response Streaming (chunkedDribbleDelay)
+    runs-on: ubuntu-latest
+    needs: setup
+    # API_KEY mode only: the streaming test's timed invoke curls send an
+    # x-api-key header directly (they don't use SigV4 signing), so these tests
+    # only work against an API_KEY-mode stack.
+    if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'streaming') && needs.setup.outputs.auth-mode == 'API_KEY' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Run streaming tests
+        run: |
+          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
+          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
+
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
+            --output text)
+          API_URL="${API_URL%/}"
+          echo "::add-mask::$API_URL"
+
+          if [ -z "$API_URL" ]; then
+            echo "ERROR: Failed to retrieve MockNestApiUrl"
+            exit 1
+          fi
+
+          API_KEY_ID=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
+            --output text)
+          API_KEY=$(aws apigateway get-api-key \
+            --api-key "$API_KEY_ID" \
+            --include-value \
+            --query 'value' \
+            --output text)
+          echo "::add-mask::$API_KEY"
+          if [ -z "$API_KEY" ]; then
+            echo "ERROR: Failed to retrieve API key value"
+            exit 1
+          fi
+
+          export API_URL API_KEY AUTH_MODE
+          chmod +x scripts/post-deploy-test.sh
+          ./scripts/post-deploy-test.sh streaming
+
   test-webhook:
     name: Webhook Delivery
     runs-on: ubuntu-latest
@@ -347,7 +401,7 @@ jobs:
   test-extensive:
     name: Extensive - All API Tests
     runs-on: ubuntu-latest
-    needs: [setup, test-rest, test-graphql, test-soap, test-webhook]
+    needs: [setup, test-rest, test-graphql, test-soap, test-streaming, test-webhook]
     if: ${{ inputs.run-extensive-tests == true && !cancelled() && !failure() }}
     steps:
       - name: Checkout code
