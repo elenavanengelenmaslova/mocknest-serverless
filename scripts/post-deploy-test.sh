@@ -1950,25 +1950,25 @@ test_file_management_crud() {
 # Streaming Response Validation Tests
 # =============================================================================
 
-# Test: Large payload (7MB+) streaming delivery
-# Registers a mock with a 7MB+ response body, invokes it, and verifies the
-# received byte length matches the registered body size.
+# Test: Moderate payload streaming delivery (inline body)
+# Registers a mock with a moderate (256KB) inline response body, invokes it,
+# and verifies the received byte length matches the registered body size.
+# The body is kept well under the ~10MB API Gateway request limit so it can be
+# registered inline. Large (>6MB) payloads use the S3/bodyFileName path — see
+# test_streaming_large_payload_from_s3.
 # Validates: Requirement 9.1
 test_streaming_large_payload() {
-  echo "[streaming] Testing large payload (7MB+) streaming delivery..."
+  echo "[streaming] Testing moderate payload streaming delivery (inline body)..."
 
-  # Generate a 7MB+ body (7,340,032 bytes = 7 * 1024 * 1024)
-  local BODY_SIZE=7340032
+  # 256KB inline body — comfortably under the API Gateway request payload limit
+  local BODY_SIZE=262144
   echo "[streaming]   Generating ${BODY_SIZE}-byte payload..."
-  local LARGE_BODY
-  LARGE_BODY=$(python3 -c "print('A' * $BODY_SIZE)")
 
-  # Step 1: Register mock with large body
-  echo "[streaming]   Registering mock with ${BODY_SIZE}-byte body..."
+  # Step 1: Register mock with an inline body
+  echo "[streaming]   Registering mock with ${BODY_SIZE}-byte inline body..."
   local mapping_body
   mapping_body=$(python3 -c "
 import json
-body = 'A' * $BODY_SIZE
 mapping = {
     'request': {
         'method': 'GET',
@@ -1976,7 +1976,7 @@ mapping = {
     },
     'response': {
         'status': 200,
-        'body': body,
+        'body': 'A' * $BODY_SIZE,
         'headers': {'Content-Type': 'application/octet-stream'}
     },
     'persistent': True
@@ -1990,13 +1990,13 @@ print(json.dumps(mapping))
     --request POST \
     --data-binary @- \
     "$API_URL/__admin/mappings" 2>&1) || {
-    echo "[streaming] ERROR: Failed to register large payload mock"
+    echo "[streaming] ERROR: Failed to register payload mock"
     echo "[streaming] Response: $response"
     exit 1
   }
   parse_response "$response"
   if [ "$HTTP_CODE" != "201" ]; then
-    echo "[streaming] ERROR: Large payload mock registration failed with HTTP $HTTP_CODE"
+    echo "[streaming] ERROR: Payload mock registration failed with HTTP $HTTP_CODE"
     echo "[streaming] Response: $BODY"
     exit 1
   fi
@@ -2013,7 +2013,7 @@ print(json.dumps(mapping))
     --output /dev/null \
     --write-out "%{size_download}" \
     "$API_URL/mocknest/streaming-test/large-payload" 2>&1) || {
-    echo "[streaming] ERROR: Failed to invoke large payload mock"
+    echo "[streaming] ERROR: Failed to invoke payload mock"
     exit 1
   }
 
@@ -2031,7 +2031,7 @@ print(json.dumps(mapping))
     "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
   echo "[streaming]   ✓ Cleanup complete"
 
-  echo "[streaming] ✓ Large payload streaming test passed"
+  echo "[streaming] ✓ Payload streaming test passed"
 }
 
 # Test: SSE mock with chunkedDribbleDelay timing verification
