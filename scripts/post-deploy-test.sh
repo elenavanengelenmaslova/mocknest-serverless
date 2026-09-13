@@ -1985,10 +1985,10 @@ print(json.dumps(mapping))
 ")
 
   local response
-  response=$(curl "${CURL_OPTS[@]}" \
+  response=$(printf '%s' "$mapping_body" | curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request POST \
-    --data "$mapping_body" \
+    --data-binary @- \
     "$API_URL/__admin/mappings" 2>&1) || {
     echo "[streaming] ERROR: Failed to register large payload mock"
     echo "[streaming] Response: $response"
@@ -2069,10 +2069,10 @@ test_streaming_sse_chunked_delay() {
   }"
 
   local response
-  response=$(curl "${CURL_OPTS[@]}" \
+  response=$(printf '%s' "$mapping_body" | curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request POST \
-    --data "$mapping_body" \
+    --data-binary @- \
     "$API_URL/__admin/mappings" 2>&1) || {
     echo "[streaming] ERROR: Failed to register SSE chunked mock"
     echo "[streaming] Response: $response"
@@ -2150,10 +2150,10 @@ test_streaming_standard_body() {
   }"
 
   local response
-  response=$(curl "${CURL_OPTS[@]}" \
+  response=$(printf '%s' "$mapping_body" | curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request POST \
-    --data "$mapping_body" \
+    --data-binary @- \
     "$API_URL/__admin/mappings" 2>&1) || {
     echo "[streaming] ERROR: Failed to register standard body mock"
     echo "[streaming] Response: $response"
@@ -2236,10 +2236,10 @@ test_streaming_custom_headers() {
   }'
 
   local response
-  response=$(curl "${CURL_OPTS[@]}" \
+  response=$(printf '%s' "$mapping_body" | curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request POST \
-    --data "$mapping_body" \
+    --data-binary @- \
     "$API_URL/__admin/mappings" 2>&1) || {
     echo "[streaming] ERROR: Failed to register custom headers mock"
     echo "[streaming] Response: $response"
@@ -2351,10 +2351,10 @@ test_streaming_progressive_delivery() {
   }"
 
   local response
-  response=$(curl "${CURL_OPTS[@]}" \
+  response=$(printf '%s' "$mapping_body" | curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request POST \
-    --data "$mapping_body" \
+    --data-binary @- \
     "$API_URL/__admin/mappings" 2>&1) || {
     echo "[streaming] ERROR: Failed to register progressive delivery mock"
     echo "[streaming] Response: $response"
@@ -2470,10 +2470,10 @@ print(json.dumps(mapping))
 ")
 
   local response
-  response=$(curl "${CURL_OPTS[@]}" \
+  response=$(printf '%s' "$mapping_body" | curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request POST \
-    --data "$mapping_body" \
+    --data-binary @- \
     "$API_URL/__admin/mappings" 2>&1) || {
     echo "[streaming] ERROR: Failed to register zero-memory streaming mock"
     echo "[streaming] Response: $response"
@@ -2637,10 +2637,10 @@ print(json.dumps(mapping))
 ")
 
   local response
-  response=$(curl "${CURL_OPTS[@]}" \
+  response=$(printf '%s' "$mapping_body" | curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request POST \
-    --data "$mapping_body" \
+    --data-binary @- \
     "$API_URL/__admin/mappings" 2>&1) || {
     echo "[streaming] ERROR: Failed to register SSE progressive mock"
     echo "[streaming] Response: $response"
@@ -2799,10 +2799,10 @@ test_streaming_unmatched_returns_404() {
   }'
 
   local response
-  response=$(curl "${CURL_OPTS[@]}" \
+  response=$(printf '%s' "$mapping_body" | curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request POST \
-    --data "$mapping_body" \
+    --data-binary @- \
     "$API_URL/__admin/mappings" 2>&1) || {
     echo "[streaming] ERROR: Failed to register mock"
     exit 1
