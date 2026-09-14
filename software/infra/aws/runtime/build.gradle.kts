@@ -43,7 +43,7 @@ dependencies {
     testImplementation("io.insert-koin:koin-test-junit5")
     testImplementation(project(":software:infra:aws:mocknest"))
     // OkHttp MockWebServer for prototype test
-    testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver")
     // Awaitility for async test assertions
     testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
     // Coroutines test for virtual time in ChunkedResponseWriter tests
