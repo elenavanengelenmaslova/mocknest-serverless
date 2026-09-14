@@ -99,6 +99,10 @@ subprojects {
         // Jackson 2.x BOM for consistent Jackson versions
         implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.2"))
 
+        // OkHttp BOM — keeps okhttp, okhttp-coroutines and mockwebserver on one
+        // version and lets Dependabot bump them together via a single BOM entry.
+        implementation(platform("com.squareup.okhttp3:okhttp-bom:5.3.2"))
+
         // Explicit version constraints for managed dependencies
         constraints {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
@@ -128,10 +132,10 @@ subprojects {
             implementation("aws.smithy.kotlin:http-client-engine-crt:$smithyKotlinVersion")
             implementation("aws.smithy.kotlin:aws-signing-default:$smithyKotlinVersion")
 
-            val okhttpVersion = "5.3.2"
-            implementation("com.squareup.okhttp3:okhttp:$okhttpVersion")
-            implementation("com.squareup.okhttp3:okhttp-coroutines:$okhttpVersion")
-            implementation("com.squareup.okhttp3:mockwebserver:$okhttpVersion")
+            // Versions supplied by the okhttp-bom platform imported above
+            implementation("com.squareup.okhttp3:okhttp")
+            implementation("com.squareup.okhttp3:okhttp-coroutines")
+            implementation("com.squareup.okhttp3:mockwebserver")
 
             // AWS Lambda Java
             implementation("com.amazonaws:aws-lambda-java-core:1.4.0")

@@ -51,15 +51,16 @@ jobs:
   # Automated semantic versioning on merge to main. Analyzes Conventional
   # Commits since the last tag and, when a releasable change is present
   # (feat/fix/breaking), creates a bare-semver git tag + GitHub release.
-  # Publishing that release triggers sar-publish.yml (on: release: published),
-  # which packages/publishes to SAR and runs the API_KEY + IAM SAR tests.
   #
-  # IMPORTANT: a release created with the default GITHUB_TOKEN does NOT trigger
-  # other workflows (GitHub blocks recursive triggering). To fire sar-publish.yml
-  # automatically, provide a Personal Access Token as the RELEASE_PAT secret
-  # (repo scope, or a fine-grained token with Contents: read/write). If
-  # RELEASE_PAT is absent, the release is still created but SAR publish must be
-  # started manually (sar-publish.yml also supports workflow_dispatch).
+  # The version created is exposed as job outputs (via @semantic-release/exec
+  # writing to $GITHUB_OUTPUT) so the downstream SAR jobs can publish it. When no
+  # releasable change is present, no release is cut and release-published stays
+  # empty, so the SAR jobs below are skipped.
+  #
+  # NOTE: we do NOT rely on the `release: published` event to trigger SAR publish
+  # (a release created by the default GITHUB_TOKEN cannot trigger other
+  # workflows). Instead the SAR publish + test jobs are chained here directly,
+  # so no PAT is required. sar-publish.yml is retained for manual workflow_dispatch.
   release:
     needs: test
     runs-on: ubuntu-latest
@@ -67,6 +68,9 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+    outputs:
+      release-published: ${{ steps.semantic.outputs.release_published }}
+      released-version: ${{ steps.semantic.outputs.released_version }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -79,6 +83,58 @@ jobs:
           node-version: 'lts/*'
 
       - name: Run semantic-release
+        id: semantic
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx --yes semantic-release
+
+  # Manual approval gate. This regular job carries the `sar-production`
+  # Environment, which (with required reviewers configured on that Environment
+  # in repo Settings) pauses the run until a reviewer approves. It exists as a
+  # separate job because `environment:` cannot be set on a job that calls a
+  # reusable workflow (sar-publish below). Only runs when a release was cut.
+  sar-approval:
+    needs: release
+    if: needs.release.outputs.release-published == 'true'
+    runs-on: ubuntu-latest
+    environment: sar-production
+    steps:
+      - name: Approval checkpoint
+        run: |
+          echo "Approved SAR publish of version ${{ needs.release.outputs.released-version }}"
+
+  # Publish the freshly-released version to SAR. Runs only after the
+  # sar-production approval gate passes. Only runs when a release was cut.
+  sar-publish:
+    needs: [release, sar-approval]
+    if: needs.release.outputs.release-published == 'true'
+    uses: ./.github/workflows/workflow-sar-publish.yml
+    with:
+      version: ${{ needs.release.outputs.released-version }}
+      aws-region: 'eu-west-1'
+      github-actions-role-name: ${{ vars.OIDC_ROLE_NAME }}
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  # Validate the published SAR app in both auth modes, in parallel.
+  sar-test-api-key:
+    needs: [release, sar-publish]
+    if: needs.release.outputs.release-published == 'true'
+    uses: ./.github/workflows/sar-test-pipeline.yml
+    with:
+      aws-region: 'eu-west-1'
+      version: ${{ needs.release.outputs.released-version }}
+      auth-mode: 'API_KEY'
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  sar-test-iam:
+    needs: [release, sar-publish]
+    if: needs.release.outputs.release-published == 'true'
+    uses: ./.github/workflows/sar-test-pipeline.yml
+    with:
+      aws-region: 'eu-west-1'
+      version: ${{ needs.release.outputs.released-version }}
+      auth-mode: 'IAM'
+    secrets:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

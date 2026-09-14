@@ -23,7 +23,8 @@ dependencies {
     val smithyKotlinVersion = "1.7.9"
     api("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
     api("aws.smithy.kotlin:aws-signing-default:${smithyKotlinVersion}")
-    api("com.squareup.okhttp3:okhttp:5.3.2")
+    // Version supplied by the okhttp-bom platform (root build.gradle.kts)
+    api("com.squareup.okhttp3:okhttp")
 
     // Coroutines
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core")
