@@ -269,13 +269,6 @@ Resources:
                   - serverlessrepo:CreateCloudFormationTemplate
                 Resource: '*'
 
-              # Read the generated API key value during health checks (API_KEY mode).
-              - Effect: Allow
-                Action:
-                  - apigateway:GET
-                Resource:
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/apikeys/*'
-
               # IAM auth mode: health checks sign requests with SigV4.
               - Effect: Allow
                 Action:
@@ -326,9 +319,11 @@ Resources:
                   - lambda:ListEventSourceMappings
                 Resource: '*'
 
-              # API Gateway lifecycle for the SAR app.
+              # API Gateway lifecycle for the SAR app, plus GET for reading stack
+              # outputs and the generated API key value during health checks.
               - Effect: Allow
                 Action:
+                  - apigateway:GET
                   - apigateway:POST
                   - apigateway:PUT
                   - apigateway:DELETE
@@ -406,12 +401,21 @@ Resources:
                   - iam:GetPolicy
                   - iam:GetPolicyVersion
                   - iam:ListPolicyVersions
-                  - iam:PassRole
                   - iam:TagRole
                   - iam:UntagRole
                   - iam:ListRolePolicies
                   - iam:ListAttachedRolePolicies
                 Resource: '*'
+
+              # PassRole is restricted to Lambda: the SAR app only passes the
+              # function execution roles it creates to lambda.amazonaws.com.
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'iam:PassedToService': lambda.amazonaws.com
 
               # Bedrock access granted to the SAR app's runtime/generation roles.
               - Effect: Allow

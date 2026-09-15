@@ -66,6 +66,20 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      # Direct manual dispatch of this pipeline is restricted to the protected
+      # main branch. When invoked as a reusable workflow (workflow_call) the
+      # caller (main-aws.yml / sar-publish.yml) already enforces main-only, and
+      # the SAR test role trusts main only, so this guard just fails fast with a
+      # clear message on an out-of-policy dispatch.
+      - name: Enforce main-only dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "❌ This pipeline may only be dispatched from refs/heads/main (got ${{ github.ref }})."
+            exit 1
+          fi
+          echo "✅ Dispatched from main."
+
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v6
         with:
