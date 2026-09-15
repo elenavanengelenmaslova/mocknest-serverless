@@ -319,15 +319,26 @@ Resources:
                   - lambda:ListEventSourceMappings
                 Resource: '*'
 
-              # API Gateway lifecycle for the SAR app, plus GET for reading stack
-              # outputs and the generated API key value during health checks.
+              # API Gateway write/lifecycle actions for the SAR app stack.
               - Effect: Allow
                 Action:
-                  - apigateway:GET
                   - apigateway:POST
                   - apigateway:PUT
                   - apigateway:DELETE
                   - apigateway:PATCH
+                Resource:
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/*'
+
+              # API Gateway read access: needed to read REST API config and to
+              # retrieve the generated API key value during health checks.
+              # NOTE: apigateway:GET does not support aws:ResourceTag-based
+              # authorization for the /apikeys and /restapis read paths used here,
+              # and the API key/REST API are created by the SAR-published template
+              # (not this stack), so they cannot be tagged from here. GET is kept
+              # as a separate statement, scoped to the regional API Gateway ARN.
+              - Effect: Allow
+                Action:
+                  - apigateway:GET
                 Resource:
                   - !Sub 'arn:aws:apigateway:${AWS::Region}::/*'
 
