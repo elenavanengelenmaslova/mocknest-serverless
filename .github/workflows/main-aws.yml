@@ -86,7 +86,15 @@ jobs:
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx --yes semantic-release
+        # semantic-release bundles commit-analyzer and release-notes-generator,
+        # but @semantic-release/exec and @semantic-release/github are NOT bundled.
+        # Install them into the same npx sandbox so plugin resolution finds them.
+        run: >-
+          npx --yes
+          -p semantic-release
+          -p @semantic-release/exec
+          -p @semantic-release/github
+          semantic-release
 
   # Manual approval gate. This regular job carries the `sar-production`
   # Environment, which (with required reviewers configured on that Environment
