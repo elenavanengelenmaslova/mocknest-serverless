@@ -13,11 +13,6 @@ on:
         required: false
         default: 'eu-west-1'
         type: string
-      runtime-lambda-memory:
-        description: 'Runtime Lambda memory in MB'
-        required: false
-        default: 1536
-        type: number
 
 permissions:
   id-token: write
@@ -40,7 +35,7 @@ jobs:
       github-actions-role-name: ${{ vars.OIDC_ROLE_NAME }}
       stack-name: mocknest-serverless-api-key
       auth-mode: API_KEY
-      runtime-lambda-memory: ${{ inputs.runtime-lambda-memory }}
+      runtime-lambda-memory: 1536
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
@@ -67,7 +62,7 @@ jobs:
       github-actions-role-name: ${{ vars.OIDC_ROLE_NAME }}
       stack-name: mocknest-serverless-iam
       auth-mode: IAM
-      runtime-lambda-memory: ${{ inputs.runtime-lambda-memory }}
+      runtime-lambda-memory: 1536
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
