@@ -17,6 +17,11 @@ name: Integration Test - SAR Deployment
         type: string
         default: 'API_KEY'
         description: 'Authentication mode to validate: API_KEY or IAM'
+      github-actions-role-name:
+        required: false
+        type: string
+        default: 'GitHubActionsSarTestRole'
+        description: 'Name of the GitHub Actions OIDC role to assume'
     secrets:
       AWS_ACCOUNT_ID:
         required: true
@@ -47,6 +52,11 @@ name: Integration Test - SAR Deployment
         options:
           - API_KEY
           - IAM
+      github-actions-role-name:
+        required: false
+        type: string
+        default: 'GitHubActionsSarTestRole'
+        description: 'Name of the GitHub Actions OIDC role to assume'
 
 permissions:
   id-token: write
@@ -56,11 +66,25 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      # Direct manual dispatch of this pipeline is restricted to the protected
+      # main branch. When invoked as a reusable workflow (workflow_call) the
+      # caller (main-aws.yml / sar-publish.yml) already enforces main-only, and
+      # the SAR test role trusts main only, so this guard just fails fast with a
+      # clear message on an out-of-policy dispatch.
+      - name: Enforce main-only dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "❌ This pipeline may only be dispatched from refs/heads/main (got ${{ github.ref }})."
+            exit 1
+          fi
+          echo "✅ Dispatched from main."
+
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: >-
-            arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubOIDCAdmin
+            arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name || 'GitHubActionsSarTestRole' }}
           role-session-name: MockNestSARTesting
           aws-region: ${{ inputs.aws-region }}
 
