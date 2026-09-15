@@ -41,6 +41,7 @@ jobs:
       aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
       version: ${{ inputs.version || github.event.release.tag_name }}
       auth-mode: 'API_KEY'
+      github-actions-role-name: ${{ inputs.github-actions-role-name || vars.SAR_TEST_ROLE_NAME || 'GitHubActionsSarTestRole' }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
@@ -51,6 +52,7 @@ jobs:
       aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
       version: ${{ inputs.version || github.event.release.tag_name }}
       auth-mode: 'IAM'
+      github-actions-role-name: ${{ inputs.github-actions-role-name || vars.SAR_TEST_ROLE_NAME || 'GitHubActionsSarTestRole' }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 

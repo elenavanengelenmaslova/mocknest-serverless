@@ -17,6 +17,11 @@ name: Integration Test - SAR Deployment
         type: string
         default: 'API_KEY'
         description: 'Authentication mode to validate: API_KEY or IAM'
+      github-actions-role-name:
+        required: false
+        type: string
+        default: 'GitHubActionsSarTestRole'
+        description: 'Name of the GitHub Actions OIDC role to assume'
     secrets:
       AWS_ACCOUNT_ID:
         required: true
@@ -47,6 +52,11 @@ name: Integration Test - SAR Deployment
         options:
           - API_KEY
           - IAM
+      github-actions-role-name:
+        required: false
+        type: string
+        default: 'GitHubActionsSarTestRole'
+        description: 'Name of the GitHub Actions OIDC role to assume'
 
 permissions:
   id-token: write
@@ -60,7 +70,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: >-
-            arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubOIDCAdmin
+            arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name || 'GitHubActionsSarTestRole' }}
           role-session-name: MockNestSARTesting
           aws-region: ${{ inputs.aws-region }}
 

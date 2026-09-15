@@ -133,6 +133,7 @@ jobs:
       aws-region: 'eu-west-1'
       version: ${{ needs.release.outputs.released-version }}
       auth-mode: 'API_KEY'
+      github-actions-role-name: ${{ vars.SAR_TEST_ROLE_NAME || 'GitHubActionsSarTestRole' }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
@@ -144,5 +145,6 @@ jobs:
       aws-region: 'eu-west-1'
       version: ${{ needs.release.outputs.released-version }}
       auth-mode: 'IAM'
+      github-actions-role-name: ${{ vars.SAR_TEST_ROLE_NAME || 'GitHubActionsSarTestRole' }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
