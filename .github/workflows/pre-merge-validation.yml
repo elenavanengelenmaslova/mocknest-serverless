@@ -46,6 +46,8 @@ jobs:
       aws-region: ${{ inputs.aws-region }}
       github-actions-role-name: ${{ vars.OIDC_ROLE_NAME }}
       stack-name: mocknest-serverless-api-key
+      # API_KEY mode: run all suites (rest, graphql, soap, streaming).
+      # Streaming gates on test-suite == 'all' and auth-mode == 'API_KEY'.
       test-suite: all
       run-extensive-tests: true
     secrets:
@@ -73,9 +75,9 @@ jobs:
       aws-region: ${{ inputs.aws-region }}
       github-actions-role-name: ${{ vars.OIDC_ROLE_NAME }}
       stack-name: mocknest-serverless-iam
-      # test-suite left at default 'all'; the integration-test workflow gates
-      # IAM-mode stacks to the webhook suite automatically. Extensive tests run
-      # on top because run-extensive-tests is true.
+      # IAM mode: run only the webhook suite (mirrors deploy-on-demand.yml).
+      # The webhook job gates on test-suite == 'webhook' and auth-mode == 'IAM'.
+      test-suite: webhook
       run-extensive-tests: true
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
