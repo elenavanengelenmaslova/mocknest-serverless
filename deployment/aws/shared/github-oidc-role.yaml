@@ -317,6 +317,11 @@ Resources:
                   - lambda:UpdateEventSourceMapping
                   - lambda:DeleteEventSourceMapping
                   - lambda:ListEventSourceMappings
+                  # CloudFormation tags the event source mapping on create; the
+                  # function-scoped TagResource above does not cover the
+                  # event-source-mapping:* ARN, so grant it here too.
+                  - lambda:TagResource
+                  - lambda:UntagResource
                 Resource: '*'
 
               # API Gateway write/lifecycle actions for the SAR app stack.
