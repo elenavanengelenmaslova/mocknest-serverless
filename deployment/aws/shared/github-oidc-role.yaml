@@ -309,7 +309,8 @@ Resources:
                   - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*'
 
               # Lambda event source mappings (SQS -> RuntimeAsync consumer).
-              # CreateEventSourceMapping does not support resource-level scoping.
+              # Create/List do not support resource-level scoping (no ARN at
+              # create time; List is account-wide), so they stay on '*'.
               - Effect: Allow
                 Action:
                   - lambda:CreateEventSourceMapping
@@ -318,6 +319,17 @@ Resources:
                   - lambda:DeleteEventSourceMapping
                   - lambda:ListEventSourceMappings
                 Resource: '*'
+
+              # CloudFormation tags the event source mapping on create; the
+              # function-scoped TagResource statement above does not cover the
+              # event-source-mapping ARN. TagResource/UntagResource support
+              # resource-level scoping, so restrict them to this account/region.
+              - Effect: Allow
+                Action:
+                  - lambda:TagResource
+                  - lambda:UntagResource
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:event-source-mapping:*'
 
               # API Gateway write/lifecycle actions for the SAR app stack.
               - Effect: Allow
