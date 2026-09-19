@@ -67,6 +67,8 @@ BEDROCK_EVAL_ENABLED=true \
 | `BEDROCK_EVAL_ENABLED` | — | Must be set to `true` to run eval tests |
 | `BEDROCK_EVAL_ITERATIONS` | `1` | Number of iterations per scenario (higher values reduce variance) |
 | `BEDROCK_EVAL_FILTER` | — | Case-insensitive substring filter on scenario `input` names. Only matching scenarios run. When unset or empty, all scenarios run |
+| `BEDROCK_EVAL_MAX_RETRIES` | `1` | Self-correction retry budget per scenario (range 0–2). Set to `0` for clean single-shot generation numbers with no correction |
+| `BEDROCK_EVAL_DEMO` | — | Set to `true` for demo-friendly output: the summary and detail tables plus a one-line-per-scenario progress are printed to stdout, and chatty log narration is suppressed (see [Demo Mode](#demo-mode)) |
 | `AWS_REGION` | `eu-west-1` | AWS region for Bedrock API calls |
 
 ### Example: Multiple Iterations for Statistical Confidence
@@ -102,6 +104,25 @@ BEDROCK_EVAL_FILTER=social \
 ```
 
 The filter matches against the scenario `input` field using case-insensitive substring matching. This is useful for re-running only failing scenarios after prompt fixes without waiting for the entire suite.
+
+## Demo Mode
+
+For a screen recording or presentation, set `BEDROCK_EVAL_DEMO=true`. This changes the output so the tables are the star of the show:
+
+- The summary table, per-scenario detail table, and a single concise progress line per scenario are printed directly to stdout (via `println`), so they appear regardless of the logging configuration.
+- The chatty per-scenario/iteration log narration is suppressed (root and `nl.vintik.mocknest` loggers are raised to `WARN`).
+- Explanatory header lines are printed above the tables, noting that latency and `Gen cost` are generation-only (LLM-judge excluded) and that `1st-pass valid` vs `After retry valid` are two snapshots of the same run.
+
+Recommended demo command (filtered subset keeps it fast and cheap):
+
+```bash
+BEDROCK_EVAL_ENABLED=true \
+BEDROCK_EVAL_DEMO=true \
+BEDROCK_EVAL_FILTER=petstore \
+  ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
+```
+
+For clean single-shot generation numbers with no correction retry, add `BEDROCK_EVAL_MAX_RETRIES=0`. To compare models, set the model in the eval test (currently `AmazonNovaPro`) and re-run.
 
 ## What the Tests Measure
 
