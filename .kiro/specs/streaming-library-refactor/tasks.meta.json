@@ -1,0 +1,273 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Add `api(\"nl.vintik:aws-lambda-streaming-core:2.0.0\")` to `software/infra/aws/core/build.gradle.kts`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444722966
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444733790
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444926530
+      }
+    ],
+    "1.2 Run `./gradlew :software:infra:aws:core:dependencies` and verify the library resolves correctly": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723079
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444929901
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785445031563
+      }
+    ],
+    "1.3 Run `./gradlew clean test` and confirm all tests pass (library co-exists with custom code at this point)": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723141
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785445034662
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785445151724
+      }
+    ],
+    "2.1 Replace `StreamingProtocolWriter` import and instantiation with `ResponseWriter(maxPreludeLen = OBSERVED_MAX_PRELUDE_LEN)` in `StreamingGenerationLambdaHandler.kt`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723184
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785445155902
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785445394087
+      }
+    ],
+    "2.2 Replace `protocolWriter.write(response, output)` calls with `writer.writeResponse(output, metadata, body)` using `ResponseMetadata.fromMultiValue()` for header conversion": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723219
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785445397934
+      }
+    ],
+    "2.3 Replace the error response block (parse failure) to use `writer.writeResponse()` with the existing `application/json` format and `{\"error\":\"...\"}` body": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723259
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785445404227
+      }
+    ],
+    "2.4 Update `StreamingGenerationLambdaHandlerTest.kt` — replace `StreamingProtocolWriter.NULL_DELIMITER_SIZE` references with `DELIMITER_LEN`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723304
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785445407374
+      }
+    ],
+    "2.5 Run `./gradlew clean test` and confirm all tests pass": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723342
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785445410782
+      },
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785446034021
+      }
+    ],
+    "3.1 Replace `StreamingProtocolWriter` import and instantiation with `ResponseWriter(maxPreludeLen = OBSERVED_MAX_PRELUDE_LEN)` in `StreamingRuntimeLambdaHandler.kt`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723371
+      }
+    ],
+    "3.2 Replace `protocolWriter.write(response, output)` in the standard response path with `writer.writeResponse(output, metadata, body)` using `ResponseMetadata.fromMultiValue()`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723404
+      }
+    ],
+    "3.3 Replace `protocolWriter.writeMetadataAndDelimiter(...)` in `writeChunkedResponse()` and `writeS3ChunkedResponse()` with `writer.writeMetadata(output, metadata)` using `ResponseMetadata.fromMultiValue()`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723436
+      }
+    ],
+    "3.4 Update `writeErrorResponse()` to use `writer.writeResponse()` with `ResponseMetadata(statusCode, mapOf(\"Content-Type\" to \"text/plain\"))` and message bytes as body — preserving the text/plain contract": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723508
+      }
+    ],
+    "3.5 Remove the 200MB body-size check's manual `toByteArray` — integrate the size check before calling `writeResponse`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723544
+      }
+    ],
+    "3.6 Update `StreamingRuntimeLambdaHandlerTest.kt` — replace `StreamingProtocolWriter.NULL_DELIMITER_SIZE` references with `DELIMITER_LEN`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723577
+      }
+    ],
+    "3.7 Run `./gradlew clean test` and confirm all tests pass": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723610
+      }
+    ],
+    "4.1 Import `nl.vintik.lambda.streaming.copy` in `S3ResponseStreamer.kt`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723643
+      }
+    ],
+    "4.2 Replace the manual `while/read/write/flush` loop in `streamToOutput()` with `copy(inputStream, output)`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723687
+      }
+    ],
+    "4.3 Remove the `BUFFER_SIZE` companion constant from `S3ResponseStreamer` (library's `BUFFER_SIZE` constant is the canonical 1MB value)": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723721
+      }
+    ],
+    "4.4 Verify `streamWithConsumer()` remains unchanged (it delegates to `ChunkedResponseWriter`, not the manual loop)": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723762
+      }
+    ],
+    "4.5 Run `./gradlew clean test` and confirm all tests pass": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723797
+      }
+    ],
+    "5.1 Delete `software/infra/aws/core/src/main/kotlin/nl/vintik/mocknest/infra/aws/core/streaming/StreamingProtocolWriter.kt`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723830
+      }
+    ],
+    "5.2 Delete `software/infra/aws/core/src/main/kotlin/nl/vintik/mocknest/infra/aws/core/streaming/MetadataTooLargeException.kt`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723866
+      }
+    ],
+    "5.3 Update or delete `software/infra/aws/core/src/test/kotlin/.../StreamingProtocolRoundTripPropertyTest.kt` — if it tests the wire format, convert to use `ResponseWriter`; if redundant with library tests, delete it": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723926
+      }
+    ],
+    "5.4 Search for any remaining references to `StreamingProtocolWriter` or the local `MetadataTooLargeException` and fix them": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723960
+      }
+    ],
+    "5.5 Run `./gradlew clean test` and confirm all tests pass": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444723992
+      }
+    ],
+    "6.1 Run `./gradlew clean test` and confirm exit code 0": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444724057
+      }
+    ],
+    "6.2 Run `./gradlew koverVerify` and confirm 90%+ coverage threshold is met": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444724388
+      }
+    ],
+    "6.3 Run `sam validate --template-file deployment/aws/sam/template.yaml --region eu-west-1` and confirm exit code 0": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444724426
+      }
+    ],
+    "6.4 Verify no references to deleted classes remain: `grep -r \"StreamingProtocolWriter\\|nl.vintik.mocknest.infra.aws.core.streaming.MetadataTooLargeException\" software/`": [
+      {
+        "executionId": "b439ef75-db27-4517-b01d-77489d121c67",
+        "chatSessionId": "sess_1b478f01-3f2d-428a-a814-711ac48130da",
+        "timestamp": 1785444724468
+      }
+    ]
+  }
+}

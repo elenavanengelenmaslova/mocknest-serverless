@@ -194,8 +194,8 @@ class S3ResponseStreamerTest {
 
         @Test
         fun `Given S3 object larger than 1MB When streaming Then buffer size constant should be 1MB`() {
-            // Given/When/Then — verify the buffer size constant is correctly defined
-            assertEquals(1024 * 1024, S3ResponseStreamer.BUFFER_SIZE)
+            // Given/When/Then — verify the library buffer size constant is correctly defined as 1MB
+            assertEquals(1024 * 1024, nl.vintik.lambda.streaming.BUFFER_SIZE)
         }
 
         @Test
@@ -220,8 +220,8 @@ class S3ResponseStreamerTest {
             assertTrue(result)
             // Verify no single write call exceeds the 1MB buffer size
             assertTrue(
-                writeTracker.maxWriteSize <= S3ResponseStreamer.BUFFER_SIZE,
-                "Max write size ${writeTracker.maxWriteSize} should not exceed buffer size ${S3ResponseStreamer.BUFFER_SIZE}"
+                writeTracker.maxWriteSize <= nl.vintik.lambda.streaming.BUFFER_SIZE,
+                "Max write size ${writeTracker.maxWriteSize} should not exceed buffer size ${nl.vintik.lambda.streaming.BUFFER_SIZE}"
             )
             // Verify all content was written
             assertArrayEquals(content, writeTracker.toByteArray())

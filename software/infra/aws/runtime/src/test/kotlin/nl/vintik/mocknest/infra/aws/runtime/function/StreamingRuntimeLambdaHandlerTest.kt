@@ -26,7 +26,7 @@ import nl.vintik.mocknest.application.runtime.usecases.HandleClientRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
 import nl.vintik.mocknest.domain.core.HttpStatusCode
 import nl.vintik.mocknest.infra.aws.core.di.KoinBootstrap
-import nl.vintik.mocknest.infra.aws.core.streaming.StreamingProtocolWriter
+import nl.vintik.lambda.streaming.DELIMITER_LEN
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimeMappingReloadHook
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimePrimingHook
 import nl.vintik.mocknest.infra.aws.runtime.streaming.S3ResponseStreamer
@@ -520,7 +520,7 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
 
             // Verify body follows after delimiter
             val bodyBytes = bytes.copyOfRange(
-                delimiterIndex + StreamingProtocolWriter.NULL_DELIMITER_SIZE,
+                delimiterIndex + DELIMITER_LEN,
                 bytes.size,
             )
             assertEquals("""{"status":"ok"}""", String(bodyBytes, Charsets.UTF_8))
@@ -544,7 +544,7 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
             assertTrue(delimiterIndex >= 0, "Should contain 8 null byte delimiter")
 
             val bodyBytes = bytes.copyOfRange(
-                delimiterIndex + StreamingProtocolWriter.NULL_DELIMITER_SIZE,
+                delimiterIndex + DELIMITER_LEN,
                 bytes.size,
             )
             assertEquals(0, bodyBytes.size, "Body should be empty for null body response")
@@ -828,7 +828,7 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
         val headers = headersObj.entries.associate { (k, v) -> k to v.jsonPrimitive.content }
 
         val bodyBytes = bytes.copyOfRange(
-            delimiterIndex + StreamingProtocolWriter.NULL_DELIMITER_SIZE,
+            delimiterIndex + DELIMITER_LEN,
             bytes.size,
         )
         val body = String(bodyBytes, Charsets.UTF_8)
@@ -840,7 +840,7 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
      * Finds the index of the first occurrence of 8 consecutive null bytes in the byte array.
      */
     private fun findNullDelimiter(bytes: ByteArray): Int {
-        val delimiterSize = StreamingProtocolWriter.NULL_DELIMITER_SIZE
+        val delimiterSize = DELIMITER_LEN
         for (i in 0..bytes.size - delimiterSize) {
             var allNull = true
             for (j in 0 until delimiterSize) {

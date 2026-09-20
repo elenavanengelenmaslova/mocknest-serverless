@@ -1,18 +1,25 @@
 plugins {
-    kotlin("jvm") version "2.3.20" apply false
-    kotlin("plugin.serialization") version "2.3.20" apply false
-    id("com.gradleup.shadow") version "8.3.10" apply false
-    id("org.jetbrains.kotlinx.kover") version "0.9.8"
+    kotlin("jvm") version "2.4.10" apply false
+    kotlin("plugin.serialization") version "2.4.10" apply false
+    id("com.gradleup.shadow") version "9.6.1" apply false
+    id("org.jetbrains.kotlinx.kover") version "0.9.9"
 }
 
 val releaseVersion: Provider<String> = providers.gradleProperty("releaseVersion")
 val gitVersion: Provider<String> = providers.exec {
     commandLine("git", "describe", "--tags", "--abbrev=0")
+    isIgnoreExitValue = true
 }.standardOutput.asText.map { it.trim() }
+
+val resolvedVersion: String = releaseVersion
+    .filter { it.isNotBlank() }
+    .orElse(gitVersion)
+    .map { it.ifBlank { "0.0.0-SNAPSHOT" } }
+    .getOrElse("0.0.0-SNAPSHOT")
 
 allprojects {
     group = "nl.vintik.mocknest"
-    version = releaseVersion.orElse(gitVersion).get()
+    version = resolvedVersion
 
     repositories {
         mavenCentral()
@@ -48,20 +55,31 @@ subprojects {
             }
             // CVE-2026-33870: HTTP Request Smuggling in netty-codec-http
             // Fixed in 4.2.12.Final (enforce globally, not just in generation module)
-            if (requested.group == "io.netty" && requested.name.startsWith("netty-")) {
-                useVersion("4.2.12.Final")
-                because("Fixes CVE-2026-33870: HTTP Request Smuggling in chunked encoding parsing")
+            if (requested.group == "io.netty" &&
+                requested.name.startsWith("netty-") &&
+                !requested.name.startsWith("netty-tcnative")
+            ) {
+                useVersion("4.2.16.Final")
+                because("Fixes CVE-2026-33870 and later: HTTP Request Smuggling and other netty vulnerabilities")
+            }
+            // GHSA / security advisory: io.opentelemetry:opentelemetry-api affected in (,1.61.0]
+            // opentelemetry-api is a transitive dependency (via Koog). Pin only the vulnerable
+            // module to a patched version; leave other io.opentelemetry artifacts (which may use a
+            // different version line, e.g. -alpha) untouched.
+            if (requested.group == "io.opentelemetry" && requested.name == "opentelemetry-api") {
+                useVersion("1.62.0")
+                because("Fixes security advisory affecting io.opentelemetry:opentelemetry-api versions <= 1.61.0")
             }
         }
     }
 
     dependencies {
-        val implementation by configurations
-        val testImplementation by configurations
-        val runtimeOnly by configurations
+        val implementation = configurations.getByName("implementation")
+        val testImplementation = configurations.getByName("testImplementation")
+        val runtimeOnly = configurations.getByName("runtimeOnly")
 
         // Koin BOM for consistent Koin versions
-        implementation(platform("io.insert-koin:koin-bom:4.2.1"))
+        implementation(platform("io.insert-koin:koin-bom:4.2.2"))
 
         // Kotlin standard library
         implementation("org.jetbrains.kotlin:kotlin-stdlib")
@@ -72,14 +90,18 @@ subprojects {
         runtimeOnly("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0-0.6.x-compat")
 
         // Testing
-        testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
+        testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
         testImplementation("io.mockk:mockk:1.14.11")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.8")
 
         // Jackson 2.x BOM for consistent Jackson versions
-        implementation(platform("com.fasterxml.jackson:jackson-bom:2.21.3"))
+        implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.2"))
+
+        // OkHttp BOM — keeps okhttp, okhttp-coroutines and mockwebserver on one
+        // version and lets Dependabot bump them together via a single BOM entry.
+        implementation(platform("com.squareup.okhttp3:okhttp-bom:5.5.0"))
 
         // Explicit version constraints for managed dependencies
         constraints {
@@ -93,13 +115,13 @@ subprojects {
             implementation("org.mozilla:rhino:1.9.1")
 
             // Koog Framework for AI Agents
-            val koogVersion = "1.0.0"
+            val koogVersion = "1.2.0"
             implementation("ai.koog:koog-agents:$koogVersion")
             implementation("ai.koog:agents-test:$koogVersion")
 
             // Kotlin AWS SDK (versions from main)
-            val awsSdkKotlinVersion = "1.6.85"
-            val smithyKotlinVersion = "1.6.14"
+            val awsSdkKotlinVersion = "1.8.50"
+            val smithyKotlinVersion = "1.7.9"
             implementation("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
@@ -110,10 +132,10 @@ subprojects {
             implementation("aws.smithy.kotlin:http-client-engine-crt:$smithyKotlinVersion")
             implementation("aws.smithy.kotlin:aws-signing-default:$smithyKotlinVersion")
 
-            val okhttpVersion = "5.3.2"
-            implementation("com.squareup.okhttp3:okhttp:$okhttpVersion")
-            implementation("com.squareup.okhttp3:okhttp-coroutines:$okhttpVersion")
-            implementation("com.squareup.okhttp3:mockwebserver:$okhttpVersion")
+            // Versions supplied by the okhttp-bom platform imported above
+            implementation("com.squareup.okhttp3:okhttp")
+            implementation("com.squareup.okhttp3:okhttp-coroutines")
+            implementation("com.squareup.okhttp3:mockwebserver")
 
             // AWS Lambda Java
             implementation("com.amazonaws:aws-lambda-java-core:1.4.0")
@@ -133,7 +155,7 @@ subprojects {
             testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
 
             // Koin DI Framework
-            val koinVersion = "4.2.1"
+            val koinVersion = "4.2.2"
             implementation("io.insert-koin:koin-core:$koinVersion")
             implementation("io.insert-koin:koin-test:$koinVersion")
             implementation("io.insert-koin:koin-test-junit5:$koinVersion")
@@ -171,7 +193,10 @@ kover {
                 excludes {
                     classes(
                         // entry points
-                        "*ApplicationKt"
+                        "*ApplicationKt",
+                        // DI factory configs — thin Koin/factory wiring, no business logic
+                        "nl.vintik.mocknest.infra.aws.generation.config.GraphQLGenerationConfig",
+                        "nl.vintik.mocknest.infra.aws.generation.config.SoapGenerationConfig"
                     )
                 }
             }

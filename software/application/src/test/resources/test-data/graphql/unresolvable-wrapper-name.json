@@ -1,0 +1,27 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": null,
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "thing",
+              "description": "A field whose wrapper has no resolvable inner name",
+              "args": [],
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": { "kind": "SCALAR", "name": null, "ofType": null }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

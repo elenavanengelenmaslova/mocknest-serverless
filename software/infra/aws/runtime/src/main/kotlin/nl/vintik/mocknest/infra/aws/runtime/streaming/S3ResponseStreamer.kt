@@ -6,6 +6,7 @@ import aws.sdk.kotlin.services.s3.model.HeadObjectRequest
 import aws.smithy.kotlin.runtime.content.toInputStream
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
+import nl.vintik.lambda.streaming.copy
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -23,11 +24,6 @@ class S3ResponseStreamer(
     private val s3Client: S3Client,
     private val bucketName: String,
 ) {
-
-    companion object {
-        /** Maximum buffer size for streaming S3 content: 1MB */
-        const val BUFFER_SIZE = 1024 * 1024
-    }
 
     /**
      * Metadata about an S3 object retrieved via HeadObject.
@@ -80,7 +76,7 @@ class S3ResponseStreamer(
 
     /**
      * Streams the content of an S3 object identified by [s3Key] directly to [output]
-     * using a buffer no larger than [BUFFER_SIZE] (1MB).
+     * using a bounded 1MB buffer (provided by the streaming-core library's `copy()` function).
      *
      * @param s3Key The S3 object key (e.g., `__files/my-response.json`)
      * @param output The OutputStream to write the streamed content to
@@ -97,13 +93,7 @@ class S3ResponseStreamer(
                         ?: throw S3StreamingException("S3 object body is null for key: $s3Key")
 
                     val inputStream = body.toInputStream()
-                    val buffer = ByteArray(BUFFER_SIZE)
-                    var bytesRead: Int
-
-                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                        output.write(buffer, 0, bytesRead)
-                        output.flush()
-                    }
+                    copy(inputStream, output)
                 }
             }
             true

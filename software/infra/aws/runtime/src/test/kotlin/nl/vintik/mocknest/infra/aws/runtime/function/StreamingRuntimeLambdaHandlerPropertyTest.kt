@@ -21,7 +21,7 @@ import nl.vintik.mocknest.application.runtime.usecases.HandleClientRequest
 import nl.vintik.mocknest.domain.core.HttpResponse
 import nl.vintik.mocknest.domain.core.HttpStatusCode
 import nl.vintik.mocknest.infra.aws.core.di.KoinBootstrap
-import nl.vintik.mocknest.infra.aws.core.streaming.StreamingProtocolWriter
+import nl.vintik.lambda.streaming.DELIMITER_LEN
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimeMappingReloadHook
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimePrimingHook
 import nl.vintik.mocknest.infra.aws.runtime.streaming.S3ResponseStreamer
@@ -190,7 +190,7 @@ class StreamingRuntimeLambdaHandlerPropertyTest : KoinTest {
         }
 
         // Verify body content follows after delimiter
-        val bodyStart = delimiterIndex + StreamingProtocolWriter.NULL_DELIMITER_SIZE
+        val bodyStart = delimiterIndex + DELIMITER_LEN
         val outputBody = String(bytes, bodyStart, bytes.size - bodyStart, Charsets.UTF_8)
         assertEquals(bodyContent, outputBody) {
             "Expected S3 body content after delimiter for bodyFileName=$bodyFileName"
@@ -223,7 +223,7 @@ class StreamingRuntimeLambdaHandlerPropertyTest : KoinTest {
      * Finds the index of the 8 null byte delimiter in the streaming response bytes.
      */
     private fun findNullDelimiterIndex(bytes: ByteArray): Int {
-        val size = StreamingProtocolWriter.NULL_DELIMITER_SIZE
+        val size = DELIMITER_LEN
         for (i in 0..bytes.size - size) {
             var allNull = true
             for (k in 0 until size) {

@@ -16,6 +16,7 @@ import dev.dokimos.core.EvalTestCaseParam
 import dev.dokimos.core.evaluators.LLMJudgeEvaluator
 import dev.dokimos.koog.asJudge
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLoggingConfiguration
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -49,6 +50,11 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import kotlin.system.measureTimeMillis
 
+// Suppress kotlin-logging's startup banner ("kotlin-logging: initializing...").
+// This property is declared before `logger` so its initializer runs first in the file's
+// static initializer, before `KotlinLogging` is referenced and prints the banner in its init block.
+private val suppressKotlinLoggingBanner: Unit = run { KotlinLoggingConfiguration.logStartupMessage = false }
+
 private val logger = KotlinLogging.logger {}
 
 /**
@@ -79,6 +85,14 @@ class BedrockPromptEvalTest {
     private val region: String = System.getenv("AWS_REGION") ?: "eu-west-1"
 
     private val maxRetries: Int = System.getenv("BEDROCK_EVAL_MAX_RETRIES")?.toIntOrNull()?.coerceIn(0, 2) ?: 1
+
+    /**
+     * Demo mode. When `BEDROCK_EVAL_DEMO=true`, per-scenario progress and the result
+     * tables are emitted via `println` (independent of the logging config) and the chatty
+     * `logger.info` narration is suppressed, so a screen recording shows clean,
+     * self-explanatory output. Normal runs are unaffected.
+     */
+    private val demoMode: Boolean = System.getenv("BEDROCK_EVAL_DEMO")?.equals("true", ignoreCase = true) == true
 
     private val tokenUsageStore = TokenUsageStore()
 
@@ -189,21 +203,29 @@ class BedrockPromptEvalTest {
 
     @Test
     fun `Given multi-protocol eval dataset When running all scenarios Then summary and detail tables are produced`() {
+        if (demoMode) quietLogsForDemo()
+
         val scenarios = loadScenarios()
         val iterationCount = parseIterationCount(System.getenv("BEDROCK_EVAL_ITERATIONS"))
         val results = mutableListOf<ScenarioResult>()
 
-        logger.info {
-            "Starting multi-protocol Bedrock prompt eval: ${scenarios.size} scenario(s), " +
-                "$iterationCount iteration(s) each, " +
-                "model=${modelConfiguration.getModelName()}, region=$region, maxRetries=$maxRetries"
+        // Intro block — states what is being tested up front so a recording opens clearly.
+        val protocols = scenarios.map { it.protocol.uppercase() }.distinct().sorted()
+        val distinctApis = scenarios.map { it.specFile }.distinct().size
+        val protocolCounts = protocols.joinToString(", ") { proto ->
+            "$proto: ${scenarios.count { it.protocol.equals(proto, ignoreCase = true) }}"
         }
+        emit("Bedrock prompt eval — AI mock generation quality")
+        emit("  Testing : ${scenarios.size} scenario(s) across $distinctApis API spec(s) and ${protocols.size} protocol(s) [${protocols.joinToString(", ")}]")
+        emit("  Breakdown: $protocolCounts")
+        emit("  Model   : ${modelConfiguration.getModelName()}   Region: $region   Iterations: $iterationCount   Max retries: $maxRetries")
+        emit("")
 
         for (scenario in scenarios) {
-            logger.info { "=== Scenario: ${scenario.input} (${scenario.protocol}) ===" }
+            if (!demoMode) logger.info { "=== Scenario: ${scenario.input} (${scenario.protocol}) ===" }
 
             for (iter in 1..iterationCount) {
-                logger.info { "--- Iteration $iter/$iterationCount ---" }
+                if (!demoMode) logger.info { "--- Iteration $iter/$iterationCount ---" }
 
                 // Single run with enableValidation=true (maxRetries controlled by BEDROCK_EVAL_MAX_RETRIES)
                 val result = runScenario(scenario)
@@ -214,11 +236,48 @@ class BedrockPromptEvalTest {
 
         // Print summary table
         val summaryTable = buildSummaryTable(results)
-        logger.info { "\n$summaryTable" }
+        emit(
+            "\nNote: 'Avg latency' and 'Gen cost' cover generation only (self-correction " +
+                "retries included, LLM-judge excluded). 'Judge cost' is the separate LLM-as-a-judge " +
+                "semantic check. '1st-pass valid' vs 'After retry valid' are two snapshots of the " +
+                "same run (before/after correction)."
+        )
+        emit("\n$summaryTable")
 
         // Print scenario detail table
         val detailTable = buildScenarioDetailTable(results)
-        logger.info { "\n$detailTable" }
+        emit("\nPer-scenario breakdown (latency and Gen cost are generation-only; Judge cost is separate):")
+        emit("\n$detailTable")
+    }
+
+    /**
+     * Emits a line to the demo-visible output. In demo mode this goes to `println` so the
+     * tables and progress are shown regardless of the logging configuration; otherwise it
+     * goes through the normal logger.
+     */
+    private fun emit(message: String) {
+        if (demoMode) {
+            println(message)
+        } else {
+            logger.info { message }
+        }
+    }
+
+    /**
+     * Raises the log level to WARN for the root and application loggers so that only the
+     * demo `println` output (progress line + tables) is visible during a recording. This is
+     * a best-effort operation that only takes effect when Logback is the SLF4J backend; on
+     * any other backend it is a silent no-op.
+     */
+    private fun quietLogsForDemo() {
+        runCatching {
+            val loggerFactory = org.slf4j.LoggerFactory.getILoggerFactory()
+            if (loggerFactory is ch.qos.logback.classic.LoggerContext) {
+                val warn = ch.qos.logback.classic.Level.WARN
+                loggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).level = warn
+                loggerFactory.getLogger("nl.vintik.mocknest").level = warn
+            }
+        }
     }
 
     // --- Token usage aggregation helper ---
@@ -531,6 +590,23 @@ class BedrockPromptEvalTest {
     // --- Logging helpers ---
 
     private fun logScenarioResult(result: ScenarioResult) {
+        if (demoMode) {
+            // One concise, self-explanatory line per scenario for the recording.
+            val line = if (result.success) {
+                val pass = if (result.scenarioPassed) "PASS" else "FAIL"
+                "  [$pass] ${result.scenario.input.padEnd(38)} " +
+                    "1st-pass=${"%.0f".format(result.firstPassValidRate * 100)}% " +
+                    "after-retry=${"%.0f".format(result.afterRetryValidRate * 100)}% " +
+                    "semantic=${if (result.semanticPassed) "✓" else "✗"} " +
+                    "latency=${"%.1f".format(result.latencyMs / 1000.0)}s " +
+                    "gen=${"$"}${"%.4f".format(result.generationCost)} " +
+                    "judge=${"$"}${"%.4f".format(result.judgeCost)}"
+            } else {
+                "  [FAIL] ${result.scenario.input.padEnd(38)} error: ${result.errorMessage}"
+            }
+            println(line)
+            return
+        }
         if (result.success) {
             logger.info {
                 "  ${result.scenario.input}: SUCCESS — " +
@@ -704,6 +780,9 @@ class BedrockPromptEvalTest {
             val totalRuns = results.size
 
             appendLine("╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣")
+            // Gen cost and Judge cost columns are legitimate sums on the TOTAL row.
+            // The "Avg cost/run" column is left blank here — the grand total is reported
+            // separately on the "TOTAL EVAL COST" line below to avoid it being misread as an average.
             val footerLine = "║ TOTAL     │ " +
                 "$totalRuns".padEnd(5) + "│ " +
                 "".padEnd(15) + "│ " +
@@ -711,7 +790,7 @@ class BedrockPromptEvalTest {
                 "".padEnd(14) + "│ " +
                 "${"$"}${"%.4f".format(totalGenCost)}".padEnd(9) + "│ " +
                 "${"$"}${"%.4f".format(totalJudgeCost)}".padEnd(11) + "│ " +
-                "${"$"}${"%.4f".format(totalCombinedCost)}".padEnd(13) + "│ " +
+                "".padEnd(13) + "│ " +
                 "".padEnd(12) + "║"
             appendLine(footerLine)
             appendLine("╠════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣")

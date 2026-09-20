@@ -1,0 +1,25 @@
+{
+  "data": {
+    "__schema": {
+      "queryType": { "name": "Query" },
+      "mutationType": null,
+      "types": [
+        {
+          "kind": "OBJECT",
+          "name": "Query",
+          "description": "Root query type",
+          "fields": [
+            {
+              "name": "search",
+              "description": "Search with an argument that omits its type",
+              "args": [
+                { "name": "term", "description": "Search term with no declared type" }
+              ],
+              "type": { "kind": "SCALAR", "name": "String", "ofType": null }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -6,6 +6,9 @@ import nl.vintik.mocknest.domain.generation.*
 
 private val logger = KotlinLogging.logger {}
 
+/** Fallback type name used when a GraphQL type reference cannot be resolved. */
+private const val UNKNOWN_TYPE = "Unknown"
+
 /**
  * Interface for reducing raw GraphQL introspection JSON to compact schema.
  */
@@ -239,7 +242,7 @@ class GraphQLSchemaReducer : GraphQLSchemaReducerInterface {
     private fun extractTypeName(typeObj: JsonObject?): String {
         if (typeObj == null) {
             logger.debug { "Cannot extract type name: typeObj is null" }
-            return "Unknown"
+            return UNKNOWN_TYPE
         }
 
         val kind = typeObj["kind"]?.jsonPrimitive?.content
@@ -256,7 +259,7 @@ class GraphQLSchemaReducer : GraphQLSchemaReducerInterface {
                 if (name == null) {
                     logger.warn { "Cannot resolve type name for kind=$kind, typeObj=$typeObj" }
                 }
-                name ?: "Unknown"
+                name ?: UNKNOWN_TYPE
             }
         }
     }

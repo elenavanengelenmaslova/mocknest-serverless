@@ -877,4 +877,92 @@ class GraphQLSchemaReducerTest {
             }
         }
     }
+
+    @Nested
+    inner class UnknownFallbackCoverage {
+
+        private fun loadCraftedData(filename: String): String {
+            return this::class.java.getResource("/test-data/graphql/$filename")?.readText()
+                ?: throw IllegalArgumentException("Test data file not found: $filename")
+        }
+
+        @Test
+        fun `Given operation missing return type element When reducing Then return type is Unknown`() = runTest {
+            // Given
+            val introspectionJson = loadCraftedData("missing-return-type.json")
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+
+            // Then
+            val operation = result.queries.first { it.name == "user" }
+            assertEquals("Unknown", operation.returnType)
+        }
+
+        @Test
+        fun `Given argument missing type element When reducing Then argument type is Unknown`() = runTest {
+            // Given
+            val introspectionJson = loadCraftedData("missing-arg-type.json")
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+
+            // Then
+            val operation = result.queries.first { it.name == "search" }
+            val argument = operation.arguments.first { it.name == "term" }
+            assertEquals("Unknown", argument.type)
+        }
+
+        @Test
+        fun `Given wrapper kind with unresolvable name When reducing Then resolved type contains Unknown`() = runTest {
+            // Given
+            val introspectionJson = loadCraftedData("unresolvable-wrapper-name.json")
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+
+            // Then
+            val operation = result.queries.first { it.name == "thing" }
+            assertTrue(
+                operation.returnType.contains("Unknown"),
+                "Expected resolved type to contain 'Unknown' but was '${operation.returnType}'"
+            )
+        }
+
+        @Test
+        fun `Given ofType set to JSON null When reducing Then resolves without throwing`() = runTest {
+            // Given
+            val introspectionJson = loadCraftedData("oftype-jsonnull.json")
+
+            // When
+            val result = reducer.reduce(introspectionJson)
+
+            // Then
+            val operation = result.queries.first()
+            assertTrue(
+                operation.returnType.isNotBlank(),
+                "Expected a well-formed type reference but was blank"
+            )
+        }
+    }
+
+    @Nested
+    inner class FailurePathCoverage {
+
+        private fun loadCraftedData(filename: String): String {
+            return this::class.java.getResource("/test-data/graphql/$filename")?.readText()
+                ?: throw IllegalArgumentException("Test data file not found: $filename")
+        }
+
+        @Test
+        fun `Given introspection missing schema When reducing Then rethrows GraphQLSchemaParsingException`() = runTest {
+            // Given
+            val introspectionJson = loadCraftedData("failure-missing-schema.json")
+
+            // When & Then
+            assertThrows<GraphQLSchemaParsingException> {
+                reducer.reduce(introspectionJson)
+            }
+        }
+    }
 }

@@ -21,7 +21,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import nl.vintik.mocknest.application.core.interfaces.storage.ObjectStorageInterface
 import nl.vintik.mocknest.application.core.mapper
 import nl.vintik.mocknest.infra.aws.core.di.KoinBootstrap
-import nl.vintik.mocknest.infra.aws.core.streaming.StreamingProtocolWriter
+import nl.vintik.lambda.streaming.DELIMITER_LEN
 import nl.vintik.mocknest.infra.aws.runtime.di.runtimeModule
 import nl.vintik.mocknest.infra.aws.runtime.function.StreamingRuntimeLambdaHandler
 import org.crac.Core
@@ -410,7 +410,7 @@ class ZeroMemoryStreamingIntegrationTest : KoinTest {
         val headers = headersObj.entries.associate { (k, v) -> k to v.jsonPrimitive.content }
 
         val bodyBytes = bytes.copyOfRange(
-            delimiterIndex + StreamingProtocolWriter.NULL_DELIMITER_SIZE,
+            delimiterIndex + DELIMITER_LEN,
             bytes.size,
         )
         val body = String(bodyBytes, Charsets.UTF_8)
@@ -419,7 +419,7 @@ class ZeroMemoryStreamingIntegrationTest : KoinTest {
     }
 
     private fun findNullDelimiter(bytes: ByteArray): Int {
-        val delimiterSize = StreamingProtocolWriter.NULL_DELIMITER_SIZE
+        val delimiterSize = DELIMITER_LEN
         for (i in 0..bytes.size - delimiterSize) {
             var allNull = true
             for (j in 0 until delimiterSize) {

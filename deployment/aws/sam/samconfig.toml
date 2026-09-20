@@ -12,7 +12,6 @@ parallel = true
 capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
 confirm_changeset = true
 resolve_s3 = false
-s3_bucket = "lambda-deployment-clean-architecture-example"
 s3_prefix = "mocknest-serverless"
 region = "eu-west-1"
 image_repositories = []

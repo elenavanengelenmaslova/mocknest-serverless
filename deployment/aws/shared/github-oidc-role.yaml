@@ -26,6 +26,31 @@ Conditions:
   CreateOIDCProvider: !Equals [!Ref ExistingOIDCProviderArn, '']
 
 Resources:
+  # S3 bucket for SAM deployment artifacts (Lambda code, packaged template, SAR LICENSE/README).
+  # Owned by this bootstrap stack so the GitHub Actions role only needs object-level access
+  # (no CreateBucket/DeleteBucket/TagResource), and SAM does not need resolve_s3 managed buckets.
+  # Name is derived from account id + region for global uniqueness without hard-coding.
+  MockNestArtifactsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub 'mocknest-sam-artifacts-${AWS::AccountId}-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Purpose
+          Value: SAM-Deployment-Artifacts
+
   # OIDC Identity Provider for GitHub Actions (only created if no existing provider ARN is given)
   GitHubOIDCProvider:
     Type: AWS::IAM::OIDCProvider
@@ -61,8 +86,14 @@ Resources:
             Condition:
               StringEquals:
                 'token.actions.githubusercontent.com:aud': sts.amazonaws.com
+              # Trust main plus feature/* and dependabot/* branch refs. This mirrors
+              # the live role's trust policy so CI on feature branches (e.g. the
+              # pre-merge dual-mode validation) and Dependabot PRs keep working.
+              StringLike:
                 'token.actions.githubusercontent.com:sub':
                   - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main'
+                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/feature/*'
+                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/dependabot/*'
       Policies:
         - PolicyName: GitHubActionsDeploymentPolicy
           PolicyDocument:
@@ -95,6 +126,8 @@ Resources:
                   - 'arn:aws:s3:::aws-sam-cli-managed-default-*/*'
                   - 'arn:aws:s3:::mocknest-sar-artifacts-*'
                   - 'arn:aws:s3:::mocknest-sar-artifacts-*/*'
+                  - !GetAtt MockNestArtifactsBucket.Arn
+                  - !Sub '${MockNestArtifactsBucket.Arn}/*'
 
               # S3 bucket creation for SAR artifact bucket
               - Effect: Allow
@@ -114,6 +147,52 @@ Resources:
                   StringEquals:
                     'iam:PassedToService': cloudformation.amazonaws.com
 
+              # Read the generated API key value during post-deploy integration tests
+              # (the integration-test job calls `aws apigateway get-api-key --include-value`).
+              - Effect: Allow
+                Action:
+                  - apigateway:GET
+                Resource:
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/apikeys/*'
+
+              # IAM auth mode: integration tests sign requests to the deployed API with SigV4
+              # (--aws-sigv4 ...:execute-api). Not used in API_KEY mode (api-key header instead).
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                Resource:
+                  - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*'
+
+              # IAM auth mode: the API uses a caller-credentials (response-streaming) Lambda
+              # integration, so API Gateway invokes the runtime/generation functions AS the
+              # calling identity. The caller therefore needs lambda:InvokeFunction on those
+              # functions (and their aliases). Not required in API_KEY mode, which uses the
+              # function's resource-based policy for the apigateway principal instead.
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:mocknest-serverless*'
+
+              # IAM auth mode: the webhook integration test polls the S3 request journal
+              # under the requests/ prefix only (list-objects-v2 + get-object).
+              # ListBucket is scoped to the requests/ prefix; GetObject to requests/* objects.
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - 'arn:aws:s3:::mocknest-serverless*mockstorage*'
+                Condition:
+                  StringLike:
+                    's3:prefix':
+                      - 'requests/'
+                      - 'requests/*'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - 'arn:aws:s3:::mocknest-serverless*mockstorage*/requests/*'
+
               # Serverless Application Repository publishing
               - Effect: Allow
                 Action:
@@ -124,6 +203,255 @@ Resources:
           Value: MockNest-Serverless
         - Key: Purpose
           Value: GitHub-Actions-Deployment
+
+  # IAM Role for the SAR test pipeline (sar-test-pipeline.yml). This role is
+  # deliberately SEPARATE from GitHubActionsRole: the SAR test pipeline deploys a
+  # throwaway `sar-<run_id>-*` stack DIRECTLY from the published SAR application
+  # (aws cloudformation create/execute-change-set + stack-create/delete) WITHOUT
+  # passing --role-arn, so CloudFormation runs with THIS role's permissions.
+  # It therefore needs broad resource create/delete rights, which we keep out of
+  # the least-privilege everyday deploy role. Trust is scoped to the main branch
+  # only, since SAR publish + test run exclusively post-merge on main.
+  GitHubActionsSarTestRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: GitHubActionsSarTestRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - CreateOIDCProvider
+                - !Ref GitHubOIDCProvider
+                - !Ref ExistingOIDCProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'token.actions.githubusercontent.com:aud': sts.amazonaws.com
+                'token.actions.githubusercontent.com:sub':
+                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main'
+      Policies:
+        - PolicyName: GitHubActionsSarTestPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Read stack outputs, drive the SAR change set, and tear the stack down.
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DeleteStack
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:ListStacks
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:GetTemplateSummary
+                Resource: '*'
+
+              # Required to expand the SAM (Serverless) transform when the SAR
+              # change set is created and executed by this role.
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                Resource:
+                  - !Sub 'arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31'
+
+              # SAR change-set creation from the published application.
+              - Effect: Allow
+                Action:
+                  - serverlessrepo:CreateCloudFormationChangeSet
+                  - serverlessrepo:GetApplication
+                  - serverlessrepo:GetCloudFormationTemplate
+                  - serverlessrepo:CreateCloudFormationTemplate
+                Resource: '*'
+
+              # IAM auth mode: health checks sign requests with SigV4.
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                Resource:
+                  - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*'
+
+              # Lambda lifecycle for the SAR app functions + SnapStart alias/version.
+              - Effect: Allow
+                Action:
+                  - lambda:CreateFunction
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:DeleteFunction
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+                  - lambda:GetPolicy
+                  - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:GetFunctionCodeSigningConfig
+                  - lambda:GetRuntimeManagementConfig
+                  - lambda:PutRuntimeManagementConfig
+                  - lambda:ListVersionsByFunction
+                  - lambda:PublishVersion
+                  - lambda:CreateAlias
+                  - lambda:UpdateAlias
+                  - lambda:DeleteAlias
+                  - lambda:GetAlias
+                  - lambda:InvokeFunction
+                  - lambda:TagResource
+                  - lambda:UntagResource
+                  - lambda:ListTags
+                  - lambda:PutFunctionEventInvokeConfig
+                  - lambda:GetFunctionEventInvokeConfig
+                  - lambda:UpdateFunctionEventInvokeConfig
+                  - lambda:DeleteFunctionEventInvokeConfig
+                Resource:
+                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*'
+
+              # Lambda event source mappings (SQS -> RuntimeAsync consumer).
+              # Create/List do not support resource-level scoping (no ARN at
+              # create time; List is account-wide), so they stay on '*'.
+              - Effect: Allow
+                Action:
+                  - lambda:CreateEventSourceMapping
+                  - lambda:GetEventSourceMapping
+                  - lambda:UpdateEventSourceMapping
+                  - lambda:DeleteEventSourceMapping
+                  - lambda:ListEventSourceMappings
+                Resource: '*'
+
+              # CloudFormation tags the event source mapping on create; the
+              # function-scoped TagResource statement above does not cover the
+              # event-source-mapping ARN. TagResource/UntagResource support
+              # resource-level scoping, so restrict them to this account/region.
+              - Effect: Allow
+                Action:
+                  - lambda:TagResource
+                  - lambda:UntagResource
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:event-source-mapping:*'
+
+              # API Gateway write/lifecycle actions for the SAR app stack.
+              - Effect: Allow
+                Action:
+                  - apigateway:POST
+                  - apigateway:PUT
+                  - apigateway:DELETE
+                  - apigateway:PATCH
+                Resource:
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/*'
+
+              # API Gateway read access: needed to read REST API config and to
+              # retrieve the generated API key value during health checks.
+              # NOTE: apigateway:GET does not support aws:ResourceTag-based
+              # authorization for the /apikeys and /restapis read paths used here,
+              # and the API key/REST API are created by the SAR-published template
+              # (not this stack), so they cannot be tagged from here. GET is kept
+              # as a separate statement, scoped to the regional API Gateway ARN.
+              - Effect: Allow
+                Action:
+                  - apigateway:GET
+                Resource:
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/*'
+
+              # S3 bucket management for the SAR app's mock-storage bucket.
+              - Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:DeleteBucket
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                  - s3:PutBucketPolicy
+                  - s3:GetBucketPolicy
+                  - s3:DeleteBucketPolicy
+                  - s3:PutBucketNotification
+                  - s3:PutEncryptionConfiguration
+                  - s3:GetEncryptionConfiguration
+                  - s3:PutBucketVersioning
+                  - s3:GetBucketVersioning
+                  - s3:PutBucketPublicAccessBlock
+                  - s3:GetBucketPublicAccessBlock
+                  - s3:PutLifecycleConfiguration
+                  - s3:GetLifecycleConfiguration
+                  - s3:PutBucketTagging
+                  - s3:GetBucketTagging
+                  - s3:TagResource
+                  - s3:UntagResource
+                Resource: '*'
+
+              # SQS lifecycle for the webhook dispatch queue.
+              - Effect: Allow
+                Action:
+                  - sqs:CreateQueue
+                  - sqs:DeleteQueue
+                  - sqs:GetQueueAttributes
+                  - sqs:SetQueueAttributes
+                  - sqs:TagQueue
+                  - sqs:UntagQueue
+                  - sqs:GetQueueUrl
+                Resource:
+                  - !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:*'
+
+              # CloudWatch Logs lifecycle for the SAR app functions.
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:DeleteLogGroup
+                  - logs:PutRetentionPolicy
+                  - logs:DescribeLogGroups
+                  - logs:TagLogGroup
+                  - logs:TagResource
+                  - logs:UntagResource
+                Resource:
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*'
+
+              # IAM role/policy management for the SAR app's function roles.
+              - Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:UpdateRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:GetRolePolicy
+                  - iam:CreatePolicy
+                  - iam:DeletePolicy
+                  - iam:GetPolicy
+                  - iam:GetPolicyVersion
+                  - iam:ListPolicyVersions
+                  - iam:TagRole
+                  - iam:UntagRole
+                  - iam:ListRolePolicies
+                  - iam:ListAttachedRolePolicies
+                Resource: '*'
+
+              # PassRole is restricted to Lambda: the SAR app only passes the
+              # function execution roles it creates to lambda.amazonaws.com.
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'iam:PassedToService': lambda.amazonaws.com
+
+              # Bedrock access granted to the SAR app's runtime/generation roles.
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource:
+                  - !Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:*'
+      Tags:
+        - Key: Application
+          Value: MockNest-Serverless
+        - Key: Purpose
+          Value: GitHub-Actions-SAR-Test
 
   # CloudFormation Execution Role - assumed by CloudFormation to create/modify stack resources
   MockNestCloudFormationExecutionRole:
@@ -142,7 +470,10 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # Lambda permissions (scoped)
+              # Lambda permissions (explicit action list — no service-level wildcard,
+              # per the OIDC least-privilege policy enforced by scripts/check-oidc-policy.sh).
+              # Covers the full SAM lifecycle including SnapStart version/alias creation,
+              # which reads runtime-management and code-signing config on the version.
               - Effect: Allow
                 Action:
                   - lambda:CreateFunction
@@ -151,7 +482,12 @@ Resources:
                   - lambda:DeleteFunction
                   - lambda:AddPermission
                   - lambda:RemovePermission
+                  - lambda:GetPolicy
                   - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:GetFunctionCodeSigningConfig
+                  - lambda:GetRuntimeManagementConfig
+                  - lambda:PutRuntimeManagementConfig
                   - lambda:ListVersionsByFunction
                   - lambda:PublishVersion
                   - lambda:CreateAlias
@@ -163,8 +499,22 @@ Resources:
                   - lambda:UntagResource
                   - lambda:ListTags
                   - lambda:PutFunctionEventInvokeConfig
+                  - lambda:GetFunctionEventInvokeConfig
+                  - lambda:UpdateFunctionEventInvokeConfig
+                  - lambda:DeleteFunctionEventInvokeConfig
                 Resource:
                   - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*'
+
+              # Lambda event source mappings (SQS -> RuntimeAsync webhook consumer).
+              # CreateEventSourceMapping does not support resource-level scoping.
+              - Effect: Allow
+                Action:
+                  - lambda:CreateEventSourceMapping
+                  - lambda:GetEventSourceMapping
+                  - lambda:UpdateEventSourceMapping
+                  - lambda:DeleteEventSourceMapping
+                  - lambda:ListEventSourceMappings
+                Resource: '*'
 
               # API Gateway permissions scoped to account
               - Effect: Allow
@@ -175,24 +525,33 @@ Resources:
                   - apigateway:DELETE
                   - apigateway:PATCH
                 Resource:
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis'
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis/*'
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/tags/*'
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/*'
 
               # S3 bucket management permissions
               - Effect: Allow
                 Action:
                   - s3:CreateBucket
-                  - s3:PutBucketPolicy
                   - s3:DeleteBucket
                   - s3:PutObject
                   - s3:GetObject
                   - s3:DeleteObject
                   - s3:ListBucket
+                  - s3:PutBucketPolicy
+                  - s3:GetBucketPolicy
+                  - s3:DeleteBucketPolicy
                   - s3:PutBucketNotification
                   - s3:PutEncryptionConfiguration
+                  - s3:GetEncryptionConfiguration
                   - s3:PutBucketVersioning
+                  - s3:GetBucketVersioning
                   - s3:PutBucketPublicAccessBlock
+                  - s3:GetBucketPublicAccessBlock
+                  - s3:PutLifecycleConfiguration
+                  - s3:GetLifecycleConfiguration
+                  - s3:PutBucketTagging
+                  - s3:GetBucketTagging
+                  - s3:TagResource
+                  - s3:UntagResource
                 Resource: '*'
 
               # SQS permissions
@@ -252,6 +611,15 @@ Resources:
                   - bedrock:InvokeModelWithResponseStream
                 Resource:
                   - !Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:*'
+
+              # Required to expand the SAM (Serverless) transform during stack operations.
+              # CloudFormation, acting as this execution role, calls CreateChangeSet
+              # against the managed transform macro to process `Transform: AWS::Serverless-2016-10-31`.
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                Resource:
+                  - !Sub 'arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31'
       Tags:
         - Key: Application
           Value: MockNest-Serverless
@@ -264,6 +632,18 @@ Outputs:
     Value: !GetAtt GitHubActionsRole.Arn
     Export:
       Name: GitHubActionsRoleArn
+
+  GitHubActionsSarTestRoleArn:
+    Description: ARN of the SAR test-pipeline role (main-only trust)
+    Value: !GetAtt GitHubActionsSarTestRole.Arn
+    Export:
+      Name: GitHubActionsSarTestRoleArn
+
+  MockNestArtifactsBucketName:
+    Description: Name of the S3 bucket used for SAM deployment artifacts
+    Value: !Ref MockNestArtifactsBucket
+    Export:
+      Name: MockNestArtifactsBucketName
 
   MockNestCloudFormationExecutionRoleArn:
     Description: ARN of the CloudFormation execution role

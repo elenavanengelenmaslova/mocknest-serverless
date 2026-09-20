@@ -42,7 +42,7 @@ class WsdlContentFetcherTest {
 
     @AfterEach
     fun tearDown() {
-        wireMockServer.stop()
+        runCatching { wireMockServer.stop() }
     }
 
     private fun baseUrl() = "http://localhost:${wireMockServer.port()}"
@@ -256,6 +256,100 @@ class WsdlContentFetcherTest {
             assertFailsWith<WsdlFetchException> {
                 fetcher.fetch("${baseUrl()}/plain-text")
             }
+        }
+
+        @Test
+        fun `Given URL returning empty body When fetching Then should throw WsdlFetchException for empty response`() = runTest {
+            // Given - 200 OK with an empty body
+            wireMockServer.stubFor(
+                get(urlEqualTo("/empty.wsdl"))
+                    .willReturn(
+                        aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "text/xml")
+                            .withBody("")
+                    )
+            )
+
+            // When / Then
+            val ex = assertFailsWith<WsdlFetchException> {
+                fetcher.fetch("${baseUrl()}/empty.wsdl")
+            }
+            assertContains(ex.message ?: "", "empty response body", ignoreCase = true)
+        }
+    }
+
+    @Nested
+    inner class SizeLimit {
+
+        @Test
+        fun `Given response larger than 10 MiB When fetching Then should throw WsdlFetchException for size`() = runTest {
+            // Given - a body just over the 10 MiB limit (Content-Length triggers the early guard)
+            val oversized = "<root>" + "a".repeat(10 * 1024 * 1024) + "</root>"
+            wireMockServer.stubFor(
+                get(urlEqualTo("/huge.wsdl"))
+                    .willReturn(
+                        aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "text/xml")
+                            .withBody(oversized)
+                    )
+            )
+
+            // When / Then
+            val ex = assertFailsWith<WsdlFetchException> {
+                fetcher.fetch("${baseUrl()}/huge.wsdl")
+            }
+            assertContains(ex.message ?: "", "maximum allowed size", ignoreCase = true)
+        }
+    }
+
+    @Nested
+    inner class DnsAndValidation {
+
+        @Test
+        fun `Given URL safety validator that returns no addresses When fetching Then should throw WsdlFetchException`() = runTest {
+            // Given - validator passes safety check but resolves to no addresses
+            val noAddressFetcher = WsdlContentFetcher(timeoutMs = 5_000L, urlSafetyValidator = { emptyList() })
+
+            // When / Then
+            val ex = assertFailsWith<WsdlFetchException> {
+                noAddressFetcher.fetch("https://example.com/service.wsdl")
+            }
+            assertContains(ex.message ?: "", "no addresses", ignoreCase = true)
+        }
+
+        @Test
+        fun `Given URL safety validator that throws When fetching Then should throw WsdlFetchException for failed validation`() = runTest {
+            // Given - validator rejects the URL (e.g. SSRF check failure)
+            val rejectingFetcher = WsdlContentFetcher(
+                timeoutMs = 5_000L,
+                urlSafetyValidator = { throw IllegalStateException("blocked by SSRF policy") }
+            )
+
+            // When / Then
+            val ex = assertFailsWith<WsdlFetchException> {
+                rejectingFetcher.fetch("https://example.com/service.wsdl")
+            }
+            assertContains(ex.message ?: "", "safety validation", ignoreCase = true)
+        }
+
+        @Test
+        fun `Given unreachable host When fetching Then should throw WsdlFetchException for network failure`() = runTest {
+            // Given - SSRF validation bypassed to loopback, but nothing is listening on the port
+            val deadPort = wireMockServer.port()
+            wireMockServer.stop() // free the port so the connection is refused
+
+            // When / Then
+            val ex = assertFailsWith<WsdlFetchException> {
+                fetcher.fetch("http://localhost:$deadPort/service.wsdl")
+            }
+            assertTrue(
+                ex.message?.contains("network failure", ignoreCase = true) == true ||
+                    ex.message?.contains("failed to fetch", ignoreCase = true) == true ||
+                    ex.message?.contains("timeout", ignoreCase = true) == true,
+                "Exception should indicate a network failure, got: ${ex.message}"
+            )
         }
     }
 }

@@ -1,8 +1,11 @@
 name: CD - SAR Publish
 
+# Manual-only. We intentionally do NOT use the `release: published` trigger:
+# releases cut by the pipeline's default GITHUB_TOKEN cannot trigger other
+# workflows anyway, and a manually-published release should not silently kick off
+# an unguarded SAR publish. The main-aws.yml pipeline chains SAR publish/test
+# directly after a release. Manual dispatch here is restricted to the main branch.
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -25,10 +28,23 @@ permissions:
   contents: read
 
 jobs:
+  # Guard: manual SAR publish/test is only permitted from the protected main branch.
+  guard-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce main-only dispatch
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "❌ CD - SAR Publish may only be dispatched from refs/heads/main (got ${{ github.ref }})."
+            exit 1
+          fi
+          echo "✅ Dispatched from main."
+
   publish:
+    needs: guard-main
     uses: ./.github/workflows/workflow-sar-publish.yml
     with:
-      version: ${{ inputs.version || github.event.release.tag_name }}
+      version: ${{ inputs.version }}
       aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
       github-actions-role-name: ${{ inputs.github-actions-role-name || vars.OIDC_ROLE_NAME }}
     secrets:
@@ -39,8 +55,9 @@ jobs:
     uses: ./.github/workflows/sar-test-pipeline.yml
     with:
       aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
-      version: ${{ inputs.version || github.event.release.tag_name }}
+      version: ${{ inputs.version }}
       auth-mode: 'API_KEY'
+      github-actions-role-name: ${{ inputs.github-actions-role-name || vars.SAR_TEST_ROLE_NAME || 'GitHubActionsSarTestRole' }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
@@ -49,8 +66,9 @@ jobs:
     uses: ./.github/workflows/sar-test-pipeline.yml
     with:
       aws-region: ${{ inputs.aws-region || 'eu-west-1' }}
-      version: ${{ inputs.version || github.event.release.tag_name }}
+      version: ${{ inputs.version }}
       auth-mode: 'IAM'
+      github-actions-role-name: ${{ inputs.github-actions-role-name || vars.SAR_TEST_ROLE_NAME || 'GitHubActionsSarTestRole' }}
     secrets:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
@@ -63,7 +81,7 @@ jobs:
         run: |
           echo "## 📦 SAR Application Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ inputs.version || github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Region:** ${{ inputs.aws-region || 'eu-west-1' }}" >> $GITHUB_STEP_SUMMARY
           echo "**Application ID:** ${{ needs.publish.outputs.application_id }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
