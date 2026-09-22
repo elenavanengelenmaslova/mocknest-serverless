@@ -24,7 +24,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import org.junit.jupiter.params.provider.ValueSource
 import java.time.Instant
 
 /**
@@ -199,17 +198,19 @@ class MockGenerationGraphStructureTest {
                 val validate = assertNodeByName<MockGenerationContext, MockGenerationContext>("validate")
                 val correct = assertNodeByName<MockGenerationContext, MockGenerationContext>("correct")
 
-                // These nodes each have exactly one outgoing edge, so their target is deterministic.
+                val finish = finishNode()
+
                 assertEdges {
+                    // Unconditional transitions: exactly one outgoing edge.
                     start alwaysGoesTo setup
                     setup alwaysGoesTo generate
                     correct alwaysGoesTo validate
-                }
 
-                // generate and validate are intentionally conditional (multiple edges) and are
-                // therefore covered by reachability rather than alwaysGoesTo.
-                assertReachable(generate, validate)
-                assertReachable(validate, correct)
+                    // generate is conditional on options.enableValidation. Assert both branches
+                    // directly so an intermediate path cannot satisfy the test.
+                    generate withOutput generateOutput(enableValidation = true) goesTo validate
+                    generate withOutput generateOutput(enableValidation = false) goesTo finish
+                }
             }
         }
 
@@ -230,6 +231,17 @@ class MockGenerationGraphStructureTest {
     )
 
     /**
+     * Builds a [MockGenerationContext] describing the state that flows *out* of the generate node.
+     * The generate -> {validate, finish} edge conditions only read
+     * [MockGenerationContext.request].options.enableValidation.
+     */
+    private fun generateOutput(enableValidation: Boolean) = MockGenerationContext(
+        request = request().copy(options = GenerationOptions(enableValidation = enableValidation)),
+        specification = testSpecification,
+        mocks = listOf(testMock)
+    )
+
+    /**
      * Retry-budget boundary property: for any maxRetries N, while there are validation errors
      * the validate node loops back to `correct` as long as `attempt <= N`, and switches to
      * `finish` as soon as `attempt > N`. Each row exercises the last correcting attempt and the
@@ -243,6 +255,7 @@ class MockGenerationGraphStructureTest {
         "1, 2, finish",   // first attempt past budget 1
         "2, 2, correct",  // last correcting attempt for budget 2
         "2, 3, finish",   // first attempt past budget 2
+        "3, 2, correct",  // strictly inside budget 3 (below the boundary)
         "3, 3, correct",  // last correcting attempt for budget 3
         "3, 4, finish"    // first attempt past budget 3
     )
@@ -272,13 +285,24 @@ class MockGenerationGraphStructureTest {
     }
 
     /**
-     * When there are no validation errors, validate always finishes on the first attempt,
-     * regardless of how many retries are configured.
+     * When there are no validation errors, validate always finishes regardless of how many
+     * retries are configured or which attempt we are on. The `attempt = 2` rows represent the
+     * post-correction success case: correction ran, validation now passes, and even though a
+     * retry is still budgeted the empty-error branch wins and routes to finish.
      */
-    @ParameterizedTest(name = "maxRetries={0}")
-    @ValueSource(ints = [0, 1, 2, 3])
+    @ParameterizedTest(name = "maxRetries={0}, attempt={1}")
+    @CsvSource(
+        // maxRetries, attempt
+        "0, 1",   // first attempt, no retries
+        "1, 1",   // first attempt, one retry budgeted
+        "2, 1",
+        "3, 1",
+        "2, 2",   // post-correction success while a retry is still available
+        "3, 2"
+    )
     fun `Given no validation errors When resolving validate edge Then goes straight to finish for any retry budget`(
-        maxRetries: Int
+        maxRetries: Int,
+        attempt: Int
     ) = runTest {
         val agentUnderTest = buildAgent(strategyAgent = agentWith(maxRetries)) {
             testGraph<SpecWithDescriptionRequest, GenerationResult>("mock-generation") {
@@ -286,7 +310,7 @@ class MockGenerationGraphStructureTest {
                 val validate = assertNodeByName<MockGenerationContext, MockGenerationContext>("validate")
 
                 assertEdges {
-                    validate withOutput validateOutput(errors = emptyList(), attempt = 1) goesTo finish
+                    validate withOutput validateOutput(errors = emptyList(), attempt = attempt) goesTo finish
                 }
             }
         }
