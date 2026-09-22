@@ -68,10 +68,12 @@ BEDROCK_EVAL_ENABLED=true \
 |----------|---------|-------------|
 | `BEDROCK_EVAL_ENABLED` | — | Must be set to `true` to run eval tests |
 | `BEDROCK_EVAL_ITERATIONS` | `3` | Number of iterations per scenario (higher values reduce variance; the default of 3 averages out borderline scenarios) |
-| `BEDROCK_EVAL_FILTER` | — | Case-insensitive substring filter on scenario `input` names. Only matching scenarios run. When unset or empty, all scenarios run |
+| `BEDROCK_EVAL_SUITE` | `all` | Selects which eval suite(s) run: `quality` (multi-protocol quality dataset), `injection` (injection dataset), or `all` (both). Unselected suites are skipped |
+| `BEDROCK_EVAL_FILTER` | — | Case-insensitive substring filter on scenario `input` names, applied only within the selected suite. Only matching scenarios run. When unset or empty, all scenarios in the selected suite run |
 | `BEDROCK_EVAL_MAX_RETRIES` | `1` | Self-correction retry budget per scenario (range 0–2). Set to `0` for clean single-shot generation numbers with no correction |
 | `BEDROCK_EVAL_DEMO` | — | Set to `true` for demo-friendly output: the summary and detail tables plus a one-line-per-scenario progress are printed to stdout, and chatty log narration is suppressed (see [Demo Mode](#demo-mode)) |
 | `AWS_REGION` | `eu-west-1` | AWS region for Bedrock API calls |
+| `BEDROCK_JUDGE_MODEL` | `OpenAIGptOss120B` | LLM-as-a-judge model (a `BedrockModels` constant name). An independent judge (different from the Nova Pro generator) gives stricter, more honest semantic verdicts |
 
 ### Example: Multiple Iterations for Statistical Confidence
 

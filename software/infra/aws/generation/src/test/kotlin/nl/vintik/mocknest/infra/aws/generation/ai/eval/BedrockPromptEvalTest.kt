@@ -47,6 +47,7 @@ import nl.vintik.mocknest.infra.aws.generation.ai.BedrockServiceAdapter
 import nl.vintik.mocknest.infra.aws.generation.ai.config.DefaultInferencePrefixResolver
 import nl.vintik.mocknest.infra.aws.generation.ai.config.InferenceMode
 import nl.vintik.mocknest.infra.aws.generation.ai.config.ModelConfiguration
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
@@ -95,6 +96,18 @@ class BedrockPromptEvalTest {
      * self-explanatory output. Normal runs are unaffected.
      */
     private val demoMode: Boolean = System.getenv("BEDROCK_EVAL_DEMO")?.equals("true", ignoreCase = true) == true
+
+    /**
+     * Suite selector. `BEDROCK_EVAL_SUITE` chooses which eval suite(s) run:
+     * `quality` (multi-protocol quality dataset), `injection` (injection dataset), or
+     * `all` (both). Defaults to `all` to preserve prior behavior. Each suite skips via a
+     * JUnit assumption when not selected, so `BEDROCK_EVAL_FILTER` is only ever applied to
+     * the selected suite and cannot fail an unselected one by matching zero scenarios.
+     */
+    private val suiteSelector: String =
+        System.getenv("BEDROCK_EVAL_SUITE")?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: "all"
+
+    private fun suiteSelected(suite: String): Boolean = suiteSelector == "all" || suiteSelector == suite
 
     private val tokenUsageStore = TokenUsageStore()
 
@@ -221,6 +234,9 @@ class BedrockPromptEvalTest {
 
     @Test
     fun `Given multi-protocol eval dataset When running all scenarios Then summary and detail tables are produced`() {
+        assumeTrue(suiteSelected("quality")) {
+            "Skipping quality suite: BEDROCK_EVAL_SUITE='$suiteSelector' (set to 'quality' or 'all' to run)"
+        }
         runEvalSuite(
             datasetResource = "/eval/multi-protocol-eval-dataset.json",
             suiteLabel = "Bedrock prompt eval — AI mock generation quality"
@@ -230,8 +246,8 @@ class BedrockPromptEvalTest {
     /**
      * Injection eval suite. Reuses the exact same machinery as the quality suite
      * (`runScenario`, `runSemanticJudge`, and the summary/detail table builders) but points
-     * it at the separate `injection-eval-dataset.json`. Suite selection is by dataset file;
-     * `BEDROCK_EVAL_FILTER` still narrows scenarios within the suite.
+     * it at the separate `injection-eval-dataset.json`. Suites are selected via `BEDROCK_EVAL_SUITE`
+     * (see [suiteSelector]); `BEDROCK_EVAL_FILTER` narrows scenarios within the selected suite only.
      *
      * Like the quality suite this is excluded from normal `./gradlew test` via the
      * `bedrock-eval` tag and the `BEDROCK_EVAL_ENABLED` gate — it only runs during the
@@ -239,6 +255,9 @@ class BedrockPromptEvalTest {
      */
     @Test
     fun `Given injection eval dataset When running all scenarios Then summary and detail tables are produced`() {
+        assumeTrue(suiteSelected("injection")) {
+            "Skipping injection suite: BEDROCK_EVAL_SUITE='$suiteSelector' (set to 'injection' or 'all' to run)"
+        }
         runEvalSuite(
             datasetResource = "/eval/injection-eval-dataset.json",
             suiteLabel = "Bedrock prompt eval — prompt injection hardening"
