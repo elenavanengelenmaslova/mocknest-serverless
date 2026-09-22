@@ -40,15 +40,18 @@ fun assertThreshold(rate: Double, threshold: Double, label: String) {
     }
 }
 
+/** Default iteration count when BEDROCK_EVAL_ITERATIONS is unset. */
+const val DEFAULT_EVAL_ITERATIONS = 3
+
 /**
  * Parses an environment variable string into a positive iteration count.
  *
  * @param envValue the raw environment variable value, or null if not set
- * @return the parsed positive integer, or 1 if [envValue] is null
+ * @return the parsed positive integer, or [DEFAULT_EVAL_ITERATIONS] (3) if [envValue] is null
  * @throws IllegalArgumentException if [envValue] is empty, blank, non-numeric, zero, or negative
  */
 fun parseIterationCount(envValue: String?): Int {
-    if (envValue == null) return 1
+    if (envValue == null) return DEFAULT_EVAL_ITERATIONS
     require(envValue.isNotBlank()) { "BEDROCK_EVAL_ITERATIONS must not be empty or blank" }
     val parsed = envValue.trim().toIntOrNull()
     require(parsed != null) { "BEDROCK_EVAL_ITERATIONS must be a valid integer, got: '$envValue'" }

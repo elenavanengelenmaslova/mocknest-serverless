@@ -15,6 +15,8 @@ The recommended workflow for any prompt change:
 
 This before/after comparison gives you concrete data on the impact of your change.
 
+For a worked example of this baseline/post-change workflow, see the [Prompt Injection Hardening evaluation report](./prompt-injection-hardening-eval.md), which records the recorded quality baseline, post-change, and injection-scenario results for that effort. See also the [SOAP Realistic-Data Stabilization evaluation report](./soap-realistic-data-stabilization-eval.md) for a follow-up before/after study of a borderline SOAP scenario and the iteration-count methodology change.
+
 ## Prerequisites
 
 - AWS credentials configured with access to Amazon Bedrock in the target region
@@ -65,7 +67,7 @@ BEDROCK_EVAL_ENABLED=true \
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `BEDROCK_EVAL_ENABLED` | — | Must be set to `true` to run eval tests |
-| `BEDROCK_EVAL_ITERATIONS` | `1` | Number of iterations per scenario (higher values reduce variance) |
+| `BEDROCK_EVAL_ITERATIONS` | `3` | Number of iterations per scenario (higher values reduce variance; the default of 3 averages out borderline scenarios) |
 | `BEDROCK_EVAL_FILTER` | — | Case-insensitive substring filter on scenario `input` names. Only matching scenarios run. When unset or empty, all scenarios run |
 | `BEDROCK_EVAL_MAX_RETRIES` | `1` | Self-correction retry budget per scenario (range 0–2). Set to `0` for clean single-shot generation numbers with no correction |
 | `BEDROCK_EVAL_DEMO` | — | Set to `true` for demo-friendly output: the summary and detail tables plus a one-line-per-scenario progress are printed to stdout, and chatty log narration is suppressed (see [Demo Mode](#demo-mode)) |

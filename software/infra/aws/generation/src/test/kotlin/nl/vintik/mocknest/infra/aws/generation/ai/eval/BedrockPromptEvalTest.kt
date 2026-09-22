@@ -10,6 +10,8 @@ import ai.koog.prompt.executor.clients.bedrock.BedrockAPIMethod
 import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.llm.LLMProvider
+import ai.koog.prompt.executor.clients.bedrock.BedrockModels
+import ai.koog.prompt.llm.LLModel
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import dev.dokimos.core.EvalTestCase
 import dev.dokimos.core.EvalTestCaseParam
@@ -130,6 +132,22 @@ class BedrockPromptEvalTest {
     //     decorates the AWS SDK BedrockRuntimeClient, not a Koog type.
     //   - measureTimeMillis latency measurement is Koog-independent — it is a Kotlin
     //     stdlib function (kotlin.system), unaffected by the Koog upgrade.
+    // Independent LLM-as-a-judge model. Using a different model than the Nova Pro generator
+    // reduces same-model judging noise. Defaults to OpenAI GPT-OSS 120B (a first-party Bedrock
+    // foundation model), overridable via BEDROCK_JUDGE_MODEL. Resolved by reflection against
+    // BedrockModels and used as-is (these models carry no inference-profile prefix in Koog).
+    private val judgeModelName: String = System.getenv("BEDROCK_JUDGE_MODEL")?.takeIf { it.isNotBlank() }
+        ?: "OpenAIGptOss120B"
+
+    private val judgeModel: LLModel = resolveJudgeModel(judgeModelName)
+
+    private fun resolveJudgeModel(name: String): LLModel {
+        val property = BedrockModels::class.members.firstOrNull { it.name == name }
+            ?: error("Judge model not found in BedrockModels: '$name'")
+        return property.call(BedrockModels) as? LLModel
+            ?: error("Property '$name' in BedrockModels is not an LLModel")
+    }
+
     private val judgeExecutor by lazy {
         val bedrockLLMClient = BedrockLLMClient(bedrockClient, apiMethod = BedrockAPIMethod.Converse)
         MultiLLMPromptExecutor(LLMProvider.Bedrock to bedrockLLMClient)
@@ -140,7 +158,7 @@ class BedrockPromptEvalTest {
             promptExecutor = judgeExecutor,
             agentConfig = AIAgentConfig.withSystemPrompt(
                 prompt = "You are an evaluation judge. Respond only with a numeric score.",
-                llm = modelConfiguration.getModel(),
+                llm = judgeModel,
                 maxAgentIterations = 5
             ),
             strategy = strategy<String, String>("judge") {
@@ -203,9 +221,39 @@ class BedrockPromptEvalTest {
 
     @Test
     fun `Given multi-protocol eval dataset When running all scenarios Then summary and detail tables are produced`() {
+        runEvalSuite(
+            datasetResource = "/eval/multi-protocol-eval-dataset.json",
+            suiteLabel = "Bedrock prompt eval — AI mock generation quality"
+        )
+    }
+
+    /**
+     * Injection eval suite. Reuses the exact same machinery as the quality suite
+     * (`runScenario`, `runSemanticJudge`, and the summary/detail table builders) but points
+     * it at the separate `injection-eval-dataset.json`. Suite selection is by dataset file;
+     * `BEDROCK_EVAL_FILTER` still narrows scenarios within the suite.
+     *
+     * Like the quality suite this is excluded from normal `./gradlew test` via the
+     * `bedrock-eval` tag and the `BEDROCK_EVAL_ENABLED` gate — it only runs during the
+     * cost-confirmed task 4.2 execution.
+     */
+    @Test
+    fun `Given injection eval dataset When running all scenarios Then summary and detail tables are produced`() {
+        runEvalSuite(
+            datasetResource = "/eval/injection-eval-dataset.json",
+            suiteLabel = "Bedrock prompt eval — prompt injection hardening"
+        )
+    }
+
+    /**
+     * Shared eval-suite driver. Selects the scenario set by [datasetResource] and runs the
+     * common generation + semantic-judge + reporting pipeline. No grading/judging logic is
+     * duplicated across suites — only the dataset file and the intro [suiteLabel] differ.
+     */
+    private fun runEvalSuite(datasetResource: String, suiteLabel: String) {
         if (demoMode) quietLogsForDemo()
 
-        val scenarios = loadScenarios()
+        val scenarios = loadScenarios(datasetResource)
         val iterationCount = parseIterationCount(System.getenv("BEDROCK_EVAL_ITERATIONS"))
         val results = mutableListOf<ScenarioResult>()
 
@@ -215,10 +263,10 @@ class BedrockPromptEvalTest {
         val protocolCounts = protocols.joinToString(", ") { proto ->
             "$proto: ${scenarios.count { it.protocol.equals(proto, ignoreCase = true) }}"
         }
-        emit("Bedrock prompt eval — AI mock generation quality")
+        emit(suiteLabel)
         emit("  Testing : ${scenarios.size} scenario(s) across $distinctApis API spec(s) and ${protocols.size} protocol(s) [${protocols.joinToString(", ")}]")
         emit("  Breakdown: $protocolCounts")
-        emit("  Model   : ${modelConfiguration.getModelName()}   Region: $region   Iterations: $iterationCount   Max retries: $maxRetries")
+        emit("  Model   : ${modelConfiguration.getModelName()}   Judge: $judgeModelName   Region: $region   Iterations: $iterationCount   Max retries: $maxRetries")
         emit("")
 
         for (scenario in scenarios) {
@@ -521,10 +569,12 @@ class BedrockPromptEvalTest {
 
     // --- Dataset loading ---
 
-    private fun loadScenarios(): List<EvalScenario> {
+    private fun loadScenarios(
+        datasetResource: String = "/eval/multi-protocol-eval-dataset.json"
+    ): List<EvalScenario> {
         val datasetJson = checkNotNull(
-            javaClass.getResourceAsStream("/eval/multi-protocol-eval-dataset.json")
-        ) { "Multi-protocol eval dataset not found on classpath" }.use { it.bufferedReader().readText() }
+            javaClass.getResourceAsStream(datasetResource)
+        ) { "Eval dataset not found on classpath: $datasetResource" }.use { it.bufferedReader().readText() }
 
         val root = Json.parseToJsonElement(datasetJson).jsonObject
         val examples = root["examples"]?.jsonArray ?: error("No 'examples' in dataset")

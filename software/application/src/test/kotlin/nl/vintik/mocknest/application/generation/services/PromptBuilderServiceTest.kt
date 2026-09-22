@@ -11,6 +11,11 @@ import java.time.Instant
 
 class PromptBuilderServiceTest {
 
+    private companion object {
+        // Leading marker line of the canonical Security_Section (uses an em dash).
+        const val SECURITY_SECTION_MARKER = "SECURITY — INSTRUCTION HIERARCHY"
+    }
+
     private val promptBuilder = PromptBuilderService()
 
     @AfterEach
@@ -562,6 +567,63 @@ class PromptBuilderServiceTest {
             val placeholderPattern = Regex("\\{\\{[A-Z_]+\\}\\}")
             val matches = placeholderPattern.findAll(prompt).toList()
             assertTrue(matches.isEmpty(), "Prompt should not contain unreplaced template placeholders, found: ${matches.map { it.value }}")
+        }
+    }
+
+    @Nested
+    inner class SecuritySectionPlacement {
+
+        // PromptBuilderService has no injected collaborators, so there is nothing to
+        // stub with MockK here; the class loads its templates directly from the classpath.
+        // These tests guard against a future template reorder that would move the
+        // Security_Section after the untrusted {{DESCRIPTION}} content.
+
+        @Test
+        fun `Given REST spec with distinctive description When building prompt Then Security_Section marker precedes injected description`() {
+            val specification = createTestSpecification(SpecificationFormat.OPENAPI_3)
+            val namespace = MockNamespace("petstore", null)
+            val description = "INJECTED_DISTINCTIVE_DESCRIPTION_MARKER_XYZ"
+
+            val prompt = promptBuilder.buildSpecWithDescriptionPrompt(
+                specification,
+                description,
+                namespace,
+                SpecificationFormat.OPENAPI_3
+            )
+
+            val markerIndex = prompt.indexOf(SECURITY_SECTION_MARKER)
+            val descriptionIndex = prompt.indexOf(description)
+
+            assertNotEquals(-1, markerIndex, "Assembled prompt must still contain the Security_Section marker after substitution")
+            assertNotEquals(-1, descriptionIndex, "Assembled prompt must contain the injected description")
+            assertTrue(
+                markerIndex < descriptionIndex,
+                "Security_Section marker (index=$markerIndex) must precede the injected description (index=$descriptionIndex)"
+            )
+        }
+
+        @Test
+        fun `Given GraphQL spec with distinctive description When building prompt Then Security_Section marker precedes injected description`() {
+            val specification = createTestGraphQLSpecification()
+            val namespace = MockNamespace("myapi", null)
+            val description = "INJECTED_GRAPHQL_DESCRIPTION_MARKER_XYZ"
+
+            val prompt = promptBuilder.buildSpecWithDescriptionPrompt(
+                specification,
+                description,
+                namespace,
+                SpecificationFormat.GRAPHQL
+            )
+
+            val markerIndex = prompt.indexOf(SECURITY_SECTION_MARKER)
+            val descriptionIndex = prompt.indexOf(description)
+
+            assertNotEquals(-1, markerIndex, "Assembled prompt must still contain the Security_Section marker after substitution")
+            assertNotEquals(-1, descriptionIndex, "Assembled prompt must contain the injected description")
+            assertTrue(
+                markerIndex < descriptionIndex,
+                "Security_Section marker (index=$markerIndex) must precede the injected description (index=$descriptionIndex)"
+            )
         }
     }
 
