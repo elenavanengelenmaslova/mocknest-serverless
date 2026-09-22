@@ -22,6 +22,9 @@ import nl.vintik.mocknest.domain.generation.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.ValueSource
 import java.time.Instant
 
 /**
@@ -120,7 +123,21 @@ class MockGenerationGraphStructureTest {
         options = GenerationOptions(enableValidation = true)
     )
 
+    /**
+     * Builds a functional agent whose strategy captures the given [maxRetries] in its edge
+     * conditions. Used by the retry-boundary tests to vary the retry budget.
+     */
+    private fun agentWith(maxRetries: Int) = MockGenerationFunctionalAgent(
+        aiModelService = aiModelService,
+        specificationParser = specificationParser,
+        mockValidator = mockValidator,
+        promptBuilder = promptBuilder,
+        maxRetries = maxRetries,
+        urlFetcher = urlFetcher
+    )
+
     private fun buildAgent(
+        strategyAgent: MockGenerationFunctionalAgent = agent,
         installTesting: GraphAIAgent.FeatureContext.() -> Unit
     ): GraphAIAgent<SpecWithDescriptionRequest, GenerationResult> {
         val mockExecutor = getMockExecutor {
@@ -134,7 +151,7 @@ class MockGenerationGraphStructureTest {
         return GraphAIAgent(
             promptExecutor = mockExecutor,
             agentConfig = agentConfig,
-            strategy = agent.mockGenerationStrategy,
+            strategy = strategyAgent.mockGenerationStrategy,
             toolRegistry = ToolRegistry.EMPTY,
             installFeatures = installTesting
         )
@@ -198,4 +215,83 @@ class MockGenerationGraphStructureTest {
 
         agentUnderTest.run(request())
     }
+
+    /**
+     * Builds a [MockGenerationContext] describing the state that flows *out* of the validate node,
+     * so the validate -> {correct, finish} edge conditions can be evaluated against it.
+     * The conditions only read [MockGenerationContext.errors] and [MockGenerationContext.attempt].
+     */
+    private fun validateOutput(errors: List<String>, attempt: Int) = MockGenerationContext(
+        request = request(),
+        specification = testSpecification,
+        mocks = listOf(testMock),
+        attempt = attempt,
+        errors = errors
+    )
+
+    /**
+     * Retry-budget boundary property: for any maxRetries N, while there are validation errors
+     * the validate node loops back to `correct` as long as `attempt <= N`, and switches to
+     * `finish` as soon as `attempt > N`. Each row exercises the last correcting attempt and the
+     * first attempt past the budget for a range of retry budgets, including 0 (never correct).
+     */
+    @ParameterizedTest(name = "maxRetries={0}, attempt={1} => {2}")
+    @CsvSource(
+        // maxRetries, attempt, expectedTarget
+        "0, 1, finish",   // no retries: first failure already exceeds budget
+        "1, 1, correct",  // last correcting attempt for budget 1
+        "1, 2, finish",   // first attempt past budget 1
+        "2, 2, correct",  // last correcting attempt for budget 2
+        "2, 3, finish",   // first attempt past budget 2
+        "3, 3, correct",  // last correcting attempt for budget 3
+        "3, 4, finish"    // first attempt past budget 3
+    )
+    fun `Given validation errors When resolving validate edge Then routing respects the retry budget`(
+        maxRetries: Int,
+        attempt: Int,
+        expectedTarget: String
+    ) = runTest {
+        val agentUnderTest = buildAgent(strategyAgent = agentWith(maxRetries)) {
+            testGraph<SpecWithDescriptionRequest, GenerationResult>("mock-generation") {
+                val finish = finishNode()
+                val validate = assertNodeByName<MockGenerationContext, MockGenerationContext>("validate")
+                val correct = assertNodeByName<MockGenerationContext, MockGenerationContext>("correct")
+
+                val output = validateOutput(errors = listOf("boom"), attempt = attempt)
+                assertEdges {
+                    when (expectedTarget) {
+                        "correct" -> validate withOutput output goesTo correct
+                        "finish" -> validate withOutput output goesTo finish
+                        else -> error("Unexpected expected target: $expectedTarget")
+                    }
+                }
+            }
+        }
+
+        agentUnderTest.run(request())
+    }
+
+    /**
+     * When there are no validation errors, validate always finishes on the first attempt,
+     * regardless of how many retries are configured.
+     */
+    @ParameterizedTest(name = "maxRetries={0}")
+    @ValueSource(ints = [0, 1, 2, 3])
+    fun `Given no validation errors When resolving validate edge Then goes straight to finish for any retry budget`(
+        maxRetries: Int
+    ) = runTest {
+        val agentUnderTest = buildAgent(strategyAgent = agentWith(maxRetries)) {
+            testGraph<SpecWithDescriptionRequest, GenerationResult>("mock-generation") {
+                val finish = finishNode()
+                val validate = assertNodeByName<MockGenerationContext, MockGenerationContext>("validate")
+
+                assertEdges {
+                    validate withOutput validateOutput(errors = emptyList(), attempt = 1) goesTo finish
+                }
+            }
+        }
+
+        agentUnderTest.run(request())
+    }
+
 }
