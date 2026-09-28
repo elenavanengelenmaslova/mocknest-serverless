@@ -20,7 +20,7 @@ dependencies {
     api("aws.sdk.kotlin:sqs")
     
     // HTTP client for AWS SDK
-    val smithyKotlinVersion = "1.7.9"
+    val smithyKotlinVersion = "1.7.10"
     api("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
     api("aws.smithy.kotlin:aws-signing-default:${smithyKotlinVersion}")
     // Version supplied by the okhttp-bom platform (root build.gradle.kts)
