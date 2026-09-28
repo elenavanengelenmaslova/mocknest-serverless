@@ -2,7 +2,7 @@
 
 ## From AI-powered API mocking idea to AWS 10,000 AIdeas winner
 
-![MockNestServerlessLogo.png](../images/MockNestServerlessLogo.png)
+![MockNestServerlessLogo.png](MockNestServerlessLogo.png)
 
 ## What is MockNest Serverless?
 
@@ -27,13 +27,13 @@ The client application points to MockNest Serverless and calls two endpoints to 
 
 [FinalClip4Take3.mp4](FinalClip4Take3.mp4)
 
-Now you have seen what MockNest Serverless is in a nutshell, I will explain how I came up with the idea.
+This was MockNest Serverless is in a nutshell. Let me briefly explain how I came up with the idea.
 
 ## The idea was already there
 
 The idea for MockNest came from an earlier project where I had used a serverless approach to API mocking while working as a freelance engineer.
 
-That implementation ran on Azure serverless compute, and it exposed two recurring problems: keeping mocks available across cold starts and maintaining large sets of mock mappings by hand. Those challenges made me think about building an open-source version for others who wanted to run a mock server on serverless infrastructure with persistent mocks, and about using AI to make mock creation and maintenance less manual.
+That implementation ran on Azure serverless compute, and it exposed two recurring problems: keeping mocks available across cold starts and maintaining large sets of mock mappings manually. Those challenges made me think about building an open-source version for others who wanted to run a mock server on serverless infrastructure with persistent mocks, and about using AI to make mock creation and maintenance less manual. I wanted to create a tool that is easy to install into your own account, similar to the developer tool Lambda Power Tuner, which is available from Serverless Application Repository.
 
 The idea stayed on my backlog until AWS 10,000 AIdeas gave me a concrete reason to build it. This time, I would create an AWS-native version and make AI-assisted mock generation part of the design from the start.
 
