@@ -147,15 +147,19 @@ See [MockNest Serverless project](https://github.com/users/elenavanengelenmaslov
 
 ### Generation Quality
 
-Generation quality is measured using a 55-scenario eval suite across 15 API specifications, with automated structural validation and LLM-as-a-judge semantic checks.
+Generation quality is measured using a 55-scenario eval suite across 15 API specifications, with automated structural validation and LLM-as-a-judge semantic checks. **This table is the canonical location for the latest measured scores.**
 
-| Protocol | Scenarios | Valid (no retries) | Valid (1 retry) | Semantic pass | Avg cost | Avg latency |
+| Protocol | Scenarios | Valid (no retries) | Valid (1 retry) | Scenario pass | Avg cost | Avg latency |
 |----------|-----------|-------------------|-----------------|---------------|----------|-------------|
-| REST     | 25        | 94%               | 100%            | 100%          | $0.005   | 2.8s        |
-| GraphQL  | 15        | 88%               | 100%            | 100%          | $0.006   | 3.9s        |
-| SOAP     | 15        | 100%              | 100%            | 100%          | $0.006   | 3.4s        |
+| REST     | 25        | 91%               | 100%            | 83%           | $0.007   | 2.3s        |
+| GraphQL  | 15        | 78%               | 97%             | 82%           | $0.008   | 2.2s        |
+| SOAP     | 15        | 96%               | 100%            | 100%          | $0.008   | 3.0s        |
 
-*Tested with Amazon Nova Pro (`eu-west-1`), 1 iteration per scenario. Self-correction retries are configurable (0–2 via `BedrockGenerationMaxRetries`, default 1). Invalid mocks are filtered out — only valid mocks are returned. For full methodology see the [Prompt Eval Guide](docs/PROMPT_EVAL.md).*
+**Generation model:** Amazon Nova Pro (`eu-west-1`). **LLM-as-a-judge model:** OpenAI GPT-OSS 120B (a separate, independent Bedrock model — using a different judge than the generator avoids a model grading its own output and gives a stricter, more honest semantic verdict).
+
+*Latest full-suite run: 3 iterations per scenario, max retries 1. "Scenario pass" is the composite structural + LLM-as-a-judge semantic verdict, reported as the iteration-level pass rate (the fraction of all runs that passed) across the 3 iterations per scenario. "Valid (no retries)" / "Valid (1 retry)" are structural-validation rates before/after self-correction. Self-correction retries are configurable (0–2 via `BedrockGenerationMaxRetries`, default 1). Invalid mocks are filtered out — only valid mocks are returned. Aggregate iteration-level pass rate across all 165 runs: 87%.*
+
+*A few scenarios (mostly GraphQL: JSONPath matcher balance and a couple of consistency checks) remain borderline and can vary between runs; the eval harness defaults to 3 iterations to average these out. For full methodology see the [Prompt Eval Guide](docs/PROMPT_EVAL.md). Detailed studies: [Prompt Injection Hardening eval](docs/prompt-injection-hardening-eval.md) and [SOAP Realistic-Data Stabilization eval](docs/soap-realistic-data-stabilization-eval.md).*
 
 ## Architecture Overview
 

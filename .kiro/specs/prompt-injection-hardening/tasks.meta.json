@@ -1,0 +1,423 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Confirm-and-run the quality Eval_Harness for the baseline": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935353953
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935378053
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936229719
+      }
+    ],
+    "1.2 Create `docs/prompt-injection-hardening-eval.md` and record the Baseline_Report": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935354043
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936233163
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936354027
+      }
+    ],
+    "1.3 Add cross-link from `docs/PROMPT_EVAL.md` to the new eval doc": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935354108
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936362205
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936425116
+      }
+    ],
+    "1.4 Checkpoint - run `./gradlew clean test` and confirm all tests pass": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935354167
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789963803920
+      }
+    ],
+    "2.1 Add the canonical Security_Section to `rest/spec-with-description.txt`": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935354562
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936363642
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936419942
+      }
+    ],
+    "2.2 Add the canonical Security_Section to `graphql/spec-with-description.txt`": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935354596
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936364622
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936421326
+      }
+    ],
+    "2.3 Add the canonical Security_Section to `soap/spec-with-description.txt`": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935354639
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936365993
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936422758
+      }
+    ],
+    "2.4 Add the terse authoritative anchor to `system-prompt.txt`": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935354678
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936367111
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936424270
+      }
+    ],
+    "2.5 Leave every Unchanged_Prompt byte-identical": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935355134
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936428610
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936459790
+      }
+    ],
+    "2.6 Write PromptHardeningStructureTest for Properties 1–3": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935355228
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936463147
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789940178433
+      }
+    ],
+    "2.7 Write optional PromptBuilderSecuritySectionTest": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935355311
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936464552
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789940179098
+      }
+    ],
+    "2.8 Checkpoint - run `./gradlew clean test` and confirm all tests pass": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935355421
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789963804927
+      }
+    ],
+    "3.1 Create `injection-eval-dataset.json`": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935355529
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789936465467
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789963560554
+      }
+    ],
+    "3.2 Add the injection eval execution path": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935355681
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789963568922
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789963702352
+      }
+    ],
+    "3.3 Write InjectionDatasetInvariantTest for Property 4": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935355769
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789963570073
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789963700519
+      }
+    ],
+    "3.4 Checkpoint - run `./gradlew clean test` and confirm all tests pass": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935355880
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789963806012
+      }
+    ],
+    "4.1 Confirm-and-run the quality Eval_Harness for the Post_Change_Report": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935355965
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789964779075
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789968143448
+      }
+    ],
+    "4.2 Confirm-and-run the injection Eval_Harness (separate suite)": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935356046
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789968144255
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789971560974
+      }
+    ],
+    "4.3 Record before/after comparison and Individual_Regressions": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935356112
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789971564729
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789971644105
+      }
+    ],
+    "5.1 Author the Final_Report section in `docs/prompt-injection-hardening-eval.md`": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935356187
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789971647332
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789971759563
+      }
+    ],
+    "6.1 Run `./gradlew koverHtmlReport` and verify 90%+ coverage for new code": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935356273
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789971763650
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789972517138
+      }
+    ],
+    "6.2 Run `./gradlew koverVerify` to enforce the coverage threshold": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935356363
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789972520299
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789972534378
+      }
+    ],
+    "6.3 Review offline test quality": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789935356494
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789971764353
+      },
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789972516122
+      }
+    ],
+    "1. Record the quality Baseline_Report (before any prompt edit)": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789963804011
+      }
+    ],
+    "2. Harden the four prompt templates with the Security_Section": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789963804973
+      }
+    ],
+    "3. Add the separate injection eval dataset and its execution": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789963806049
+      }
+    ],
+    "4. Run post-change evals and record comparison": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789971644146
+      }
+    ],
+    "5. Write the Final_Report (keep/revert recommendation)": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789971759613
+      }
+    ],
+    "6. Final verification of test coverage and quality": [
+      {
+        "executionId": "296a22b7-f54d-426f-be18-a577c4a00fa7",
+        "chatSessionId": "sess_f4bf3bdd-00f5-4424-bd25-15e5c4806688",
+        "timestamp": 1789972534419
+      }
+    ]
+  }
+}
