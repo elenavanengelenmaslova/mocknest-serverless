@@ -19,13 +19,13 @@ dependencies {
     // CVE-2025-58056 / GHSA-fghv-69vj-qj49: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding
     // Fixed in Netty 4.2.5.Final+
     constraints {
-        implementation("io.netty:netty-codec-http:4.2.18.Final") {
+        implementation("io.netty:netty-codec-http:4.2.19.Final") {
             because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
         }
-        implementation("io.netty:netty-codec-http2:4.2.18.Final") {
+        implementation("io.netty:netty-codec-http2:4.2.19.Final") {
             because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
         }
-        implementation("io.netty:netty-codec-http3:4.2.18.Final") {
+        implementation("io.netty:netty-codec-http3:4.2.19.Final") {
             because("Fixes CVE-2025-58056: Incorrect parsing of chunk extensions in HTTP/1.1 chunked encoding")
         }
     }
@@ -40,7 +40,7 @@ dependencies {
     api("aws.sdk.kotlin:bedrockruntime")
     
     // HTTP client for AWS SDK
-    val smithyKotlinVersion = "1.7.10"
+    val smithyKotlinVersion = "1.7.11"
     api("aws.smithy.kotlin:http-client-engine-okhttp:${smithyKotlinVersion}")
     // Version supplied by the okhttp-bom platform (root build.gradle.kts)
     api("com.squareup.okhttp3:okhttp")
@@ -75,7 +75,7 @@ dependencies {
     testImplementation("dev.dokimos:dokimos-koog:$dokimosVersion")
 
     // Logging for eval tests — eval report output uses KotlinLogging (SLF4J), requires an impl
-    testImplementation("ch.qos.logback:logback-classic:1.6.3")
+    testImplementation("ch.qos.logback:logback-classic:1.6.5")
 }
 
 configurations {

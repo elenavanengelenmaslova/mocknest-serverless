@@ -1,8 +1,8 @@
 plugins {
-    kotlin("jvm") version "2.4.20" apply false
-    kotlin("plugin.serialization") version "2.4.20" apply false
+    kotlin("jvm") version "2.4.21" apply false
+    kotlin("plugin.serialization") version "2.4.21" apply false
     id("com.gradleup.shadow") version "9.6.1" apply false
-    id("org.jetbrains.kotlinx.kover") version "0.9.9"
+    id("org.jetbrains.kotlinx.kover") version "0.9.11"
 }
 
 val releaseVersion: Provider<String> = providers.gradleProperty("releaseVersion")
@@ -97,7 +97,7 @@ subprojects {
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.8")
 
         // Jackson 2.x BOM for consistent Jackson versions
-        implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.2"))
+        implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.3"))
 
         // OkHttp BOM — keeps okhttp, okhttp-coroutines and mockwebserver on one
         // version and lets Dependabot bump them together via a single BOM entry.
@@ -115,13 +115,13 @@ subprojects {
             implementation("org.mozilla:rhino:1.9.1")
 
             // Koog Framework for AI Agents
-            val koogVersion = "1.2.0"
+            val koogVersion = "1.3.0"
             implementation("ai.koog:koog-agents:$koogVersion")
             implementation("ai.koog:agents-test:$koogVersion")
 
             // Kotlin AWS SDK (versions from main)
-            val awsSdkKotlinVersion = "1.9.3"
-            val smithyKotlinVersion = "1.7.10"
+            val awsSdkKotlinVersion = "1.9.17"
+            val smithyKotlinVersion = "1.7.11"
             implementation("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:apigateway:$awsSdkKotlinVersion")
