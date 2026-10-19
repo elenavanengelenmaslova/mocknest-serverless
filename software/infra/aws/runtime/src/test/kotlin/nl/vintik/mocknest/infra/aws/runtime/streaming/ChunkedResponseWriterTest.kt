@@ -3,6 +3,7 @@ package nl.vintik.mocknest.infra.aws.runtime.streaming
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayOutputStream
@@ -386,6 +387,90 @@ class ChunkedResponseWriterTest {
             // Then — completes and output is correct
             assertArrayEquals(body, output.toByteArray())
         }
+    }
+
+    @Nested
+    inner class FlushOrderingGuarantee {
+
+        @Test
+        fun `Given dribble body with non-zero delay When writeChunked Then each chunk is written then flushed in order under virtual time`() = runTest {
+            // Given — real inter-chunk delays driven by runTest virtual time (no Thread.sleep / real time)
+            val body = "AAAABBBBCCCC".toByteArray()
+            val numberOfChunks = 3
+            val totalDurationMs = 3_000L
+            val recorder = EventRecordingOutputStream()
+
+            // When
+            writer.writeChunked(body, numberOfChunks, totalDurationMs, recorder)
+
+            // Then — flushes are at least the number of chunks
+            val flushCount = recorder.events.count { it == WriterEvent.FLUSH }
+            assertEquals(numberOfChunks, flushCount, "Each chunk must be flushed")
+            // Every WRITE is immediately followed (eventually) by a FLUSH; the sequence ends with a FLUSH
+            assertEquals(WriterEvent.FLUSH, recorder.events.last(), "Stream must end flushed, not mid-write")
+            // For each write, the next event must be a flush (write-then-flush per chunk)
+            recorder.events.forEachIndexed { index, event ->
+                if (event == WriterEvent.WRITE) {
+                    assertTrue(
+                        index + 1 < recorder.events.size && recorder.events[index + 1] == WriterEvent.FLUSH,
+                        "Each chunk write must be immediately followed by a flush",
+                    )
+                }
+            }
+            // Body preserved byte-for-byte
+            assertArrayEquals(body, recorder.toByteArray())
+        }
+
+        @Test
+        fun `Given stream-based dribble with non-zero delay When writeChunkedFromStream Then flush count is at least number of chunks under virtual time`() = runTest {
+            // Given — S3-style streaming path with virtual-time delays
+            val content = ByteArray(120) { (it % 7).toByte() }
+            val numberOfChunks = 4
+            val totalDurationMs = 2_000L
+            val recorder = EventRecordingOutputStream()
+
+            // When
+            writer.writeChunkedFromStream(
+                input = content.inputStream(),
+                bodySize = content.size.toLong(),
+                numberOfChunks = numberOfChunks,
+                totalDurationMs = totalDurationMs,
+                output = recorder,
+            )
+
+            // Then
+            val flushCount = recorder.events.count { it == WriterEvent.FLUSH }
+            assertTrue(flushCount >= numberOfChunks, "Flush count ($flushCount) must be >= chunk count ($numberOfChunks)")
+            assertEquals(WriterEvent.FLUSH, recorder.events.last(), "Stream must end flushed")
+            assertArrayEquals(content, recorder.toByteArray())
+        }
+    }
+
+    private enum class WriterEvent { WRITE, FLUSH }
+
+    /**
+     * OutputStream that records the order of write/flush events for ordering assertions.
+     */
+    private class EventRecordingOutputStream : OutputStream() {
+        private val buffer = ByteArrayOutputStream()
+        val events = mutableListOf<WriterEvent>()
+
+        override fun write(b: Int) {
+            events.add(WriterEvent.WRITE)
+            buffer.write(b)
+        }
+
+        override fun write(b: ByteArray, off: Int, len: Int) {
+            events.add(WriterEvent.WRITE)
+            buffer.write(b, off, len)
+        }
+
+        override fun flush() {
+            events.add(WriterEvent.FLUSH)
+            buffer.flush()
+        }
+
+        fun toByteArray(): ByteArray = buffer.toByteArray()
     }
 
     /**
