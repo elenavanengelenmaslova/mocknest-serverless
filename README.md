@@ -123,7 +123,7 @@ To use MockNest with your application:
 - **Support for secure API calls**: AWS IAM SigV4 or API Key supported
 - **AI-Assisted Mock Generation**: Generate realistic, consistent mocks from OpenAPI, WSDL/SOAP, or GraphQL specs using Amazon Bedrock (configurable model, defaults to Amazon Nova Pro)
 - **One-Click Deployment**: Deploy via AWS Serverless Application Repository (SAR) or build from source with SAM
-- **Support for Response Streaming**: Responses up to 200 MB via Lambda response streaming, with SSE mock simulation using chunked delivery and configurable delays
+- **Support for Response Streaming**: Responses up to 200 MB via Lambda response streaming, delivered progressively to the client (no 6 MB buffer cap). SSE bodies (`text/event-stream`) are supported. See [docs/USAGE.md](docs/USAGE.md#streaming-responses-and-large-payloads) for behaviour and limits.
 - **Low Latency**: Lambda SnapStart minimises cold start times
 
 ### AI Mock Generation Flow
@@ -197,6 +197,24 @@ For detailed memory sizing, cold start measurements, scaling benchmarks (100 vs 
 - **Request payloads** are limited to 6 MB by Lambda's invocation payload limit. This is rare in typical REST API testing scenarios.
 - **Response payloads** support up to 200 MB via Lambda response streaming.
 - Most APIs will not approach these limits in typical integration testing scenarios.
+
+#### Response Streaming
+
+Large responses are delivered **progressively** via Lambda response streaming — the client
+receives bytes as they arrive instead of waiting for the whole body to be buffered, and the old
+6 MB response cap no longer applies (up to 200 MB).
+
+<div align="center">
+  <img src="docs/images/demo/streaming-progress.gif" alt="A 20 MB mock response streaming in progressively via curl" width="760">
+  <br/>
+  <em>A 20 MB mock response arriving progressively — curl's own progress meter climbing to 20 MB.</em>
+</div>
+
+To opt a large, S3-backed body into the streaming path, reference it with `bodyFileName` and add
+`chunkedDribbleDelay` with `totalDuration: 0`. Note that `chunkedDribbleDelay` paces a response's
+*total* duration; it does **not** provide fine-grained, token-by-token SSE pacing on the REST API
+integration. See [docs/USAGE.md](docs/USAGE.md#streaming-responses-and-large-payloads) for full
+details and the exact `curl` commands.
 
 ### SOAP/WSDL Support
 
