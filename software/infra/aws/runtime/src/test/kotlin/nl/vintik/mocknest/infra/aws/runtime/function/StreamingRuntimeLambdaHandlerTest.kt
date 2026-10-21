@@ -785,6 +785,150 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
         }
     }
 
+    @Nested
+    inner class StreamCloseLifecycle {
+
+        @Test
+        fun `Given standard non-dribble response When handling Then stream is closed exactly once after body write`() {
+            // Given
+            val input = createApiGatewayRequest("/mocknest/api/users", "GET")
+            val output = RecordingOutputStream()
+            val clientResponse = HttpResponse(
+                HttpStatusCode.OK,
+                mapOf("Content-Type" to listOf("application/json")),
+                """{"users":[]}""",
+            )
+            every { mockHandleClientRequest.invoke(any()) } returns clientResponse
+            every { mockWireMockServer.allServeEvents } returns emptyList()
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then — closed exactly once, and the last recorded event is the close
+            assertEquals(1, output.closeCount, "Stream must be closed exactly once")
+            assertEquals(Event.CLOSE, output.events.last(), "Close must be the final event (after the last write/flush)")
+            // Body bytes were written before close
+            assertTrue(output.bytesWrittenBeforeClose > 0, "Body must be written before close")
+        }
+
+        @Test
+        fun `Given standard non-dribble response When handling Then close happens after the last flush`() {
+            // Given
+            val input = createApiGatewayRequest("/__admin/health", "GET")
+            val output = RecordingOutputStream()
+            every { mockGetRuntimeHealth.invoke() } returns HttpResponse(
+                HttpStatusCode.OK,
+                mapOf("Content-Type" to listOf("application/json")),
+                """{"status":"ok"}""",
+            )
+            every { mockWireMockServer.allServeEvents } returns emptyList()
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then — a flush precedes the close, and close is last
+            assertEquals(1, output.closeCount)
+            val lastFlushIndex = output.events.indexOfLast { it == Event.FLUSH }
+            val closeIndex = output.events.indexOfLast { it == Event.CLOSE }
+            assertTrue(lastFlushIndex >= 0, "Expected at least one flush before close")
+            assertTrue(closeIndex > lastFlushIndex, "Close must come after the last flush")
+        }
+
+        @Test
+        fun `Given in-memory chunked dribble response When handling Then stream is closed exactly once after all chunks and flush precedes close`() {
+            // Given — in-memory chunked path (no bodyFileName). totalDuration 0 to avoid real sleep.
+            val input = createApiGatewayRequest("/mocknest/api/stream", "GET")
+            val output = RecordingOutputStream()
+            val body = "data: chunk1\n\ndata: chunk2\n\ndata: chunk3\n\n"
+            val clientResponse = HttpResponse(
+                HttpStatusCode.OK,
+                mapOf("Content-Type" to listOf("text/event-stream")),
+                body,
+            )
+            every { mockHandleClientRequest.invoke(any()) } answers {
+                ChunkedDribbleDelayCapture.setForTest(
+                    CapturedDribbleConfig(numberOfChunks = 3, totalDurationMs = 0, bodyFileName = null)
+                )
+                clientResponse
+            }
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then
+            assertEquals(1, output.closeCount, "Stream must be closed exactly once")
+            assertEquals(Event.CLOSE, output.events.last(), "Close must be the final event")
+            // Per-chunk flush preserved: at least numberOfChunks flushes (3 chunks) plus the trailing flush
+            val flushCount = output.events.count { it == Event.FLUSH }
+            assertTrue(flushCount >= 3, "Expected at least one flush per chunk (3 chunks); got $flushCount")
+            // Close after the last flush
+            val lastFlushIndex = output.events.indexOfLast { it == Event.FLUSH }
+            val closeIndex = output.events.indexOfLast { it == Event.CLOSE }
+            assertTrue(closeIndex > lastFlushIndex, "Close must come after the last chunk flush")
+            // Body must not be closed before fully written
+            assertTrue(output.bytesWrittenBeforeClose > 0, "Chunks must be written before close")
+        }
+
+        @Test
+        fun `Given S3 chunked dribble response When handling Then stream is closed exactly once after streamed chunks with flush before close`() {
+            // Given — S3 streaming path (bodyFileName present). totalDuration 0 to avoid real sleep.
+            val input = createApiGatewayRequest("/mocknest/api/large-file", "GET")
+            val output = RecordingOutputStream()
+            val bodyContent = "streamed-body-content-from-s3-xxxxxxxxxxxxxxxxxxxx"
+            val clientResponse = HttpResponse(
+                HttpStatusCode.OK,
+                mapOf("Content-Type" to listOf("application/json")),
+                "",
+            )
+            every { mockHandleClientRequest.invoke(any()) } answers {
+                ChunkedDribbleDelayCapture.setForTest(
+                    CapturedDribbleConfig(numberOfChunks = 3, totalDurationMs = 0, bodyFileName = "large-response.json")
+                )
+                clientResponse
+            }
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/large-response.json") } returns
+                S3ResponseStreamer.ObjectMetadata(contentLength = bodyContent.length.toLong(), eTag = "\"etag\"")
+            coEvery {
+                mockS3ResponseStreamer.streamWithConsumer("__files/large-response.json", any(), any())
+            } coAnswers {
+                val consumer = thirdArg<suspend (InputStream, Long) -> Unit>()
+                consumer(ByteArrayInputStream(bodyContent.toByteArray()), bodyContent.length.toLong())
+                true
+            }
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then
+            assertEquals(1, output.closeCount, "Stream must be closed exactly once")
+            assertEquals(Event.CLOSE, output.events.last(), "Close must be the final event")
+            val flushCount = output.events.count { it == Event.FLUSH }
+            assertTrue(flushCount >= 3, "Expected at least one flush per streamed chunk (3 chunks); got $flushCount")
+            val lastFlushIndex = output.events.indexOfLast { it == Event.FLUSH }
+            val closeIndex = output.events.indexOfLast { it == Event.CLOSE }
+            assertTrue(closeIndex > lastFlushIndex, "Close must come after the last streamed chunk flush")
+            assertTrue(output.bytesWrittenBeforeClose > 0, "S3 chunks must be written before close")
+        }
+
+        @Test
+        fun `Given parse failure error path When handling Then stream is closed exactly once after error body written`() {
+            // Given — malformed input forces the parseRequest error path (early return@use)
+            val input = ByteArrayInputStream("not valid json {{{{".toByteArray())
+            val output = RecordingOutputStream()
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then — error body written, then stream closed exactly once at the end
+            assertEquals(1, output.closeCount, "Stream must be closed exactly once on the error path")
+            assertEquals(Event.CLOSE, output.events.last(), "Close must be the final event on the error path")
+            assertTrue(output.bytesWrittenBeforeClose > 0, "Error body must be written before close")
+            val lastFlushIndex = output.events.indexOfLast { it == Event.FLUSH }
+            val closeIndex = output.events.indexOfLast { it == Event.CLOSE }
+            assertTrue(closeIndex > lastFlushIndex, "Close must come after the error flush")
+        }
+    }
+
     // --- Helper methods ---
 
     /**
@@ -859,4 +1003,46 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
         val headers: Map<String, String>,
         val body: String,
     )
+
+    private enum class Event { WRITE, FLUSH, CLOSE }
+
+    /**
+     * OutputStream that records the ORDER of write/flush/close events so tests can assert
+     * that close() happens exactly once and only after the final chunk write/flush.
+     */
+    private class RecordingOutputStream : OutputStream() {
+        private val buffer = ByteArrayOutputStream()
+        val events = mutableListOf<Event>()
+        var closeCount = 0
+            private set
+
+        /** Total body bytes written before the first close() was observed. */
+        var bytesWrittenBeforeClose = 0
+            private set
+
+        override fun write(b: Int) {
+            if (closeCount == 0) bytesWrittenBeforeClose += 1
+            events.add(Event.WRITE)
+            buffer.write(b)
+        }
+
+        override fun write(b: ByteArray, off: Int, len: Int) {
+            if (closeCount == 0) bytesWrittenBeforeClose += len
+            events.add(Event.WRITE)
+            buffer.write(b, off, len)
+        }
+
+        override fun flush() {
+            events.add(Event.FLUSH)
+            buffer.flush()
+        }
+
+        override fun close() {
+            closeCount++
+            events.add(Event.CLOSE)
+            buffer.close()
+        }
+
+        fun toByteArray(): ByteArray = buffer.toByteArray()
+    }
 }

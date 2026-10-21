@@ -1,0 +1,408 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Confirm current `handleRequest` has no `output.close()`/`use { }` and note every early `return` that must become `return@use`": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431048703
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431055521
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431089955
+      }
+    ],
+    "1.2 Run `./gradlew clean test` and confirm the full build passes before starting changes": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431048795
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431092513
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431326070
+      }
+    ],
+    "2.1 In `StreamingRuntimeLambdaHandler.handleRequest`, wrap the entire body in `output.use { }` so `close()` runs on every exit path": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431048841
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431330338
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431421738
+      }
+    ],
+    "2.2 Convert each early `return` (after `writeS3ChunkedResponse`, `writeChunkedResponse`, the 200MB guard, `parseRequest` failure) to `return@use`; do not add a manual `output.close()` alongside `use`": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431048889
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431424705
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431428705
+      }
+    ],
+    "2.3 Keep all existing `output.flush()` calls (per-chunk in `ChunkedResponseWriter`, and trailing flush in each handler path) so the runtime drains before close": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431048946
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431432565
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431476484
+      }
+    ],
+    "2.4 Confirm the S3 path still reads in bounded ≤1MB increments (no full-object materialization)": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431048994
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431479048
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431481692
+      }
+    ],
+    "2.5 Write unit/handler tests (MockK, Given-When-Then, `runTest` virtual time) asserting: stream is closed exactly once after the body is fully written (all paths — S3 chunked, in-memory chunked, standard, error); close happens after the last chunk, never before; per-chunk flush is preserved": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049051
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431485132
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431711115
+      }
+    ],
+    "2.6 Run `./gradlew clean test` and confirm all tests pass": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049088
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431713863
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431947995
+      }
+    ],
+    "3.1 Rewrite `scripts/post-deploy-test.sh::test_streaming_sse_chunked_delay` to register a dribble mock with ≥~16KB per chunk (avoid network coalescing)": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049129
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431951695
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792432322224
+      }
+    ],
+    "3.2 Capture `time_starttransfer` and `time_total` (and/or timestamped byte arrival); assert `(time_total - time_starttransfer)` is a meaningful fraction of `totalDuration`, failing on a terminal burst": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049204
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792432325236
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792432328233
+      }
+    ],
+    "3.3 Keep the existing total-duration assertion as a secondary check (timing preserved)": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049239
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792432330752
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792432333686
+      }
+    ],
+    "3.4 Run `./gradlew clean test` and confirm all tests pass": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049278
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792432336339
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792434081498
+      }
+    ],
+    "3a.1 Add `test_streaming_sse_ai_conversation` to `scripts/post-deploy-test.sh`: register a mock with `Content-Type: text/event-stream` whose body is a multi-token LLM-style SSE transcript — many `data: {\"delta\":\"<token>\"}` events ending with `data: [DONE]`, padded so each dribble chunk is ≥~16KB (so chunks are not network-coalesced). Use `numberOfChunks` ≈ number of SSE events and a `totalDuration` of ~5000ms so tokens visibly trickle like a chatbot reply": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049313
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792434086454
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792434656590
+      }
+    ],
+    "3a.2 Stream the response with a timestamping reader (record a timestamp per received chunk); assert (a) the first SSE event arrives well before the last (first-to-last spread ≥ ~50% of `totalDuration`), (b) events arrive monotonically over time rather than in one burst, (c) the full transcript including the terminal `data: [DONE]` is received intact": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049347
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792434660017
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792434663346
+      }
+    ],
+    "3a.3 Assert the SSE framing is preserved end-to-end (each delivered chunk boundary does not corrupt `data: ...\\n\\n` events; the concatenated body equals the registered transcript byte-for-byte)": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049387
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792434666779
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792434669884
+      }
+    ],
+    "3a.4 Document this as the canonical streaming demo (the `curl --http1.1 -N` one-liner that shows tokens trickling) so it doubles as a repeatable demo and a regression guard": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049420
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792434672734
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792434675730
+      }
+    ],
+    "3a.5 Run `./gradlew clean test` and confirm all tests pass": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049456
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792434678557
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792437897531
+      }
+    ],
+    "4.1 Run `./gradlew koverHtmlReport` and verify 90%+ coverage for new/changed code": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049489
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792437900822
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792438038229
+      }
+    ],
+    "4.2 Run `./gradlew koverVerify` to enforce the threshold": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049523
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792438040949
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792438043602
+      }
+    ],
+    "4.3 Review test quality: Given-When-Then naming, proper assertions, edge cases (single chunk, zero-delay, S3 vs inline)": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049556
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792438046578
+      },
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792438049695
+      }
+    ],
+    "5.1 Deploy the fix to the `mocknest-serverless` stack": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049597
+      }
+    ],
+    "5.2 Re-import a dribble mock with multi-KB-per-chunk body; run `curl --http1.1 -N` piped to a byte-timestamping reader; confirm chunks spread across the dribble window (not a single burst)": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049632
+      }
+    ],
+    "5.3 Confirm a >6MB body returns in full (end-to-end streaming)": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049670
+      }
+    ],
+    "5.4 Run the strengthened `scripts/post-deploy-test.sh` streaming suite against the deployed endpoint and confirm it passes": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431049713
+      }
+    ],
+    "1. Baseline (root cause already CONFIRMED — see design.md and `.agents/tasks/dribble-coalesce-investigation.md`)": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431326120
+      }
+    ],
+    "2. Fix: close the Lambda stream via `output.use { }`": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792431948085
+      }
+    ],
+    "3. Strengthen the post-deploy streaming test to detect buffering": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792434081610
+      }
+    ],
+    "3a. Add a realistic SSE \"AI conversation\" progressive-delivery test (the demo use case)": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792437897646
+      }
+    ],
+    "4. Verify coverage and quality": [
+      {
+        "executionId": "0f0b2ec1-4ddd-42c7-ba23-b45fbe51ba01",
+        "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
+        "timestamp": 1792438049853
+      }
+    ]
+  }
+}

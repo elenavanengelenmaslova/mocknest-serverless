@@ -1,7 +1,7 @@
 # MockNest Serverless
 
 Deploy WireMock into your own AWS account and mock external APIs without depending on live services.  
-MockNest Serverless is a serverless WireMock runtime for REST/OpenAPI, GraphQL, and SOAP APIs, with persistent mocks, AI-assisted mock generation, and webhook/callback support.
+MockNest Serverless is a serverless WireMock runtime for REST/OpenAPI, GraphQL, and SOAP APIs, with persistent mocks, AI-assisted mock generation, and webhook/callback support. Large and Server-Sent Events (SSE) responses are streamed progressively to the client (up to 200 MB) — configure a mock with `chunkedDribbleDelay` and `totalDuration: 0` to opt a response into the streaming path. See the [streaming guide](https://github.com/elenavanengelenmaslova/mocknest-serverless/blob/main/docs/USAGE.md#streaming-responses-and-large-payloads) for behaviour and limits.
 
 Received the 🏆 **Creative Track Award** at the [AWS 10,000 AIdeas 2026 Competition](https://builder.aws.com/content/3D5gTWIjP2zvKncBZBCs849xRqn/aws-10000-aideas-competition-meet-the-winners).
 
