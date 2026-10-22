@@ -110,15 +110,15 @@ jobs:
           # Generate auth-mode suffix for stack name isolation
           AUTH_MODE_SUFFIX=$(echo "${AUTH_MODE_INPUT}" | tr '[:upper:]' '[:lower:]' | tr '_' '-')
           STACK_NAME="sar-${GITHUB_RUN_ID}-${AUTH_MODE_SUFFIX}"
-          echo "STACK_NAME=$STACK_NAME" >> $GITHUB_ENV
+          echo "STACK_NAME=$STACK_NAME" >> "$GITHUB_ENV"
 
           # Set SAR application URL (always from eu-west-1 where it's published)
           SAR_APP_URL="https://serverlessrepo.aws.amazon.com/applications/eu-west-1/021259937026/MockNest-Serverless"
-          echo "SAR_APP_URL=$SAR_APP_URL" >> $GITHUB_ENV
+          echo "SAR_APP_URL=$SAR_APP_URL" >> "$GITHUB_ENV"
 
           # Capture deployment start timestamp
           DEPLOYMENT_START=$(date +%s)
-          echo "DEPLOYMENT_START=$DEPLOYMENT_START" >> $GITHUB_ENV
+          echo "DEPLOYMENT_START=$DEPLOYMENT_START" >> "$GITHUB_ENV"
 
           echo "📦 Starting SAR deployment..."
           echo "Stack Name: $STACK_NAME"
@@ -136,6 +136,8 @@ jobs:
           fi
 
           # Create change set and capture full JSON response
+
+          # shellcheck disable=SC2086 # $VERSION_FLAG is intentionally word-split (flag + value or empty)
           CHANGE_SET_RESPONSE=$(aws serverlessrepo \
             create-cloud-formation-change-set \
             --application-id arn:aws:serverlessrepo:eu-west-1:\
@@ -144,9 +146,9 @@ jobs:
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
             $VERSION_FLAG \
             --parameter-overrides \
-              Name=DeploymentName,Value=sartest${GITHUB_RUN_ID} \
-              Name=AuthMode,Value=${AUTH_MODE_INPUT} \
-            --region ${REGION} \
+              Name=DeploymentName,Value="sartest${GITHUB_RUN_ID}" \
+              Name=AuthMode,Value="${AUTH_MODE_INPUT}" \
+            --region "${REGION}" \
             --output json 2>&1) || {
             echo "❌ Failed to create change set from SAR"
             echo "Error: $CHANGE_SET_RESPONSE"
@@ -161,7 +163,7 @@ jobs:
           echo "Actual Stack Name: $ACTUAL_STACK_NAME"
           
           # Update STACK_NAME environment variable
-          echo "STACK_NAME=$ACTUAL_STACK_NAME" >> $GITHUB_ENV
+          echo "STACK_NAME=$ACTUAL_STACK_NAME" >> "$GITHUB_ENV"
 
           # Use the full change set ARN (not just the UUID)
           # AWS CLI accepts either the full ARN or a name that starts with a letter
@@ -175,7 +177,7 @@ jobs:
           aws cloudformation describe-change-set \
             --stack-name "$ACTUAL_STACK_NAME" \
             --change-set-name "$CHANGE_SET_NAME" \
-            --region ${REGION} \
+            --region "${REGION}" \
             --query '{Status:Status,StatusReason:StatusReason,ExecutionStatus:ExecutionStatus}' \
             --output json || echo "Change set not found immediately after creation"
 
@@ -187,7 +189,7 @@ jobs:
           if ! aws cloudformation wait change-set-create-complete \
             --stack-name "$ACTUAL_STACK_NAME" \
             --change-set-name "$CHANGE_SET_NAME" \
-            --region ${REGION} 2>&1; then
+            --region "${REGION}" 2>&1; then
             
             echo "❌ Change set creation failed"
             echo ""
@@ -197,7 +199,7 @@ jobs:
             aws cloudformation describe-change-set \
               --stack-name "$ACTUAL_STACK_NAME" \
               --change-set-name "$CHANGE_SET_NAME" \
-              --region ${REGION} \
+              --region "${REGION}" \
               --output json 2>&1 || echo "Failed to retrieve change set details"
             
             echo ""
@@ -215,14 +217,14 @@ jobs:
           aws cloudformation execute-change-set \
             --stack-name "$ACTUAL_STACK_NAME" \
             --change-set-name "$CHANGE_SET_NAME" \
-            --region ${REGION}
+            --region "${REGION}"
 
           # Wait for stack creation with 15-minute timeout
           echo "⏳ Waiting for stack creation to complete \
           (timeout: 15 minutes)..."
           aws cloudformation wait stack-create-complete \
             --stack-name "$ACTUAL_STACK_NAME" \
-            --region ${REGION} \
+            --region "${REGION}" \
             || {
               # Capture deployment end timestamp
               DEPLOYMENT_END=$(date +%s)
@@ -234,7 +236,7 @@ jobs:
               echo "CloudFormation Stack Events:"
               aws cloudformation describe-stack-events \
                 --stack-name "$ACTUAL_STACK_NAME" \
-                --region ${REGION} \
+                --region "${REGION}" \
                 --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].[Timestamp,ResourceType,LogicalResourceId,ResourceStatusReason]' \
                 --output table || echo "Failed to retrieve stack events"
 
@@ -244,7 +246,7 @@ jobs:
           # Capture deployment end timestamp and calculate duration
           DEPLOYMENT_END=$(date +%s)
           DEPLOYMENT_DURATION=$((DEPLOYMENT_END - DEPLOYMENT_START))
-          echo "DEPLOYMENT_DURATION=$DEPLOYMENT_DURATION" >> $GITHUB_ENV
+          echo "DEPLOYMENT_DURATION=$DEPLOYMENT_DURATION" >> "$GITHUB_ENV"
 
           echo "✅ Deployment completed successfully"
           echo "Duration: ${DEPLOYMENT_DURATION}s"
@@ -262,13 +264,13 @@ jobs:
           # Query stack outputs
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
-            --region ${REGION} \
+            --region "${REGION}" \
             --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' \
             --output text | tr -d '[:space:]')
 
           BUCKET_NAME=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
-            --region ${REGION} \
+            --region "${REGION}" \
             --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' \
             --output text | tr -d '[:space:]')
 
@@ -276,7 +278,7 @@ jobs:
           if [ "${AUTH_MODE_INPUT}" = "API_KEY" ]; then
             API_KEY_ID=$(aws cloudformation describe-stacks \
               --stack-name "$STACK_NAME" \
-              --region ${REGION} \
+              --region "${REGION}" \
               --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiKey`].OutputValue' \
               --output text | tr -d '[:space:]')
 
@@ -291,7 +293,7 @@ jobs:
               exit 1
             fi
 
-            echo "API_KEY_ID=$API_KEY_ID" >> $GITHUB_ENV
+            echo "API_KEY_ID=$API_KEY_ID" >> "$GITHUB_ENV"
           else
             echo "ℹ️  IAM mode: skipping API key output retrieval"
           fi
@@ -319,8 +321,8 @@ jobs:
           fi
 
           # Store outputs as environment variables
-          echo "API_URL=$API_URL" >> $GITHUB_ENV
-          echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
+          echo "API_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "BUCKET_NAME=$BUCKET_NAME" >> "$GITHUB_ENV"
 
           echo "✅ Stack outputs retrieved and validated successfully"
 
@@ -338,7 +340,7 @@ jobs:
           API_KEY_VALUE=$(aws apigateway get-api-key \
             --api-key "$API_KEY_ID" \
             --include-value \
-            --region ${REGION} \
+            --region "${REGION}" \
             --query 'value' \
             --output text 2>&1) || {
             echo "❌ Error: Failed to retrieve API key value"
@@ -354,7 +356,7 @@ jobs:
           echo "::add-mask::$API_KEY_VALUE"
 
           # Store API key value as environment variable
-          echo "API_KEY_VALUE=$API_KEY_VALUE" >> $GITHUB_ENV
+          echo "API_KEY_VALUE=$API_KEY_VALUE" >> "$GITHUB_ENV"
 
           echo "✅ API key value retrieved and masked successfully"
 
@@ -442,7 +444,7 @@ jobs:
                 if [ $attempt -lt $max_attempts ]; then
                   local delay=${backoff_delays[$((attempt-1))]}
                   echo "Retrying in ${delay}s..."
-                  sleep $delay
+                  sleep "$delay"
                   attempt=$((attempt + 1))
                 else
                   echo "❌ $endpoint_name health check failed after $max_attempts \
@@ -465,7 +467,7 @@ jobs:
                 if [ $attempt -lt $max_attempts ]; then
                   local delay=${backoff_delays[$((attempt-1))]}
                   echo "Retrying in ${delay}s..."
-                  sleep $delay
+                  sleep "$delay"
                   attempt=$((attempt + 1))
                 else
                   echo "❌ $endpoint_name health check failed after $max_attempts \
@@ -515,7 +517,7 @@ jobs:
           # Calculate and log health check duration
           HEALTH_CHECK_END=$(date +%s)
           HEALTH_CHECK_DURATION=$((HEALTH_CHECK_END - HEALTH_CHECK_START))
-          echo "HEALTH_CHECK_DURATION=$HEALTH_CHECK_DURATION" >> $GITHUB_ENV
+          echo "HEALTH_CHECK_DURATION=$HEALTH_CHECK_DURATION" >> "$GITHUB_ENV"
 
           echo ""
           echo "✅ All health checks passed successfully"
@@ -541,7 +543,7 @@ jobs:
           echo "🗑️  Deleting CloudFormation stack: $STACK_NAME"
           aws cloudformation delete-stack \
             --stack-name "$STACK_NAME" \
-            --region ${REGION} 2>&1 || {
+            --region "${REGION}" 2>&1 || {
             echo "⚠️  Warning: Stack deletion command failed"
             CLEANUP_STATUS="warning"
           }
@@ -551,7 +553,7 @@ jobs:
           (timeout: 10 minutes)..."
           timeout 600 aws cloudformation wait stack-delete-complete \
             --stack-name "$STACK_NAME" \
-            --region ${REGION} 2>&1 || {
+            --region "${REGION}" 2>&1 || {
             EXIT_CODE=$?
             if [ $EXIT_CODE -eq 124 ]; then
               echo "⚠️  Warning: Stack deletion timed out after 10 minutes"
@@ -567,7 +569,7 @@ jobs:
           if [ -n "$BUCKET_NAME_FROM_STACK" ]; then
             echo "🔍 Verifying S3 bucket deletion..."
             if aws s3 ls "s3://$BUCKET_NAME_FROM_STACK" \
-              --region ${REGION} 2>/dev/null; then
+              --region "${REGION}" 2>/dev/null; then
               echo "⚠️  Warning: S3 bucket still exists after stack deletion: \
           $BUCKET_NAME_FROM_STACK"
               CLEANUP_STATUS="warning"
@@ -579,8 +581,8 @@ jobs:
           # Calculate and log cleanup duration
           CLEANUP_END=$(date +%s)
           CLEANUP_DURATION=$((CLEANUP_END - CLEANUP_START))
-          echo "CLEANUP_DURATION=$CLEANUP_DURATION" >> $GITHUB_ENV
-          echo "CLEANUP_STATUS=$CLEANUP_STATUS" >> $GITHUB_ENV
+          echo "CLEANUP_DURATION=$CLEANUP_DURATION" >> "$GITHUB_ENV"
+          echo "CLEANUP_STATUS=$CLEANUP_STATUS" >> "$GITHUB_ENV"
 
           echo ""
           if [ "$CLEANUP_STATUS" = "success" ]; then
@@ -610,7 +612,7 @@ jobs:
           # Format duration in human-readable format (minutes and seconds)
           format_duration() {
             local seconds=$1
-            if [ $seconds -lt 60 ]; then
+            if [ "$seconds" -lt 60 ]; then
               echo "${seconds}s"
             else
               local minutes=$((seconds / 60))
@@ -635,7 +637,7 @@ jobs:
             echo "**Auth Mode:** ${AUTH_MODE_INPUT}"
             echo "**Region:** ${REGION}"
             echo "**Version:** ${VERSION_LABEL}"
-            echo "**Total Duration:** $(format_duration $TOTAL_DURATION)"
+            echo "**Total Duration:** $(format_duration "$TOTAL_DURATION")"
             echo ""
 
             # Deployment Status Section
@@ -648,7 +650,7 @@ jobs:
               echo ""
 
               if [ -n "$DEPLOYMENT_DURATION" ]; then
-                echo "**Duration:** $(format_duration $DEPLOYMENT_DURATION)"
+                echo "**Duration:** $(format_duration "$DEPLOYMENT_DURATION")"
                 echo ""
               fi
 
@@ -667,7 +669,7 @@ jobs:
             echo "### 🏥 Health Check Results"
             echo ""
             if [ -n "$HEALTH_CHECK_DURATION" ]; then
-              echo "**Duration:** $(format_duration $HEALTH_CHECK_DURATION)"
+              echo "**Duration:** $(format_duration "$HEALTH_CHECK_DURATION")"
               echo ""
               echo "**Admin API Health Check:** ✅ Passed"
               echo ""
@@ -689,7 +691,7 @@ jobs:
             echo "### 🧹 Cleanup Status"
             echo ""
             if [ -n "$CLEANUP_DURATION" ]; then
-              echo "**Duration:** $(format_duration $CLEANUP_DURATION)"
+              echo "**Duration:** $(format_duration "$CLEANUP_DURATION")"
               echo ""
 
               if [ "$CLEANUP_STATUS" = "success" ]; then
@@ -729,24 +731,24 @@ jobs:
             echo "|------|----------|"
 
             if [ -n "$DEPLOYMENT_DURATION" ]; then
-              echo "| Deployment | $(format_duration $DEPLOYMENT_DURATION) |"
+              echo "| Deployment | $(format_duration "$DEPLOYMENT_DURATION") |"
             else
               echo "| Deployment | N/A |"
             fi
 
             if [ -n "$HEALTH_CHECK_DURATION" ]; then
-              echo "| Health Checks | $(format_duration $HEALTH_CHECK_DURATION) |"
+              echo "| Health Checks | $(format_duration "$HEALTH_CHECK_DURATION") |"
             else
               echo "| Health Checks | N/A |"
             fi
 
             if [ -n "$CLEANUP_DURATION" ]; then
-              echo "| Cleanup | $(format_duration $CLEANUP_DURATION) |"
+              echo "| Cleanup | $(format_duration "$CLEANUP_DURATION") |"
             else
               echo "| Cleanup | N/A |"
             fi
 
-            echo "| **Total** | **$(format_duration $TOTAL_DURATION)** |"
+            echo "| **Total** | **$(format_duration "$TOTAL_DURATION")** |"
             echo ""
 
             # Footer
@@ -754,6 +756,6 @@ jobs:
             echo ""
             echo "_Generated by SAR Test Pipeline on $(date -u '+%Y-%m-%d %H:%M:%S UTC')_"
 
-          } >> $GITHUB_STEP_SUMMARY
+          } >> "$GITHUB_STEP_SUMMARY"
 
           echo "✅ Pipeline summary report generated successfully"

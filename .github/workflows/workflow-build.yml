@@ -62,4 +62,4 @@ jobs:
         env:
           AWS_DEFAULT_REGION: ${{ inputs.aws-region }}
           REGION: ${{ inputs.aws-region }}
-        run: sam validate --template-file deployment/aws/sam/template.yaml --region ${REGION}
+        run: sam validate --template-file deployment/aws/sam/template.yaml --region "${REGION}"

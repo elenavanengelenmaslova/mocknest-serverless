@@ -117,15 +117,17 @@ jobs:
           fi
           EXTRA_ARGS="$EXTRA_ARGS --parameter-overrides $PARAM_OVERRIDES"
 
+          # shellcheck disable=SC2086,SC2015 # $EXTRA_ARGS is intentionally word-split into separate sam arguments
+
           DEPLOY_OUTPUT=$(sam deploy --config-env default --no-confirm-changeset --force-upload $EXTRA_ARGS 2>&1) && {
             echo "$DEPLOY_OUTPUT"
             echo "Deployment completed successfully"
-            echo "deployed=true" >> $GITHUB_OUTPUT
+            echo "deployed=true" >> "$GITHUB_OUTPUT"
           } || {
             EXIT_CODE=$?
             if echo "$DEPLOY_OUTPUT" | grep -q "No changes to deploy"; then
               echo "No changes to deploy. Stack is up to date - skipping."
-              echo "deployed=false" >> $GITHUB_OUTPUT
+              echo "deployed=false" >> "$GITHUB_OUTPUT"
             else
               echo "$DEPLOY_OUTPUT"
               echo "SAM deployment failed with exit code: $EXIT_CODE"
@@ -160,9 +162,9 @@ jobs:
           API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text)
           BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' --output text)
 
-          echo "api-url=$API_URL" >> $GITHUB_OUTPUT
-          echo "bucket-name=$BUCKET_NAME" >> $GITHUB_OUTPUT
-          echo "stack-name=$STACK_NAME" >> $GITHUB_OUTPUT
+          echo "api-url=$API_URL" >> "$GITHUB_OUTPUT"
+          echo "bucket-name=$BUCKET_NAME" >> "$GITHUB_OUTPUT"
+          echo "stack-name=$STACK_NAME" >> "$GITHUB_OUTPUT"
                
       - name: Create deployment summary
         if: steps.sam-deploy.outputs.deployed == 'true'
@@ -172,19 +174,19 @@ jobs:
           REGION: ${{ inputs.aws-region }}
           STACK_NAME: ${{ steps.outputs.outputs.stack-name }}
         run: |
-          echo "## 🚀 MockNest Serverless Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Region:** ${REGION}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Deployment Details" >> $GITHUB_STEP_SUMMARY
-          echo "- **Stack Name:** ${STACK_NAME}" >> $GITHUB_STEP_SUMMARY
-          echo "- **API URL:** ${API_URL}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Storage Bucket:** ${BUCKET_NAME}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔑 API Access" >> $GITHUB_STEP_SUMMARY
-          echo "No API key required for testing (disabled for initial deployment)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📚 Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. Test the API: \`GET ${API_URL}\`" >> $GITHUB_STEP_SUMMARY
-          echo "2. Test admin API: \`GET ${API_URL}__admin/mappings\`" >> $GITHUB_STEP_SUMMARY
-          echo "3. Import the Postman collection from \`docs/postman/\` for testing" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 MockNest Serverless Deployment Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Region:** ${REGION}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 📋 Deployment Details" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Stack Name:** ${STACK_NAME}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **API URL:** ${API_URL}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Storage Bucket:** ${BUCKET_NAME}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 🔑 API Access" >> "$GITHUB_STEP_SUMMARY"
+          echo "No API key required for testing (disabled for initial deployment)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 📚 Next Steps" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. Test the API: \`GET ${API_URL}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. Test admin API: \`GET ${API_URL}__admin/mappings\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "3. Import the Postman collection from \`docs/postman/\` for testing" >> "$GITHUB_STEP_SUMMARY"
