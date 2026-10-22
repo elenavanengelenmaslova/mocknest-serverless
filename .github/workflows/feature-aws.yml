@@ -12,13 +12,12 @@ on:
       - 'docs/**'
       - '.github/workflows/sar-*.yml'
       - '.github/workflows/workflow-sar-*.yml'
+  # No paths-ignore on pull_request: `test / test` and `test / validate-sam`
+  # are required status checks in the main ruleset, so they must report on
+  # every PR (including docs-only ones) or the PR can never be merged.
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - '**.md'
-      - '.kiro/**'
-      - 'docs/**'
 
 permissions:
   contents: read
