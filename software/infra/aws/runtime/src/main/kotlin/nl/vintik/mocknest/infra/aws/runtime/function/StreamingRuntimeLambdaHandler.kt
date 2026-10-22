@@ -70,50 +70,52 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
     private val chunkedWriter = ChunkedResponseWriter()
 
     override fun handleRequest(input: InputStream, output: OutputStream, context: Context) {
-        val httpRequest = parseRequest(input, output) ?: return
+        output.use { output ->
+            val httpRequest = parseRequest(input, output) ?: return@use
 
-        logger.info { "Runtime Lambda streaming request: ${httpRequest.method} ${httpRequest.path}" }
+            logger.info { "Runtime Lambda streaming request: ${httpRequest.method} ${httpRequest.path}" }
 
-        val path = httpRequest.path
+            val path = httpRequest.path
 
-        // Clear any previous dribble config before routing
-        ChunkedDribbleDelayCapture.clear()
+            // Clear any previous dribble config before routing
+            ChunkedDribbleDelayCapture.clear()
 
-        val response = routeRequest(path, httpRequest)
+            val response = routeRequest(path, httpRequest)
 
-        // For client requests, check if chunkedDribbleDelay was captured by the transformer
-        if (path.startsWith(MOCKNEST_PREFIX)) {
-            val dribbleConfig = ChunkedDribbleDelayCapture.getAndClear()
-            if (dribbleConfig != null) {
-                if (dribbleConfig.bodyFileName != null) {
-                    // S3 streaming path with chunked dribble
-                    writeS3ChunkedResponse(response, dribbleConfig, output)
-                    return
-                }
-                // Existing: in-memory chunked path
-                val bodyBytes = response.body?.toByteArray(Charsets.UTF_8)
-                if (bodyBytes != null && bodyBytes.isNotEmpty()) {
-                    writeChunkedResponse(response, bodyBytes, dribbleConfig, output)
-                    return
+            // For client requests, check if chunkedDribbleDelay was captured by the transformer
+            if (path.startsWith(MOCKNEST_PREFIX)) {
+                val dribbleConfig = ChunkedDribbleDelayCapture.getAndClear()
+                if (dribbleConfig != null) {
+                    if (dribbleConfig.bodyFileName != null) {
+                        // S3 streaming path with chunked dribble
+                        writeS3ChunkedResponse(response, dribbleConfig, output)
+                        return@use
+                    }
+                    // Existing: in-memory chunked path
+                    val bodyBytes = response.body?.toByteArray(Charsets.UTF_8)
+                    if (bodyBytes != null && bodyBytes.isNotEmpty()) {
+                        writeChunkedResponse(response, bodyBytes, dribbleConfig, output)
+                        return@use
+                    }
                 }
             }
-        }
 
-        // Check response body size against 200MB limit (for non-S3 path)
-        val bodyBytes = response.body?.toByteArray(Charsets.UTF_8)
-        if (bodyBytes != null && bodyBytes.size > MAX_RESPONSE_SIZE_BYTES) {
-            logger.error { "Response body size ${bodyBytes.size} exceeds maximum supported streaming limit of ${MAX_RESPONSE_SIZE_BYTES} bytes" }
-            writeErrorResponse(output, 502, "Response payload exceeds the maximum supported streaming limit of 200MB")
-            return
-        }
+            // Check response body size against 200MB limit (for non-S3 path)
+            val bodyBytes = response.body?.toByteArray(Charsets.UTF_8)
+            if (bodyBytes != null && bodyBytes.size > MAX_RESPONSE_SIZE_BYTES) {
+                logger.error { "Response body size ${bodyBytes.size} exceeds maximum supported streaming limit of ${MAX_RESPONSE_SIZE_BYTES} bytes" }
+                writeErrorResponse(output, 502, "Response payload exceeds the maximum supported streaming limit of 200MB")
+                return@use
+            }
 
-        // Write standard streaming response
-        val metadata = ResponseMetadata.fromMultiValue(
-            statusCode = response.statusCode.value,
-            headers = response.headers ?: emptyMap(),
-        )
-        writer.writeResponse(output, metadata, bodyBytes)
-        output.flush()
+            // Write standard streaming response
+            val metadata = ResponseMetadata.fromMultiValue(
+                statusCode = response.statusCode.value,
+                headers = response.headers ?: emptyMap(),
+            )
+            writer.writeResponse(output, metadata, bodyBytes)
+            output.flush()
+        }
     }
 
     private fun parseRequest(input: InputStream, output: OutputStream): HttpRequest? =

@@ -86,13 +86,17 @@ Resources:
             Condition:
               StringEquals:
                 'token.actions.githubusercontent.com:aud': sts.amazonaws.com
-              # Trust main plus feature/* and dependabot/* branch refs. This mirrors
-              # the live role's trust policy so CI on feature branches (e.g. the
-              # pre-merge dual-mode validation) and Dependabot PRs keep working.
+              # This role (GitHubActionsRole) trusts the main branch plus feature/*,
+              # bugfix/*, and dependabot/* branch refs, so day-to-day CI — the pre-merge
+              # dual-mode validation on feature/bugfix branches and Dependabot PRs — can
+              # assume it. Note: update-existing-oidc-role.sh intentionally applies a
+              # main-only trust policy (a hardened variant); that narrower policy is
+              # deliberate and is not changed here.
               StringLike:
                 'token.actions.githubusercontent.com:sub':
                   - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main'
                   - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/feature/*'
+                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/bugfix/*'
                   - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/dependabot/*'
       Policies:
         - PolicyName: GitHubActionsDeploymentPolicy

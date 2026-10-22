@@ -2034,45 +2034,89 @@ print(json.dumps(mapping))
   echo "[streaming] ✓ Payload streaming test passed"
 }
 
-# Test: SSE mock with chunkedDribbleDelay timing verification
-# Registers an SSE mock with chunkedDribbleDelay (3 chunks, 2000ms total),
-# invokes it, and verifies the elapsed time is at least totalDuration.
-# Validates: Requirement 9.2
+# Test: SSE mock with chunkedDribbleDelay progressive-delivery verification
+# Registers an SSE mock with chunkedDribbleDelay whose body is large enough per
+# chunk (>=16KB) that the network cannot coalesce the chunks into a single
+# terminal burst. It then invokes the mock capturing both time_starttransfer
+# (TTFB — when the first byte arrives) and time_total (when the last byte
+# arrives), and asserts that the spread (time_total - time_starttransfer) covers
+# a meaningful fraction of the dribble window. A buffered-with-delay response
+# (the bug this spec fixes) arrives in a single terminal burst, so TTFB ~= total
+# and the spread collapses to ~0 — which this test now FAILS on. The original
+# total-duration assertion is retained as a secondary check so the dribble
+# timing itself is still verified.
+# Validates: Requirements 4.1, 4.2 (progressive delivery detection), 1.1, 1.2, 1.3
 test_streaming_sse_chunked_delay() {
-  echo "[streaming] Testing SSE chunked dribble delay timing..."
+  echo "[streaming] Testing SSE chunked dribble delay progressive delivery..."
 
   local NUM_CHUNKS=3
-  local TOTAL_DURATION_MS=2000
+  local TOTAL_DURATION_MS=5000
+  # Bytes per chunk must exceed the network coalescing threshold so that chunks
+  # are observably delivered over time rather than merged into one TCP burst.
+  local CHUNK_BYTES=16384
 
-  # Step 1: Register SSE mock with chunkedDribbleDelay
+  # Step 1: Build the mapping JSON with a large, per-chunk-padded SSE body and
+  # write it to a temp file (avoids embedding ~48KB of literal text and sidesteps
+  # fragile inline JSON escaping). python3 handles the JSON escaping for us.
+  echo "[streaming]   Building SSE mock body (${NUM_CHUNKS} chunks x >=${CHUNK_BYTES}B)..."
+  local mapping_file
+  mapping_file=$(mktemp)
+  # Ensure the temp mapping file is removed on any exit path.
+  trap 'rm -f "$mapping_file"' RETURN
+
+  python3 - "$mapping_file" "$NUM_CHUNKS" "$CHUNK_BYTES" "$TOTAL_DURATION_MS" <<'PY'
+import json
+import sys
+
+mapping_file = sys.argv[1]
+num_chunks = int(sys.argv[2])
+chunk_bytes = int(sys.argv[3])
+total_duration_ms = int(sys.argv[4])
+
+# Build an SSE body where each of num_chunks segments is at least chunk_bytes.
+# Each segment is a valid SSE event terminated by a blank line; padding lives in
+# an SSE comment line (": ...") so the framing stays well-formed. WireMock splits
+# the body into numberOfChunks roughly equal byte ranges, so making each logical
+# segment >= chunk_bytes guarantees every dribble chunk clears the coalescing
+# threshold.
+pad = "x" * chunk_bytes
+segments = []
+for i in range(num_chunks):
+    segments.append(f"data: chunk{i + 1}\n: {pad}\n\n")
+body = "".join(segments)
+
+mapping = {
+    "request": {
+        "method": "GET",
+        "urlPath": "/streaming-test/sse-chunked",
+    },
+    "response": {
+        "status": 200,
+        "body": body,
+        "headers": {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+        "chunkedDribbleDelay": {
+            "numberOfChunks": num_chunks,
+            "totalDuration": total_duration_ms,
+        },
+    },
+    "persistent": True,
+}
+
+with open(mapping_file, "w") as f:
+    json.dump(mapping, f)
+PY
+
+  # Step 2: Register the SSE mock
   echo "[streaming]   Registering SSE mock (chunks=$NUM_CHUNKS, totalDuration=${TOTAL_DURATION_MS}ms)..."
-  local mapping_body
-  mapping_body="{
-    \"request\": {
-      \"method\": \"GET\",
-      \"urlPath\": \"/streaming-test/sse-chunked\"
-    },
-    \"response\": {
-      \"status\": 200,
-      \"body\": \"data: chunk1\\n\\ndata: chunk2\\n\\ndata: chunk3\\n\\n\",
-      \"headers\": {
-        \"Content-Type\": \"text/event-stream\",
-        \"Cache-Control\": \"no-cache\",
-        \"Connection\": \"keep-alive\"
-      },
-      \"chunkedDribbleDelay\": {
-        \"numberOfChunks\": $NUM_CHUNKS,
-        \"totalDuration\": $TOTAL_DURATION_MS
-      }
-    },
-    \"persistent\": true
-  }"
-
   local response
-  response=$(printf '%s' "$mapping_body" | curl "${CURL_OPTS[@]}" \
+  response=$(curl "${CURL_OPTS[@]}" \
     --write-out "\n%{http_code}" \
     --request POST \
-    --data-binary @- \
+    --data-binary @"$mapping_file" \
     "$API_URL/__admin/mappings" 2>&1) || {
     echo "[streaming] ERROR: Failed to register SSE chunked mock"
     echo "[streaming] Response: $response"
@@ -2088,46 +2132,331 @@ test_streaming_sse_chunked_delay() {
   MAPPING_ID=$(echo "$BODY" | json_field "id")
   echo "[streaming]   ✓ SSE mock registered: $MAPPING_ID"
 
-  # Step 2: Invoke the mock and measure elapsed time
-  echo "[streaming]   Invoking SSE mock and measuring elapsed time..."
-  local elapsed_seconds
-  elapsed_seconds=$(curl "${CURL_OPTS[@]}" \
+  # Step 3: Invoke the mock capturing TTFB (time_starttransfer) and total time.
+  # --http1.1 -N (no-buffer) streams the response so curl's timing reflects the
+  # actual on-the-wire arrival of the first vs last bytes rather than a buffered
+  # read. We write both timings space-separated and parse them back.
+  echo "[streaming]   Invoking SSE mock and measuring first-byte vs last-byte timing..."
+  local timing
+  timing=$(curl "${CURL_OPTS[@]}" \
+    --http1.1 \
+    --no-buffer \
     --max-time 30 \
     --request GET \
     --output /dev/null \
-    --write-out "%{time_total}" \
+    --write-out "%{time_starttransfer} %{time_total}" \
     "$API_URL/mocknest/streaming-test/sse-chunked" 2>&1) || {
     echo "[streaming] ERROR: Failed to invoke SSE chunked mock"
     exit 1
   }
 
-  # Convert elapsed seconds to milliseconds
-  local elapsed_ms
-  elapsed_ms=$(python3 -c "print(int(float('$elapsed_seconds') * 1000))")
+  local ttfb_seconds total_seconds
+  ttfb_seconds=$(echo "$timing" | awk '{print $1}')
+  total_seconds=$(echo "$timing" | awk '{print $2}')
+
+  # Convert seconds to milliseconds (reusing the float->ms conversion pattern).
+  local ttfb_ms total_ms spread_ms
+  ttfb_ms=$(python3 -c "print(int(float('$ttfb_seconds') * 1000))")
+  total_ms=$(python3 -c "print(int(float('$total_seconds') * 1000))")
+  spread_ms=$(python3 -c "print(max(0, $total_ms - $ttfb_ms))")
 
   # The dribble delay is inserted BEFORE each chunk after the first, so the
-  # guaranteed minimum delay is (numberOfChunks - 1) * (totalDuration / numberOfChunks),
+  # guaranteed dribble window is (numberOfChunks - 1) * (totalDuration / numberOfChunks),
   # NOT the full totalDuration — the first chunk is written immediately. This
   # matches ChunkedResponseWriter: delayBetweenChunks = totalDuration / numberOfChunks.
-  # We assert against 90% of that expected minimum to tolerate scheduling jitter.
-  local expected_min_ms
-  expected_min_ms=$(python3 -c "print(int((($NUM_CHUNKS - 1) * ($TOTAL_DURATION_MS // $NUM_CHUNKS)) * 0.9))")
+  local dribble_window_ms
+  dribble_window_ms=$(python3 -c "print(($NUM_CHUNKS - 1) * ($TOTAL_DURATION_MS // $NUM_CHUNKS))")
 
-  echo "[streaming]   Elapsed: ${elapsed_ms}ms (expected >= ${expected_min_ms}ms; ${NUM_CHUNKS} chunks over ${TOTAL_DURATION_MS}ms, delay before each chunk after the first)"
-  if [ "$elapsed_ms" -lt "$expected_min_ms" ]; then
-    echo "[streaming] ERROR: Elapsed time ${elapsed_ms}ms is less than expected minimum ${expected_min_ms}ms — dribble delay did not apply"
+  # Primary assertion (Requirement 4.2 / 1.2): progressive delivery.
+  # If bytes trickle, the first byte arrives early and the last byte arrives after
+  # the dribble window, so (time_total - time_starttransfer) covers a substantial
+  # fraction of the dribble window. If the response is buffered and flushed in one
+  # terminal burst (the bug), TTFB ~= total and the spread collapses toward 0.
+  # We require the spread to be at least 40% of the dribble window to tolerate
+  # scheduling jitter while still rejecting a terminal burst.
+  local min_spread_ms
+  min_spread_ms=$(python3 -c "print(int($dribble_window_ms * 0.4))")
+
+  echo "[streaming]   TTFB: ${ttfb_ms}ms, total: ${total_ms}ms, first-to-last spread: ${spread_ms}ms"
+  echo "[streaming]   Dribble window: ${dribble_window_ms}ms; required progressive spread >= ${min_spread_ms}ms"
+  if [ "$spread_ms" -lt "$min_spread_ms" ]; then
+    echo "[streaming] ERROR: first-byte-to-last-byte spread ${spread_ms}ms is below ${min_spread_ms}ms —"
+    echo "[streaming]        the response arrived in a single terminal burst (buffered, not streamed)."
+    echo "[streaming]        Expected chunks to trickle across the ${dribble_window_ms}ms dribble window."
     exit 1
   fi
-  echo "[streaming]   ✓ Elapsed time reflects chunked dribble delay"
+  echo "[streaming]   ✓ Bytes arrived progressively across the dribble window (not a terminal burst)"
 
-  # Step 3: Cleanup
+  # Secondary assertion (Requirement 1.3): the dribble timing itself is preserved.
+  # Total elapsed must still be at least the dribble window (with 90% jitter tolerance).
+  local expected_min_ms
+  expected_min_ms=$(python3 -c "print(int($dribble_window_ms * 0.9))")
+
+  echo "[streaming]   Elapsed total: ${total_ms}ms (expected >= ${expected_min_ms}ms)"
+  if [ "$total_ms" -lt "$expected_min_ms" ]; then
+    echo "[streaming] ERROR: Elapsed time ${total_ms}ms is less than expected minimum ${expected_min_ms}ms — dribble delay did not apply"
+    exit 1
+  fi
+  echo "[streaming]   ✓ Total elapsed time reflects chunked dribble delay"
+
+  # Step 4: Cleanup
   echo "[streaming]   Cleaning up mapping..."
   curl "${CURL_OPTS[@]}" \
     --request DELETE \
     "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
   echo "[streaming]   ✓ Cleanup complete"
 
-  echo "[streaming] ✓ SSE chunked dribble delay test passed"
+  echo "[streaming] ✓ SSE chunked dribble delay progressive-delivery test passed"
+}
+
+# ============================================================================
+# CANONICAL STREAMING DEMO — Realistic SSE / AI-conversation token stream
+# ----------------------------------------------------------------------------
+# This test is the authoritative, repeatable streaming demo for MockNest AND a
+# regression guard against buffered-not-streamed delivery. It mocks an LLM-style
+# Server-Sent Events transcript (many `data: {"delta":"<token>"}` events ending
+# with `data: [DONE]`) served with chunkedDribbleDelay so the tokens visibly
+# trickle to the client like a chatbot reply instead of arriving all at once.
+#
+# To reproduce the demo by hand against a deployed stack (watch tokens trickle):
+#
+#   curl --http1.1 -N "$API_URL/mocknest/streaming-test/sse-ai-conversation"
+#
+# With progressive delivery the `data: {"delta":...}` lines appear one group at a
+# time over ~5s; if the response were buffered they would all appear at once at
+# the end. The automated assertions below encode exactly that difference.
+#
+# Validates: Requirement 4a (4a.1 registration, 4a.2 progressive arrival,
+#            4a.3 byte-for-byte SSE framing, 4a.4 canonical demo doc)
+test_streaming_sse_ai_conversation() {
+  echo "[streaming] Testing SSE AI-conversation progressive token delivery (demo)..."
+
+  # ~16KB per chunk clears the network coalescing threshold so tokens are
+  # observably spread over time rather than merged into one TCP burst.
+  local CHUNK_BYTES=16384
+  # numberOfChunks == number of SSE events so each dribble chunk ≈ one event.
+  local NUM_EVENTS=6
+  local NUM_CHUNKS=$NUM_EVENTS
+  local TOTAL_DURATION_MS=5000
+
+  # Step 1 (4a.1): Build the mapping JSON AND the raw expected transcript via a
+  # python3 heredoc writing to mktemp files — avoids fragile inline JSON escaping
+  # and lets the test diff the delivered body against the exact registered bytes.
+  echo "[streaming]   Building LLM-style SSE transcript (${NUM_EVENTS} events x >=${CHUNK_BYTES}B)..."
+  local mapping_file transcript_file arrivals_file received_file
+  mapping_file=$(mktemp)
+  transcript_file=$(mktemp)
+  arrivals_file=$(mktemp)
+  received_file=$(mktemp)
+  # Remove every temp file on any exit path from this function.
+  trap 'rm -f "$mapping_file" "$transcript_file" "$arrivals_file" "$received_file"' RETURN
+
+  python3 - "$mapping_file" "$transcript_file" "$NUM_EVENTS" "$CHUNK_BYTES" "$NUM_CHUNKS" "$TOTAL_DURATION_MS" <<'PY'
+import json
+import sys
+
+mapping_file = sys.argv[1]
+transcript_file = sys.argv[2]
+num_events = int(sys.argv[3])
+chunk_bytes = int(sys.argv[4])
+num_chunks = int(sys.argv[5])
+total_duration_ms = int(sys.argv[6])
+
+# A multi-token LLM-style SSE transcript: each token is a well-formed SSE event
+# `data: {"delta":"<token>"}\n\n`, followed by an SSE comment line (": ...") used
+# purely as padding so every event >= chunk_bytes. WireMock dribbles the body in
+# numberOfChunks ≈ num_events roughly-equal byte ranges, so padding each event to
+# >= chunk_bytes guarantees every dribble chunk clears the coalescing threshold.
+# The stream ends with the canonical `data: [DONE]` terminator.
+tokens = ["Hello", " there", "! How", " can I", " help", " you?"]
+pad = "x" * chunk_bytes
+segments = []
+for i in range(num_events):
+    token = tokens[i] if i < len(tokens) else f" tok{i}"
+    event = "data: " + json.dumps({"delta": token}) + "\n"
+    comment = ": " + pad + "\n"
+    segments.append(event + comment + "\n")
+# Terminal DONE event (small — it is the sentinel the client waits for).
+segments.append("data: [DONE]\n\n")
+body = "".join(segments)
+
+mapping = {
+    "request": {
+        "method": "GET",
+        "urlPath": "/streaming-test/sse-ai-conversation",
+    },
+    "response": {
+        "status": 200,
+        "body": body,
+        "headers": {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+        "chunkedDribbleDelay": {
+            "numberOfChunks": num_chunks,
+            "totalDuration": total_duration_ms,
+        },
+    },
+    "persistent": True,
+}
+
+with open(mapping_file, "w") as f:
+    json.dump(mapping, f)
+# Write the exact transcript bytes so the test can diff the delivered body.
+with open(transcript_file, "w") as f:
+    f.write(body)
+PY
+
+  # Step 2 (4a.1): Register the SSE mock.
+  echo "[streaming]   Registering SSE AI-conversation mock (chunks=$NUM_CHUNKS, totalDuration=${TOTAL_DURATION_MS}ms)..."
+  local response
+  response=$(curl "${CURL_OPTS[@]}" \
+    --write-out "\n%{http_code}" \
+    --request POST \
+    --data-binary @"$mapping_file" \
+    "$API_URL/__admin/mappings" 2>&1) || {
+    echo "[streaming] ERROR: Failed to register SSE AI-conversation mock"
+    echo "[streaming] Response: $response"
+    exit 1
+  }
+  parse_response "$response"
+  if [ "$HTTP_CODE" != "201" ]; then
+    echo "[streaming] ERROR: SSE AI-conversation mock registration failed with HTTP $HTTP_CODE"
+    echo "[streaming] Response: $BODY"
+    exit 1
+  fi
+  local MAPPING_ID
+  MAPPING_ID=$(echo "$BODY" | json_field "id")
+  echo "[streaming]   ✓ SSE AI-conversation mock registered: $MAPPING_ID"
+
+  # Step 3 (4a.2): Stream the response through a TIMESTAMPING reader. We keep curl
+  # as the HTTP client (consistent with the rest of the suite) and pipe its raw
+  # output into a small python3 consumer that reads the pipe in fixed blocks,
+  # recording time.monotonic() for every non-empty read into an arrivals file and
+  # appending the raw bytes to a received-body file. python3 is used only as the
+  # on-pipe consumer — curl still does the HTTP GET with --http1.1 -N --no-buffer
+  # so bytes are handed over as they arrive on the wire rather than buffered.
+  echo "[streaming]   Invoking SSE mock and recording per-chunk arrival timestamps..."
+  curl "${CURL_OPTS[@]}" \
+    --http1.1 \
+    --no-buffer \
+    --max-time 30 \
+    --request GET \
+    "$API_URL/mocknest/streaming-test/sse-ai-conversation" 2>/dev/null \
+    | python3 - "$arrivals_file" "$received_file" <<'PY' || {
+import sys
+import time
+
+arrivals_file = sys.argv[1]
+received_file = sys.argv[2]
+
+stdin = sys.stdin.buffer
+start = time.monotonic()
+with open(arrivals_file, "w") as arr, open(received_file, "wb") as body:
+    while True:
+        block = stdin.read(4096)
+        if not block:
+            break
+        # Record elapsed-seconds for this read (only when bytes actually arrive).
+        arr.write(f"{time.monotonic() - start:.4f} {len(block)}\n")
+        arr.flush()
+        body.write(block)
+        body.flush()
+PY
+    echo "[streaming] ERROR: Failed to stream SSE AI-conversation mock"
+    exit 1
+  }
+
+  if [ ! -s "$arrivals_file" ]; then
+    echo "[streaming] ERROR: No bytes were received from the SSE AI-conversation mock"
+    exit 1
+  fi
+
+  # Step 3a (4a.2a + 4a.2b): Analyze the arrival record. We compute:
+  #   - first/last arrival timestamps and their spread (progressive delivery),
+  #   - the number of DISTINCT arrival time buckets (100ms granularity) to prove
+  #     bytes arrived over time rather than in a single terminal burst.
+  local analysis first_s last_s spread_ms distinct_buckets
+  analysis=$(python3 - "$arrivals_file" <<'PY'
+import sys
+
+times = []
+with open(sys.argv[1]) as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        ts = float(line.split()[0])
+        times.append(ts)
+
+first = times[0]
+last = times[-1]
+spread_ms = int((last - first) * 1000)
+# Bucket arrivals into 100ms windows; >1 distinct bucket means not a single burst.
+buckets = {int(t * 10) for t in times}
+print(f"{first:.4f} {last:.4f} {spread_ms} {len(buckets)}")
+PY
+)
+  first_s=$(echo "$analysis" | awk '{print $1}')
+  last_s=$(echo "$analysis" | awk '{print $2}')
+  spread_ms=$(echo "$analysis" | awk '{print $3}')
+  distinct_buckets=$(echo "$analysis" | awk '{print $4}')
+
+  # The dribble delay is inserted BEFORE each chunk after the first, so the
+  # guaranteed dribble window is (numberOfChunks - 1) * (totalDuration / numberOfChunks).
+  local dribble_window_ms min_spread_ms
+  dribble_window_ms=$(python3 -c "print(($NUM_CHUNKS - 1) * ($TOTAL_DURATION_MS // $NUM_CHUNKS))")
+  # Require first-to-last arrival spread >= 50% of the dribble window (Req 4a.2).
+  min_spread_ms=$(python3 -c "print(int($dribble_window_ms * 0.5))")
+
+  echo "[streaming]   First arrival: ${first_s}s, last arrival: ${last_s}s, spread: ${spread_ms}ms across ${distinct_buckets} time bucket(s)"
+  echo "[streaming]   Dribble window: ${dribble_window_ms}ms; required progressive spread >= ${min_spread_ms}ms"
+
+  # Assertion (a): first event well before last — spread covers >= 50% of window.
+  if [ "$spread_ms" -lt "$min_spread_ms" ]; then
+    echo "[streaming] ERROR: first-to-last arrival spread ${spread_ms}ms is below ${min_spread_ms}ms —"
+    echo "[streaming]        tokens arrived in a single terminal burst (buffered, not streamed)."
+    exit 1
+  fi
+  echo "[streaming]   ✓ Tokens trickled across the dribble window (first event well before last)"
+
+  # Assertion (b): monotonic arrival over time — more than one distinct bucket.
+  if [ "$distinct_buckets" -lt 2 ]; then
+    echo "[streaming] ERROR: all bytes landed in a single ${distinct_buckets}-bucket burst — not progressive"
+    exit 1
+  fi
+  echo "[streaming]   ✓ Bytes arrived over multiple time buckets (not one burst)"
+
+  # Assertion (c) (4a.2c): the terminal `data: [DONE]` sentinel was received.
+  if ! grep -q 'data: \[DONE\]' "$received_file"; then
+    echo "[streaming] ERROR: terminal 'data: [DONE]' event was not received — transcript truncated"
+    exit 1
+  fi
+  echo "[streaming]   ✓ Terminal 'data: [DONE]' event received"
+
+  # Step 4 (4a.3): SSE framing preserved end-to-end — the concatenated received
+  # body must equal the registered transcript byte-for-byte. Byte-identical
+  # equality also proves every `data: ...\n\n` event boundary survived intact.
+  echo "[streaming]   Verifying delivered body is byte-for-byte identical to the registered transcript..."
+  if ! cmp -s "$transcript_file" "$received_file"; then
+    local expected_bytes received_bytes
+    expected_bytes=$(wc -c < "$transcript_file" | tr -d ' ')
+    received_bytes=$(wc -c < "$received_file" | tr -d ' ')
+    echo "[streaming] ERROR: delivered body does not match registered transcript"
+    echo "[streaming]        expected ${expected_bytes} bytes, received ${received_bytes} bytes"
+    exit 1
+  fi
+  echo "[streaming]   ✓ SSE framing intact — delivered body matches transcript byte-for-byte"
+
+  # Step 5: Cleanup
+  echo "[streaming]   Cleaning up mapping..."
+  curl "${CURL_OPTS[@]}" \
+    --request DELETE \
+    "$API_URL/__admin/mappings/$MAPPING_ID" 2>/dev/null || true
+  echo "[streaming]   ✓ Cleanup complete"
+
+  echo "[streaming] ✓ SSE AI-conversation progressive token-delivery test passed"
 }
 
 # Test: Standard response body matching (< 6MB)
@@ -2966,6 +3295,7 @@ main() {
       echo "Running response streaming validation tests..."
       test_streaming_large_payload
       test_streaming_sse_chunked_delay
+      test_streaming_sse_ai_conversation
       test_streaming_standard_body
       test_streaming_custom_headers
       test_streaming_progressive_delivery
@@ -3041,6 +3371,7 @@ main() {
       test_webhook_delivery
       test_streaming_large_payload
       test_streaming_sse_chunked_delay
+      test_streaming_sse_ai_conversation
       test_streaming_standard_body
       test_streaming_custom_headers
       test_streaming_progressive_delivery
