@@ -20,6 +20,8 @@ jobs:
     uses: ./.github/workflows/workflow-build.yml
     with:
       aws-region: 'eu-west-1'
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   detect-changes:
     runs-on: ubuntu-latest

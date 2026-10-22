@@ -8,6 +8,10 @@ on:
         required: false
         type: string
         default: 'eu-west-1'
+    secrets:
+      CODECOV_TOKEN:
+        description: 'Codecov upload token. Optional: only passed from main-aws.yml; the upload step runs on main only.'
+        required: false
 
 permissions:
   contents: read
