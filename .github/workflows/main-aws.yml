@@ -107,8 +107,10 @@ jobs:
     environment: sar-production
     steps:
       - name: Approval checkpoint
+        env:
+          RELEASED_VERSION: ${{ needs.release.outputs.released-version }}
         run: |
-          echo "Approved SAR publish of version ${{ needs.release.outputs.released-version }}"
+          echo "Approved SAR publish of version ${RELEASED_VERSION}"
 
   # Publish the freshly-released version to SAR. Runs only after the
   # sar-production approval gate passes. Only runs when a release was cut.

@@ -87,8 +87,9 @@ jobs:
 
       - name: Resolve stack name and auth mode
         id: stack-name
+        env:
+          STACK_NAME_OVERRIDE: ${{ inputs.stack-name }}
         run: |
-          STACK_NAME_OVERRIDE="${{ inputs.stack-name }}"
           if [ -n "$STACK_NAME_OVERRIDE" ]; then
             STACK_NAME="$STACK_NAME_OVERRIDE"
           else
@@ -107,9 +108,10 @@ jobs:
           echo "auth-mode=${AUTH_MODE:-API_KEY}" >> "$GITHUB_OUTPUT"
 
       - name: Run health checks and cleanup
+        env:
+          AUTH_MODE: ${{ steps.stack-name.outputs.auth-mode }}
+          STACK_NAME: ${{ steps.stack-name.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ steps.stack-name.outputs.stack-name }}"
-          AUTH_MODE="${{ steps.stack-name.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -160,9 +162,10 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run REST tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -213,9 +216,10 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run GraphQL tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -269,9 +273,10 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run SOAP tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -328,9 +333,10 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run streaming tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -379,9 +385,10 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run webhook tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -420,9 +427,10 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run all extensive tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -473,9 +481,10 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
 
       - name: Clean up extensive test data
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \

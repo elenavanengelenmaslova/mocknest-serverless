@@ -69,9 +69,11 @@ jobs:
         uses: aws-actions/setup-sam@341eee193f458fa5aae5d52c94b0c5cf3a1c5a52 # v3
         
       - name: Build application
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          echo "🔨 Building MockNest Serverless v${{ inputs.version }}..."
-          ./gradlew clean :software:infra:aws:mocknest:shadowJar --no-build-cache -PreleaseVersion=${{ inputs.version }}
+          echo "🔨 Building MockNest Serverless v${VERSION}..."
+          ./gradlew clean :software:infra:aws:mocknest:shadowJar --no-build-cache -PreleaseVersion=${VERSION}
           echo "✅ Build completed successfully"
           
       - name: Verify JAR artifact
@@ -94,19 +96,25 @@ jobs:
         
       - name: Package and publish to SAR
         id: publish
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          REGION: ${{ inputs.aws-region }}
+          S3_PREFIX: ${{ inputs.s3-prefix }}
+          SAR_BUCKET_INPUT: ${{ inputs.bucket-name }}
+          VERSION: ${{ inputs.version }}
         run: |
           echo "📦 Packaging and publishing to SAR..."
           cd deployment/aws/sam
           
           # Determine bucket name
-          if [ -z "${{ inputs.bucket-name }}" ]; then
-            SAR_BUCKET="mocknest-sar-artifacts-${{ secrets.AWS_ACCOUNT_ID }}"
+          if [ -z "${SAR_BUCKET_INPUT}" ]; then
+            SAR_BUCKET="mocknest-sar-artifacts-${AWS_ACCOUNT_ID}"
           else
-            SAR_BUCKET="${{ inputs.bucket-name }}"
+            SAR_BUCKET="${SAR_BUCKET_INPUT}"
           fi
           
           # Create S3 bucket if it doesn't exist
-          aws s3 mb s3://$SAR_BUCKET --region ${{ inputs.aws-region }} || echo "Bucket already exists"
+          aws s3 mb s3://$SAR_BUCKET --region ${REGION} || echo "Bucket already exists"
           
           # Set bucket policy to allow SAR to read artifacts
           echo "🔐 Setting bucket policy for SAR access..."
@@ -125,27 +133,27 @@ jobs:
           }'
           
           # Package the application (JARs are pre-built by Gradle)
-          if [ -z "${{ inputs.s3-prefix }}" ]; then
+          if [ -z "${S3_PREFIX}" ]; then
             sam package \
               --template-file template.yaml \
               --s3-bucket $SAR_BUCKET \
               --output-template-file packaged-template.yaml \
-              --region ${{ inputs.aws-region }}
+              --region ${REGION}
           else
             sam package \
               --template-file template.yaml \
               --s3-bucket $SAR_BUCKET \
-              --s3-prefix "${{ inputs.s3-prefix }}" \
+              --s3-prefix "${S3_PREFIX}" \
               --output-template-file packaged-template.yaml \
-              --region ${{ inputs.aws-region }}
+              --region ${REGION}
           fi
           
           # Publish to SAR and capture output
           echo "🚀 Publishing to SAR..."
           sam publish \
             --template packaged-template.yaml \
-            --region ${{ inputs.aws-region }} \
-            --semantic-version ${{ inputs.version }} | tee publish-output.txt
+            --region ${REGION} \
+            --semantic-version ${VERSION} | tee publish-output.txt
           
           echo ""
           echo "📋 Full publish output saved to publish-output.txt"

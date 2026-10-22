@@ -90,9 +90,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate results
+        env:
+          API_KEY_RESULT: ${{ needs.test-api-key.result }}
+          IAM_RESULT: ${{ needs.test-iam.result }}
         run: |
-          API_KEY_RESULT="${{ needs.test-api-key.result }}"
-          IAM_RESULT="${{ needs.test-iam.result }}"
 
           {
             echo "## 🔒 Pre-Merge Dual-Mode Validation"

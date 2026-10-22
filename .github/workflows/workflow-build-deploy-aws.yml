@@ -94,11 +94,13 @@ jobs:
         
       - name: Deploy with SAM
         id: sam-deploy
+        env:
+          SAM_CONFIG_ENV: ${{ inputs.environment }}
         run: |
           cd deployment/aws/sam
           echo "Starting SAM deployment..."
 
-          DEPLOY_OUTPUT=$(sam deploy --config-env ${{ inputs.environment }} --no-confirm-changeset --force-upload 2>&1) && {
+          DEPLOY_OUTPUT=$(sam deploy --config-env ${SAM_CONFIG_ENV} --no-confirm-changeset --force-upload 2>&1) && {
             echo "$DEPLOY_OUTPUT"
             echo "Deployment completed successfully"
             echo "deployed=true" >> $GITHUB_OUTPUT
@@ -117,9 +119,11 @@ jobs:
       - name: Get deployment outputs
         if: steps.sam-deploy.outputs.deployed == 'true'
         id: outputs
+        env:
+          SAM_CONFIG_ENV: ${{ inputs.environment }}
         run: |
           cd deployment/aws/sam
-          STACK_NAME=$(sam list stack-outputs --config-env ${{ inputs.environment }} --output json | jq -r '.[0].StackName')
+          STACK_NAME=$(sam list stack-outputs --config-env ${SAM_CONFIG_ENV} --output json | jq -r '.[0].StackName')
           API_URL=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text)
           BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' --output text)
           DEPLOYED_AUTH_MODE=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`AuthMode`].OutputValue' --output text 2>/dev/null || echo "API_KEY")
@@ -136,41 +140,51 @@ jobs:
 
       - name: Test deployment
         if: steps.sam-deploy.outputs.deployed == 'true'
+        env:
+          API_KEY_ID: ${{ steps.outputs.outputs.api-key-id }}
+          API_URL: ${{ steps.outputs.outputs.api-url }}
+          AUTH_MODE: ${{ steps.outputs.outputs.auth-mode }}
+          REGION: ${{ inputs.aws-region }}
         run: |
           echo "Testing MockNest Serverless deployment..."
-          AUTH_MODE="${{ steps.outputs.outputs.auth-mode }}"
           if [ "$AUTH_MODE" = "IAM" ]; then
-            curl --aws-sigv4 "aws:amz:${{ inputs.aws-region }}:execute-api" \
+            curl --aws-sigv4 "aws:amz:${REGION}:execute-api" \
                  --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY" \
                  -H "x-amz-security-token: $AWS_SESSION_TOKEN" \
-                 -X GET "${{ steps.outputs.outputs.api-url }}__admin/mappings" \
+                 -X GET "${API_URL}__admin/mappings" \
                  -w "HTTP Status: %{http_code}\n"
           else
             API_KEY_VALUE=$(aws apigateway get-api-key \
-              --api-key "${{ steps.outputs.outputs.api-key-id }}" \
+              --api-key "${API_KEY_ID}" \
               --include-value --query 'value' --output text)
             curl -H "x-api-key: $API_KEY_VALUE" \
-                 -X GET "${{ steps.outputs.outputs.api-url }}__admin/mappings" \
+                 -X GET "${API_URL}__admin/mappings" \
                  -w "HTTP Status: %{http_code}\n"
           fi
                
       - name: Create deployment summary
         if: steps.sam-deploy.outputs.deployed == 'true'
+        env:
+          API_URL: ${{ steps.outputs.outputs.api-url }}
+          BUCKET_NAME: ${{ steps.outputs.outputs.bucket-name }}
+          REGION: ${{ inputs.aws-region }}
+          SAM_CONFIG_ENV: ${{ inputs.environment }}
+          STACK_NAME: ${{ steps.outputs.outputs.stack-name }}
         run: |
           echo "## 🚀 MockNest Serverless Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Region:** ${{ inputs.aws-region }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${SAM_CONFIG_ENV}" >> $GITHUB_STEP_SUMMARY
+          echo "**Region:** ${REGION}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📋 Deployment Details" >> $GITHUB_STEP_SUMMARY
-          echo "- **Stack Name:** ${{ steps.outputs.outputs.stack-name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **API URL:** ${{ steps.outputs.outputs.api-url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Storage Bucket:** ${{ steps.outputs.outputs.bucket-name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Stack Name:** ${STACK_NAME}" >> $GITHUB_STEP_SUMMARY
+          echo "- **API URL:** ${API_URL}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Storage Bucket:** ${BUCKET_NAME}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔑 API Access" >> $GITHUB_STEP_SUMMARY
           echo "Use the API key from CloudFormation outputs to access MockNest endpoints." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📚 Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "1. Retrieve the API key from AWS Console > CloudFormation > Stack Outputs" >> $GITHUB_STEP_SUMMARY
-          echo "2. Test the admin API: \`GET ${{ steps.outputs.outputs.api-url }}__admin/mappings\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Test the admin API: \`GET ${API_URL}__admin/mappings\`" >> $GITHUB_STEP_SUMMARY
           echo "3. Import the Postman collection from \`docs/postman/\` for testing" >> $GITHUB_STEP_SUMMARY
