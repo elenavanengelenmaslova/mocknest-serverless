@@ -86,19 +86,20 @@ Resources:
             Condition:
               StringEquals:
                 'token.actions.githubusercontent.com:aud': sts.amazonaws.com
-              # This role (GitHubActionsRole) trusts the main branch plus feature/* and
-              # bugfix/* branch refs, so day-to-day CI — the pre-merge dual-mode
-              # validation on feature/bugfix branches — can assume it. dependabot/*
-              # branches are deliberately NOT trusted: their pushes only run the build
-              # (feature-aws.yml) and never assume an AWS role. Note:
-              # update-existing-oidc-role.sh intentionally applies a main-only trust
-              # policy (a hardened variant); that narrower policy is deliberate and is
-              # not changed here.
+              # This role (GitHubActionsRole) trusts the main branch plus feature/*,
+              # bugfix/*, and dependabot/* branch refs, so the manually dispatched
+              # workflows (deploy-on-demand, pre-merge dual-mode validation) can be run
+              # against feature/bugfix branches and Dependabot PR branches. Automatic
+              # pushes to dependabot/* only run the build and never assume this role.
+              # Note: update-existing-oidc-role.sh intentionally applies a main-only
+              # trust policy (a hardened variant); that narrower policy is deliberate
+              # and is not changed here.
               StringLike:
                 'token.actions.githubusercontent.com:sub':
                   - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main'
                   - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/feature/*'
                   - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/bugfix/*'
+                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/dependabot/*'
       Policies:
         - PolicyName: GitHubActionsDeploymentPolicy
           PolicyDocument:
