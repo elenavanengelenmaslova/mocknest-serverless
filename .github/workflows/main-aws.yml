@@ -82,19 +82,18 @@ jobs:
         with:
           node-version: 'lts/*'
 
+      # semantic-release and its non-bundled plugins (@semantic-release/exec,
+      # @semantic-release/github) are pinned in .github/release/package.json with
+      # a lockfile, so `npm ci` installs exact, integrity-checked versions.
+      # Dependabot (npm ecosystem) keeps them up to date.
+      - name: Install semantic-release
+        run: npm ci --prefix .github/release --ignore-scripts --no-audit --no-fund
+
       - name: Run semantic-release
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # semantic-release bundles commit-analyzer and release-notes-generator,
-        # but @semantic-release/exec and @semantic-release/github are NOT bundled.
-        # Install them into the same npx sandbox so plugin resolution finds them.
-        run: >-
-          npx --yes
-          -p semantic-release
-          -p @semantic-release/exec
-          -p @semantic-release/github
-          semantic-release
+        run: .github/release/node_modules/.bin/semantic-release
 
   # Manual approval gate. This regular job carries the `sar-production`
   # Environment, which (with required reviewers configured on that Environment

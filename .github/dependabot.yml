@@ -23,6 +23,16 @@ updates:
       - "dependencies"
       - "github-actions"
 
+  # semantic-release toolchain used by the release job in main-aws.yml
+  - package-ecosystem: "npm"
+    directory: "/.github/release"
+    multi-ecosystem-group: "all-dependencies"
+    patterns:
+      - "*"
+    labels:
+      - "dependencies"
+      - "npm"
+
   # Gradle dependency updates
   - package-ecosystem: "gradle"
     directory: "/"
