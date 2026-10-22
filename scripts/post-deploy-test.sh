@@ -2331,31 +2331,36 @@ PY
   echo "[streaming]   ✓ SSE AI-conversation mock registered: $MAPPING_ID"
 
   # Step 3 (4a.2): Stream the response through a TIMESTAMPING reader. We keep curl
-  # as the HTTP client (consistent with the rest of the suite) and pipe its raw
-  # output into a small python3 consumer that reads the pipe in fixed blocks,
+  # as the HTTP client (consistent with the rest of the suite) and feed its raw
+  # output on fd 3 into a small python3 consumer that reads it in blocks,
   # recording time.monotonic() for every non-empty read into an arrivals file and
   # appending the raw bytes to a received-body file. python3 is used only as the
-  # on-pipe consumer — curl still does the HTTP GET with --http1.1 -N --no-buffer
+  # consumer — curl still does the HTTP GET with --http1.1 -N --no-buffer
   # so bytes are handed over as they arrive on the wire rather than buffered.
+  # curl is attached via process substitution on fd 3 (not a pipe into stdin):
+  # python3's stdin is the heredoc script, so a piped stdin would be discarded.
   echo "[streaming]   Invoking SSE mock and recording per-chunk arrival timestamps..."
-  curl "${CURL_OPTS[@]}" \
-    --http1.1 \
-    --no-buffer \
-    --max-time 30 \
-    --request GET \
-    "$API_URL/mocknest/streaming-test/sse-ai-conversation" 2>/dev/null \
-    | python3 - "$arrivals_file" "$received_file" <<'PY' || {
+  python3 - "$arrivals_file" "$received_file" 3< <(
+    curl "${CURL_OPTS[@]}" \
+      --http1.1 \
+      --no-buffer \
+      --max-time 30 \
+      --request GET \
+      "$API_URL/mocknest/streaming-test/sse-ai-conversation" 2>/dev/null
+  ) <<'PY' || {
+import os
 import sys
 import time
 
 arrivals_file = sys.argv[1]
 received_file = sys.argv[2]
 
-stdin = sys.stdin.buffer
 start = time.monotonic()
 with open(arrivals_file, "w") as arr, open(received_file, "wb") as body:
     while True:
-        block = stdin.read(4096)
+        # os.read returns as soon as any bytes are available (a buffered
+        # read(4096) would block until 4096 bytes accumulate).
+        block = os.read(3, 4096)
         if not block:
             break
         # Record elapsed-seconds for this read (only when bytes actually arrive).
