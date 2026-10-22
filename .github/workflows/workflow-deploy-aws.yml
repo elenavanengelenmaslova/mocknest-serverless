@@ -44,28 +44,28 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up JDK 25
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           java-version: '25'
           distribution: 'temurin'
           
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.4.0
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
           
       - name: Configure AWS credentials using OIDC
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           role-session-name: MockNestServerlessDeployment
           aws-region: ${{ inputs.aws-region }}
           
       - name: Setup SAM CLI
-        uses: aws-actions/setup-sam@v3
+        uses: aws-actions/setup-sam@341eee193f458fa5aae5d52c94b0c5cf3a1c5a52 # v3
         
       - name: Build Lambda JAR
         run: |
@@ -83,23 +83,27 @@ jobs:
   
       - name: Deploy with SAM
         id: sam-deploy
+        env:
+          AUTH_MODE: ${{ inputs.auth-mode }}
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          REGION: ${{ inputs.aws-region }}
+          RUNTIME_LAMBDA_MEMORY: ${{ inputs.runtime-lambda-memory }}
+          STACK_NAME_OVERRIDE: ${{ inputs.stack-name }}
         run: |
           cd deployment/aws/sam
           echo "Starting SAM deployment..."
 
           # Build optional overrides
-          STACK_NAME_OVERRIDE="${{ inputs.stack-name }}"
-          AUTH_MODE="${{ inputs.auth-mode }}"
 
           # SAM deployment artifacts bucket (created by the bootstrap OIDC stack).
           # Name is account+region derived for global uniqueness; the GitHub Actions
           # role has object-level access to it (no resolve_s3 managed bucket needed).
-          ARTIFACTS_BUCKET="mocknest-sam-artifacts-${{ secrets.AWS_ACCOUNT_ID }}-${{ inputs.aws-region }}"
+          ARTIFACTS_BUCKET="mocknest-sam-artifacts-${AWS_ACCOUNT_ID}-${REGION}"
 
           # CloudFormation execution role (created by the bootstrap OIDC stack).
           # CloudFormation assumes this role to create/update stack resources, so the
           # GitHub Actions role only needs orchestration + PassRole permissions.
-          CFN_EXEC_ROLE_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/MockNestCloudFormationExecutionRole"
+          CFN_EXEC_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/MockNestCloudFormationExecutionRole"
 
           EXTRA_ARGS="--s3-bucket $ARTIFACTS_BUCKET --role-arn $CFN_EXEC_ROLE_ARN"
           if [ -n "$STACK_NAME_OVERRIDE" ]; then
@@ -107,21 +111,23 @@ jobs:
           fi
 
           # Always pass parameter overrides to ensure updated defaults take effect on existing stacks
-          PARAM_OVERRIDES="RuntimeLambdaTimeout=29 RuntimeLambdaMemorySize=${{ inputs.runtime-lambda-memory }}"
+          PARAM_OVERRIDES="RuntimeLambdaTimeout=29 RuntimeLambdaMemorySize=${RUNTIME_LAMBDA_MEMORY}"
           if [ "$AUTH_MODE" = "IAM" ]; then
             PARAM_OVERRIDES="$PARAM_OVERRIDES AuthMode=IAM"
           fi
           EXTRA_ARGS="$EXTRA_ARGS --parameter-overrides $PARAM_OVERRIDES"
 
+          # shellcheck disable=SC2086,SC2015 # $EXTRA_ARGS is intentionally word-split into separate sam arguments
+
           DEPLOY_OUTPUT=$(sam deploy --config-env default --no-confirm-changeset --force-upload $EXTRA_ARGS 2>&1) && {
             echo "$DEPLOY_OUTPUT"
             echo "Deployment completed successfully"
-            echo "deployed=true" >> $GITHUB_OUTPUT
+            echo "deployed=true" >> "$GITHUB_OUTPUT"
           } || {
             EXIT_CODE=$?
             if echo "$DEPLOY_OUTPUT" | grep -q "No changes to deploy"; then
               echo "No changes to deploy. Stack is up to date - skipping."
-              echo "deployed=false" >> $GITHUB_OUTPUT
+              echo "deployed=false" >> "$GITHUB_OUTPUT"
             else
               echo "$DEPLOY_OUTPUT"
               echo "SAM deployment failed with exit code: $EXIT_CODE"
@@ -132,11 +138,12 @@ jobs:
       - name: Get deployment outputs
         if: steps.sam-deploy.outputs.deployed == 'true'
         id: outputs
+        env:
+          STACK_NAME_OVERRIDE: ${{ inputs.stack-name }}
         run: |
           cd deployment/aws/sam
 
           # Use passed-in stack name if provided, otherwise read from samconfig
-          STACK_NAME_OVERRIDE="${{ inputs.stack-name }}"
           if [ -n "$STACK_NAME_OVERRIDE" ]; then
             STACK_NAME="$STACK_NAME_OVERRIDE"
           else
@@ -155,26 +162,31 @@ jobs:
           API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockNestApiUrl`].OutputValue' --output text)
           BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`MockStorageBucket`].OutputValue' --output text)
 
-          echo "api-url=$API_URL" >> $GITHUB_OUTPUT
-          echo "bucket-name=$BUCKET_NAME" >> $GITHUB_OUTPUT
-          echo "stack-name=$STACK_NAME" >> $GITHUB_OUTPUT
+          echo "api-url=$API_URL" >> "$GITHUB_OUTPUT"
+          echo "bucket-name=$BUCKET_NAME" >> "$GITHUB_OUTPUT"
+          echo "stack-name=$STACK_NAME" >> "$GITHUB_OUTPUT"
                
       - name: Create deployment summary
         if: steps.sam-deploy.outputs.deployed == 'true'
+        env:
+          API_URL: ${{ steps.outputs.outputs.api-url }}
+          BUCKET_NAME: ${{ steps.outputs.outputs.bucket-name }}
+          REGION: ${{ inputs.aws-region }}
+          STACK_NAME: ${{ steps.outputs.outputs.stack-name }}
         run: |
-          echo "## 🚀 MockNest Serverless Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Region:** ${{ inputs.aws-region }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Deployment Details" >> $GITHUB_STEP_SUMMARY
-          echo "- **Stack Name:** ${{ steps.outputs.outputs.stack-name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **API URL:** ${{ steps.outputs.outputs.api-url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Storage Bucket:** ${{ steps.outputs.outputs.bucket-name }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔑 API Access" >> $GITHUB_STEP_SUMMARY
-          echo "No API key required for testing (disabled for initial deployment)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📚 Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. Test the API: \`GET ${{ steps.outputs.outputs.api-url }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "2. Test admin API: \`GET ${{ steps.outputs.outputs.api-url }}__admin/mappings\`" >> $GITHUB_STEP_SUMMARY
-          echo "3. Import the Postman collection from \`docs/postman/\` for testing" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 MockNest Serverless Deployment Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Region:** ${REGION}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 📋 Deployment Details" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Stack Name:** ${STACK_NAME}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **API URL:** ${API_URL}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Storage Bucket:** ${BUCKET_NAME}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 🔑 API Access" >> "$GITHUB_STEP_SUMMARY"
+          echo "No API key required for testing (disabled for initial deployment)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 📚 Next Steps" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. Test the API: \`GET ${API_URL}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. Test admin API: \`GET ${API_URL}__admin/mappings\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "3. Import the Postman collection from \`docs/postman/\` for testing" >> "$GITHUB_STEP_SUMMARY"

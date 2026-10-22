@@ -45,33 +45,35 @@ jobs:
     outputs:
       application_id: ${{ steps.publish.outputs.application_id }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up JDK 25
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           java-version: '25'
           distribution: 'temurin'
           
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6.4.0
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
           
       - name: Configure AWS credentials using OIDC
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           role-session-name: MockNestSARPublishing
           aws-region: ${{ inputs.aws-region }}
           
       - name: Setup SAM CLI
-        uses: aws-actions/setup-sam@v3
+        uses: aws-actions/setup-sam@341eee193f458fa5aae5d52c94b0c5cf3a1c5a52 # v3
         
       - name: Build application
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          echo "🔨 Building MockNest Serverless v${{ inputs.version }}..."
-          ./gradlew clean :software:infra:aws:mocknest:shadowJar --no-build-cache -PreleaseVersion=${{ inputs.version }}
+          echo "🔨 Building MockNest Serverless v${VERSION}..."
+          ./gradlew clean :software:infra:aws:mocknest:shadowJar --no-build-cache "-PreleaseVersion=${VERSION}"
           echo "✅ Build completed successfully"
           
       - name: Verify JAR artifact
@@ -86,7 +88,7 @@ jobs:
           # Check if JAR is under 100MB (SAR limit is 250MB, but we target 100MB)
           JAR_SIZE_BYTES=$(stat -f%z build/dist/mocknest-serverless.jar 2>/dev/null || stat -c%s build/dist/mocknest-serverless.jar)
           MAX_SIZE=$((100 * 1024 * 1024))
-          if [ $JAR_SIZE_BYTES -gt $MAX_SIZE ]; then
+          if [ "$JAR_SIZE_BYTES" -gt "$MAX_SIZE" ]; then
             echo "⚠️  WARNING: JAR size ($JAR_SIZE) exceeds 100MB target"
           else
             echo "✅ JAR size is within 100MB target"
@@ -94,23 +96,29 @@ jobs:
         
       - name: Package and publish to SAR
         id: publish
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          REGION: ${{ inputs.aws-region }}
+          S3_PREFIX: ${{ inputs.s3-prefix }}
+          SAR_BUCKET_INPUT: ${{ inputs.bucket-name }}
+          VERSION: ${{ inputs.version }}
         run: |
           echo "📦 Packaging and publishing to SAR..."
           cd deployment/aws/sam
           
           # Determine bucket name
-          if [ -z "${{ inputs.bucket-name }}" ]; then
-            SAR_BUCKET="mocknest-sar-artifacts-${{ secrets.AWS_ACCOUNT_ID }}"
+          if [ -z "${SAR_BUCKET_INPUT}" ]; then
+            SAR_BUCKET="mocknest-sar-artifacts-${AWS_ACCOUNT_ID}"
           else
-            SAR_BUCKET="${{ inputs.bucket-name }}"
+            SAR_BUCKET="${SAR_BUCKET_INPUT}"
           fi
           
           # Create S3 bucket if it doesn't exist
-          aws s3 mb s3://$SAR_BUCKET --region ${{ inputs.aws-region }} || echo "Bucket already exists"
+          aws s3 mb "s3://$SAR_BUCKET" --region "${REGION}" || echo "Bucket already exists"
           
           # Set bucket policy to allow SAR to read artifacts
           echo "🔐 Setting bucket policy for SAR access..."
-          aws s3api put-bucket-policy --bucket $SAR_BUCKET --policy '{
+          aws s3api put-bucket-policy --bucket "$SAR_BUCKET" --policy '{
             "Version": "2012-10-17",
             "Statement": [
               {
@@ -119,33 +127,33 @@ jobs:
                   "Service": "serverlessrepo.amazonaws.com"
                 },
                 "Action": "s3:GetObject",
-                "Resource": "arn:aws:s3:::'$SAR_BUCKET'/*"
+                "Resource": "arn:aws:s3:::'"$SAR_BUCKET"'/*"
               }
             ]
           }'
           
           # Package the application (JARs are pre-built by Gradle)
-          if [ -z "${{ inputs.s3-prefix }}" ]; then
+          if [ -z "${S3_PREFIX}" ]; then
             sam package \
               --template-file template.yaml \
-              --s3-bucket $SAR_BUCKET \
+              --s3-bucket "$SAR_BUCKET" \
               --output-template-file packaged-template.yaml \
-              --region ${{ inputs.aws-region }}
+              --region "${REGION}"
           else
             sam package \
               --template-file template.yaml \
-              --s3-bucket $SAR_BUCKET \
-              --s3-prefix "${{ inputs.s3-prefix }}" \
+              --s3-bucket "$SAR_BUCKET" \
+              --s3-prefix "${S3_PREFIX}" \
               --output-template-file packaged-template.yaml \
-              --region ${{ inputs.aws-region }}
+              --region "${REGION}"
           fi
           
           # Publish to SAR and capture output
           echo "🚀 Publishing to SAR..."
           sam publish \
             --template packaged-template.yaml \
-            --region ${{ inputs.aws-region }} \
-            --semantic-version ${{ inputs.version }} | tee publish-output.txt
+            --region "${REGION}" \
+            --semantic-version "${VERSION}" | tee publish-output.txt
           
           echo ""
           echo "📋 Full publish output saved to publish-output.txt"

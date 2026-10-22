@@ -60,22 +60,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
       - name: Resolve stack outputs
         id: resolve-stack
+        env:
+          REGION: ${{ inputs.aws-region }}
+          STACK_NAME: ${{ inputs.stack-name }}
         run: |
-          STACK_NAME="${{ inputs.stack-name }}"
 
           # Verify stack exists
           if ! aws cloudformation describe-stacks --stack-name "$STACK_NAME" > /dev/null 2>&1; then
-            echo "ERROR: CloudFormation stack '$STACK_NAME' not found in region ${{ inputs.aws-region }}"
+            echo "ERROR: CloudFormation stack '$STACK_NAME' not found in region ${REGION}"
             exit 1
           fi
 
@@ -144,10 +146,12 @@ jobs:
           echo "  Memory Size:  ${MEMORY_SIZE} MB"
 
       - name: Pre-test cleanup
+        env:
+          API_KEY: ${{ steps.resolve-stack.outputs.api-key }}
+          API_URL: ${{ steps.resolve-stack.outputs.api-url }}
+          AUTH_MODE: ${{ steps.resolve-stack.outputs.auth-mode }}
+          REGION: ${{ inputs.aws-region }}
         run: |
-          API_URL="${{ steps.resolve-stack.outputs.api-url }}"
-          AUTH_MODE="${{ steps.resolve-stack.outputs.auth-mode }}"
-          API_KEY="${{ steps.resolve-stack.outputs.api-key }}"
 
           echo "Cleaning up mock mappings before load test..."
 
@@ -155,7 +159,7 @@ jobs:
             CLEANUP_RESPONSE=$(curl --silent --show-error --max-time 30 \
               --write-out "\n%{http_code}" \
               --output /dev/null \
-              --aws-sigv4 "aws:amz:${{ inputs.aws-region }}:execute-api" \
+              --aws-sigv4 "aws:amz:${REGION}:execute-api" \
               --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
               --header "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
               --header "Content-Type: application/json" \
@@ -183,10 +187,12 @@ jobs:
 
       - name: Setup test mock
         if: ${{ inputs.setup-mock }}
+        env:
+          API_KEY: ${{ steps.resolve-stack.outputs.api-key }}
+          API_URL: ${{ steps.resolve-stack.outputs.api-url }}
+          AUTH_MODE: ${{ steps.resolve-stack.outputs.auth-mode }}
+          REGION: ${{ inputs.aws-region }}
         run: |
-          API_URL="${{ steps.resolve-stack.outputs.api-url }}"
-          AUTH_MODE="${{ steps.resolve-stack.outputs.auth-mode }}"
-          API_KEY="${{ steps.resolve-stack.outputs.api-key }}"
 
           MOCK_BODY='{"id":"76ada7b0-55ae-4229-91c4-396a36f18347","priority":2,"request":{"method":"GET","urlPath":"/mocknest/bored/api/activity","queryParameters":{"type":{"equalTo":"social"}}},"response":{"status":200,"headers":{"Content-Type":"application/json"},"jsonBody":{"activity":"Escape the nulls of daily life","type":"social","participants":1,"price":0.3,"accessibility":0.4}},"persistent":true}'
 
@@ -195,7 +201,7 @@ jobs:
           if [ "$AUTH_MODE" = "IAM" ]; then
             MOCK_RESPONSE=$(curl --silent --show-error --max-time 30 \
               --write-out "\n%{http_code}" \
-              --aws-sigv4 "aws:amz:${{ inputs.aws-region }}:execute-api" \
+              --aws-sigv4 "aws:amz:${REGION}:execute-api" \
               --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
               --header "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
               --header "Content-Type: application/json" \
@@ -246,9 +252,10 @@ jobs:
 
       - name: Query CloudWatch Logs Insights
         id: cloudwatch-query
+        env:
+          STACK_NAME: ${{ inputs.stack-name }}
         run: |
           set +e
-          STACK_NAME="${{ inputs.stack-name }}"
           LOG_GROUP="/aws/lambda/${STACK_NAME}-runtime"
           CW_QUERY_FAILED="false"
 
@@ -464,7 +471,7 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: load-test-${{ inputs.test-label }}-${{ steps.artifact-ts.outputs.timestamp }}
           path: |

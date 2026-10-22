@@ -20,14 +20,16 @@ jobs:
     uses: ./.github/workflows/workflow-build.yml
     with:
       aws-region: 'eu-west-1'
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
       deploy-relevant: ${{ steps.filter.outputs.deploy-relevant }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         with:
           filters: |
@@ -72,29 +74,28 @@ jobs:
       release-published: ${{ steps.semantic.outputs.release_published }}
       released-version: ${{ steps.semantic.outputs.released_version }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 'lts/*'
+
+      # semantic-release and its non-bundled plugins (@semantic-release/exec,
+      # @semantic-release/github) are pinned in .github/release/package.json with
+      # a lockfile, so `npm ci` installs exact, integrity-checked versions.
+      # Dependabot (npm ecosystem) keeps them up to date.
+      - name: Install semantic-release
+        run: npm ci --prefix .github/release --ignore-scripts --no-audit --no-fund
 
       - name: Run semantic-release
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # semantic-release bundles commit-analyzer and release-notes-generator,
-        # but @semantic-release/exec and @semantic-release/github are NOT bundled.
-        # Install them into the same npx sandbox so plugin resolution finds them.
-        run: >-
-          npx --yes
-          -p semantic-release
-          -p @semantic-release/exec
-          -p @semantic-release/github
-          semantic-release
+        run: .github/release/node_modules/.bin/semantic-release
 
   # Manual approval gate. This regular job carries the `sar-production`
   # Environment, which (with required reviewers configured on that Environment
@@ -108,8 +109,10 @@ jobs:
     environment: sar-production
     steps:
       - name: Approval checkpoint
+        env:
+          RELEASED_VERSION: ${{ needs.release.outputs.released-version }}
         run: |
-          echo "Approved SAR publish of version ${{ needs.release.outputs.released-version }}"
+          echo "Approved SAR publish of version ${RELEASED_VERSION}"
 
   # Publish the freshly-released version to SAR. Runs only after the
   # sar-production approval gate passes. Only runs when a release was cut.

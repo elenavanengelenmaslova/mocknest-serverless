@@ -1,0 +1,9 @@
+# actionlint configuration (https://github.com/rhysd/actionlint/blob/main/docs/config.md)
+paths:
+  .github/workflows/**/*.{yml,yaml}:
+    ignore:
+      # SC2016: single-quoted strings containing $ or backticks are intentional
+      # here (JMESPath `--query '...[?OutputKey==`X`]...'` and literal patterns).
+      - 'SC2016:'
+      # SC2129: style-only suggestion to group consecutive >> redirects.
+      - 'SC2129:'

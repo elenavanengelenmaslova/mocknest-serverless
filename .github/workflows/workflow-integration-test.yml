@@ -77,18 +77,19 @@ jobs:
       auth-mode: ${{ steps.stack-name.outputs.auth-mode }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
       - name: Resolve stack name and auth mode
         id: stack-name
+        env:
+          STACK_NAME_OVERRIDE: ${{ inputs.stack-name }}
         run: |
-          STACK_NAME_OVERRIDE="${{ inputs.stack-name }}"
           if [ -n "$STACK_NAME_OVERRIDE" ]; then
             STACK_NAME="$STACK_NAME_OVERRIDE"
           else
@@ -107,9 +108,10 @@ jobs:
           echo "auth-mode=${AUTH_MODE:-API_KEY}" >> "$GITHUB_OUTPUT"
 
       - name: Run health checks and cleanup
+        env:
+          AUTH_MODE: ${{ steps.stack-name.outputs.auth-mode }}
+          STACK_NAME: ${{ steps.stack-name.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ steps.stack-name.outputs.stack-name }}"
-          AUTH_MODE="${{ steps.stack-name.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -151,18 +153,19 @@ jobs:
     if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'rest' || inputs.test-suite == '') }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run REST tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -204,18 +207,19 @@ jobs:
     if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'graphql' || inputs.test-suite == '') }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run GraphQL tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -260,18 +264,19 @@ jobs:
     if: ${{ !failure() && !cancelled() && needs.setup.result == 'success' && (inputs.test-suite == 'all' || inputs.test-suite == 'soap' || inputs.test-suite == '') }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run SOAP tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -319,18 +324,19 @@ jobs:
     if: ${{ !failure() && !cancelled() && needs.setup.result == 'success' && (inputs.test-suite == 'all' || inputs.test-suite == 'streaming') && needs.setup.outputs.auth-mode == 'API_KEY' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run streaming tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -370,18 +376,19 @@ jobs:
     if: ${{ success() && (inputs.test-suite == 'all' || inputs.test-suite == 'webhook') && needs.setup.outputs.auth-mode == 'IAM' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run webhook tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -411,18 +418,19 @@ jobs:
     if: ${{ inputs.run-extensive-tests == true && !cancelled() && !failure() }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
       - name: Run all extensive tests
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \
@@ -464,18 +472,19 @@ jobs:
     if: ${{ always() && inputs.run-extensive-tests == true }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.github-actions-role-name }}
           aws-region: ${{ inputs.aws-region }}
 
       - name: Clean up extensive test data
+        env:
+          AUTH_MODE: ${{ needs.setup.outputs.auth-mode }}
+          STACK_NAME: ${{ needs.setup.outputs.stack-name }}
         run: |
-          STACK_NAME="${{ needs.setup.outputs.stack-name }}"
-          AUTH_MODE="${{ needs.setup.outputs.auth-mode }}"
 
           API_URL=$(aws cloudformation describe-stacks \
             --stack-name "$STACK_NAME" \

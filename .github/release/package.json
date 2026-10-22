@@ -1,0 +1,10 @@
+{
+  "name": "mocknest-release-tooling",
+  "private": true,
+  "description": "Pinned semantic-release toolchain for the release job in .github/workflows/main-aws.yml. Kept up to date by Dependabot (npm ecosystem).",
+  "devDependencies": {
+    "@semantic-release/exec": "7.1.0",
+    "@semantic-release/github": "12.0.10",
+    "semantic-release": "25.0.9"
+  }
+}

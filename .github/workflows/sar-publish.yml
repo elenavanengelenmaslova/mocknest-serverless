@@ -34,8 +34,8 @@ jobs:
     steps:
       - name: Enforce main-only dispatch
         run: |
-          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
-            echo "❌ CD - SAR Publish may only be dispatched from refs/heads/main (got ${{ github.ref }})."
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "❌ CD - SAR Publish may only be dispatched from refs/heads/main (got ${GITHUB_REF})."
             exit 1
           fi
           echo "✅ Dispatched from main."
@@ -78,58 +78,64 @@ jobs:
     if: always()
     steps:
       - name: Create deployment summary
+        env:
+          API_KEY_RESULT: ${{ needs.test-api-key.result }}
+          APPLICATION_ID: ${{ needs.publish.outputs.application_id }}
+          IAM_RESULT: ${{ needs.test-iam.result }}
+          REGION: ${{ inputs.aws-region || 'eu-west-1' }}
+          VERSION: ${{ inputs.version }}
         run: |
-          echo "## 📦 SAR Application Published" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Region:** ${{ inputs.aws-region || 'eu-west-1' }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Application ID:** ${{ needs.publish.outputs.application_id }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 SAR Application Published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version:** ${VERSION}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Region:** ${REGION}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Application ID:** ${APPLICATION_ID}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
           # Include test pipeline status for both runs
-          echo "### 🧪 Test Pipeline Status" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Auth Mode | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "### 🧪 Test Pipeline Status" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Auth Mode | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
           
-          if [ "${{ needs.test-api-key.result }}" = "success" ]; then
-            echo "| API_KEY | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.test-api-key.result }}" = "failure" ]; then
-            echo "| API_KEY | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.test-api-key.result }}" = "cancelled" ]; then
-            echo "| API_KEY | ⏭️ Cancelled |" >> $GITHUB_STEP_SUMMARY
+          if [ "${API_KEY_RESULT}" = "success" ]; then
+            echo "| API_KEY | ✅ Passed |" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${API_KEY_RESULT}" = "failure" ]; then
+            echo "| API_KEY | ❌ Failed |" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${API_KEY_RESULT}" = "cancelled" ]; then
+            echo "| API_KEY | ⏭️ Cancelled |" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "| API_KEY | ⚠️ Skipped |" >> $GITHUB_STEP_SUMMARY
+            echo "| API_KEY | ⚠️ Skipped |" >> "$GITHUB_STEP_SUMMARY"
           fi
           
-          if [ "${{ needs.test-iam.result }}" = "success" ]; then
-            echo "| IAM | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.test-iam.result }}" = "failure" ]; then
-            echo "| IAM | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.test-iam.result }}" = "cancelled" ]; then
-            echo "| IAM | ⏭️ Cancelled |" >> $GITHUB_STEP_SUMMARY
+          if [ "${IAM_RESULT}" = "success" ]; then
+            echo "| IAM | ✅ Passed |" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${IAM_RESULT}" = "failure" ]; then
+            echo "| IAM | ❌ Failed |" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${IAM_RESULT}" = "cancelled" ]; then
+            echo "| IAM | ⏭️ Cancelled |" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "| IAM | ⚠️ Skipped |" >> $GITHUB_STEP_SUMMARY
+            echo "| IAM | ⚠️ Skipped |" >> "$GITHUB_STEP_SUMMARY"
           fi
           
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
           # Overall release status
-          if [ "${{ needs.test-api-key.result }}" = "failure" ] || [ "${{ needs.test-iam.result }}" = "failure" ]; then
-            echo "**Overall Release Status:** ❌ Failed — one or more validation runs failed" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.test-api-key.result }}" = "success" ] && [ "${{ needs.test-iam.result }}" = "success" ]; then
-            echo "**Overall Release Status:** ✅ All validation runs passed" >> $GITHUB_STEP_SUMMARY
+          if [ "${API_KEY_RESULT}" = "failure" ] || [ "${IAM_RESULT}" = "failure" ]; then
+            echo "**Overall Release Status:** ❌ Failed — one or more validation runs failed" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${API_KEY_RESULT}" = "success" ] && [ "${IAM_RESULT}" = "success" ]; then
+            echo "**Overall Release Status:** ✅ All validation runs passed" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "**Overall Release Status:** ⚠️ Incomplete — one or more validation runs were cancelled or skipped" >> $GITHUB_STEP_SUMMARY
+            echo "**Overall Release Status:** ⚠️ Incomplete — one or more validation runs were cancelled or skipped" >> "$GITHUB_STEP_SUMMARY"
           fi
           
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📊 [View detailed test results](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "📊 [View detailed test results](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
-          echo "### 🎯 Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. Go to [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home)" >> $GITHUB_STEP_SUMMARY
-          echo "2. Find 'MockNest-Serverless' in your applications" >> $GITHUB_STEP_SUMMARY
-          echo "3. Test deployment in your account" >> $GITHUB_STEP_SUMMARY
-          echo "4. When ready, click 'Make public' to allow others to deploy it" >> $GITHUB_STEP_SUMMARY
-          echo "5. Repeat for other regions if needed" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Next Steps" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. Go to [AWS Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home)" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. Find 'MockNest-Serverless' in your applications" >> "$GITHUB_STEP_SUMMARY"
+          echo "3. Test deployment in your account" >> "$GITHUB_STEP_SUMMARY"
+          echo "4. When ready, click 'Make public' to allow others to deploy it" >> "$GITHUB_STEP_SUMMARY"
+          echo "5. Repeat for other regions if needed" >> "$GITHUB_STEP_SUMMARY"
