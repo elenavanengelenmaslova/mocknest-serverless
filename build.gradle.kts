@@ -93,11 +93,11 @@ subprojects {
         testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
         testImplementation("io.mockk:mockk:1.14.11")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
-        testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+        testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.12.0")
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.8")
 
         // Jackson 2.x BOM for consistent Jackson versions
-        implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.3"))
+        implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.4"))
 
         // OkHttp BOM — keeps okhttp, okhttp-coroutines and mockwebserver on one
         // version and lets Dependabot bump them together via a single BOM entry.
@@ -105,7 +105,7 @@ subprojects {
 
         // Explicit version constraints for managed dependencies
         constraints {
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.12.0")
 
             // WireMock
             implementation("org.wiremock:wiremock:3.13.2")
@@ -120,7 +120,7 @@ subprojects {
             implementation("ai.koog:agents-test:$koogVersion")
 
             // Kotlin AWS SDK (versions from main)
-            val awsSdkKotlinVersion = "1.9.20"
+            val awsSdkKotlinVersion = "1.9.21"
             val smithyKotlinVersion = "1.7.11"
             implementation("aws.sdk.kotlin:s3:$awsSdkKotlinVersion")
             implementation("aws.sdk.kotlin:lambda:$awsSdkKotlinVersion")
@@ -138,11 +138,11 @@ subprojects {
             implementation("com.squareup.okhttp3:mockwebserver")
 
             // AWS Lambda Java
-            implementation("com.amazonaws:aws-lambda-java-core:1.4.0")
+            implementation("com.amazonaws:aws-lambda-java-core:1.4.1")
             implementation("com.amazonaws:aws-lambda-java-events:3.16.1")
 
             // Kotlinx Serialization for JSON
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")
 
             // TestContainers (version from main)
             val testContainersVersion = "2.0.5"
