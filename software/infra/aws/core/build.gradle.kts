@@ -18,7 +18,7 @@ dependencies {
     api("org.jetbrains.kotlinx:kotlinx-serialization-json")
 
     // Streaming protocol library (response encoding + bounded buffer copy)
-    api("nl.vintik:aws-lambda-streaming-core:2.2.0")
+    api("nl.vintik:aws-lambda-streaming-core:2.3.1")
 
     // Koin DI
     implementation("io.insert-koin:koin-core")
