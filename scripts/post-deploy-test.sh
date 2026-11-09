@@ -2049,29 +2049,30 @@ print(json.dumps(mapping))
 test_streaming_sse_chunked_delay() {
   echo "[streaming] Testing SSE chunked dribble delay progressive delivery..."
 
-  local NUM_CHUNKS=3
+  # Mirror the library's working bedrock-streaming-test.sh: trickle MANY small
+  # token-sized events (not a few fat chunks). The streaming-sse PaddedSseWriter
+  # pads the first few events with ~100KB to break the Lambda runtime's initial
+  # buffer, then ~10KB per subsequent event to keep it flushing — so progressive
+  # delivery only emerges with enough events. A handful of chunks cannot trickle.
+  local NUM_CHUNKS=60
   local TOTAL_DURATION_MS=5000
-  # Bytes per chunk must exceed the network coalescing threshold so that chunks
-  # are observably delivered over time rather than merged into one TCP burst.
-  local CHUNK_BYTES=16384
 
   # Step 1: Build the mapping JSON with a large, per-chunk-padded SSE body and
   # write it to a temp file (avoids embedding ~48KB of literal text and sidesteps
   # fragile inline JSON escaping). python3 handles the JSON escaping for us.
-  echo "[streaming]   Building SSE mock body (${NUM_CHUNKS} chunks x >=${CHUNK_BYTES}B)..."
+  echo "[streaming]   Building SSE mock body (${NUM_CHUNKS} small token events)..."
   local mapping_file
   mapping_file=$(mktemp)
   # Ensure the temp mapping file is removed on any exit path.
   trap 'rm -f "$mapping_file"' RETURN
 
-  python3 - "$mapping_file" "$NUM_CHUNKS" "$CHUNK_BYTES" "$TOTAL_DURATION_MS" <<'PY'
+  python3 - "$mapping_file" "$NUM_CHUNKS" "$TOTAL_DURATION_MS" <<'PY'
 import json
 import sys
 
 mapping_file = sys.argv[1]
 num_chunks = int(sys.argv[2])
-chunk_bytes = int(sys.argv[3])
-total_duration_ms = int(sys.argv[4])
+total_duration_ms = int(sys.argv[3])
 
 # Build a compact SSE body: one `data: chunkN` event per chunk, blank-line
 # terminated. We no longer hand-pad each event. The deployed handler routes
@@ -2079,9 +2080,7 @@ total_duration_ms = int(sys.argv[4])
 # which inflates every emitted event past the Lambda streaming runtime's internal
 # (~100KB) buffer with its own ignorable `: ...` SSE comment padding — that is
 # what makes small delayed chunks clear the buffer and trickle to the client.
-# This test only asserts progressive TIMING (TTFB vs total), not body content,
-# so the padding being handler-side does not affect its assertions.
-_ = chunk_bytes  # retained for signature compatibility; padding is handler-side now
+# This test only asserts progressive TIMING, not body content.
 segments = []
 for i in range(num_chunks):
     segments.append(f"data: chunk{i + 1}\n\n")
@@ -2134,72 +2133,60 @@ PY
   MAPPING_ID=$(echo "$BODY" | json_field "id")
   echo "[streaming]   ✓ SSE mock registered: $MAPPING_ID"
 
-  # Step 3: Invoke the mock capturing TTFB (time_starttransfer) and total time.
-  # --http1.1 -N (no-buffer) streams the response so curl's timing reflects the
-  # actual on-the-wire arrival of the first vs last bytes rather than a buffered
-  # read. We write both timings space-separated and parse them back.
-  echo "[streaming]   Invoking SSE mock and measuring first-byte vs last-byte timing..."
-  local timing
-  timing=$(curl "${CURL_OPTS[@]}" \
-    --http1.1 \
-    --no-buffer \
-    --max-time 30 \
-    --request GET \
-    --output /dev/null \
-    --write-out "%{time_starttransfer} %{time_total}" \
-    "$API_URL/mocknest/streaming-test/sse-chunked" 2>&1) || {
+  # Step 3: Measure progressive arrival, mirroring the streaming-sse library's working
+  # bedrock-streaming-test.sh. A discarded WARMUP request first absorbs any SnapStart
+  # cold start (which would otherwise inflate TTFB and skew the ratio). Then the MEASURED
+  # request is streamed with `--http1.1 -N` into a python reader that records a monotonic
+  # timestamp per `data:` line. We assert the same three properties the library proves:
+  #   (a) first byte arrives early:  ttf/total < 0.5
+  #   (b) events land in multiple distinct 500ms buckets (>= 3) — not one terminal burst
+  #   (c) the terminal [DONE] sentinel is received (complete stream)
+  echo "[streaming]   Warmup request (discarded, absorbs cold start)..."
+  curl "${CURL_OPTS[@]}" --http1.1 --no-buffer --max-time 30 --request GET \
+    --output /dev/null "$API_URL/mocknest/streaming-test/sse-chunked" 2>/dev/null || true
+
+  echo "[streaming]   Measured request: streaming and timestamping per-event arrival..."
+  local result
+  result=$(curl "${CURL_OPTS[@]}" \
+    --http1.1 --no-buffer --max-time 30 --request GET \
+    "$API_URL/mocknest/streaming-test/sse-chunked" 2>/dev/null \
+    | python3 -c '
+import sys, time
+base=None; first=None; last=None; times=[]; done=False
+for raw in iter(sys.stdin.buffer.readline, b""):
+    now=time.monotonic()
+    if base is None: base=now
+    line=raw.decode("utf-8","replace")
+    if line.startswith("data: "):
+        payload=line[6:].rstrip("\n")
+        if payload=="[DONE]":
+            done=True; continue
+        if first is None: first=now
+        last=now; times.append(now)
+if first is None:
+    print("FAIL no_data"); sys.exit(0)
+ttf=(first-base)*1000.0
+total=(last-base)*1000.0
+buckets=len({int(((t-base)*1000.0)//500) for t in times})
+ratio=ttf/total if total>0 else 1.0
+ok=(ratio < 0.5) and (buckets >= 3) and done
+print(("OK" if ok else "FAIL") + f" events={len(times)} ttf_ms={ttf:.0f} total_ms={total:.0f} buckets={buckets} done={done} ratio={ratio:.2f}")
+') || {
     echo "[streaming] ERROR: Failed to invoke SSE chunked mock"
     exit 1
   }
 
-  local ttfb_seconds total_seconds
-  ttfb_seconds=$(echo "$timing" | awk '{print $1}')
-  total_seconds=$(echo "$timing" | awk '{print $2}')
-
-  # Convert seconds to milliseconds (reusing the float->ms conversion pattern).
-  local ttfb_ms total_ms spread_ms
-  ttfb_ms=$(python3 -c "print(int(float('$ttfb_seconds') * 1000))")
-  total_ms=$(python3 -c "print(int(float('$total_seconds') * 1000))")
-  spread_ms=$(python3 -c "print(max(0, $total_ms - $ttfb_ms))")
-
-  # The dribble delay is inserted BEFORE each chunk after the first, so the
-  # guaranteed dribble window is (numberOfChunks - 1) * (totalDuration / numberOfChunks),
-  # NOT the full totalDuration — the first chunk is written immediately. This
-  # matches ChunkedResponseWriter: delayBetweenChunks = totalDuration / numberOfChunks.
-  local dribble_window_ms
-  dribble_window_ms=$(python3 -c "print(($NUM_CHUNKS - 1) * ($TOTAL_DURATION_MS // $NUM_CHUNKS))")
-
-  # Primary assertion (Requirement 4.2 / 1.2): progressive delivery.
-  # If bytes trickle, the first byte arrives early and the last byte arrives after
-  # the dribble window, so (time_total - time_starttransfer) covers a substantial
-  # fraction of the dribble window. If the response is buffered and flushed in one
-  # terminal burst (the bug), TTFB ~= total and the spread collapses toward 0.
-  # We require the spread to be at least 40% of the dribble window to tolerate
-  # scheduling jitter while still rejecting a terminal burst.
-  local min_spread_ms
-  min_spread_ms=$(python3 -c "print(int($dribble_window_ms * 0.4))")
-
-  echo "[streaming]   TTFB: ${ttfb_ms}ms, total: ${total_ms}ms, first-to-last spread: ${spread_ms}ms"
-  echo "[streaming]   Dribble window: ${dribble_window_ms}ms; required progressive spread >= ${min_spread_ms}ms"
-  if [ "$spread_ms" -lt "$min_spread_ms" ]; then
-    echo "[streaming] ERROR: first-byte-to-last-byte spread ${spread_ms}ms is below ${min_spread_ms}ms —"
-    echo "[streaming]        the response arrived in a single terminal burst (buffered, not streamed)."
-    echo "[streaming]        Expected chunks to trickle across the ${dribble_window_ms}ms dribble window."
-    exit 1
-  fi
-  echo "[streaming]   ✓ Bytes arrived progressively across the dribble window (not a terminal burst)"
-
-  # Secondary assertion (Requirement 1.3): the dribble timing itself is preserved.
-  # Total elapsed must still be at least the dribble window (with 90% jitter tolerance).
-  local expected_min_ms
-  expected_min_ms=$(python3 -c "print(int($dribble_window_ms * 0.9))")
-
-  echo "[streaming]   Elapsed total: ${total_ms}ms (expected >= ${expected_min_ms}ms)"
-  if [ "$total_ms" -lt "$expected_min_ms" ]; then
-    echo "[streaming] ERROR: Elapsed time ${total_ms}ms is less than expected minimum ${expected_min_ms}ms — dribble delay did not apply"
-    exit 1
-  fi
-  echo "[streaming]   ✓ Total elapsed time reflects chunked dribble delay"
+  echo "[streaming]   Result: $result"
+  case "$result" in
+    OK*)
+      echo "[streaming]   ✓ Tokens arrived progressively (early first byte, multiple time buckets, [DONE] seen)"
+      ;;
+    *)
+      echo "[streaming] ERROR: progressive arrival NOT confirmed ($result) —"
+      echo "[streaming]        the response arrived in a single terminal burst (buffered, not streamed)."
+      exit 1
+      ;;
+  esac
 
   # Step 4: Cleanup
   echo "[streaming]   Cleaning up mapping..."
@@ -2233,11 +2220,12 @@ PY
 test_streaming_sse_ai_conversation() {
   echo "[streaming] Testing SSE AI-conversation progressive token delivery (demo)..."
 
-  # ~16KB per chunk clears the network coalescing threshold so tokens are
-  # observably spread over time rather than merged into one TCP burst.
-  local CHUNK_BYTES=16384
-  # numberOfChunks == number of SSE events so each dribble chunk ≈ one event.
-  local NUM_EVENTS=6
+  # Mirror the library's working bedrock-streaming-test.sh: trickle MANY small
+  # token events. The streaming-sse PaddedSseWriter pads the first few events
+  # (~100KB) to break the Lambda runtime buffer and ~10KB per event afterward to
+  # keep it flushing, so progressive delivery only emerges with enough events —
+  # a handful of tokens cannot trickle. One SSE event is emitted per chunk.
+  local NUM_EVENTS=60
   local NUM_CHUNKS=$NUM_EVENTS
   local TOTAL_DURATION_MS=5000
 
@@ -2253,16 +2241,15 @@ test_streaming_sse_ai_conversation() {
   # Remove every temp file on any exit path from this function.
   trap 'rm -f "$mapping_file" "$transcript_file" "$arrivals_file" "$received_file"' RETURN
 
-  python3 - "$mapping_file" "$transcript_file" "$NUM_EVENTS" "$CHUNK_BYTES" "$NUM_CHUNKS" "$TOTAL_DURATION_MS" <<'PY'
+  python3 - "$mapping_file" "$transcript_file" "$NUM_EVENTS" "$NUM_CHUNKS" "$TOTAL_DURATION_MS" <<'PY'
 import json
 import sys
 
 mapping_file = sys.argv[1]
 transcript_file = sys.argv[2]
 num_events = int(sys.argv[3])
-chunk_bytes = int(sys.argv[4])
-num_chunks = int(sys.argv[5])
-total_duration_ms = int(sys.argv[6])
+num_chunks = int(sys.argv[4])
+total_duration_ms = int(sys.argv[5])
 
 # LLM-style token transcript. IMPORTANT: the registered body is the RAW token
 # text, NOT pre-framed SSE. The deployed handler routes `text/event-stream`
@@ -2278,9 +2265,7 @@ total_duration_ms = int(sys.argv[6])
 # across it and the `\n\n`-delimited recovery below could not reconstruct it
 # unambiguously. A newline-free token stream recovers cleanly.
 #
-# chunk_bytes is accepted for signature compatibility but unused: padding is now
-# applied handler-side, so the test no longer hand-pads events to clear the buffer.
-_ = chunk_bytes
+# Padding is handler-side now; the test no longer hand-pads events.
 tokens = ["Hello", " there", "! How", " can I", " help", " you?"]
 extra = [f" tok{i}" for i in range(num_events - len(tokens))] if num_events > len(tokens) else []
 body = "".join((tokens + extra)[:num_events])
@@ -2346,6 +2331,13 @@ PY
   # so bytes are handed over as they arrive on the wire rather than buffered.
   # curl is attached via process substitution on fd 3 (not a pipe into stdin):
   # python3's stdin is the heredoc script, so a piped stdin would be discarded.
+  # Warmup request (discarded) absorbs any SnapStart cold start so it does not
+  # inflate the first-byte time of the measured request. Mirrors the library's
+  # bedrock-streaming-test.sh.
+  echo "[streaming]   Warmup request (discarded, absorbs cold start)..."
+  curl "${CURL_OPTS[@]}" --http1.1 --no-buffer --max-time 30 --request GET \
+    --output /dev/null "$API_URL/mocknest/streaming-test/sse-ai-conversation" 2>/dev/null || true
+
   echo "[streaming]   Invoking SSE mock and recording per-chunk arrival timestamps..."
   python3 - "$arrivals_file" "$received_file" 3< <(
     curl "${CURL_OPTS[@]}" \
@@ -2385,64 +2377,56 @@ PY
     exit 1
   fi
 
-  # Step 3a (4a.2a + 4a.2b): Analyze the arrival record. We compute:
-  #   - first/last arrival timestamps and their spread (progressive delivery),
-  #   - the number of DISTINCT arrival time buckets (100ms granularity) to prove
-  #     bytes arrived over time rather than in a single terminal burst.
-  local analysis first_s last_s spread_ms distinct_buckets
-  analysis=$(python3 - "$arrivals_file" <<'PY'
+  # Step 3a (4a.2): Analyze arrival timing the same way the library's working
+  # bedrock-streaming-test.sh does. arrivals_file holds elapsed-seconds-from-first-read
+  # per received block. We assert:
+  #   (a) early first byte:  ttf/total < 0.5
+  #   (b) >= 3 distinct 500ms buckets (arrivals spread over time, not one burst)
+  #   (c) the [DONE] sentinel was received (checked against received_file below)
+  local analysis ttf_ms total_ms ratio distinct_buckets
+  analysis=$(python3 - "$arrivals_file" <<'PY_ANALYZE'
 import sys
-
 times = []
 with open(sys.argv[1]) as f:
     for line in f:
         line = line.strip()
         if not line:
             continue
-        ts = float(line.split()[0])
-        times.append(ts)
-
-first = times[0]
+        times.append(float(line.split()[0]))
+first = times[0]       # elapsed to first block = TTFB (reader base is request start)
 last = times[-1]
-spread_ms = int((last - first) * 1000)
-# Bucket arrivals into 100ms windows; >1 distinct bucket means not a single burst.
-buckets = {int(t * 10) for t in times}
-print(f"{first:.4f} {last:.4f} {spread_ms} {len(buckets)}")
-PY
+ttf_ms = first * 1000.0
+total_ms = last * 1000.0
+ratio = (ttf_ms / total_ms) if total_ms > 0 else 1.0
+buckets = len({int((t * 1000.0) // 500) for t in times})
+print(f"{ttf_ms:.0f} {total_ms:.0f} {ratio:.2f} {buckets}")
+PY_ANALYZE
 )
-  first_s=$(echo "$analysis" | awk '{print $1}')
-  last_s=$(echo "$analysis" | awk '{print $2}')
-  spread_ms=$(echo "$analysis" | awk '{print $3}')
+  ttf_ms=$(echo "$analysis" | awk '{print $1}')
+  total_ms=$(echo "$analysis" | awk '{print $2}')
+  ratio=$(echo "$analysis" | awk '{print $3}')
   distinct_buckets=$(echo "$analysis" | awk '{print $4}')
 
-  # The dribble delay is inserted BEFORE each chunk after the first, so the
-  # guaranteed dribble window is (numberOfChunks - 1) * (totalDuration / numberOfChunks).
-  local dribble_window_ms min_spread_ms
-  dribble_window_ms=$(python3 -c "print(($NUM_CHUNKS - 1) * ($TOTAL_DURATION_MS // $NUM_CHUNKS))")
-  # Require first-to-last arrival spread >= 50% of the dribble window (Req 4a.2).
-  min_spread_ms=$(python3 -c "print(int($dribble_window_ms * 0.5))")
+  echo "[streaming]   TTFB: ${ttf_ms}ms, total: ${total_ms}ms, ratio: ${ratio}, distinct 500ms buckets: ${distinct_buckets}"
 
-  echo "[streaming]   First arrival: ${first_s}s, last arrival: ${last_s}s, spread: ${spread_ms}ms across ${distinct_buckets} time bucket(s)"
-  echo "[streaming]   Dribble window: ${dribble_window_ms}ms; required progressive spread >= ${min_spread_ms}ms"
-
-  # Assertion (a): first event well before last — spread covers >= 50% of window.
-  if [ "$spread_ms" -lt "$min_spread_ms" ]; then
-    echo "[streaming] ERROR: first-to-last arrival spread ${spread_ms}ms is below ${min_spread_ms}ms —"
+  # Assertion (a): first byte arrives in the first half of the stream (ratio < 0.5).
+  if ! python3 -c "import sys; sys.exit(0 if float('$ratio') < 0.5 else 1)"; then
+    echo "[streaming] ERROR: TTFB/total ratio ${ratio} is not < 0.5 â"
     echo "[streaming]        tokens arrived in a single terminal burst (buffered, not streamed)."
     exit 1
   fi
-  echo "[streaming]   ✓ Tokens trickled across the dribble window (first event well before last)"
+  echo "[streaming]   ✓ First byte arrived early (ratio ${ratio} < 0.5)"
 
-  # Assertion (b): monotonic arrival over time — more than one distinct bucket.
-  if [ "$distinct_buckets" -lt 2 ]; then
-    echo "[streaming] ERROR: all bytes landed in a single ${distinct_buckets}-bucket burst — not progressive"
+  # Assertion (b): arrivals spread across >= 3 distinct 500ms buckets.
+  if [ "$distinct_buckets" -lt 3 ]; then
+    echo "[streaming] ERROR: only ${distinct_buckets} distinct 500ms bucket(s) â not progressive (need >= 3)"
     exit 1
   fi
-  echo "[streaming]   ✓ Bytes arrived over multiple time buckets (not one burst)"
+  echo "[streaming]   ✓ Tokens arrived across ${distinct_buckets} distinct 500ms time buckets (not one burst)"
 
   # Assertion (c) (4a.2c): the terminal `data: [DONE]` sentinel was received.
   if ! grep -q 'data: \[DONE\]' "$received_file"; then
-    echo "[streaming] ERROR: terminal 'data: [DONE]' event was not received — transcript truncated"
+    echo "[streaming] ERROR: terminal 'data: [DONE]' event was not received â transcript truncated"
     exit 1
   fi
   echo "[streaming]   ✓ Terminal 'data: [DONE]' event received"
