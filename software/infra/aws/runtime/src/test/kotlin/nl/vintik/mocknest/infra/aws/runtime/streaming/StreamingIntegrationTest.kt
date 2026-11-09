@@ -234,9 +234,12 @@ class StreamingIntegrationTest : KoinTest {
         // Given - register an SSE mock with chunkedDribbleDelay
         // Use persistent=false to prevent body externalization to S3,
         // which would bypass the chunkedDribbleDelay detection in the handler.
-        // Use 10 chunks so that total delay = (10-1)/10 * 3000 = 2700ms >= 80% of 3000ms (2400ms)
-        val sseBody = "data: event1\\ndata: event2\\ndata: event3\\ndata: event4\\ndata: event5\\n"
-        val expectedBody = "data: event1\ndata: event2\ndata: event3\ndata: event4\ndata: event5\n"
+        // Use 10 chunks so that total delay = (10-1)/10 * 3000 = 2700ms >= 80% of 3000ms (2400ms).
+        // Use a newline-free token-style transcript: the streaming-sse writer frames each chunk as
+        // its own `data:` event, so a payload that itself contains the SSE `\n\n` event boundary
+        // cannot be recovered unambiguously — which matches the real per-token SSE use case.
+        val sseBody = "token-alpha token-beta token-gamma token-delta token-epsilon"
+        val expectedBody = "token-alpha token-beta token-gamma token-delta token-epsilon"
         val mappingJson = """
             {
                 "persistent": false,
@@ -261,10 +264,13 @@ class StreamingIntegrationTest : KoinTest {
         handler.handleRequest(input, output, mockContext)
         val elapsedTime = System.currentTimeMillis() - startTime
 
-        // Then - verify body content is complete (chunked delivery should preserve body)
+        // Then - SSE dribble now delivers padded, paced SSE events via the streaming-sse
+        // extension. The original transcript is recoverable once the ignorable `:` padding
+        // comments and the terminal [DONE] sentinel are dropped, and the stream ends with [DONE].
         val parsed = parseStreamingResponse(output.toByteArray())
         assertEquals(200, parsed.statusCode)
-        assertEquals(expectedBody, parsed.body)
+        assertTrue(parsed.body.contains("data: [DONE]"), "SSE stream must end with the [DONE] sentinel")
+        assertEquals(expectedBody, recoverSseDataLines(parsed.body))
 
         // Verify delivery time >= 80% of totalDuration (3000ms)
         // With 10 chunks, actual delay = (10-1) * (3000/10) = 9 * 300 = 2700ms
@@ -513,6 +519,23 @@ class StreamingIntegrationTest : KoinTest {
             .replace("\n", "\\n")
             .replace("\r", "\\r")
             .replace("\t", "\\t")
+
+    /**
+     * Recovers the original body from a padded SSE stream. Events are separated by a blank line
+     * (`\n\n`); this drops the ignorable `:` padding comment events and the terminal
+     * `event: end` / `data: [DONE]` event, strips the per-event `data: ` prefix from the remaining
+     * data events, and concatenates them back into the original payload.
+     */
+    private fun recoverSseDataLines(sseBody: String): String =
+        sseBody.split("\n\n")
+            .filter { it.isNotEmpty() }
+            .filterNot { it.startsWith(": ") } // padding comment event
+            .filterNot { it.startsWith("event: end") } // terminal event
+            .filter { it.startsWith("data: ") }
+            // Strip only the leading per-event `data: ` framing; the chunk payload itself may
+            // contain newlines (the mock body is SSE-shaped text), so do NOT filter per line.
+            .map { it.removePrefix("data: ") }
+            .joinToString("")
 
     /**
      * Parses a streaming protocol response (metadata + 8 null bytes + body) into components.

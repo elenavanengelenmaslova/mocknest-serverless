@@ -1,6 +1,6 @@
 {
-  "name": "Multi-Protocol Eval (GraphQL + SOAP + REST) \u2014 46 scenarios across 12 API specifications",
-  "description": "Evaluation dataset covering GraphQL (4 introspection schemas: pokemon, books, ecommerce, taskmanagement \u2014 15 scenarios), SOAP (4 WSDL specs: calculator, banking, inventory, notification \u2014 15 scenarios), and REST (5 OpenAPI specs: petstore, bored, social, payment, weather \u2014 16 scenarios) across multiple API specifications and prompt complexity levels (Basic, Filtered, Consistency, Error, Realistic_Data, Edge_Case)",
+  "name": "Multi-Protocol Eval (GraphQL + SOAP + REST) \u2014 55 scenarios across 15 API specifications",
+  "description": "Evaluation dataset covering GraphQL (4 introspection schemas: pokemon, books, ecommerce, taskmanagement \u2014 15 scenarios), SOAP (4 WSDL specs: calculator, banking, inventory, notification \u2014 15 scenarios), and REST (8 OpenAPI specs: petstore, bored, social, payment, weather, stripe, twilio, paddle \u2014 25 scenarios) across multiple API specifications and prompt complexity levels (Basic, Filtered, Consistency, Error, Realistic_Data, Edge_Case)",
   "examples": [
     {
       "input": "graphql-pokemon-pikachu",

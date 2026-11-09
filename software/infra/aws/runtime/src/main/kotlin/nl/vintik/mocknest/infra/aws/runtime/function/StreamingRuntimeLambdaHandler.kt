@@ -26,6 +26,7 @@ import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimeMappingReloadHook
 import nl.vintik.mocknest.infra.aws.runtime.snapstart.RuntimePrimingHook
 import nl.vintik.mocknest.infra.aws.runtime.streaming.ChunkedResponseWriter
 import nl.vintik.mocknest.infra.aws.runtime.streaming.S3ResponseStreamer
+import nl.vintik.mocknest.infra.aws.runtime.streaming.SseDribbleWriter
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.InputStream
@@ -67,7 +68,15 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
 
     private val requestParser = ApiGatewayRequestParser()
     private val writer = ResponseWriter(maxPreludeLen = OBSERVED_MAX_PRELUDE_LEN)
+
+    // Non-SSE dribble: progressive-by-size chunk/flush delivery (no per-chunk pacing — the Lambda
+    // streaming runtime buffers small writes, so a hand-rolled flush cannot trickle sub-buffer
+    // chunks; only size-based progress is possible for arbitrary bodies).
     private val chunkedWriter = ChunkedResponseWriter()
+
+    // SSE dribble: padded, paced Server-Sent Events via the streaming-sse extension. Padding
+    // inflates each event past the runtime buffer so small delayed chunks trickle progressively.
+    private val sseDribbleWriter = SseDribbleWriter()
 
     override fun handleRequest(input: InputStream, output: OutputStream, context: Context) {
         output.use { output ->
@@ -156,8 +165,14 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
         }
 
     /**
-     * Writes a chunked streaming response using the ChunkedResponseWriter.
-     * Writes metadata+delimiter first, then delivers body in chunks with delays.
+     * Writes an in-memory chunked streaming response. Writes metadata+delimiter first, then
+     * delivers the body in chunks.
+     *
+     * For `text/event-stream` bodies the body is delivered as padded, paced SSE events via the
+     * streaming-sse extension so small delayed chunks trickle to the client progressively.
+     * For any other content type the body is delivered progressively-by-size via
+     * [ChunkedResponseWriter] (the Lambda streaming runtime buffers sub-threshold writes, so
+     * per-chunk pacing is only effective with SSE padding — see [SseDribbleWriter]).
      */
     private fun writeChunkedResponse(
         response: HttpResponse,
@@ -171,8 +186,12 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
         )
         writer.writeMetadata(output, metadata)
 
-        runBlocking {
-            chunkedWriter.writeChunked(bodyBytes, config.numberOfChunks, config.totalDurationMs, output)
+        if (isServerSentEvents(response)) {
+            sseDribbleWriter.writeSseChunked(bodyBytes, config.numberOfChunks, config.totalDurationMs, output)
+        } else {
+            runBlocking {
+                chunkedWriter.writeChunked(bodyBytes, config.numberOfChunks, config.totalDurationMs, output)
+            }
         }
         output.flush()
     }
@@ -219,16 +238,29 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
             )
             writer.writeMetadata(output, headerMetadata)
 
-            // Stream from S3 with chunked delays using consumer callback
-            // Pass ETag to ensure we stream the same object version we validated
+            // Stream from S3 with chunked delays using consumer callback. Both the SSE and
+            // non-SSE writers read from the bounded ≤1MB loop inside the callback, so the whole
+            // S3 object is never materialized (zero-memory-streaming guarantee preserved).
+            // Pass ETag to ensure we stream the same object version we validated.
+            val sse = isServerSentEvents(response)
             val success = s3ResponseStreamer.streamWithConsumer(s3Key, expectedETag = s3Metadata.eTag) { inputStream, _ ->
-                chunkedWriter.writeChunkedFromStream(
-                    input = inputStream,
-                    bodySize = s3Metadata.contentLength,
-                    numberOfChunks = config.numberOfChunks,
-                    totalDurationMs = config.totalDurationMs,
-                    output = output,
-                )
+                if (sse) {
+                    sseDribbleWriter.writeSseChunkedFromStream(
+                        input = inputStream,
+                        bodySize = s3Metadata.contentLength,
+                        numberOfChunks = config.numberOfChunks,
+                        totalDurationMs = config.totalDurationMs,
+                        output = output,
+                    )
+                } else {
+                    chunkedWriter.writeChunkedFromStream(
+                        input = inputStream,
+                        bodySize = s3Metadata.contentLength,
+                        numberOfChunks = config.numberOfChunks,
+                        totalDurationMs = config.totalDurationMs,
+                        output = output,
+                    )
+                }
             }
 
             if (!success) {
@@ -239,6 +271,19 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
             output.flush()
         }
     }
+
+    /**
+     * True when the response declares a `text/event-stream` Content-Type. SSE padding/pacing only
+     * makes sense for SSE bodies — the padding lives in SSE comment lines that only an SSE client
+     * (or `sed -n 's/^data: //p'`) ignores. Non-SSE bodies stay on size-based progressive delivery.
+     */
+    private fun isServerSentEvents(response: HttpResponse): Boolean =
+        response.headers
+            ?.entries
+            ?.firstOrNull { it.key.equals("Content-Type", ignoreCase = true) }
+            ?.value
+            ?.any { it.contains("text/event-stream", ignoreCase = true) }
+            ?: false
 
     /**
      * Writes an error response using the streaming protocol format.

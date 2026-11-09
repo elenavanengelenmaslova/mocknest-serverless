@@ -2073,16 +2073,18 @@ num_chunks = int(sys.argv[2])
 chunk_bytes = int(sys.argv[3])
 total_duration_ms = int(sys.argv[4])
 
-# Build an SSE body where each of num_chunks segments is at least chunk_bytes.
-# Each segment is a valid SSE event terminated by a blank line; padding lives in
-# an SSE comment line (": ...") so the framing stays well-formed. WireMock splits
-# the body into numberOfChunks roughly equal byte ranges, so making each logical
-# segment >= chunk_bytes guarantees every dribble chunk clears the coalescing
-# threshold.
-pad = "x" * chunk_bytes
+# Build a compact SSE body: one `data: chunkN` event per chunk, blank-line
+# terminated. We no longer hand-pad each event. The deployed handler routes
+# `text/event-stream` dribble responses through the streaming-sse PaddedSseWriter,
+# which inflates every emitted event past the Lambda streaming runtime's internal
+# (~100KB) buffer with its own ignorable `: ...` SSE comment padding — that is
+# what makes small delayed chunks clear the buffer and trickle to the client.
+# This test only asserts progressive TIMING (TTFB vs total), not body content,
+# so the padding being handler-side does not affect its assertions.
+_ = chunk_bytes  # retained for signature compatibility; padding is handler-side now
 segments = []
 for i in range(num_chunks):
-    segments.append(f"data: chunk{i + 1}\n: {pad}\n\n")
+    segments.append(f"data: chunk{i + 1}\n\n")
 body = "".join(segments)
 
 mapping = {
@@ -2262,23 +2264,26 @@ chunk_bytes = int(sys.argv[4])
 num_chunks = int(sys.argv[5])
 total_duration_ms = int(sys.argv[6])
 
-# A multi-token LLM-style SSE transcript: each token is a well-formed SSE event
-# `data: {"delta":"<token>"}\n\n`, followed by an SSE comment line (": ...") used
-# purely as padding so every event >= chunk_bytes. WireMock dribbles the body in
-# numberOfChunks ≈ num_events roughly-equal byte ranges, so padding each event to
-# >= chunk_bytes guarantees every dribble chunk clears the coalescing threshold.
-# The stream ends with the canonical `data: [DONE]` terminator.
+# LLM-style token transcript. IMPORTANT: the registered body is the RAW token
+# text, NOT pre-framed SSE. The deployed handler routes `text/event-stream`
+# dribble responses through the streaming-sse writer, which (a) splits the raw
+# body into numberOfChunks byte ranges, (b) emits each slice as its own padded
+# SSE event `data: <slice>\n: <padding>\n\n` (the `: ...` comment inflates the
+# event past the Lambda streaming runtime's ~100KB buffer so it trickles), and
+# (c) appends the terminal `event: end` / `data: [DONE]` sentinel itself.
+#
+# The registered body therefore MUST NOT contain `\n\n` SSE event boundaries,
+# `data:` prefixes, or its own `[DONE]` — those are all added by the handler.
+# If the body carried its own `\n\n`, an arbitrary handler byte-split could cut
+# across it and the `\n\n`-delimited recovery below could not reconstruct it
+# unambiguously. A newline-free token stream recovers cleanly.
+#
+# chunk_bytes is accepted for signature compatibility but unused: padding is now
+# applied handler-side, so the test no longer hand-pads events to clear the buffer.
+_ = chunk_bytes
 tokens = ["Hello", " there", "! How", " can I", " help", " you?"]
-pad = "x" * chunk_bytes
-segments = []
-for i in range(num_events):
-    token = tokens[i] if i < len(tokens) else f" tok{i}"
-    event = "data: " + json.dumps({"delta": token}) + "\n"
-    comment = ": " + pad + "\n"
-    segments.append(event + comment + "\n")
-# Terminal DONE event (small — it is the sentinel the client waits for).
-segments.append("data: [DONE]\n\n")
-body = "".join(segments)
+extra = [f" tok{i}" for i in range(num_events - len(tokens))] if num_events > len(tokens) else []
+body = "".join((tokens + extra)[:num_events])
 
 mapping = {
     "request": {
@@ -2303,7 +2308,9 @@ mapping = {
 
 with open(mapping_file, "w") as f:
     json.dump(mapping, f)
-# Write the exact transcript bytes so the test can diff the delivered body.
+# Write the registered transcript bytes. The delivered body is padded/re-framed
+# by the handler, so the test compares the RECOVERED `data:` payload (handler
+# padding stripped) against this transcript rather than doing a raw byte diff.
 with open(transcript_file, "w") as f:
     f.write(body)
 PY
@@ -2440,19 +2447,58 @@ PY
   fi
   echo "[streaming]   ✓ Terminal 'data: [DONE]' event received"
 
-  # Step 4 (4a.3): SSE framing preserved end-to-end — the concatenated received
-  # body must equal the registered transcript byte-for-byte. Byte-identical
-  # equality also proves every `data: ...\n\n` event boundary survived intact.
-  echo "[streaming]   Verifying delivered body is byte-for-byte identical to the registered transcript..."
-  if ! cmp -s "$transcript_file" "$received_file"; then
-    local expected_bytes received_bytes
+  # Step 4 (4a.3): SSE framing preserved end-to-end. The deployed handler inflates
+  # every event with ignorable `: ...` SSE comment padding and appends its own
+  # `event: end` / `data: [DONE]` terminator, so the delivered bytes are NOT equal
+  # to the registered transcript. Instead we RECOVER the payload exactly as a
+  # compliant SSE client (or the `sed -n 's/^data: //p'` filter in the streaming-sse
+  # README) does — drop blank blocks, drop `: ` padding comments, drop `event: end`
+  # frames, strip the `data: ` prefix, concatenate — then assert the recovered
+  # payload equals the registered transcript byte-for-byte. This proves every
+  # `data:` event survived intact AND that the padding is correctly ignorable.
+  echo "[streaming]   Recovering delivered payload (stripping handler SSE padding) and comparing to transcript..."
+  local recovered_file
+  recovered_file=$(mktemp)
+  trap 'rm -f "$mapping_file" "$transcript_file" "$arrivals_file" "$received_file" "$recovered_file"' RETURN
+
+  python3 - "$received_file" "$recovered_file" <<'RECOVER'
+import sys
+
+received_file = sys.argv[1]
+recovered_file = sys.argv[2]
+
+with open(received_file, "r", encoding="utf-8", errors="strict") as f:
+    sse = f.read()
+
+# Mirror the JVM SseDribbleWriterTest.recoverPayload logic exactly.
+parts = []
+for block in sse.split("\n\n"):
+    if block == "":
+        continue
+    if block.startswith(": "):          # padding comment — ignorable
+        continue
+    if block.startswith("event: end"):  # handler terminal frame
+        continue
+    if block.startswith("data: "):
+        parts.append(block[len("data: "):])
+recovered = "".join(parts)
+
+with open(recovered_file, "w", encoding="utf-8") as f:
+    f.write(recovered)
+RECOVER
+
+  if ! cmp -s "$transcript_file" "$recovered_file"; then
+    local expected_bytes recovered_bytes
     expected_bytes=$(wc -c < "$transcript_file" | tr -d ' ')
-    received_bytes=$(wc -c < "$received_file" | tr -d ' ')
-    echo "[streaming] ERROR: delivered body does not match registered transcript"
-    echo "[streaming]        expected ${expected_bytes} bytes, received ${received_bytes} bytes"
+    recovered_bytes=$(wc -c < "$recovered_file" | tr -d ' ')
+    echo "[streaming] ERROR: recovered payload does not match registered transcript"
+    echo "[streaming]        expected ${expected_bytes} bytes, recovered ${recovered_bytes} bytes"
+    echo "[streaming]        (first 400 bytes of each shown below for debugging)"
+    echo "[streaming]        --- expected ---"; head -c 400 "$transcript_file"; echo
+    echo "[streaming]        --- recovered ---"; head -c 400 "$recovered_file"; echo
     exit 1
   fi
-  echo "[streaming]   ✓ SSE framing intact — delivered body matches transcript byte-for-byte"
+  echo "[streaming]   ✓ SSE framing intact — recovered payload matches transcript byte-for-byte"
 
   # Step 5: Cleanup
   echo "[streaming]   Cleaning up mapping..."

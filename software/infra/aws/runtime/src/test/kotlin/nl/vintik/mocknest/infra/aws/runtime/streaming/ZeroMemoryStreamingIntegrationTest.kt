@@ -285,8 +285,11 @@ class ZeroMemoryStreamingIntegrationTest : KoinTest {
         fun `Given inline body dribble mock with persistent false When invoked Then still works unchanged`() {
             // Given - inline body mock (persistent: false) with chunkedDribbleDelay
             // This should NOT go through the S3 streaming path
-            val sseBody = "data: event1\\ndata: event2\\ndata: event3\\n"
-            val expectedBody = "data: event1\ndata: event2\ndata: event3\n"
+            // Newline-free token-style transcript (see note in StreamingIntegrationTest): the SSE
+            // writer frames each chunk as its own `data:` event, so the recovered payload is only
+            // unambiguous when the body does not contain the SSE `\n\n` event boundary.
+            val sseBody = "token-alpha token-beta token-gamma token-delta"
+            val expectedBody = "token-alpha token-beta token-gamma token-delta"
             val mappingJson = """
                 {
                     "persistent": false,
@@ -309,12 +312,28 @@ class ZeroMemoryStreamingIntegrationTest : KoinTest {
             val output = ByteArrayOutputStream()
             handler.handleRequest(input, output, mockContext)
 
-            // Then - verify inline body dribble still works correctly
+            // Then - SSE inline dribble now delivers padded, paced SSE events. The transcript is
+            // recoverable once the padding comments and the terminal [DONE] sentinel are dropped.
             val parsed = parseStreamingResponse(output.toByteArray())
             assertEquals(200, parsed.statusCode)
-            assertEquals(expectedBody, parsed.body)
+            assertTrue(parsed.body.contains("data: [DONE]"), "SSE stream must end with the [DONE] sentinel")
+            assertEquals(expectedBody, recoverSseDataLines(parsed.body))
         }
     }
+
+    /**
+     * Recovers the original body from a padded SSE stream: events are separated by `\n\n`; drop
+     * the ignorable `:` padding comment events and the terminal `event: end` / `data: [DONE]`
+     * event, strip the per-event `data: ` prefix, and concatenate.
+     */
+    private fun recoverSseDataLines(sseBody: String): String =
+        sseBody.split("\n\n")
+            .filter { it.isNotEmpty() }
+            .filterNot { it.startsWith(": ") }
+            .filterNot { it.startsWith("event: end") }
+            .filter { it.startsWith("data: ") }
+            .map { it.removePrefix("data: ") }
+            .joinToString("")
 
     // --- Helper methods ---
 

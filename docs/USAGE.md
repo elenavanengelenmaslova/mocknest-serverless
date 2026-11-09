@@ -1496,28 +1496,38 @@ The body is delivered progressively. For an SSE body (`Content-Type: text/event-
 - `numberOfChunks`: number of chunks to split the body into (must be >= 2).
 - `totalDuration`: total time in milliseconds to spread delivery over (see the limitation below).
 
-### Important: `chunkedDribbleDelay` Paces Total Duration, Not Per-Chunk Arrival
+### `chunkedDribbleDelay` Behaviour Depends on the Content Type
 
-`chunkedDribbleDelay` is best used to control the **total** time a response takes, and to opt a
-large/S3-backed body into the streaming path. It does **not** reliably make small chunks arrive
-one-at-a-time, spaced out over the wire, on this architecture.
+How `chunkedDribbleDelay` delivers bytes depends on whether the response is Server-Sent Events:
 
-Why: behind API Gateway's REST API, the managed Lambda streaming runtime forwards buffered bytes
-to the client based on write volume and on invocation completion — not on a per-`flush()` basis
-while the handler is paused between chunks. In practice this means:
+**SSE bodies (`Content-Type: text/event-stream`) — per-chunk pacing IS supported.** MockNest
+delivers SSE dribble responses as *padded, paced* SSE events via the `streaming-sse` extension.
+Each event is inflated past the Lambda streaming runtime's internal (~100 KB) buffer with
+ignorable SSE comment padding, and the inter-chunk delay (`totalDuration / numberOfChunks`) paces
+delivery. Together these make small delayed chunks actually trickle to the client one-at-a-time —
+so you *can* simulate an LLM typing token-by-token with visible gaps. The stream terminates with
+an `event: end` / `data: [DONE]` sentinel.
 
-- **`totalDuration: 0` (or a value that yields no per-chunk delay)** streams a large body
-  progressively and smoothly — this is the recommended setting for the "large response streaming
-  in" behaviour shown above.
-- **A non-zero `totalDuration` with small chunks** still makes the overall response take about
-  `totalDuration`, but the bytes tend to arrive in a burst near the end rather than trickling
-  evenly. Do **not** rely on `chunkedDribbleDelay` for fine-grained, token-by-token SSE pacing
-  (e.g. simulating an LLM typing one token at a time with visible gaps) — that is not supported
-  through the REST API integration.
+> **Trade-off — padding inflates the response.** The padding lives in `:` comment lines that a
+> compliant SSE client (or a `sed -n 's/^data: //p'` filter) silently drops, so your payload is
+> recovered byte-for-byte. But on the wire the body grows dramatically (a ~15 KB answer can become
+> several MB). You trade bandwidth for responsiveness — usually worth it for a chat-style UX, not
+> for bulk output.
 
-If you need a response to simply be *large and streamed progressively*, use `totalDuration: 0`
-and let the payload size drive the delivery. If you need a response to *take roughly N seconds
-total*, set `totalDuration: N*1000`; just don't expect per-chunk pacing within that window.
+**Non-SSE bodies — progressive-by-size only (no per-chunk pacing).** For any other content type
+MockNest delivers the body progressively by size (larger bodies stream in smoothly) but does
+**not** pace sub-buffer chunks over time. This is a platform constraint: behind API Gateway's REST
+API the managed Lambda streaming runtime forwards buffered bytes on buffer-fill or invocation
+completion, not on a per-`flush()` basis, and the SSE-comment padding trick that defeats it is
+only ignorable for SSE clients. For non-SSE responses:
+
+- **`totalDuration: 0`** streams a large body progressively and smoothly — the recommended
+  setting for the "large response streaming in" behaviour shown above.
+- **A non-zero `totalDuration`** still makes the overall response take about `totalDuration`, but
+  for small chunks the bytes tend to arrive in a burst near the end rather than trickling evenly.
+
+If you need fine-grained per-chunk pacing, use a `text/event-stream` body. If you just need a
+large body streamed progressively, use `totalDuration: 0` and let the payload size drive delivery.
 
 ### Idle Timeout Constraint
 

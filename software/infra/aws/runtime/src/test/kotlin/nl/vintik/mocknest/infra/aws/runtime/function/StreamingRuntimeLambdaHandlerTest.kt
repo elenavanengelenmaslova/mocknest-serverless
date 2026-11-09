@@ -278,28 +278,33 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
     inner class ChunkedResponseDetection {
 
         @Test
-        fun `Given client request with chunkedDribbleDelay When handling Then should delegate to ChunkedResponseWriter`() {
-            // Given
+        fun `Given SSE client request with chunkedDribbleDelay When handling Then should emit padded SSE events ending with DONE`() {
+            // Given — a text/event-stream dribble body routes through the streaming-sse path
             val input = createApiGatewayRequest("/mocknest/api/stream", "GET")
             val output = ByteArrayOutputStream()
+            val transcript = "token-alpha token-beta token-gamma"
             val clientResponse = HttpResponse(
                 HttpStatusCode.OK,
                 mapOf("Content-Type" to listOf("text/event-stream")),
-                "data: chunk1\n\ndata: chunk2\n\ndata: chunk3\n\n",
+                transcript,
             )
-            every { mockHandleClientRequest.invoke(any()) } returns clientResponse
-
-            // Populate the thread-local that the ChunkedDribbleDelayCapture transformer would set
-            ChunkedDribbleDelayCapture.setForTest(CapturedDribbleConfig(numberOfChunks = 3, totalDurationMs = 3000))
+            // Populate the thread-local the ChunkedDribbleDelayCapture transformer would set, from
+            // inside the answer so it survives the handler's ChunkedDribbleDelayCapture.clear().
+            // totalDuration 0 avoids any real inter-chunk sleep in this handler test.
+            every { mockHandleClientRequest.invoke(any()) } answers {
+                ChunkedDribbleDelayCapture.setForTest(CapturedDribbleConfig(numberOfChunks = 3, totalDurationMs = 0))
+                clientResponse
+            }
 
             // When
             handler.handleRequest(input, output, mockContext)
 
-            // Then
+            // Then — the transcript is recoverable once SSE padding comments are dropped, and the
+            // stream terminates with the end/[DONE] event.
             val parsed = parseStreamingResponse(output.toByteArray())
             assertEquals(200, parsed.statusCode)
-            // Body should be written in chunks but concatenated result should match original
-            assertEquals("data: chunk1\n\ndata: chunk2\n\ndata: chunk3\n\n", parsed.body)
+            assertTrue(parsed.body.contains("data: [DONE]"), "SSE stream must end with the [DONE] sentinel")
+            assertEquals(transcript, recoverSsePayload(parsed.body))
         }
 
         @Test
@@ -979,6 +984,19 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
 
         return ParsedStreamingResponse(statusCode, headers, body)
     }
+
+    /**
+     * Recovers the original payload from a padded SSE body the way a compliant client (or the
+     * `sed -n 's/^data: //p'` filter in the module README) does: keep only `data:` lines, drop the
+     * ignorable `:` padding comments and the terminal `[DONE]` sentinel, and concatenate.
+     */
+    private fun recoverSsePayload(sseBody: String): String =
+        sseBody.split("\n\n")
+            .filter { it.isNotEmpty() }
+            .filterNot { it.startsWith(": ") } // ignorable padding comment event
+            .filterNot { it.startsWith("event: end") } // terminal event
+            .filter { it.startsWith("data: ") }
+            .joinToString("") { it.removePrefix("data: ") }
 
     /**
      * Finds the index of the first occurrence of 8 consecutive null bytes in the byte array.

@@ -403,6 +403,23 @@
         "chatSessionId": "sess_a099cb24-c774-4cb5-a97e-ed1b0407f645",
         "timestamp": 1792438049853
       }
+    ],
+    "6. Adopt the `streaming-sse` extension to make dribble delay actually trickle (the real fix)": [
+      {
+        "executionId": "781f6cce-26a4-4542-bcc3-89feb52d8574",
+        "chatSessionId": "sess_e26336dc-d08a-4b7d-a396-2f31e2fcbd7a",
+        "timestamp": 1794001333675
+      },
+      {
+        "executionId": "275a8a38-c9b2-4a7a-8043-3b6f9364dda6",
+        "chatSessionId": "sess_e26336dc-d08a-4b7d-a396-2f31e2fcbd7a",
+        "timestamp": 1794170997873
+      },
+      {
+        "executionId": "275a8a38-c9b2-4a7a-8043-3b6f9364dda6",
+        "chatSessionId": "sess_e26336dc-d08a-4b7d-a396-2f31e2fcbd7a",
+        "timestamp": 1794209602863
+      }
     ]
   }
 }
