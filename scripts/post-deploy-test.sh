@@ -2074,17 +2074,17 @@ mapping_file = sys.argv[1]
 num_chunks = int(sys.argv[2])
 total_duration_ms = int(sys.argv[3])
 
-# Build a compact SSE body: one `data: chunkN` event per chunk, blank-line
-# terminated. We no longer hand-pad each event. The deployed handler routes
-# `text/event-stream` dribble responses through the streaming-sse PaddedSseWriter,
-# which inflates every emitted event past the Lambda streaming runtime's internal
-# (~100KB) buffer with its own ignorable `: ...` SSE comment padding — that is
-# what makes small delayed chunks clear the buffer and trickle to the client.
-# This test only asserts progressive TIMING, not body content.
-segments = []
-for i in range(num_chunks):
-    segments.append(f"data: chunk{i + 1}\n\n")
-body = "".join(segments)
+# Build a RAW, newline-free token body — NOT pre-framed SSE. The deployed handler
+# routes `text/event-stream` dribble responses through the streaming-sse writer,
+# which (a) splits the raw body into numberOfChunks byte ranges, (b) emits each
+# slice as its own padded SSE event `data: <slice>\n\n: <padding>\n\n` (the
+# `: ...` comment inflates the event past the Lambda streaming runtime's ~100KB
+# buffer so it trickles), and (c) appends the terminal `event: end` / `data: [DONE]`
+# sentinel itself. The registered body therefore MUST NOT carry its own `data:`
+# prefixes, `\n\n` event boundaries, or `[DONE]` — the handler adds all framing.
+# A newline-free token stream also recovers unambiguously after an arbitrary
+# byte-split. This test only asserts progressive TIMING, not body content.
+body = " ".join(f"chunk{i + 1}" for i in range(num_chunks))
 
 mapping = {
     "request": {

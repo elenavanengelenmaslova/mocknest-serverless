@@ -420,6 +420,13 @@
         "chatSessionId": "sess_e26336dc-d08a-4b7d-a396-2f31e2fcbd7a",
         "timestamp": 1794209602863
       }
+    ],
+    "7. Re-verify dribble delay on the live stack with `streaming-sse`": [
+      {
+        "executionId": "029d67d4-ed08-4a8f-a646-75dd0dc8ff6d",
+        "chatSessionId": "sess_e26336dc-d08a-4b7d-a396-2f31e2fcbd7a",
+        "timestamp": 1794291588369
+      }
     ]
   }
 }

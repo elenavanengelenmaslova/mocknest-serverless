@@ -308,6 +308,41 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
         }
 
         @Test
+        fun `Given in-memory SSE dribble with a Content-Length header When handling Then Content-Length is stripped so the padded stream is not truncated`() {
+            // Given — the mock response carries a Content-Length equal to the raw (unpadded) body.
+            // Because SSE padding inflates the wire body far beyond that, keeping the header would
+            // make the client truncate the stream at the raw length (only a terminal burst arrives).
+            val input = createApiGatewayRequest("/mocknest/api/stream", "GET")
+            val output = ByteArrayOutputStream()
+            val transcript = "alpha beta gamma delta"
+            val clientResponse = HttpResponse(
+                HttpStatusCode.OK,
+                mapOf(
+                    "Content-Type" to listOf("text/event-stream"),
+                    "Content-Length" to listOf(transcript.length.toString()),
+                ),
+                transcript,
+            )
+            every { mockHandleClientRequest.invoke(any()) } answers {
+                ChunkedDribbleDelayCapture.setForTest(CapturedDribbleConfig(numberOfChunks = 4, totalDurationMs = 0))
+                clientResponse
+            }
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then — no Content-Length is advertised, and the full transcript + [DONE] survive
+            val parsed = parseStreamingResponse(output.toByteArray())
+            assertEquals(200, parsed.statusCode)
+            assertTrue(
+                parsed.headers.keys.none { it.equals("Content-Length", ignoreCase = true) },
+                "SSE dribble response must NOT advertise a Content-Length; headers=${parsed.headers.keys}",
+            )
+            assertTrue(parsed.body.contains("data: [DONE]"), "SSE stream must end with the [DONE] sentinel")
+            assertEquals(transcript, recoverSsePayload(parsed.body))
+        }
+
+        @Test
         fun `Given client request without chunkedDribbleDelay When handling Then should write full body at once`() {
             // Given
             val input = createApiGatewayRequest("/mocknest/api/users", "GET")
@@ -601,6 +636,56 @@ class StreamingRuntimeLambdaHandlerTest : KoinTest {
             val parsed = parseStreamingResponse(output.toByteArray())
             assertEquals(200, parsed.statusCode)
             assertEquals(bodyContent, parsed.body)
+            // Non-SSE S3 dribble streams the body 1:1, so Content-Length IS set to the object size.
+            assertEquals(
+                bodyContent.length.toString(),
+                parsed.headers.entries.firstOrNull { it.key.equals("Content-Length", ignoreCase = true) }?.value,
+                "Non-SSE S3 dribble must advertise Content-Length equal to the object size",
+            )
+        }
+
+        @Test
+        fun `Given S3-backed SSE dribble When handling Then Content-Length is stripped so the padded stream is not truncated`() {
+            // Given — an S3-backed text/event-stream dribble. The handler normally sets Content-Length
+            // to the S3 object size; for SSE it must instead strip it, because the padded wire body
+            // is far larger than the object and a fixed Content-Length truncates the stream client-side
+            // (the exact live-stack bug: only the first ~object-size bytes arrived as a terminal burst).
+            val input = createApiGatewayRequest("/mocknest/api/sse-file", "GET")
+            val output = ByteArrayOutputStream()
+            val transcript = "token-a token-b token-c token-d token-e"
+            val clientResponse = HttpResponse(
+                HttpStatusCode.OK,
+                mapOf("Content-Type" to listOf("text/event-stream")),
+                "", // transformer intercepted bodyFileName, WireMock returns empty body
+            )
+            every { mockHandleClientRequest.invoke(any()) } answers {
+                ChunkedDribbleDelayCapture.setForTest(
+                    CapturedDribbleConfig(numberOfChunks = 5, totalDurationMs = 0, bodyFileName = "sse-transcript.txt")
+                )
+                clientResponse
+            }
+            coEvery { mockS3ResponseStreamer.getObjectMetadata("__files/sse-transcript.txt") } returns
+                S3ResponseStreamer.ObjectMetadata(contentLength = transcript.length.toLong(), eTag = "\"etag-sse\"")
+            coEvery {
+                mockS3ResponseStreamer.streamWithConsumer("__files/sse-transcript.txt", any(), any())
+            } coAnswers {
+                val consumer = thirdArg<suspend (InputStream, Long) -> Unit>()
+                consumer(ByteArrayInputStream(transcript.toByteArray()), transcript.length.toLong())
+                true
+            }
+
+            // When
+            handler.handleRequest(input, output, mockContext)
+
+            // Then — no Content-Length, full transcript recovered, stream terminated with [DONE]
+            val parsed = parseStreamingResponse(output.toByteArray())
+            assertEquals(200, parsed.statusCode)
+            assertTrue(
+                parsed.headers.keys.none { it.equals("Content-Length", ignoreCase = true) },
+                "S3-backed SSE dribble must NOT advertise a Content-Length; headers=${parsed.headers.keys}",
+            )
+            assertTrue(parsed.body.contains("data: [DONE]"), "SSE stream must end with the [DONE] sentinel")
+            assertEquals(transcript, recoverSsePayload(parsed.body))
         }
 
         @Test

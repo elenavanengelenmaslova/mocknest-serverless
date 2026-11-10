@@ -180,13 +180,25 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
         config: CapturedDribbleConfig,
         output: OutputStream,
     ) {
+        val sse = isServerSentEvents(response)
+
+        // SSE padding inflates the wire body far beyond the raw body size, so a Content-Length
+        // reflecting the raw body would make the client (and API Gateway/CloudFront) truncate the
+        // padded stream at that length — delivering only the first few hundred bytes. SSE responses
+        // are open-ended streams and must NOT advertise a fixed Content-Length.
+        val headers = if (sse) {
+            stripContentLength(response.headers)
+        } else {
+            response.headers ?: emptyMap()
+        }
+
         val metadata = ResponseMetadata.fromMultiValue(
             statusCode = response.statusCode.value,
-            headers = response.headers ?: emptyMap(),
+            headers = headers,
         )
         writer.writeMetadata(output, metadata)
 
-        if (isServerSentEvents(response)) {
+        if (sse) {
             sseDribbleWriter.writeSseChunked(bodyBytes, config.numberOfChunks, config.totalDurationMs, output)
         } else {
             runBlocking {
@@ -224,12 +236,18 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
                 return@runBlocking
             }
 
-            // Build headers, replacing Content-Length with the actual S3 object size
-            val responseHeaders = response.headers
-                ?.toMutableMap()
-                ?: mutableMapOf()
-            responseHeaders.keys.removeAll { it.equals("Content-Length", ignoreCase = true) }
-            responseHeaders["Content-Length"] = listOf(s3Metadata.contentLength.toString())
+            val sse = isServerSentEvents(response)
+
+            // Build headers. For a plain (non-SSE) dribble the body streams 1:1 from S3, so the
+            // Content-Length is the actual S3 object size. For SSE the padded/framed wire body is
+            // far larger than the S3 object, and an open-ended SSE stream must NOT advertise a fixed
+            // Content-Length — otherwise the client truncates the padded stream at that length and
+            // only the first few hundred bytes arrive (as a terminal burst). So Content-Length is
+            // stripped for SSE and only re-added with the object size on the non-SSE path.
+            val responseHeaders = stripContentLength(response.headers).toMutableMap()
+            if (!sse) {
+                responseHeaders["Content-Length"] = listOf(s3Metadata.contentLength.toString())
+            }
 
             // Write metadata + delimiter before streaming body
             val headerMetadata = ResponseMetadata.fromMultiValue(
@@ -242,7 +260,6 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
             // non-SSE writers read from the bounded ≤1MB loop inside the callback, so the whole
             // S3 object is never materialized (zero-memory-streaming guarantee preserved).
             // Pass ETag to ensure we stream the same object version we validated.
-            val sse = isServerSentEvents(response)
             val success = s3ResponseStreamer.streamWithConsumer(s3Key, expectedETag = s3Metadata.eTag) { inputStream, _ ->
                 if (sse) {
                     sseDribbleWriter.writeSseChunkedFromStream(
@@ -284,6 +301,19 @@ class StreamingRuntimeLambdaHandler : RequestStreamHandler, KoinComponent {
             ?.value
             ?.any { it.contains("text/event-stream", ignoreCase = true) }
             ?: false
+
+    /**
+     * Returns [headers] without any `Content-Length` entry (case-insensitive).
+     *
+     * SSE dribble responses are open-ended, padded streams whose wire size is far larger than the
+     * raw mock body. Advertising a fixed `Content-Length` (the raw body size) makes the client and
+     * API Gateway/CloudFront truncate the stream at that length, so the client receives only the
+     * first few hundred bytes in a single terminal burst instead of the full padded SSE stream.
+     */
+    private fun stripContentLength(headers: Map<String, List<String>>?): Map<String, List<String>> =
+        headers
+            ?.filterKeys { !it.equals("Content-Length", ignoreCase = true) }
+            ?: emptyMap()
 
     /**
      * Writes an error response using the streaming protocol format.
