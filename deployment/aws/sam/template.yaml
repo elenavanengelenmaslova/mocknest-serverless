@@ -493,6 +493,11 @@ Resources:
       Name: !Sub "${AWS::StackName}-api"
       StageName: !Ref DeploymentName
       OpenApiVersion: '3.0.1'
+      # REGIONAL (not the default EDGE) so responses are NOT routed through CloudFront, which
+      # buffers the body and defeats Lambda response streaming / SSE dribble. The working
+      # streaming-sse Bedrock example uses REGIONAL for exactly this reason.
+      EndpointConfiguration:
+        Type: REGIONAL
       Auth:
         ApiKeyRequired: true
       MethodSettings:
@@ -511,6 +516,11 @@ Resources:
       Name: !Sub "${AWS::StackName}-api"
       StageName: !Ref DeploymentName
       OpenApiVersion: '3.0.1'
+      # REGIONAL (not the default EDGE) so responses are NOT routed through CloudFront, which
+      # buffers the body and defeats Lambda response streaming / SSE dribble. The working
+      # streaming-sse Bedrock example uses REGIONAL for exactly this reason.
+      EndpointConfiguration:
+        Type: REGIONAL
       Auth:
         DefaultAuthorizer: AWS_IAM
       MethodSettings:
