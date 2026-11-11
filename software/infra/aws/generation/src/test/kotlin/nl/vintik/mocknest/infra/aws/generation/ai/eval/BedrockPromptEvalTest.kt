@@ -90,12 +90,28 @@ class BedrockPromptEvalTest {
     private val maxRetries: Int = System.getenv("BEDROCK_EVAL_MAX_RETRIES")?.toIntOrNull()?.coerceIn(0, 2) ?: 1
 
     /**
-     * Demo mode. When `BEDROCK_EVAL_DEMO=true`, per-scenario progress and the result
-     * tables are emitted via `println` (independent of the logging config) and the chatty
-     * `logger.info` narration is suppressed, so a screen recording shows clean,
-     * self-explanatory output. Normal runs are unaffected.
+     * True when self-correction is disabled (`BEDROCK_EVAL_MAX_RETRIES=0`). In this mode the
+     * "After-retry" column is meaningless (it always equals the first pass), so it is dropped
+     * from the per-scenario detail table and demo line, and first-pass results are the headline.
      */
-    private val demoMode: Boolean = System.getenv("BEDROCK_EVAL_DEMO")?.equals("true", ignoreCase = true) == true
+    private val retriesDisabled: Boolean = maxRetries == 0
+
+    /**
+     * Demo mode. Defaults to ON: per-scenario progress and the result tables are emitted via
+     * `println` (independent of the logging config) and the chatty `logger.info` narration is
+     * suppressed, so output is clean and self-explanatory. Opt out with `BEDROCK_EVAL_DEMO=false`
+     * to fall back to the plain logger-based narration.
+     */
+    private val demoMode: Boolean = System.getenv("BEDROCK_EVAL_DEMO")?.equals("false", ignoreCase = true) != true
+
+    /**
+     * Per-scenario detail toggle. Defaults to ON: the per-scenario detail table (one row per
+     * scenario) is printed after the summary. Set `BEDROCK_EVAL_DETAIL=false` to print the
+     * summary table only — useful when you want an at-a-glance per-protocol result without the
+     * long per-scenario breakdown. The failing-scenarios list is always printed regardless of
+     * this flag, since it is the actionable output for prompt improvement.
+     */
+    private val showDetail: Boolean = System.getenv("BEDROCK_EVAL_DETAIL")?.equals("false", ignoreCase = true) != true
 
     /**
      * Suite selector. `BEDROCK_EVAL_SUITE` chooses which eval suite(s) run:
@@ -210,12 +226,15 @@ class BedrockPromptEvalTest {
         val allValid: Boolean = true,
         val attempts: Int = 1,
         val validationErrors: List<String> = emptyList(),
+        val firstPassValidationErrors: List<String> = emptyList(),
         val latencyMs: Long = 0,
         val tokenUsage: TokenUsageRecord = TokenUsageRecord(),
         val generationCost: Double = 0.0,
         val judgeCost: Double = 0.0,
         val estimatedCost: Double = 0.0,
         val semanticPassed: Boolean = false,
+        val semanticScore: Double? = null,
+        val semanticReason: String? = null,
         val errorMessage: String? = null
     ) {
         val scenarioPassed: Boolean
@@ -311,10 +330,131 @@ class BedrockPromptEvalTest {
         )
         emit("\n$summaryTable")
 
-        // Print scenario detail table
-        val detailTable = buildScenarioDetailTable(results)
-        emit("\nPer-scenario breakdown (latency and Gen cost are generation-only; Judge cost is separate):")
-        emit("\n$detailTable")
+        // Print scenario detail table (unless BEDROCK_EVAL_DETAIL=false — summary only)
+        if (showDetail) {
+            val detailTable = buildScenarioDetailTable(results)
+            emit("\nPer-scenario breakdown (latency and Gen cost are generation-only; Judge cost is separate):")
+            emit("\n$detailTable")
+        }
+
+        // Failing-scenario breakdown — the actionable list for prompt improvement. With
+        // retries disabled this is a pure first-pass view: every scenario that did not pass
+        // on the single shot, with the reason and any first-pass validation errors.
+        emit(buildFailureBreakdown(results))
+    }
+
+    /**
+     * Builds the actionable failure list printed after the detail table. Lists each scenario
+     * that did not pass, with the protocol, spec, failure reason, and first-pass validation
+     * errors when present — the signals needed to decide which prompt to tune. When retries
+     * are disabled it is explicitly framed as a first-pass (single-shot) view.
+     */
+    /** Word-aware wrap: splits [text] into lines no longer than [width], never breaking a word. */
+    private fun wrapWords(text: String, width: Int): List<String> {
+        val words = text.split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (words.isEmpty()) return emptyList()
+        val lines = mutableListOf<String>()
+        val current = StringBuilder()
+        for (word in words) {
+            when {
+                current.isEmpty() -> current.append(word)
+                current.length + 1 + word.length <= width -> current.append(' ').append(word)
+                else -> {
+                    lines.add(current.toString())
+                    current.setLength(0)
+                    current.append(word)
+                }
+            }
+        }
+        if (current.isNotEmpty()) lines.add(current.toString())
+        return lines
+    }
+
+    private fun buildFailureBreakdown(results: List<ScenarioResult>): String {
+        val failures = results.filter { !it.scenarioPassed }
+        val title = if (retriesDisabled) {
+            "FIRST-PASS FAILURES — no retry; fix these in the prompt"
+        } else {
+            "FAILURES — after up to $maxRetries self-correction retr${if (maxRetries == 1) "y" else "ies"}"
+        }
+
+        if (failures.isEmpty()) {
+            return "\n$title\n  ✓ None — every scenario passed.\n"
+        }
+
+        // Column widths. Scenario / Iter are thin identifiers; the two text columns (Validation
+        // errors, Judge reason) wrap within their cells so the table stays aligned. First-pass %
+        // is intentionally omitted here — it is already shown per scenario in the detail table.
+        val cScenario = 26
+        val cIter = 4
+        val cVal = 42
+        val cJudge = 48
+        val cols = listOf(cScenario, cIter, cVal, cJudge)
+
+        fun border(left: String, mid: String, right: String): String =
+            cols.joinToString(mid, prefix = left, postfix = right) { "─".repeat(it + 2) }
+
+        fun rowLine(cells: List<String>): String =
+            cells.mapIndexed { i, c -> " ${c.padEnd(cols[i])} " }.joinToString("│", prefix = "│", postfix = "│")
+
+        // A logical row whose Validation/Judge cells may each span several wrapped lines; all
+        // four columns are emitted aligned, blank where a column has no more content.
+        fun wrappedRow(scenario: String, iter: String, valLines: List<String>, judgeLines: List<String>): String {
+            val height = maxOf(1, valLines.size, judgeLines.size)
+            return (0 until height).joinToString("\n") { line ->
+                rowLine(
+                    listOf(
+                        if (line == 0) scenario.take(cScenario) else "",
+                        if (line == 0) iter else "",
+                        valLines.getOrElse(line) { "" },
+                        judgeLines.getOrElse(line) { "" }
+                    )
+                )
+            }
+        }
+
+        val runIndexByScenario = results.groupBy { it.scenario.input }
+
+        return buildString {
+            appendLine()
+            appendLine(title)
+            appendLine("  ${failures.groupBy { it.scenario.input }.size} scenario(s) failed · ${failures.size} of ${results.size} run(s)")
+            appendLine()
+            appendLine(border("┌", "┬", "┐"))
+            appendLine(rowLine(listOf("Scenario", "It", "Validation errors", "Judge reason")))
+            appendLine(border("├", "┼", "┤"))
+
+            // Group by scenario so iterations of the same scenario sit together, each as its own row.
+            failures.groupBy { it.scenario.input }.entries.forEachIndexed { groupIdx, (input, scenarioFailures) ->
+                if (groupIdx > 0) appendLine(border("├", "┼", "┤"))
+                scenarioFailures.forEach { r ->
+                    val iterNo = (runIndexByScenario[input]?.indexOf(r) ?: 0) + 1
+
+                    val validationErrs = r.firstPassValidationErrors.ifEmpty { r.validationErrors }
+                    val concrete = when {
+                        validationErrs.isNotEmpty() -> validationErrs
+                        r.errorMessage != null -> listOf(r.errorMessage)
+                        else -> listOf("—")
+                    }
+                    // Bullet each distinct validator message, wrapped within the column width.
+                    val valLines = concrete.take(6).flatMap { err ->
+                        wrapWords(err, cVal - 2).mapIndexed { i, l -> if (i == 0) "• $l" else "  $l" }
+                    } + if (concrete.size > 6) listOf("• … ${concrete.size - 6} more") else emptyList()
+
+                    // Only show a judge verdict when the judge actually produced one. For a
+                    // generation error (no mocks produced) the judge never ran, so this column
+                    // stays blank instead of printing a meaningless "(n/a/0.70) no reason".
+                    val judgeReason = r.semanticReason?.takeIf { it.isNotBlank() }
+                    val judgeLines = if (!r.semanticPassed && judgeReason != null) {
+                        val score = r.semanticScore?.let { "%.2f".format(it) } ?: "n/a"
+                        listOf("(score $score / 0.70)") + wrapWords(judgeReason, cJudge)
+                    } else emptyList()
+
+                    appendLine(wrappedRow(input, iterNo.toString(), valLines, judgeLines))
+                }
+            }
+            appendLine(border("└", "┴", "┘"))
+        }.trimEnd('\n')
     }
 
     /**
@@ -340,9 +480,12 @@ class BedrockPromptEvalTest {
         runCatching {
             val loggerFactory = org.slf4j.LoggerFactory.getILoggerFactory()
             if (loggerFactory is ch.qos.logback.classic.LoggerContext) {
-                val warn = ch.qos.logback.classic.Level.WARN
-                loggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).level = warn
-                loggerFactory.getLogger("nl.vintik.mocknest").level = warn
+                // ERROR so the chatty per-scenario WARN narration (validation reports, judge
+                // notes) is suppressed for a clean demo. Only hard errors still surface; the
+                // tables and failures list carry everything the demo needs.
+                val error = ch.qos.logback.classic.Level.ERROR
+                loggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).level = error
+                loggerFactory.getLogger("nl.vintik.mocknest").level = error
             }
         }
     }
@@ -457,7 +600,8 @@ class BedrockPromptEvalTest {
             tokenUsageStore.currentPhase = TokenPhase.JUDGE
 
             // Run LLM judge for semantic check
-            val semanticPassed = runSemanticJudge(scenario, mappingsJson)
+            val judgeVerdict = runSemanticJudge(scenario, mappingsJson)
+            val semanticPassed = judgeVerdict.passed
 
             // Compute judge cost from phase-filtered records
             val judgeRecords = tokenUsageStore.getJudgeRecords()
@@ -483,12 +627,15 @@ class BedrockPromptEvalTest {
                 allValid = allValid,
                 attempts = attempts,
                 validationErrors = validationErrors,
+                firstPassValidationErrors = firstPassValidationErrors,
                 latencyMs = latencyMs,
                 tokenUsage = tokenUsageWithJudge,
                 generationCost = generationCost,
                 judgeCost = judgeCost,
                 estimatedCost = totalCost,
-                semanticPassed = semanticPassed
+                semanticPassed = semanticPassed,
+                semanticScore = judgeVerdict.score,
+                semanticReason = judgeVerdict.reason
             )
         }.getOrElse { e ->
             logger.error(e) { "Scenario ${scenario.input} failed with exception" }
@@ -558,7 +705,14 @@ class BedrockPromptEvalTest {
 
     // --- Semantic evaluation via LLM judge ---
 
-    private fun runSemanticJudge(scenario: EvalScenario, actualOutput: String): Boolean {
+    /** Outcome of the LLM-as-a-judge semantic check, including the judge's reason for the verdict. */
+    private data class JudgeVerdict(
+        val passed: Boolean,
+        val score: Double? = null,
+        val reason: String? = null
+    )
+
+    private fun runSemanticJudge(scenario: EvalScenario, actualOutput: String): JudgeVerdict {
         return runCatching {
             val evaluator = LLMJudgeEvaluator.builder()
                 .name("Scenario Semantic Check")
@@ -580,10 +734,10 @@ class BedrockPromptEvalTest {
                     "threshold=${result.threshold()}, passed=${result.success()}, " +
                     "reason=${result.reason()}"
             }
-            result.success()
+            JudgeVerdict(passed = result.success(), score = result.score(), reason = result.reason())
         }.onFailure { e ->
             logger.warn(e) { "LLM judge evaluation failed for ${scenario.input}" }
-        }.getOrDefault(false)
+        }.getOrDefault(JudgeVerdict(passed = false, reason = "judge evaluation threw an exception"))
     }
 
     // --- Dataset loading ---
@@ -631,8 +785,12 @@ class BedrockPromptEvalTest {
 
         val filtered = scenarios.filter { it.input.contains(filter, ignoreCase = true) }
 
-        check(filtered.isNotEmpty()) {
-            "BEDROCK_EVAL_FILTER='$filter' matched 0 of ${scenarios.size} scenario(s). " +
+        // A zero-match filter skips this suite rather than failing the run. With BEDROCK_EVAL_SUITE=all
+        // a protocol-specific filter (e.g. "rest-petstore") legitimately matches nothing in the other
+        // suite (e.g. injection), so a hard failure there would be wrong. A genuine typo still surfaces:
+        // if it matches nothing in *every* selected suite, all suites skip and nothing runs.
+        assumeTrue(filtered.isNotEmpty()) {
+            "BEDROCK_EVAL_FILTER='$filter' matched 0 of ${scenarios.size} scenario(s) in this suite — skipping. " +
                 "Available inputs: ${scenarios.map { it.input }}"
         }
 
@@ -660,18 +818,18 @@ class BedrockPromptEvalTest {
 
     private fun logScenarioResult(result: ScenarioResult) {
         if (demoMode) {
-            // One concise, self-explanatory line per scenario for the recording.
+            // One informative progress line per run so the demo shows life and real numbers.
             val line = if (result.success) {
-                val pass = if (result.scenarioPassed) "PASS" else "FAIL"
-                "  [$pass] ${result.scenario.input.padEnd(38)} " +
-                    "1st-pass=${"%.0f".format(result.firstPassValidRate * 100)}% " +
-                    "after-retry=${"%.0f".format(result.afterRetryValidRate * 100)}% " +
+                val mark = if (result.scenarioPassed) "✓" else "✗"
+                val afterRetry = if (retriesDisabled) "" else
+                    " after-retry=${"%.0f".format(result.afterRetryValidRate * 100)}%"
+                "  $mark ${result.scenario.input.padEnd(36)} " +
+                    "1st-pass=${"%.0f".format(result.firstPassValidRate * 100)}%$afterRetry " +
                     "semantic=${if (result.semanticPassed) "✓" else "✗"} " +
-                    "latency=${"%.1f".format(result.latencyMs / 1000.0)}s " +
-                    "gen=${"$"}${"%.4f".format(result.generationCost)} " +
-                    "judge=${"$"}${"%.4f".format(result.judgeCost)}"
+                    "${"%.1f".format(result.latencyMs / 1000.0)}s " +
+                    "$${"%.4f".format(result.estimatedCost)}"
             } else {
-                "  [FAIL] ${result.scenario.input.padEnd(38)} error: ${result.errorMessage}"
+                "  ✗ ${result.scenario.input.padEnd(36)} ERROR: ${result.errorMessage}"
             }
             println(line)
             return
@@ -709,18 +867,26 @@ class BedrockPromptEvalTest {
                 .replace(Regex("\\.(yaml|yml|json|wsdl|graphql|gql)$"), "")
         }
 
-        // Column widths
+        // Column widths. The single ambiguous "Pass" column is split into two explicit status
+        // columns — Valid (structural validation) and Semantic (LLM judge) — so it is clear which
+        // of the two independent checks failed. The vague "Failure reason" column is dropped; the
+        // actionable detail lives in the FIRST-PASS FAILURES table below.
         val colInput = 35
         val col1stPass = 12
         val colRetry = 12
-        val colPass = 6
+        val colValid = 7
+        val colSemantic = 9
         val colGenCost = 10
         val colJudgeCost = 10
         val colTotal = 10
         val colLatency = 9
-        val colReason = 30
 
-        val totalWidth = colInput + col1stPass + colRetry + colPass + colGenCost + colJudgeCost + colTotal + colLatency + colReason + 19 // 19 for "║ " prefix + 8 "│ " separators + trailing "║"
+        // When retries are disabled the "After-retry" column is dropped (it always equals the
+        // first pass). Base width covers all non-retry columns; the constant accounts for the
+        // "║ " prefix, the "│ " separators, and the trailing "║".
+        val showRetry = !retriesDisabled
+        val baseWidth = colInput + col1stPass + colValid + colSemantic + colGenCost + colJudgeCost + colTotal + colLatency
+        val totalWidth = if (showRetry) baseWidth + colRetry + 19 else baseWidth + 17
 
         return buildString {
             appendLine("╔${"═".repeat(totalWidth)}╗")
@@ -728,20 +894,23 @@ class BedrockPromptEvalTest {
             appendLine("╠${"═".repeat(totalWidth)}╣")
 
             // Header row
+            val retryHeader = if (showRetry) "After-retry".padEnd(colRetry) + "│ " else ""
             val header = "║ " +
                 "Scenario".padEnd(colInput) + "│ " +
                 "1st-pass".padEnd(col1stPass) + "│ " +
-                "After-retry".padEnd(colRetry) + "│ " +
-                "Pass".padEnd(colPass) + "│ " +
+                retryHeader +
+                "Valid".padEnd(colValid) + "│ " +
+                "Semantic".padEnd(colSemantic) + "│ " +
                 "Gen cost".padEnd(colGenCost) + "│ " +
                 "Judge cost".padEnd(colJudgeCost) + "│ " +
                 "Total".padEnd(colTotal) + "│ " +
-                "Latency".padEnd(colLatency) + "│ " +
-                "Failure reason".padEnd(colReason) + "║"
+                "Latency".padEnd(colLatency) + "║"
             appendLine(header)
             appendLine("╠${"═".repeat(totalWidth)}╣")
 
-            // Group results by API spec name
+            // Group results by API spec name; within each spec, collapse the per-iteration runs
+            // of a scenario into ONE aggregated row. With 3 iterations this turns 3 rows per
+            // scenario into 1, and the Pass column shows "N/M" (iterations passed / total).
             val grouped = results.groupBy { extractSpecName(it.scenario.specFile) }
 
             for ((specName, specResults) in grouped) {
@@ -749,28 +918,46 @@ class BedrockPromptEvalTest {
                 appendLine("║ [$specName]".padEnd(totalWidth + 1) + "║")
                 appendLine("╠${"─".repeat(totalWidth)}╣")
 
-                for (result in specResults) {
-                    val input = result.scenario.input.take(colInput - 1).padEnd(colInput)
-                    val firstPass = "${"%.0f".format(result.firstPassValidRate * 100)}%".padEnd(col1stPass)
-                    val afterRetry = "${"%.0f".format(result.afterRetryValidRate * 100)}%".padEnd(colRetry)
-                    val pass = (if (result.scenarioPassed) "✓" else "✗").padEnd(colPass)
-                    val genCost = "$${"%.4f".format(result.generationCost)}".padEnd(colGenCost)
-                    val judgeCost = "$${"%.4f".format(result.judgeCost)}".padEnd(colJudgeCost)
-                    val totalCost = "$${"%.4f".format(result.estimatedCost)}".padEnd(colTotal)
-                    val latency = "${"%.1f".format(result.latencyMs / 1000.0)}s".padEnd(colLatency)
+                // Preserve scenario order as first seen in the dataset.
+                val byScenario = specResults.groupBy { it.scenario.input }
+                for ((scenarioInput, runs) in byScenario) {
+                    val iterations = runs.size
+                    val passCount = runs.count { it.scenarioPassed }
+                    val meanFirstPass = runs.map { it.firstPassValidRate }.average() * 100.0
+                    val meanAfterRetry = runs.map { it.afterRetryValidRate }.average() * 100.0
+                    val meanGen = runs.map { it.generationCost }.average()
+                    val meanJudge = runs.map { it.judgeCost }.average()
+                    val meanTotal = runs.map { it.estimatedCost }.average()
+                    val meanLatency = runs.map { it.latencyMs }.average() / 1000.0
 
-                    val failureReason = if (!result.scenarioPassed) {
-                        val reason = when {
-                            result.errorMessage != null -> result.errorMessage
-                            !result.semanticPassed -> "Semantic check failed"
-                            !result.allValid -> "Validation failed"
-                            else -> "Unknown"
-                        }
-                        reason.take(colReason - 1)
-                    } else ""
-                    val reasonPadded = failureReason.padEnd(colReason)
+                    // Two independent checks, counted across iterations:
+                    //  - Valid: structural validation passed (allValid)
+                    //  - Semantic: the LLM judge passed. A run where generation produced nothing
+                    //    never reached the judge, so it counts as "did not run" (–), not a fail.
+                    val validCount = runs.count { it.allValid }
+                    val judgeRan = runs.filter { it.semanticReason != null || it.semanticPassed }
+                    val semanticPassCount = runs.count { it.semanticPassed }
 
-                    val row = "║ $input│ $firstPass│ $afterRetry│ $pass│ $genCost│ $judgeCost│ $totalCost│ $latency│ $reasonPadded║"
+                    fun statusCell(pass: Int, total: Int): String =
+                        if (total == 0) "–"
+                        else if (total > 1) "$pass/$total"
+                        else if (pass == total) "✓" else "✗"
+
+                    val input = scenarioInput.take(colInput - 1).padEnd(colInput)
+                    val firstPass = "${"%.0f".format(meanFirstPass)}%".padEnd(col1stPass)
+                    val afterRetry = if (showRetry)
+                        "${"%.0f".format(meanAfterRetry)}%".padEnd(colRetry) + "│ "
+                    else ""
+                    val valid = statusCell(validCount, iterations).padEnd(colValid)
+                    // Semantic denominator is only the runs where the judge actually ran.
+                    val semantic = (if (judgeRan.isEmpty()) "–" else statusCell(semanticPassCount, judgeRan.size))
+                        .padEnd(colSemantic)
+                    val genCost = "$${"%.4f".format(meanGen)}".padEnd(colGenCost)
+                    val judgeCost = "$${"%.4f".format(meanJudge)}".padEnd(colJudgeCost)
+                    val totalCost = "$${"%.4f".format(meanTotal)}".padEnd(colTotal)
+                    val latency = "${"%.1f".format(meanLatency)}s".padEnd(colLatency)
+
+                    val row = "║ $input│ $firstPass│ $afterRetry$valid│ $semantic│ $genCost│ $judgeCost│ $totalCost│ $latency║"
                     appendLine(row)
                 }
 

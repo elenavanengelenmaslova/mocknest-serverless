@@ -53,6 +53,11 @@ RESPONSE TYPE RULES (CRITICAL):
     For example, if pet ID=1 is a bird with status "available", then GET /pet/1, GET /pets, and GET /pets?status=available must all return consistent data for that bird.
   - If entities have tags or other filterable properties, ensure that filter/search endpoints return exactly the correct subset of entities matching that filter.
   - CRITICAL: Only use query parameters that are defined in the API specification for each endpoint. Do NOT invent query parameters like `page`, `limit`, `offset`, `username`, `password`, or any other parameter not listed in the spec. If the spec does not define pagination parameters, do not add them.
+  - PAGINATION WITHOUT SPEC PARAMS: when the description asks for multiple "pages" of the same
+    endpoint but the spec defines no pagination query parameter, do NOT invent one. Emit multiple
+    deterministic mappings for that endpoint, differentiated by `priority`. Each page MUST return a
+    DIFFERENT set of items from the other pages — distinct, non-overlapping content with unique ids,
+    not the same items repeated. Never add a `page`, `limit`, or `offset` parameter absent from the spec.
 - FIELD NAMING AND COMPLETENESS (CRITICAL — this is a top cause of low-scoring mocks; obey it exactly):
   - PRE-RETURN CHECKLIST — before returning, RE-READ the Enhancement Description and enumerate EVERY field name it mentions. For each named field, confirm it appears — with that EXACT name — in the correct response object or array item (list items, detail objects, and nested objects alike). Do NOT return until every named field is present.
   - APPLY TO EVERY ENTITY TYPE: when a scenario spans multiple resource/entity types (e.g. customers AND payments AND invoices, or users AND posts AND comments), the required-field rules apply INDEPENDENTLY to EACH type. Getting one entity right does not excuse another: if payments require `status`, EVERY payment object must have `status`; if invoices require `lineItems`, EVERY invoice must have a non-empty `lineItems`; if posts require `authorId` and users require `displayName`/`email`, each of those must appear on its respective object. Verify field completeness separately for each entity type before returning.

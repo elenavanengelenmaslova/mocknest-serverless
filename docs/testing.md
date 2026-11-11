@@ -335,13 +335,12 @@ BEDROCK_EVAL_ITERATIONS=3 \
 - `BEDROCK_EVAL_FILTER` — case-insensitive substring on the scenario `input` name; keeps cost low.
 - `BEDROCK_EVAL_ITERATIONS=3` — averages out variance.
 
-> Caveat: the `bedrockEval` Gradle task currently forwards only a subset of eval environment
-> variables to the forked test JVM (`BEDROCK_EVAL_ENABLED`, `BEDROCK_EVAL_ITERATIONS`,
-> `BEDROCK_EVAL_FILTER`, `BEDROCK_EVAL_MAX_RETRIES`, `AWS_REGION`). Variables like
-> `BEDROCK_EVAL_SUITE`, `BEDROCK_EVAL_DEMO`, `BEDROCK_JUDGE_MODEL`, `AWS_PROFILE`, and the cost
-> overrides are **not** forwarded by the task. See
-> [missing capabilities](#prioritized-missing-capabilities) — until that is fixed, export them so
-> they are inherited by Gradle, or set `AWS_PROFILE` in your shell profile.
+> Note: the `bedrockEval` Gradle task forwards all eval environment variables to the forked test
+> JVM — `BEDROCK_EVAL_ENABLED`, `BEDROCK_EVAL_ITERATIONS`, `BEDROCK_EVAL_SUITE`,
+> `BEDROCK_EVAL_FILTER`, `BEDROCK_EVAL_MAX_RETRIES`, `BEDROCK_EVAL_DEMO`, `BEDROCK_EVAL_DETAIL`,
+> `BEDROCK_JUDGE_MODEL`, `AWS_REGION`, `AWS_PROFILE`, and the AWS credential variables. The task
+> also sets `outputs.upToDateWhen { false }` so it always re-runs (env-var and prompt changes are
+> not tracked as Gradle inputs), meaning you do not need `--rerun-tasks` between demo iterations.
 
 #### Understanding the results
 
@@ -373,17 +372,20 @@ the *prompt* is the weak link, not the pipeline.
 - *`AccessDeniedException` / model not enabled:* enable the model in the Bedrock console for your
   region, or switch region.
 - *Credentials errors:* confirm the SDK credential chain resolves (profile, SSO session, or env
-  vars). `AWS_PROFILE` may need to be exported in your shell since the task does not forward it.
+  vars). The task forwards `AWS_PROFILE` and the AWS credential variables to the forked JVM, so
+  setting them in the shell that launches Gradle is enough.
 - *Cleanup:* the eval writes nothing to S3 and creates no AWS resources; there is nothing to tear
   down beyond the local Gradle reports under `build/reports/tests/bedrockEval`.
 
 #### Conference demonstration
 
-- **Show on screen:** the per-scenario detail table with `BEDROCK_EVAL_MAX_RETRIES=0` and
-  `BEDROCK_EVAL_DEMO=true`.
-- **Sequence:** run one filtered REST scenario, point at `1st-pass == after-retry`, read off
+- **Show on screen:** the per-scenario detail table with `BEDROCK_EVAL_MAX_RETRIES=0` (demo output
+  is on by default). With retries = 0 the "After-retry" column is dropped, so first-pass stands
+  alone.
+- **Sequence:** run one filtered REST scenario, read off the **Valid** / **Semantic** columns and
   latency/tokens/cost.
-- **Observation:** first-pass is the real prompt-quality signal.
+- **Observation:** first-pass structural validity is the real prompt-quality signal; the Valid and
+  Semantic columns show which of the two checks a failure came from.
 - **Fallback:** a saved table from a prior run.
 
 ---
@@ -437,6 +439,46 @@ BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_MAX_RETRIES=0 \
 BEDROCK_EVAL_FILTER=rest-petstore-consistency BEDROCK_EVAL_ITERATIONS=5 \
   ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
 ```
+
+#### Worked example — fixing `rest-petstore-pagination` live
+
+A clean, reproducible prompt fix suitable for a live demo. Fast run across all petstore scenarios
+(1 iteration, one correction retry so you can also show recovery):
+
+```bash
+BEDROCK_EVAL_ENABLED=true \
+BEDROCK_EVAL_SUITE=quality \
+BEDROCK_EVAL_MAX_RETRIES=1 \
+BEDROCK_EVAL_ITERATIONS=1 \
+BEDROCK_EVAL_FILTER=rest-petstore \
+  ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
+```
+
+**The failure.** `rest-petstore-pagination` asks for "3 pages of results … use query parameter or
+response metadata to distinguish pages." The model adds a `page` query parameter, but the petstore
+spec defines no such parameter, and the REST prompt forbids inventing query params. The validator
+drops every mock, so the scenario shows `Valid ✗ / Semantic –` (the judge never runs) with:
+
+```
+GET /pet/findByStatus: Query parameter 'page' not defined in specification
+```
+
+**The fix — `prompts/rest/spec-with-description.txt`, right after line 56** (the "Only use query
+parameters that are defined …" rule), add a bullet telling the model what to do *instead*:
+
+```
+  - PAGINATION WITHOUT SPEC PARAMS: when the description asks for multiple "pages" of the same
+    endpoint but the spec defines no pagination query parameter, do NOT invent one. Emit multiple
+    deterministic mappings for that endpoint, each returning a different page of items (unique ids),
+    differentiated by `priority`. Never add a `page`, `limit`, or `offset` parameter absent from the spec.
+```
+
+The scenario's semantic check explicitly accepts `priority` or distinct URL patterns, so this lets
+the model satisfy both the structural validator and the judge.
+
+**Re-run** the same command. `rest-petstore-pagination` should move from `Valid ✗` toward `Valid ✓`
+/ `Semantic ✓`. No `--rerun-tasks` needed — the task always re-runs and Gradle reprocesses the
+changed prompt resource automatically.
 
 #### Practical experiment — baseline, change, re-run, regression check
 
@@ -639,8 +681,8 @@ BEDROCK_JUDGE_MODEL=OpenAIGptOss120B \
   ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
 ```
 
-> Remember the Gradle task does not forward `BEDROCK_JUDGE_MODEL` itself; export it in your shell
-> so Gradle inherits it, or run until the forwarding gap is fixed.
+> The `bedrockEval` task forwards `BEDROCK_JUDGE_MODEL` to the forked JVM, so setting it on the
+> command line (as above) is enough.
 
 #### Practical experiment — calibration
 
@@ -675,8 +717,9 @@ table in your eval report. The `semanticCheck` text is the rubric — version it
 - *Judge evaluation failed (logged warning, scored 0):* usually a transient Bedrock/judge-model
   error or the judge model not enabled in your region. Re-run; enable the model.
 - *Judge seems too lenient/strict everywhere:* try a different independent `BEDROCK_JUDGE_MODEL`.
-- *Reason not visible:* it is logged at INFO on the `nl.vintik.mocknest` logger; run without
-  `BEDROCK_EVAL_DEMO` (demo mode raises log level to WARN), or watch the Gradle test output.
+- *Reason not visible:* the judge reason now appears directly in the per-scenario failures table
+  (the "Judge reason" column). It is also logged at INFO on the `nl.vintik.mocknest` logger; to see
+  the raw logs run with `BEDROCK_EVAL_DEMO=false` (demo mode raises the log level to ERROR).
 
 #### Conference demonstration
 
@@ -778,10 +821,17 @@ Reporting today is **console-only**, printed by `BedrockPromptEvalTest` at the e
 
 - A **summary table** (per-protocol: runs, 1st-pass valid, after-retry valid, scenario pass, gen
   cost, judge cost, avg cost/run, avg latency, plus a TOTAL footer and a TOTAL EVAL COST line).
-- A **per-scenario detail table** grouped by API spec (1st-pass, after-retry, pass, gen/judge/total
-  cost, latency, failure reason).
-- `BEDROCK_EVAL_DEMO=true` cleans this up for screen recording (tables to stdout, chatty logs
-  silenced).
+- A **per-scenario detail table** grouped by API spec, with one aggregated row per scenario
+  (iterations collapsed to `N/M`). Columns: 1st-pass, after-retry (dropped when retries = 0),
+  **Valid** (structural validation ✓/✗), **Semantic** (LLM judge ✓/✗, or `–` when the judge never
+  ran because generation produced nothing), gen/judge/total cost, latency.
+- A **failures table** (printed last) with one row per failing run: Scenario, iteration, the
+  concrete **Validation errors**, and the **Judge reason** — the actionable detail for fixing the
+  prompt. With retries = 0 it is headed "FIRST-PASS FAILURES".
+- Demo-friendly output is **on by default** (`BEDROCK_EVAL_DEMO=true`): tables and a one-line
+  per-scenario progress go to stdout and the chatty logs are silenced. `BEDROCK_EVAL_DETAIL=false`
+  prints the summary only (the failures table still prints). Set `BEDROCK_EVAL_DEMO=false` for raw
+  logger output.
 - Gradle also emits standard **JUnit XML** (`build/test-results/bedrockEval`) and an **HTML test
   report** (`build/reports/tests/bedrockEval`) — but these are pass/fail test reports, not the rich
   metrics tables.
@@ -803,7 +853,8 @@ small, additive change rather than new data capture.
   validation errors give enough to diagnose a failing scenario.
 - **For presenting / comparing runs:** limited — the tables are ephemeral console output, there is
   no machine-readable metrics JSON beyond JUnit XML, and comparing two runs means eyeballing two
-  terminal captures. Judge reasons are not in the table a reviewer reads.
+  terminal captures. (Judge reasons and validation errors are now surfaced in the failures table,
+  so diagnosing a failure no longer requires reading the logs.)
 
 ### Recommendations (proposed — not implemented)
 
@@ -815,17 +866,16 @@ build a frontend. Concrete, prioritized:
    reasons) to `build/reports/bedrockEval/eval-<timestamp>.json`. This unblocks run-to-run
    comparison and CI/automated analysis without touching the console tables.
    - Location: new writer invoked at the end of `runEvalSuite` in `BedrockPromptEvalTest.kt`.
-2. **Add an optional judge-reason column/section** (high priority, small). Gate behind a setting
-   (e.g. `BEDROCK_EVAL_SHOW_JUDGE_REASON=true`) so the already-logged `reason` appears in the detail
-   table for failing scenarios. The data already exists.
+2. ~~**Add a judge-reason column/section**~~ (done). The failures table now shows the judge reason
+   and the concrete validation errors per failing run, so no separate setting is needed.
 3. **Generate a standalone HTML report from the JSON** (medium). A single self-contained HTML file
    (aggregate metrics, per-scenario pass/fail, first-pass vs after-correction, structural vs
    semantic, model config + latency/tokens/cost, judge verdicts with optional reasons). Keep it
    generated from the JSON so JSON stays the source of truth.
 4. **Run-comparison view** (medium). Given two metrics JSON files, render a diff (per-scenario and
    per-protocol deltas) — this is what the manual before/after reports in `docs/` do by hand today.
-5. **Fix the env-var forwarding gap** (high, enables the above to be driven from CI/scripts) — see
-   next section.
+5. ~~**Fix the env-var forwarding gap**~~ (done) — the `bedrockEval` task now forwards all eval
+   variables to the forked JVM.
 
 Keep JSON output available for CI and automated analysis regardless of whether the HTML report is
 built.
@@ -859,19 +909,17 @@ built.
 
 Proposed, not implemented. Ordered by impact.
 
-1. **Forward all eval env vars in the `bedrockEval` Gradle task (high).** The task only forwards
-   `BEDROCK_EVAL_ENABLED`, `BEDROCK_EVAL_ITERATIONS`, `BEDROCK_EVAL_FILTER`,
-   `BEDROCK_EVAL_MAX_RETRIES`, `AWS_REGION`. It does **not** forward `BEDROCK_EVAL_SUITE`,
-   `BEDROCK_EVAL_DEMO`, `BEDROCK_JUDGE_MODEL`, `AWS_PROFILE`, or the cost overrides, so those only
-   work if Gradle already inherits them from the shell. Fixing the forwarding list removes a
-   confusing footgun. File: `software/infra/aws/generation/build.gradle.kts`.
+1. ~~**Forward all eval env vars in the `bedrockEval` Gradle task**~~ (done). The task now forwards
+   every eval variable (`BEDROCK_EVAL_SUITE`, `BEDROCK_EVAL_DEMO`, `BEDROCK_EVAL_DETAIL`,
+   `BEDROCK_JUDGE_MODEL`, `AWS_PROFILE`, AWS credentials, …) and sets `outputs.upToDateWhen { false }`
+   so it always re-runs. File: `software/infra/aws/generation/build.gradle.kts`.
 2. **Make the generator model configurable via env var (high).** The eval's `modelConfiguration`
    hard-codes `AmazonNovaPro`; model-comparison (strategy 6) currently requires a temporary source
    edit. Add `BEDROCK_EVAL_MODEL`. File: `BedrockPromptEvalTest.kt`.
 3. **Structured metrics JSON per run (high).** See reporting recommendation #1 — enables run
    comparison and automated analysis.
-4. **Optional judge-reason in reports (high, small).** The reason is already computed/logged; add a
-   gated column/section. See reporting recommendation #2.
+4. ~~**Optional judge-reason in reports**~~ (done). The judge reason and validation errors now
+   appear in the failures table.
 5. **Standalone HTML report + run-comparison from JSON (medium).** See reporting recommendations
    #3–#4.
 6. **Replace or wire up the unused report helpers (low).** `EvalReportBuilder`, `IterationResult`,
@@ -892,7 +940,7 @@ Proposed, not implemented. Ordered by impact.
 | First-pass quality (single scenario) | `BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_MAX_RETRIES=0 BEDROCK_EVAL_FILTER=rest-petstore-basic-get ./gradlew :software:infra:aws:generation:bedrockEval --console=plain` |
 | Correction before/after | run the above with `BEDROCK_EVAL_MAX_RETRIES=0` then `=1` |
 | Judge calibration | `BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_FILTER=rest-petstore-consistency BEDROCK_JUDGE_MODEL=OpenAIGptOss120B ./gradlew :software:infra:aws:generation:bedrockEval --console=plain` |
-| Demo-friendly output | add `BEDROCK_EVAL_DEMO=true` |
+| Demo-friendly output | on by default; add `BEDROCK_EVAL_DEMO=false` for raw logger output, or `BEDROCK_EVAL_DETAIL=false` for summary-only |
 
 See [`docs/PROMPT_EVAL.md`](./PROMPT_EVAL.md) for the complete environment-variable reference and
 the full golden-set scenario catalog.

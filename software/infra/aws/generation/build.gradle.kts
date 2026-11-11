@@ -133,8 +133,29 @@ tasks.register<Test>("bedrockEval") {
     testLogging {
         showStandardStreams = true
     }
-    // Forward eval-related environment variables to the forked test JVM
-    listOf("BEDROCK_EVAL_ENABLED", "BEDROCK_EVAL_ITERATIONS", "BEDROCK_EVAL_FILTER", "BEDROCK_EVAL_MAX_RETRIES", "AWS_REGION").forEach { key ->
+    // Eval is driven by environment variables (filter, suite, retries, demo, etc.) that Gradle
+    // does not track as task inputs, so a cached "UP-TO-DATE" result would silently skip the run
+    // when only an env var changed. Always execute — this is an on-demand, cost-gated task, never
+    // part of an incremental build.
+    outputs.upToDateWhen { false }
+    // Forward eval-related environment variables to the forked test JVM. Gradle forks a separate
+    // JVM for tests, so any var read via System.getenv inside the test must be listed here or it
+    // will not reach the test and will silently fall back to its default.
+    listOf(
+        "BEDROCK_EVAL_ENABLED",
+        "BEDROCK_EVAL_ITERATIONS",
+        "BEDROCK_EVAL_SUITE",
+        "BEDROCK_EVAL_FILTER",
+        "BEDROCK_EVAL_MAX_RETRIES",
+        "BEDROCK_EVAL_DEMO",
+        "BEDROCK_EVAL_DETAIL",
+        "BEDROCK_JUDGE_MODEL",
+        "AWS_REGION",
+        "AWS_PROFILE",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN"
+    ).forEach { key ->
         System.getenv(key)?.let { environment(key, it) }
     }
 }
