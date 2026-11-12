@@ -952,8 +952,132 @@ Proposed, not implemented. Ordered by impact.
 | Full offline build + coverage | `./gradlew build koverVerify` |
 | First-pass quality (single scenario) | `BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_MAX_RETRIES=0 BEDROCK_EVAL_FILTER=rest-petstore-basic-get ./gradlew :software:infra:aws:generation:bedrockEval --console=plain` |
 | Correction before/after | run the above with `BEDROCK_EVAL_MAX_RETRIES=0` then `=1` |
-| Judge calibration (disagreement case) | `BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_CALIBRATE=true BEDROCK_EVAL_MAX_RETRIES=0 BEDROCK_EVAL_FILTER=rest-petstore-realistic-pets ./gradlew :software:infra:aws:generation:bedrockEval --console=plain` |
+| Judge calibration (weak judge) | `BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_CALIBRATE=true BEDROCK_EVAL_MAX_RETRIES=0 BEDROCK_JUDGE_MODEL=AmazonNovaLite BEDROCK_EVAL_FILTER=rest-petstore-basic-get ./gradlew :software:infra:aws:generation:bedrockEval --console=plain` |
 | Demo-friendly output | on by default; add `BEDROCK_EVAL_DEMO=false` for raw logger output, or `BEDROCK_EVAL_DETAIL=false` for summary-only |
 
 See [`docs/PROMPT_EVAL.md`](./PROMPT_EVAL.md) for the complete environment-variable reference and
 the full golden-set scenario catalog.
+
+
+---
+
+## Live demo — copy/paste script
+
+Run top to bottom. Each command is self-contained. Nova Pro generates; the default judge is
+`OpenAIGptOss120B` unless a command overrides it.
+
+### 1. Baseline — all petstore scenarios
+
+```
+BEDROCK_EVAL_ENABLED=true \
+BEDROCK_EVAL_SUITE=quality \
+BEDROCK_EVAL_MAX_RETRIES=0 \
+BEDROCK_EVAL_ITERATIONS=1 \
+BEDROCK_EVAL_FILTER=rest-petstore \
+  ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
+```
+
+Point at `rest-petstore-pagination` — it fails (invents a `page` query parameter the spec doesn't define).
+
+### 2. Fix the pagination prompt
+
+File: `software/application/src/main/resources/prompts/rest/spec-with-description.txt`
+After line 56, add this bullet:
+
+```
+  - PAGINATION WITHOUT SPEC PARAMS: when the description asks for multiple "pages" of the same
+    endpoint but the spec defines no pagination query parameter, do NOT invent one. Emit multiple
+    deterministic mappings for that endpoint, differentiated by `priority`. Each page MUST return a
+    DIFFERENT set of items from the other pages — distinct, non-overlapping content with unique ids,
+    not the same items repeated. Never add a `page`, `limit`, or `offset` parameter absent from the spec.
+```
+
+### 3. Re-run to see pagination fixed (same command as step 1)
+
+```
+BEDROCK_EVAL_ENABLED=true \
+BEDROCK_EVAL_SUITE=quality \
+BEDROCK_EVAL_MAX_RETRIES=0 \
+BEDROCK_EVAL_ITERATIONS=1 \
+BEDROCK_EVAL_FILTER=rest-petstore \
+  ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
+```
+
+### 4. Show retry recovering a first-pass miss (retries = 1)
+
+```
+BEDROCK_EVAL_ENABLED=true \
+BEDROCK_EVAL_SUITE=quality \
+BEDROCK_EVAL_MAX_RETRIES=1 \
+BEDROCK_EVAL_ITERATIONS=1 \
+BEDROCK_EVAL_FILTER=rest-petstore \
+  ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
+```
+
+### 5. Judge calibration — weak judge wrongly passes
+
+```
+BEDROCK_EVAL_ENABLED=true \
+BEDROCK_EVAL_SUITE=quality \
+BEDROCK_EVAL_CALIBRATE=true \
+BEDROCK_EVAL_BODY_PREVIEW=2500 \
+BEDROCK_EVAL_MAX_RETRIES=0 \
+BEDROCK_EVAL_ITERATIONS=1 \
+BEDROCK_JUDGE_MODEL=AmazonNovaLite \
+BEDROCK_EVAL_FILTER=rest-petstore-basic-get \
+  ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
+```
+
+The judge passes it even though `/user/login` or `/user/logout` is missing (it scores a ratio like 7/8).
+
+### 6. Fix the rubric
+
+File: `software/infra/aws/generation/src/test/resources/eval/multi-protocol-eval-dataset.json`
+Find `"input": "rest-petstore-basic-get"` and replace its whole `semanticCheck` line with:
+
+```
+        "semanticCheck": "You are a STRICT binary validator of WireMock stub mappings (a JSON array). Each mapping's request has url/urlPath/urlPathPattern, namespace-prefixed like /petstore-eval/. Evaluate in this exact order and STOP at the first failure.\n\nSTEP 1 — ENDPOINT PRESENCE (gate): For each of these 8 endpoints, scan every mapping and write PRESENT or MISSING: /pet/findByStatus, /pet/findByTags, /pet/{petId}, /store/inventory, /store/order/{orderId}, /user/login, /user/logout, /user/{username}. Note: /user/{username} (e.g. /user/user1) is NOT /user/login and NOT /user/logout — they are three different endpoints. If ANY of the 8 is MISSING, output score 0.0 and STOP. Do NOT compute a ratio like 7/8. Do NOT give partial credit. 'Most endpoints present' is still score 0.0 if even one is missing.\n\nSTEP 2 — only if all 8 are PRESENT: verify pet responses include id, name, status; order responses include id, petId, quantity, status; user responses include id, username, firstName, lastName, email; all mocks return HTTP 200; no mock uses a query parameter undefined in the spec (username/password on /user/{username} are forbidden). If any of these fails, output score 0.0.\n\nThe score is ONLY ever 0.0 or 1.0 — never anything in between. A result that is 'mostly correct' is 0.0."
+```
+
+### 7. Re-run the judge (same command as step 5)
+
+```
+BEDROCK_EVAL_ENABLED=true \
+BEDROCK_EVAL_SUITE=quality \
+BEDROCK_EVAL_CALIBRATE=true \
+BEDROCK_EVAL_BODY_PREVIEW=2500 \
+BEDROCK_EVAL_MAX_RETRIES=0 \
+BEDROCK_EVAL_ITERATIONS=1 \
+BEDROCK_JUDGE_MODEL=AmazonNovaLite \
+BEDROCK_EVAL_FILTER=rest-petstore-basic-get \
+  ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
+```
+
+Now the judge scores 0.0 / FAIL and lists the missing endpoint.
+
+### 8. Model compare — Nova Pro vs Nova Lite (same default judge)
+
+Nova Pro:
+
+```
+BEDROCK_EVAL_ENABLED=true \
+BEDROCK_EVAL_SUITE=quality \
+BEDROCK_EVAL_MAX_RETRIES=0 \
+BEDROCK_EVAL_ITERATIONS=1 \
+BEDROCK_EVAL_FILTER=rest-petstore \
+  ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
+```
+
+Nova Lite (only `BEDROCK_EVAL_MODEL` differs):
+
+```
+BEDROCK_EVAL_ENABLED=true \
+BEDROCK_EVAL_MODEL=AmazonNovaLite \
+BEDROCK_EVAL_SUITE=quality \
+BEDROCK_EVAL_MAX_RETRIES=0 \
+BEDROCK_EVAL_ITERATIONS=1 \
+BEDROCK_EVAL_FILTER=rest-petstore \
+  ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
+```
+
+Compare the two summary tables (the `Model:` header line confirms which ran).
