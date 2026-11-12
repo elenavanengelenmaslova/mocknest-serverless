@@ -669,21 +669,15 @@ BEDROCK_EVAL_FILTER=rest-petstore-basic-get \
 In the JUDGE DECISION block, note whether login/logout are in the generated endpoints and what the
 judge scored.
 
-**Step 2 — edit the rubric.** Open:
+**Step 2 — edit the rubric.**
+
+- File: `software/infra/aws/generation/src/test/resources/eval/multi-protocol-eval-dataset.json`
+- Entry: `"input": "rest-petstore-basic-get"` (near line 336); its `semanticCheck` is the next line (~line 343).
+- Replace the whole `semanticCheck` line with:
 
 ```
-software/infra/aws/generation/src/test/resources/eval/multi-protocol-eval-dataset.json
+        "semanticCheck": "CONTEXT: Output is a JSON array of WireMock stub mappings; each has 'request' (url/urlPath/urlPathPattern, namespace-prefixed like /petstore-eval/) and 'response' (jsonBody or body). HARD REQUIREMENT (check FIRST): the output MUST contain a GET mock for EVERY one of these 8 endpoints — /pet/findByStatus, /pet/findByTags, /pet/{petId}, /store/inventory, /store/order/{orderId}, /user/login, /user/logout, AND /user/{username}. Go through the list one by one and confirm each URL appears in at least one mock. If even ONE is absent (for example /user/login or /user/logout), the score is 0 — no partial credit, regardless of how good the other mocks are. Then also verify: pet responses include id, name, status; order responses include id, petId, quantity, status; user responses include id, username, firstName, lastName, email; all mocks return HTTP 200; and no mock uses a query parameter undefined in the spec (e.g. username/password on /user/{username}). Score 0 if ANY of the 8 endpoints is missing, if any required field is missing, or if any undefined query parameter is used."
 ```
-
-Find the `rest-petstore-basic-get` entry and replace its entire `semanticCheck` value with:
-
-```
-"semanticCheck": "CONTEXT: Output is a JSON array of WireMock stub mappings; each has 'request' (url/urlPath/urlPathPattern, namespace-prefixed like /petstore-eval/) and 'response' (jsonBody or body). HARD REQUIREMENT (check FIRST): the output MUST contain a GET mock for EVERY one of these 8 endpoints — /pet/findByStatus, /pet/findByTags, /pet/{petId}, /store/inventory, /store/order/{orderId}, /user/login, /user/logout, AND /user/{username}. Go through the list one by one and confirm each URL appears in at least one mock. If even ONE is absent (for example /user/login or /user/logout), the score is 0 — no partial credit, regardless of how good the other mocks are. Then also verify: pet responses include id, name, status; order responses include id, petId, quantity, status; user responses include id, username, firstName, lastName, email; all mocks return HTTP 200; and no mock uses a query parameter undefined in the spec (e.g. username/password on /user/{username}). Score 0 if ANY of the 8 endpoints is missing, if any required field is missing, or if any undefined query parameter is used."
-```
-
-Key changes: the endpoint-presence rule moves to the **front** as a HARD REQUIREMENT, the judge is
-told to **enumerate** each endpoint, and "score 0 — no partial credit" is stated inline (not buried
-at the end).
 
 **Step 3 — re-run the exact Step 1 command.** No rebuild needed (the dataset is a test resource and
 `bedrockEval` always re-runs). The judge now scores **0.00 / FAIL**, its reason listing the missing
