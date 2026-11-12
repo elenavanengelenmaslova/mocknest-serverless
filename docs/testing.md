@@ -646,39 +646,14 @@ flowchart LR
     judge["LLMJudgeEvaluator<br/>threshold 0.7<br/>independent judge model"] --> verdict["score + passed + reason"]
 ```
 
-#### The demo: swap the judge model and watch the verdict change
+#### The demo: tighten the rubric so the judge catches a real flaw
 
-The judge is itself an LLM, so **which model judges** matters. This demo keeps the generator fixed
-(Nova Pro) and swaps only the **judge model** on one scenario — `rest-petstore-basic-get` — to show
-a weaker judge wrongly approving output that a stronger judge correctly rejects.
+Scenario: `rest-petstore-basic-get` ("mocks for all GET endpoints"). Nova Pro's output is often
+incomplete — it drops `/user/login` and `/user/logout`. A human labels that **FAIL**. With the
+original lenient rubric the judge passed it anyway. Tightening the rubric makes the judge FAIL it.
+Generator is Nova Pro throughout; judge is the default `OpenAIGptOss120B`.
 
-**The scenario.** `rest-petstore-basic-get` asks for "mocks for all GET endpoints in the Petstore
-API." Nova Pro's output is genuinely flawed: `/user/login` and `/user/logout` are missing, and the
-`/user/{username}` mock invents `username`/`password` query parameters not in the spec. A human
-labels this **FAIL** (incomplete + invalid). This is stable — the same defects appear on essentially
-every run.
-
-**The two judges.**
-
-| Judge model | Verdict on the same output | Correct? |
-|---|---|---|
-| `OpenAIGptOss120B` (default, stronger) | **Semantic ✗** — fails it, citing the missing `/user/login` and `/user/logout` | ✓ agrees with human |
-| `AmazonNovaLite` (weaker) | **Semantic ✓** — passes it ~0.80–0.90, noticing the gaps but only deducting a little | ✗ disagrees — too lenient |
-
-So the calibration knob here is the **judge model itself** (`BEDROCK_JUDGE_MODEL`), not the rubric:
-the cheaper judge makes a worse call on identical generated output.
-
-Note: `rest-petstore-basic-get` also fails **structural validation** (`Valid ✗`) because of the
-invented query params. The judge only controls the **Semantic** column — so what flips between the
-two runs is `Semantic ✗ → ✓`, not the whole row.
-
-#### How to run it — two commands
-
-Each is a single iteration (`BEDROCK_EVAL_ITERATIONS=1`) for a fast demo; `BEDROCK_EVAL_CALIBRATE=true`
-prints the scenario prompt, the generated endpoints, and the judge's score + reason so the
-disagreement is visible. `BEDROCK_EVAL_BODY_PREVIEW=2500` shows full response bodies.
-
-**1 — default judge (`OpenAIGptOss120B`) — correctly FAILs it:**
+**Step 1 — run before the fix:**
 
 ```bash
 BEDROCK_EVAL_ENABLED=true \
@@ -691,57 +666,57 @@ BEDROCK_EVAL_FILTER=rest-petstore-basic-get \
   ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
 ```
 
-**2 — swap the judge to `AmazonNovaLite` — wrongly PASSes the same output** (only the
-`BEDROCK_JUDGE_MODEL` line is added):
+In the JUDGE DECISION block, note whether login/logout are in the generated endpoints and what the
+judge scored.
+
+**Step 2 — edit the rubric.** Open:
+
+```
+software/infra/aws/generation/src/test/resources/eval/multi-protocol-eval-dataset.json
+```
+
+Find the `rest-petstore-basic-get` entry and replace its entire `semanticCheck` value with:
+
+```
+"semanticCheck": "CONTEXT: Output is a JSON array of WireMock stub mappings; each has 'request' (url/urlPath/urlPathPattern, namespace-prefixed like /petstore-eval/) and 'response' (jsonBody or body). HARD REQUIREMENT (check FIRST): the output MUST contain a GET mock for EVERY one of these 8 endpoints — /pet/findByStatus, /pet/findByTags, /pet/{petId}, /store/inventory, /store/order/{orderId}, /user/login, /user/logout, AND /user/{username}. Go through the list one by one and confirm each URL appears in at least one mock. If even ONE is absent (for example /user/login or /user/logout), the score is 0 — no partial credit, regardless of how good the other mocks are. Then also verify: pet responses include id, name, status; order responses include id, petId, quantity, status; user responses include id, username, firstName, lastName, email; all mocks return HTTP 200; and no mock uses a query parameter undefined in the spec (e.g. username/password on /user/{username}). Score 0 if ANY of the 8 endpoints is missing, if any required field is missing, or if any undefined query parameter is used."
+```
+
+Key changes: the endpoint-presence rule moves to the **front** as a HARD REQUIREMENT, the judge is
+told to **enumerate** each endpoint, and "score 0 — no partial credit" is stated inline (not buried
+at the end).
+
+**Step 3 — re-run the exact Step 1 command.** No rebuild needed (the dataset is a test resource and
+`bedrockEval` always re-runs). The judge now scores **0.00 / FAIL**, its reason listing the missing
+endpoints (e.g. "missing mocks for /user/login, /user/logout"). Same output, corrected verdict.
+
+Notes:
+- The judge only controls the **Semantic** column; `Valid ✗` (from invented query params) is
+  independent and unaffected.
+- LLM output varies per run. The fix makes the judge *able* to fail a missing endpoint; it only
+  fails when the model actually drops one. If a run generates all 8 endpoints, it legitimately
+  passes — rerun to get an incomplete generation, or lower cost by keeping `ITERATIONS=1`.
+
+#### Optional: show the judge model also matters
+
+Swapping the judge model changes verdicts too. With `BEDROCK_JUDGE_MODEL=AmazonNovaLite` (a weaker
+judge), the same flawed output is often rubber-stamped PASS even under a strict rubric — a weak judge
+can't reliably enforce the criteria. Point: pick and verify the judge model, not just the rubric.
 
 ```bash
-BEDROCK_EVAL_ENABLED=true \
-BEDROCK_EVAL_SUITE=quality \
-BEDROCK_EVAL_CALIBRATE=true \
-BEDROCK_EVAL_BODY_PREVIEW=2500 \
-BEDROCK_EVAL_MAX_RETRIES=0 \
-BEDROCK_EVAL_ITERATIONS=1 \
-BEDROCK_JUDGE_MODEL=AmazonNovaLite \
-BEDROCK_EVAL_FILTER=rest-petstore-basic-get \
+BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_SUITE=quality BEDROCK_EVAL_CALIBRATE=true \
+BEDROCK_EVAL_BODY_PREVIEW=2500 BEDROCK_EVAL_MAX_RETRIES=0 BEDROCK_EVAL_ITERATIONS=1 \
+BEDROCK_JUDGE_MODEL=AmazonNovaLite BEDROCK_EVAL_FILTER=rest-petstore-basic-get \
   ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
 ```
 
-On screen: the header line changes from `Judge: OpenAIGptOss120B` to `Judge: AmazonNovaLite`, and the
-**Semantic** column flips from ✗ to ✓. In calibration block 3 (JUDGE DECISION), the Nova Lite judge's
-own reason admits the gaps (e.g. "the mock for /user/logout is missing, which results in a deduction
-of 0.1") yet scores it PASS — the weak judge indicting itself.
-
-> The judge model is resolved against Koog's `BedrockModels` and given the region's inference-profile
-> prefix (e.g. `eu.amazon.nova-lite-v1:0` in `eu-west-1`). Amazon Nova judge models **must** be
-> enabled in your Bedrock console for the region, or the judge call fails with "The provided model
-> identifier is invalid."
-
-#### What this demonstrates
-
-The LLM-as-a-judge is a model too, and a cheaper/weaker judge is measurably more lenient — it detects
-the same flaws but forgives them, landing above the 0.70 threshold. The takeaway: **pick and verify
-your judge model deliberately; don't blindly trust a single verdict.** The eval makes this checkable
-by letting you swap `BEDROCK_JUDGE_MODEL` and compare verdicts on identical generated output.
-
-> Caveat for the live demo: LLM output varies run to run. `rest-petstore-basic-get`'s *generation*
-> flaws (missing login/logout, invented params) are stable, and the GptOss-FAIL vs Nova-Lite-PASS
-> split has been consistent — but with a single iteration it is not guaranteed. If a run doesn't show
-> the split cleanly, rerun the affected command.
-
-#### Alternative: calibrate the rubric instead of the judge
-
-If instead you want to show fixing the **rubric** (so even the default judge is stricter), edit the
-scenario's `semanticCheck` in
-`software/infra/aws/generation/src/test/resources/eval/multi-protocol-eval-dataset.json`. For
-`rest-petstore-basic-get`, its scoring line is lenient ("Score 0 only if a GET endpoint is completely
-missing"). Make the missing-endpoint and invented-param rules explicit hard-fails, then re-run — the
-judge then fails the same output deterministically. Rule of thumb: make genuinely implicit
-expectations explicit; do not change a human label to match the model.
+> Amazon Nova judge models must be enabled in your Bedrock console for the region, or the judge call
+> fails with "The provided model identifier is invalid." The region inference-profile prefix is
+> applied automatically.
 
 #### Reproducibility
 
-Pin the judge model, generator model, region, and iterations. The human-labelled golden set above
-is the anchor — keep it in this doc and version the `semanticCheck` text with the dataset.
+Pin the judge model, generator model, region, and iterations. The `semanticCheck` text is the rubric
+— version it with the dataset; the before/after diff of that line *is* the calibration.
 
 #### Troubleshooting
 
