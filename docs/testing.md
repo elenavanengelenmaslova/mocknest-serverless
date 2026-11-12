@@ -676,8 +676,13 @@ judge scored.
 - Replace the whole `semanticCheck` line with:
 
 ```
-        "semanticCheck": "CONTEXT: Output is a JSON array of WireMock stub mappings; each has 'request' (url/urlPath/urlPathPattern, namespace-prefixed like /petstore-eval/) and 'response' (jsonBody or body). HARD REQUIREMENT (check FIRST): the output MUST contain a GET mock for EVERY one of these 8 endpoints — /pet/findByStatus, /pet/findByTags, /pet/{petId}, /store/inventory, /store/order/{orderId}, /user/login, /user/logout, AND /user/{username}. Go through the list one by one and confirm each URL appears in at least one mock. If even ONE is absent (for example /user/login or /user/logout), the score is 0 — no partial credit, regardless of how good the other mocks are. Then also verify: pet responses include id, name, status; order responses include id, petId, quantity, status; user responses include id, username, firstName, lastName, email; all mocks return HTTP 200; and no mock uses a query parameter undefined in the spec (e.g. username/password on /user/{username}). Score 0 if ANY of the 8 endpoints is missing, if any required field is missing, or if any undefined query parameter is used."
+        "semanticCheck": "You are a STRICT binary validator of WireMock stub mappings (a JSON array). Each mapping's request has url/urlPath/urlPathPattern, namespace-prefixed like /petstore-eval/. Evaluate in this exact order and STOP at the first failure.\n\nSTEP 1 — ENDPOINT PRESENCE (gate): For each of these 8 endpoints, scan every mapping and write PRESENT or MISSING: /pet/findByStatus, /pet/findByTags, /pet/{petId}, /store/inventory, /store/order/{orderId}, /user/login, /user/logout, /user/{username}. Note: /user/{username} (e.g. /user/user1) is NOT /user/login and NOT /user/logout — they are three different endpoints. If ANY of the 8 is MISSING, output score 0.0 and STOP. Do NOT compute a ratio like 7/8. Do NOT give partial credit. 'Most endpoints present' is still score 0.0 if even one is missing.\n\nSTEP 2 — only if all 8 are PRESENT: verify pet responses include id, name, status; order responses include id, petId, quantity, status; user responses include id, username, firstName, lastName, email; all mocks return HTTP 200; no mock uses a query parameter undefined in the spec (username/password on /user/{username} are forbidden). If any of these fails, output score 0.0.\n\nThe score is ONLY ever 0.0 or 1.0 — never anything in between. A result that is 'mostly correct' is 0.0."
 ```
+
+Why this wording: a weak judge computes a ratio (7/8 = 0.88) and passes. The binary framing
+("score is ONLY ever 0.0 or 1.0", "do NOT compute a ratio like 7/8", "STOP at the first failure")
+removes the fractional path, and distinguishing `/user/{username}` from login/logout removes the
+decoy it kept miscounting.
 
 **Step 3 — re-run the exact Step 1 command.** No rebuild needed (the dataset is a test resource and
 `bedrockEval` always re-runs). The judge now scores **0.00 / FAIL**, its reason listing the missing
@@ -723,16 +728,16 @@ Pin the judge model, generator model, region, and iterations. The `semanticCheck
 
 #### Conference demonstration
 
-- **Show on screen:** `rest-petstore-basic-get` judged twice — once by the default `OpenAIGptOss120B`
-  (Semantic ✗), once by `AmazonNovaLite` (Semantic ✓) — on the same Nova Pro output.
-- **Sequence:** state the human verdict (FAIL: `/user/login` and `/user/logout` missing, invented
-  query params) → run command 1 (default judge) → it correctly FAILs (Semantic ✗) → run command 2
-  with `BEDROCK_JUDGE_MODEL=AmazonNovaLite` → same output now PASSes (Semantic ✓) → read the Nova
-  Lite judge's reason admitting the gap but passing anyway.
-- **Observation:** the judge is a model too; a weaker judge is more lenient on identical output — so
-  pick and verify the judge model deliberately, don't blindly trust one verdict.
-- **Fallback:** a saved pair of calibration dumps showing GptOss `Semantic ✗` and Nova Lite
-  `Semantic ✓` on the same generated mocks.
+- **Show on screen:** `rest-petstore-basic-get` — the generated endpoints (login/logout missing) and
+  the judge's score before vs after the rubric edit.
+- **Sequence:** state the human verdict (FAIL: `/user/login` + `/user/logout` missing) → Step 1 run
+  shows the judge PASSes it (ratio score ≥ 0.70) → edit the `semanticCheck` to the strict binary
+  rubric (Step 2) → Step 3 re-run shows the judge now scores 0.0 / FAIL, listing the missing
+  endpoints. Same output, corrected verdict.
+- **Observation:** the judge is a model; a lenient rubric lets it compute a ratio and pass — an
+  explicit binary rubric makes it enforce the rule. Calibrate the rubric, don't blindly trust the score.
+- **Fallback:** a saved pair of calibration dumps showing PASS (lenient rubric) and 0.0/FAIL (strict
+  rubric) on the same generated mocks.
 
 ---
 
