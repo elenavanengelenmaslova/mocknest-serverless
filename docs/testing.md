@@ -646,71 +646,102 @@ flowchart LR
     judge["LLMJudgeEvaluator<br/>threshold 0.7<br/>independent judge model"] --> verdict["score + passed + reason"]
 ```
 
-#### Inspecting existing REST cases for calibration candidates
+#### The demo: swap the judge model and watch the verdict change
 
-Good calibration examples are scenarios whose `semanticCheck` encodes an *objective* property, so a
-human verdict is defensible:
+The judge is itself an LLM, so **which model judges** matters. This demo keeps the generator fixed
+(Nova Pro) and swaps only the **judge model** on one scenario — `rest-petstore-basic-get` — to show
+a weaker judge wrongly approving output that a stronger judge correctly rejects.
 
-- `rest-petstore-consistency` — human can check by eye whether `order.petId == pet.id` and
-  `user.username == "john"`.
-- `rest-petstore-error` — human can check whether both a 404 and a 500 mock exist with non-empty
-  bodies.
-- `rest-social-consistency` — human can check whether `post.authorId` references user 1 and each
-  comment's `postId == 1`.
+**The scenario.** `rest-petstore-basic-get` asks for "mocks for all GET endpoints in the Petstore
+API." Nova Pro's output is genuinely flawed: `/user/login` and `/user/logout` are missing, and the
+`/user/{username}` mock invents `username`/`password` query parameters not in the spec. A human
+labels this **FAIL** (incomplete + invalid). This is stable — the same defects appear on essentially
+every run.
 
-These are objectively checkable, which is what makes them usable as human-labelled anchors.
+**The two judges.**
 
-If you want a *subtle* negative example and none of the above fits, propose a **new REST fixture**
-with one small, objectively defensible semantic error — for example a petstore consistency mock
-where `order.petId = 2` while `pet.id = 1` (everything else correct). A human labels this **FAIL**
-(the consistency criterion is violated); a well-calibrated judge should also score it below 0.7.
-Add it as a new dataset entry rather than editing an existing one.
+| Judge model | Verdict on the same output | Correct? |
+|---|---|---|
+| `OpenAIGptOss120B` (default, stronger) | **Semantic ✗** — fails it, citing the missing `/user/login` and `/user/logout` | ✓ agrees with human |
+| `AmazonNovaLite` (weaker) | **Semantic ✓** — passes it ~0.80–0.90, noticing the gaps but only deducting a little | ✗ disagrees — too lenient |
 
-#### Relevant files
+So the calibration knob here is the **judge model itself** (`BEDROCK_JUDGE_MODEL`), not the rubric:
+the cheaper judge makes a worse call on identical generated output.
 
-- Judge wiring: `.../ai/eval/BedrockPromptEvalTest.kt` (`judgeLM`, `asJudge { ... }`, `runSemanticJudge`)
-- Scenario criteria: `software/infra/aws/generation/src/test/resources/eval/multi-protocol-eval-dataset.json`
-- Judge model resolution: `resolveJudgeModel(...)` in the eval test (reflection against `BedrockModels`)
+Note: `rest-petstore-basic-get` also fails **structural validation** (`Valid ✗`) because of the
+invented query params. The judge only controls the **Semantic** column — so what flips between the
+two runs is `Semantic ✗ → ✓`, not the whole row.
 
-#### How to run it
+#### How to run it — two commands
+
+Each is a single iteration (`BEDROCK_EVAL_ITERATIONS=1`) for a fast demo; `BEDROCK_EVAL_CALIBRATE=true`
+prints the scenario prompt, the generated endpoints, and the judge's score + reason so the
+disagreement is visible. `BEDROCK_EVAL_BODY_PREVIEW=2500` shows full response bodies.
+
+**1 — default judge (`OpenAIGptOss120B`) — correctly FAILs it:**
 
 ```bash
 BEDROCK_EVAL_ENABLED=true \
-BEDROCK_EVAL_FILTER=rest-petstore-consistency BEDROCK_EVAL_ITERATIONS=3 \
-BEDROCK_JUDGE_MODEL=OpenAIGptOss120B \
+BEDROCK_EVAL_SUITE=quality \
+BEDROCK_EVAL_CALIBRATE=true \
+BEDROCK_EVAL_BODY_PREVIEW=2500 \
+BEDROCK_EVAL_MAX_RETRIES=0 \
+BEDROCK_EVAL_ITERATIONS=1 \
+BEDROCK_EVAL_FILTER=rest-petstore-basic-get \
   ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
 ```
 
-> The `bedrockEval` task forwards `BEDROCK_JUDGE_MODEL` to the forked JVM, so setting it on the
-> command line (as above) is enough.
+**2 — swap the judge to `AmazonNovaLite` — wrongly PASSes the same output** (only the
+`BEDROCK_JUDGE_MODEL` line is added):
 
-#### Practical experiment — calibration
+```bash
+BEDROCK_EVAL_ENABLED=true \
+BEDROCK_EVAL_SUITE=quality \
+BEDROCK_EVAL_CALIBRATE=true \
+BEDROCK_EVAL_BODY_PREVIEW=2500 \
+BEDROCK_EVAL_MAX_RETRIES=0 \
+BEDROCK_EVAL_ITERATIONS=1 \
+BEDROCK_JUDGE_MODEL=AmazonNovaLite \
+BEDROCK_EVAL_FILTER=rest-petstore-basic-get \
+  ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
+```
 
-1. **Present a request and generated mock.** Pick a scenario (e.g. `rest-petstore-consistency`),
-   and keep its `description` (request) and a generated mapping array (actual output) in front of
-   you.
-2. **Decide the human verdict first.** Read the `semanticCheck` and label PASS/FAIL yourself,
-   writing down *why* (e.g. "FAIL: order.petId=2 but pet.id=1").
-3. **Run the judge** with the command above and read the logged `score`, `passed`, and `reason`.
-4. **Compare** the human label to the judge verdict.
-5. **If they genuinely disagree, improve the rubric** — tighten or clarify the scenario's
-   `semanticCheck` wording so the objective property is unambiguous. Do **not** change the expected
-   human label to match the model, and do not manufacture a judge failure.
-6. **Re-run multiple calibration examples** (several scenarios, several iterations) to confirm the
-   rubric change did not introduce regressions elsewhere.
+On screen: the header line changes from `Judge: OpenAIGptOss120B` to `Judge: AmazonNovaLite`, and the
+**Semantic** column flips from ✗ to ✓. In calibration block 3 (JUDGE DECISION), the Nova Lite judge's
+own reason admits the gaps (e.g. "the mock for /user/logout is missing, which results in a deduction
+of 0.1") yet scores it PASS — the weak judge indicting itself.
 
-#### Understanding the results
+> The judge model is resolved against Koog's `BedrockModels` and given the region's inference-profile
+> prefix (e.g. `eu.amazon.nova-lite-v1:0` in `eu-west-1`). Amazon Nova judge models **must** be
+> enabled in your Bedrock console for the region, or the judge call fails with "The provided model
+> identifier is invalid."
 
-A calibrated judge agrees with the human label on clear-cut cases consistently across iterations.
-Disagreement on an *objective* case points to a vague `semanticCheck` (fixable) or a genuinely
-unreliable judge model (consider a different `BEDROCK_JUDGE_MODEL`). Borderline scenarios that flip
-around the 0.7 threshold between iterations are a known pattern — document them rather than tuning
-the label to the model.
+#### What this demonstrates
+
+The LLM-as-a-judge is a model too, and a cheaper/weaker judge is measurably more lenient — it detects
+the same flaws but forgives them, landing above the 0.70 threshold. The takeaway: **pick and verify
+your judge model deliberately; don't blindly trust a single verdict.** The eval makes this checkable
+by letting you swap `BEDROCK_JUDGE_MODEL` and compare verdicts on identical generated output.
+
+> Caveat for the live demo: LLM output varies run to run. `rest-petstore-basic-get`'s *generation*
+> flaws (missing login/logout, invented params) are stable, and the GptOss-FAIL vs Nova-Lite-PASS
+> split has been consistent — but with a single iteration it is not guaranteed. If a run doesn't show
+> the split cleanly, rerun the affected command.
+
+#### Alternative: calibrate the rubric instead of the judge
+
+If instead you want to show fixing the **rubric** (so even the default judge is stricter), edit the
+scenario's `semanticCheck` in
+`software/infra/aws/generation/src/test/resources/eval/multi-protocol-eval-dataset.json`. For
+`rest-petstore-basic-get`, its scoring line is lenient ("Score 0 only if a GET endpoint is completely
+missing"). Make the missing-endpoint and invented-param rules explicit hard-fails, then re-run — the
+judge then fails the same output deterministically. Rule of thumb: make genuinely implicit
+expectations explicit; do not change a human label to match the model.
 
 #### Reproducibility
 
-Pin the judge model, generator model, region, and iterations. Keep the human labels in a small
-table in your eval report. The `semanticCheck` text is the rubric — version it with the dataset.
+Pin the judge model, generator model, region, and iterations. The human-labelled golden set above
+is the anchor — keep it in this doc and version the `semanticCheck` text with the dataset.
 
 #### Troubleshooting
 
@@ -723,11 +754,16 @@ table in your eval report. The `semanticCheck` text is the rubric — version it
 
 #### Conference demonstration
 
-- **Show on screen:** the scenario description, a generated mapping, your written human verdict,
-  then the judge's logged score + reason.
-- **Sequence:** state the human verdict → run → reveal the judge verdict + reason → agree/disagree.
-- **Observation:** the judge is a model too; we calibrate it, we don't blindly trust it.
-- **Fallback:** a saved log snippet with the judge's `reason`.
+- **Show on screen:** `rest-petstore-basic-get` judged twice — once by the default `OpenAIGptOss120B`
+  (Semantic ✗), once by `AmazonNovaLite` (Semantic ✓) — on the same Nova Pro output.
+- **Sequence:** state the human verdict (FAIL: `/user/login` and `/user/logout` missing, invented
+  query params) → run command 1 (default judge) → it correctly FAILs (Semantic ✗) → run command 2
+  with `BEDROCK_JUDGE_MODEL=AmazonNovaLite` → same output now PASSes (Semantic ✓) → read the Nova
+  Lite judge's reason admitting the gap but passing anyway.
+- **Observation:** the judge is a model too; a weaker judge is more lenient on identical output — so
+  pick and verify the judge model deliberately, don't blindly trust one verdict.
+- **Fallback:** a saved pair of calibration dumps showing GptOss `Semantic ✗` and Nova Lite
+  `Semantic ✓` on the same generated mocks.
 
 ---
 
@@ -741,16 +777,16 @@ prompts, scenarios, retry settings, judge model, and evaluation criteria.
 
 #### How it works
 
-The generator model is set in `BedrockPromptEvalTest` via `ModelConfiguration(modelName = "AmazonNovaPro", ...)`.
-To compare models you run the same filtered eval twice, changing only the generator model, and
-compare the summary tables. The judge model (`BEDROCK_JUDGE_MODEL`) and the dataset must stay the
-same so the comparison is fair.
+The generator model defaults to `AmazonNovaPro` and is overridable via the `BEDROCK_EVAL_MODEL`
+environment variable. To compare models you run the same filtered eval twice, changing only
+`BEDROCK_EVAL_MODEL`, and compare the summary tables. The judge model (`BEDROCK_JUDGE_MODEL`) and the
+dataset must stay the same so the comparison is fair.
 
-> Current limitation: the generator `modelName` is **hard-coded** in the eval test (there is no
-> `BEDROCK_EVAL_MODEL` environment variable yet). To switch to Nova Lite today you edit the
-> `modelConfiguration` line (`"AmazonNovaPro"` → `"AmazonNovaLite"`) and re-run, then revert. Making
-> this an environment variable is listed under [missing capabilities](#prioritized-missing-capabilities).
-> Do not commit the temporary edit.
+> `BEDROCK_EVAL_MODEL` accepts any Koog `BedrockModels` name (e.g. `AmazonNovaPro`, `AmazonNovaLite`,
+> `AmazonNovaMicro`); the region's inference-profile prefix is applied automatically. The chosen
+> model must be enabled in your Bedrock console for the region. Cost figures in the summary table use
+> the configured pricing (`CostCalculator`), so a non–Nova-Pro model's cost column may not reflect its
+> real price unless you set the price overrides.
 
 #### Relevant files
 
@@ -763,25 +799,26 @@ same so the comparison is fair.
 #### How to run it
 
 ```bash
-# Run A — Nova Pro (default, as-is):
+# Run A — Nova Pro (default):
 BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_MAX_RETRIES=1 \
-BEDROCK_EVAL_FILTER=rest BEDROCK_EVAL_ITERATIONS=3 \
+BEDROCK_EVAL_FILTER=rest-petstore BEDROCK_EVAL_ITERATIONS=1 \
   ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
 
-# Edit modelConfiguration to "AmazonNovaLite", then Run B with identical flags.
-# (Optionally set BEDROCK_EVAL_INPUT/OUTPUT_PRICE_PER_TOKEN to Nova Lite pricing for accurate cost.)
+# Run B — Nova Lite (only BEDROCK_EVAL_MODEL differs):
+BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_MODEL=AmazonNovaLite BEDROCK_EVAL_MAX_RETRIES=1 \
+BEDROCK_EVAL_FILTER=rest-petstore BEDROCK_EVAL_ITERATIONS=1 \
+  ./gradlew :software:infra:aws:generation:bedrockEval --console=plain
 ```
 
 #### Practical experiment — Nova Pro vs Nova Lite
 
 1. **Run A (Nova Pro)** on a fixed filtered set and iteration count; save the summary table.
-2. **Switch to Nova Lite** (edit `modelConfiguration`), keep *everything else identical* (same
-   filter, iterations, retries, judge model, dataset).
-3. **Run B (Nova Lite)**; save its summary table.
-4. **Compare** across: task completion (`Scenario pass`), structural correctness (`1st-pass valid`,
+2. **Run B (Nova Lite)** by adding `BEDROCK_EVAL_MODEL=AmazonNovaLite`, keeping *everything else
+   identical* (same filter, iterations, retries, judge model, dataset).
+3. **Compare** across: task completion (`Scenario pass`), structural correctness (`1st-pass valid`,
    `After retry valid`), semantic quality (judge pass rate), correction overhead (`attempts`,
-   after-retry delta), latency, tokens, and cost.
-5. **Revert** the model edit.
+   after-retry delta), latency, tokens, and cost. The summary header's `Model:` line confirms which
+   model ran.
 
 #### Understanding the results
 
@@ -793,20 +830,22 @@ Decide against the application's quality requirement, not raw price.
 
 #### Reproducibility
 
-Change exactly one variable (the generator model) between runs. Pin everything else. Record both
+Change exactly one variable (`BEDROCK_EVAL_MODEL`) between runs. Pin everything else. Record both
 summary tables and the exact flags. If you override pricing constants for Nova Lite, note them.
 
 #### Troubleshooting
 
 - *Nova Lite not available:* enable it in the Bedrock console / choose a region that offers it.
+- *"The provided model identifier is invalid":* the model needs the region's inference-profile
+  prefix — `BEDROCK_EVAL_MODEL` applies it automatically, so this usually means the model is not
+  enabled in your region's console.
 - *Cost looks identical:* you may still be on the Nova Pro pricing constants — set the price
   overrides, or treat token counts (not dollars) as the comparison for non-default models.
-- *Forgot to revert:* the model edit is a source change — do not commit it.
 
 #### Conference demonstration
 
-- **Show on screen:** two summary tables (Nova Pro vs Nova Lite) for the same filtered REST set.
-- **Sequence:** run A → edit model → run B → compare pass rate vs cost/latency.
+- **Show on screen:** two summary tables (Nova Pro vs Nova Lite) for the same filtered petstore set.
+- **Sequence:** run A → add `BEDROCK_EVAL_MODEL=AmazonNovaLite` → run B → compare pass rate vs cost/latency.
 - **Observation:** "cheaper" is only cheaper if quality holds and correction overhead doesn't eat
   the savings.
 - **Fallback:** saved A/B tables.
@@ -939,7 +978,7 @@ Proposed, not implemented. Ordered by impact.
 | Full offline build + coverage | `./gradlew build koverVerify` |
 | First-pass quality (single scenario) | `BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_MAX_RETRIES=0 BEDROCK_EVAL_FILTER=rest-petstore-basic-get ./gradlew :software:infra:aws:generation:bedrockEval --console=plain` |
 | Correction before/after | run the above with `BEDROCK_EVAL_MAX_RETRIES=0` then `=1` |
-| Judge calibration | `BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_FILTER=rest-petstore-consistency BEDROCK_JUDGE_MODEL=OpenAIGptOss120B ./gradlew :software:infra:aws:generation:bedrockEval --console=plain` |
+| Judge calibration (disagreement case) | `BEDROCK_EVAL_ENABLED=true BEDROCK_EVAL_CALIBRATE=true BEDROCK_EVAL_MAX_RETRIES=0 BEDROCK_EVAL_FILTER=rest-petstore-realistic-pets ./gradlew :software:infra:aws:generation:bedrockEval --console=plain` |
 | Demo-friendly output | on by default; add `BEDROCK_EVAL_DEMO=false` for raw logger output, or `BEDROCK_EVAL_DETAIL=false` for summary-only |
 
 See [`docs/PROMPT_EVAL.md`](./PROMPT_EVAL.md) for the complete environment-variable reference and

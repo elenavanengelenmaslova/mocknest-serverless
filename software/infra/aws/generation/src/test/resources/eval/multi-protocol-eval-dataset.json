@@ -465,6 +465,17 @@
       }
     },
     {
+      "input": "rest-petstore-available-list-consistency",
+      "metadata": {
+        "protocol": "REST",
+        "specFile": "eval/petstore-openapi-3.0.yaml",
+        "format": "OPENAPI_3",
+        "namespace": "petstore-eval",
+        "description": "Generate mocks for 4 pets with realistic test data including pet names, only GET endpoints. 1 pet is a bird with image https://media.s-bol.com/q0Q9jQ7vDjGR/wpzn5L1/550x550.jpg, available, new, tag id=1 name=new. API call findByTags to get all new pets returns that bird. The other 3 pets are available but not new.",
+        "semanticCheck": "CONTEXT: The output is a JSON array of WireMock stub mappings. URLs are prefixed with a namespace like /petstore-eval/. Pet data is inside 'response.jsonBody' (an array for findByStatus and findByTags, an object for /pet/{id}). Strictly verify: 1) There must be a GET /pet/findByStatus (status=available) mock and a GET /pet/findByTags (tag=new) mock. 2) There must be at least 4 distinct pets across all responses, identified by unique id values, each with a realistic name. 3) The findByTags response must contain the bird (status 'available', a tag named 'new', and the bird image URL). 4) Only GET methods are used. Score 0 if the findByTags mock is missing, if fewer than 4 distinct pets are present, or if a non-GET method is used."
+      }
+    },
+    {
       "input": "rest-petstore-pagination",
       "metadata": {
         "protocol": "REST",

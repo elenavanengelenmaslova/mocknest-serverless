@@ -11,6 +11,7 @@ import ai.koog.prompt.executor.clients.bedrock.BedrockLLMClient
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.executor.clients.bedrock.BedrockModels
+import ai.koog.prompt.executor.clients.bedrock.withInferenceProfile
 import ai.koog.prompt.llm.LLModel
 import aws.sdk.kotlin.services.bedrockruntime.BedrockRuntimeClient
 import dev.dokimos.core.EvalTestCase
@@ -114,6 +115,26 @@ class BedrockPromptEvalTest {
     private val showDetail: Boolean = System.getenv("BEDROCK_EVAL_DETAIL")?.equals("false", ignoreCase = true) != true
 
     /**
+     * Judge-calibration mode. When `BEDROCK_EVAL_CALIBRATE=true`, each scenario additionally prints
+     * three full blocks — the exact generation PROMPT sent to the LLM, the raw LLM OUTPUT (generated
+     * WireMock mappings), and the JUDGE decision (criteria, score, threshold, verdict, reason) — so
+     * you can see whether the judge's verdict is fair for the given prompt and output. Intended for a
+     * single filtered scenario; it prints a lot. Pair with `BEDROCK_EVAL_FILTER` and `ITERATIONS=1`.
+     */
+    private val calibrateMode: Boolean = System.getenv("BEDROCK_EVAL_CALIBRATE")?.equals("true", ignoreCase = true) == true
+
+    /** One per-iteration calibration record: what the model produced + the judge's verdict. */
+    private data class CalibrationRecord(
+        val scenario: String,
+        val iteration: Int,
+        val endpointSummary: List<String>,
+        val judgePassed: Boolean,
+        val judgeScore: Double?
+    )
+
+    private val calibrationRecords = mutableListOf<CalibrationRecord>()
+
+    /**
      * Suite selector. `BEDROCK_EVAL_SUITE` chooses which eval suite(s) run:
      * `quality` (multi-protocol quality dataset), `injection` (injection dataset), or
      * `all` (both). Defaults to `all` to preserve prior behavior. Each suite skips via a
@@ -132,8 +153,17 @@ class BedrockPromptEvalTest {
         tokenUsageStore = tokenUsageStore
     )
 
+    /**
+     * Generator model. Defaults to `AmazonNovaPro`; override with `BEDROCK_EVAL_MODEL` to run the
+     * suite against a different Bedrock model (e.g. `AmazonNovaLite`) without editing code — used
+     * for the model-comparison demo. Must be a model name the `ModelConfiguration`/prefix resolver
+     * recognizes.
+     */
+    private val generatorModelName: String =
+        System.getenv("BEDROCK_EVAL_MODEL")?.takeIf { it.isNotBlank() } ?: "AmazonNovaPro"
+
     private val modelConfiguration = ModelConfiguration(
-        modelName = "AmazonNovaPro",
+        modelName = generatorModelName,
         prefixResolver = DefaultInferencePrefixResolver(
             deployRegion = region,
             inferenceMode = InferenceMode.AUTO
@@ -173,8 +203,19 @@ class BedrockPromptEvalTest {
     private fun resolveJudgeModel(name: String): LLModel {
         val property = BedrockModels::class.members.firstOrNull { it.name == name }
             ?: error("Judge model not found in BedrockModels: '$name'")
-        return property.call(BedrockModels) as? LLModel
+        val base = property.call(BedrockModels) as? LLModel
             ?: error("Property '$name' in BedrockModels is not an LLModel")
+        // Amazon Nova models require a regional inference-profile prefix (e.g. eu.amazon.nova-...)
+        // in regions like eu-west-1; the BedrockModels constant ships a us. id that is invalid
+        // elsewhere. Apply the same prefix the generator uses. Non-Amazon judge models
+        // (e.g. OpenAIGptOss120B) have no inference profile and are left untouched.
+        val needsPrefix = base.id.contains("amazon.nova", ignoreCase = true)
+        if (!needsPrefix) return base
+        val prefix = DefaultInferencePrefixResolver(
+            deployRegion = region,
+            inferenceMode = InferenceMode.AUTO
+        ).getCandidatePrefixes().firstOrNull() ?: return base
+        return base.withInferenceProfile(prefix)
     }
 
     private val judgeExecutor by lazy {
@@ -314,7 +355,7 @@ class BedrockPromptEvalTest {
                 if (!demoMode) logger.info { "--- Iteration $iter/$iterationCount ---" }
 
                 // Single run with enableValidation=true (maxRetries controlled by BEDROCK_EVAL_MAX_RETRIES)
-                val result = runScenario(scenario)
+                val result = runScenario(scenario, iter)
                 results.add(result)
                 logScenarioResult(result)
             }
@@ -341,6 +382,44 @@ class BedrockPromptEvalTest {
         // retries disabled this is a pure first-pass view: every scenario that did not pass
         // on the single shot, with the reason and any first-pass validation errors.
         emit(buildFailureBreakdown(results))
+
+        // Calibration comparison: one compact row per iteration showing what the model produced
+        // (per-endpoint item counts) and the judge's verdict, so a human can eyeball across runs
+        // which iteration the judge may have wrongly passed — without sifting the full dumps.
+        if (calibrateMode && calibrationRecords.isNotEmpty()) {
+            emit(buildCalibrationComparison())
+        }
+    }
+
+    /**
+     * Compact per-iteration calibration table. For each run it shows every generated endpoint with
+     * its response item count (arrays) and the judge verdict. Intermittent model slips (e.g. one
+     * endpoint returning fewer items than the others imply) become visible as a row that differs
+     * from its siblings while still showing PASS — the human then decides if the judge was wrong.
+     */
+    private fun buildCalibrationComparison(): String {
+        return buildString {
+            appendLine()
+            appendLine("CALIBRATION — per-iteration comparison (eyeball for a PASS that shouldn't be)")
+            appendLine("Each row is one run: the endpoints + response item counts the model produced, and the judge verdict.")
+            calibrationRecords.groupBy { it.scenario }.forEach { (scenario, records) ->
+                appendLine()
+                appendLine("  $scenario")
+                records.sortedBy { it.iteration }.forEach { rec ->
+                    val score = rec.judgeScore?.let { "%.2f".format(it) } ?: "n/a"
+                    val verdict = if (rec.judgePassed) "PASS" else "FAIL"
+                    appendLine("    iter ${rec.iteration}: judge=$verdict ($score)")
+                    // Compact: endpoint + item count only (drop the body preview) so rows are scannable.
+                    rec.endpointSummary.forEach { ep ->
+                        appendLine("        ${ep.substringBefore(" | body:")}")
+                    }
+                }
+            }
+            appendLine()
+            appendLine("  Tip: compare the same endpoint across iterations. If one run returns fewer items")
+            appendLine("  than the others (e.g. a list missing an entry) yet still shows judge=PASS, that is")
+            appendLine("  a judge miss — tighten that scenario's semanticCheck to make the rule explicit.")
+        }
     }
 
     /**
@@ -458,6 +537,77 @@ class BedrockPromptEvalTest {
     }
 
     /**
+     * Prints the judge-calibration dump for one scenario: the exact generation prompt, the raw LLM
+     * output, and the judge's decision. Always via `println` so it is visible regardless of logging.
+     */
+    /**
+     * Summarizes the generated mappings as one line per endpoint: METHOD url -> status, plus any
+     * query params / body matchers that distinguish it. Keeps the calibration dump focused on what
+     * the judge evaluates (which endpoints exist) rather than full response bodies.
+     */
+    private fun summarizeEndpoints(llmOutput: String): List<String> {
+        return runCatching {
+            Json.parseToJsonElement(llmOutput).jsonArray.map { element ->
+                val mapping = element.jsonObject
+                val request = mapping["request"]?.jsonObject
+                val response = mapping["response"]?.jsonObject
+                val method = request?.get("method")?.jsonPrimitive?.contentOrNull ?: "ANY"
+                val url = listOf("url", "urlPath", "urlPattern", "urlPathPattern")
+                    .firstNotNullOfOrNull { request?.get(it)?.jsonPrimitive?.contentOrNull } ?: "?"
+                val status = response?.get("status")?.jsonPrimitive?.contentOrNull ?: "?"
+                val query = request?.get("queryParameters")?.jsonObject?.keys
+                    ?.takeIf { it.isNotEmpty() }?.joinToString(",")?.let { " ?$it" } ?: ""
+                val bodyMatch = request?.get("bodyPatterns")?.let { " [bodyPatterns]" } ?: ""
+                // For array responses, show the item count — the key signal for spotting a list
+                // that returned fewer items than its siblings imply (e.g. the missing-bird case).
+                val jsonBody = response?.get("jsonBody")
+                val count = (jsonBody as? JsonArray)?.size?.let { " [$it items]" } ?: ""
+                // Show a compact preview of the response body so content issues (e.g. a missing
+                // element, status vs complete) are visible in the calibration dump without dumping
+                // full JSON. REST/GraphQL use response.jsonBody (JSON); SOAP uses response.body (a
+                // raw XML envelope string) — show whichever is present so SOAP bodies are visible too.
+                val previewCap = System.getenv("BEDROCK_EVAL_BODY_PREVIEW")?.toIntOrNull() ?: 160
+                val rawBody = response?.get("body")?.jsonPrimitive?.contentOrNull
+                val bodyText = jsonBody?.toString() ?: rawBody
+                val bodyPreview = bodyText?.let { text ->
+                    " | body: " + if (text.length > previewCap) text.take(previewCap) + "…" else text
+                } ?: ""
+                "${method.padEnd(6)} $url$query -> $status$count$bodyMatch$bodyPreview"
+            }
+        }.getOrElse { listOf("(could not parse LLM output as a JSON array)") }
+    }
+
+    private fun printCalibration(
+        scenario: EvalScenario,
+        llmOutput: String,
+        verdict: JudgeVerdict
+    ) {
+        val bar = "═".repeat(100)
+        val endpoints = summarizeEndpoints(llmOutput)
+
+        println()
+        println("╔$bar╗")
+        println("║ JUDGE CALIBRATION — ${scenario.input} (${scenario.protocol})".padEnd(101) + "║")
+        println("╚$bar╝")
+
+        println("\n──────── 1. SCENARIO PROMPT (the instruction the model was given) ────────\n")
+        println(scenario.description)
+
+        println("\n──────── 2. GENERATED ENDPOINTS (${endpoints.size}) ────────\n")
+        endpoints.forEach { println("  • $it") }
+
+        println("\n──────── 3. JUDGE DECISION ────────\n")
+        println("Criteria (semanticCheck):")
+        println(scenario.semanticCheck)
+        println()
+        val score = verdict.score?.let { "%.2f".format(it) } ?: "n/a"
+        println("Score   : $score  (threshold 0.70)")
+        println("Verdict : ${if (verdict.passed) "PASS ✓" else "FAIL ✗"}")
+        println("Reason  : ${verdict.reason ?: "(none returned)"}")
+        println("\n╚$bar╝\n")
+    }
+
+    /**
      * Emits a line to the demo-visible output. In demo mode this goes to `println` so the
      * tables and progress are shown regardless of the logging configuration; otherwise it
      * goes through the normal logger.
@@ -480,12 +630,16 @@ class BedrockPromptEvalTest {
         runCatching {
             val loggerFactory = org.slf4j.LoggerFactory.getILoggerFactory()
             if (loggerFactory is ch.qos.logback.classic.LoggerContext) {
-                // ERROR so the chatty per-scenario WARN narration (validation reports, judge
-                // notes) is suppressed for a clean demo. Only hard errors still surface; the
-                // tables and failures list carry everything the demo needs.
+                // Demo mode is about the tables, not logs. Silence the application logger
+                // entirely (OFF) so expected model failures — e.g. a weaker model emitting
+                // invalid/unparseable JSON, which the app logs at ERROR with a full stack trace —
+                // don't dump a scary wall of stack frames mid-demo. The failure is still shown
+                // cleanly as an "ERROR: ..." row in the detail/failures tables. The root logger is
+                // raised to ERROR so any unexpected framework error can still surface.
+                val off = ch.qos.logback.classic.Level.OFF
                 val error = ch.qos.logback.classic.Level.ERROR
                 loggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).level = error
-                loggerFactory.getLogger("nl.vintik.mocknest").level = error
+                loggerFactory.getLogger("nl.vintik.mocknest").level = off
             }
         }
     }
@@ -503,7 +657,7 @@ class BedrockPromptEvalTest {
 
     // --- Scenario execution ---
 
-    private fun runScenario(scenario: EvalScenario): ScenarioResult {
+    private fun runScenario(scenario: EvalScenario, iteration: Int = 1): ScenarioResult {
         tokenUsageStore.clear()
 
         var latencyMs = 0L
@@ -603,6 +757,21 @@ class BedrockPromptEvalTest {
             val judgeVerdict = runSemanticJudge(scenario, mappingsJson)
             val semanticPassed = judgeVerdict.passed
 
+            // Calibration dump: the scenario instruction, the endpoints the model produced, and the
+            // judge's decision — the three things needed to judge whether the verdict is fair.
+            if (calibrateMode) {
+                printCalibration(scenario, mappingsJson, judgeVerdict)
+                calibrationRecords.add(
+                    CalibrationRecord(
+                        scenario = scenario.input,
+                        iteration = iteration,
+                        endpointSummary = summarizeEndpoints(mappingsJson),
+                        judgePassed = judgeVerdict.passed,
+                        judgeScore = judgeVerdict.score
+                    )
+                )
+            }
+
             // Compute judge cost from phase-filtered records
             val judgeRecords = tokenUsageStore.getJudgeRecords()
             val judgeCost = CostCalculator.calculateCost(
@@ -638,7 +807,15 @@ class BedrockPromptEvalTest {
                 semanticReason = judgeVerdict.reason
             )
         }.getOrElse { e ->
-            logger.error(e) { "Scenario ${scenario.input} failed with exception" }
+            // A scenario failing because the model produced invalid/unparseable output is an
+            // expected eval result (especially for weaker models), not a harness error — record it
+            // as a clean one-line failure. In demo mode, no stack trace (the result row shows it);
+            // outside demo mode keep the trace for debugging.
+            if (demoMode) {
+                logger.info { "Scenario ${scenario.input} failed: ${e.message}" }
+            } else {
+                logger.error(e) { "Scenario ${scenario.input} failed with exception" }
+            }
 
             // Compute generation and judge costs from phase-filtered records
             val generationRecords = tokenUsageStore.getGenerationRecords()
